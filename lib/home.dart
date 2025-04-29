@@ -30,7 +30,11 @@ class HomeScreen extends StatelessWidget {
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: SingleChildScrollView(
-          child: Text(tempText, style: Theme.of(context).textTheme.bodyLarge, textDirection: TextDirection.rtl),
+          child: Text(
+            tempText,
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontFamily: 'sbl'),
+            textDirection: TextDirection.rtl,
+          ),
         ),
       ),
     );

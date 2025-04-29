@@ -4,11 +4,11 @@ import 'home.dart';
 import 'theme.dart';
 
 void main() {
-  runApp(BibleThemeApp());
+  runApp(GbtStudyApp());
 }
 
-class BibleThemeApp extends StatelessWidget {
-  const BibleThemeApp({super.key});
+class GbtStudyApp extends StatelessWidget {
+  const GbtStudyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
