@@ -8,30 +8,27 @@ import 'schema.dart';
 class DatabaseHelper {
   final String _databaseName = "database.db";
   late Database _database;
+  late PreparedStatement _insertHebrewGreekWord;
+  late PreparedStatement _insertGloss;
 
   void init() {
     _database = sqlite3.open(_databaseName);
-    _createBsbTable();
-    _createOriginalLanguageTable();
+    _createHebrewGreekTable();
     _createEnglishTable();
     _createPartOfSpeechTable();
-    _createInterlinearTable();
+    _initPreparedStatements();
   }
 
   void deleteDatabase() {
     final file = File(_databaseName);
     if (file.existsSync()) {
-      print('Deleting database file: $_databaseName');
+      log('Deleting database file: $_databaseName');
       file.deleteSync();
     }
   }
 
-  void _createBsbTable() {
-    _database.execute(Schema.createBsbTable);
-  }
-
-  void _createOriginalLanguageTable() {
-    _database.execute(Schema.createOriginalLanguageTable);
+  void _createHebrewGreekTable() {
+    _database.execute(Schema.createHebrewGreekTable);
   }
 
   void _createEnglishTable() {
@@ -42,55 +39,9 @@ class DatabaseHelper {
     _database.execute(Schema.createPartOfSpeechTable);
   }
 
-  void _createInterlinearTable() {
-    _database.execute(Schema.createInterlinearTable);
-  }
-
-  Future<void> insertBsbLine({
-    required int bookId,
-    required int chapter,
-    required int verse,
-    required String text,
-    required int type,
-    required int? format,
-    required String? footnote,
-  }) async {
-    if (text.isEmpty) {
-      throw Exception('Empty text for $bookId, $chapter, $verse');
-    }
-    _database.execute('''
-      INSERT INTO ${Schema.bibleTextTable} (
-        ${Schema.colBookId},
-        ${Schema.colChapter},
-        ${Schema.colVerse},
-        ${Schema.colText},
-        ${Schema.colType},
-        ${Schema.colFormat},
-        ${Schema.colFootnote}
-      ) VALUES (?, ?, ?, ?, ?, ?, ?)
-      ''', [bookId, chapter, verse, text, type, format, footnote]);
-  }
-
-  int insertOriginalLanguage({
-    required String word,
-  }) {
-    _database.execute('''
-      INSERT INTO ${Schema.originalLanguageTable} (
-        ${Schema.olColWord}
-      ) VALUES (?)
-      ''', [word]);
-    return _database.lastInsertRowId;
-  }
-
-  int insertEnglish({
-    required String word,
-  }) {
-    _database.execute('''
-      INSERT INTO ${Schema.englishTable} (
-        ${Schema.engColWord}
-      ) VALUES (?)
-      ''', [word]);
-    return _database.lastInsertRowId;
+  void _initPreparedStatements() {
+    _insertHebrewGreekWord = _database.prepare(Schema.insertHebrewGreekWord);
+    _insertGloss = _database.prepare(Schema.insertGloss);
   }
 
   int insertPartOfSpeech({
@@ -104,56 +55,71 @@ class DatabaseHelper {
     return _database.lastInsertRowId;
   }
 
-  void insertInterlinearVerse(
-    List<InterlinearWord> words,
-    int bookId,
-    int chapter,
-    int verse,
-  ) {
-    if (bookId == -1 || chapter == -1 || verse == -1) {
-      log('Invalid bookId, chapter, or verse: $bookId, $chapter, $verse');
-    }
+  void addHebrewGreekWords(List<HebrewGreekWord> words) {
+    _database.execute('BEGIN TRANSACTION;');
     for (var word in words) {
-      _database.execute('''
-        INSERT INTO ${Schema.interlinearTable} (
-          ${Schema.ilColBookId},
-          ${Schema.ilColChapter},
-          ${Schema.ilColVerse},
-          ${Schema.ilColLanguage},
-          ${Schema.ilColOriginal},
-          ${Schema.ilColPartOfSpeech},
-          ${Schema.ilColStrongsNumber},
-          ${Schema.ilColEnglish},
-          ${Schema.ilColPunctuation}
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', [
-        bookId,
-        chapter,
-        verse,
-        word.language,
-        word.original,
-        word.partOfSpeech,
-        word.strongsNumber,
-        word.english,
-        word.punctuation,
-      ]);
+      _insertHebrewGreekWord.execute([word.id, word.text, word.grammar, word.lemma]);
     }
+    _database.execute('COMMIT;');
+  }
+
+  void addGlosses(List<Gloss> glosses) {
+    _database.execute('BEGIN TRANSACTION;');
+    for (var gloss in glosses) {
+      _insertGloss.execute([gloss.id, gloss.gloss]);
+    }
+    _database.execute('COMMIT;');
+  }
+
+  void dispose() {
+    _insertHebrewGreekWord.dispose();
+    _insertGloss.dispose();
+    _database.dispose();
   }
 }
 
-class InterlinearWord {
-  InterlinearWord({
-    required this.language,
-    required this.original,
-    required this.partOfSpeech,
-    required this.strongsNumber,
-    required this.english,
-    required this.punctuation,
+class HebrewGreekWord {
+  final String id;
+  final String text;
+  final String grammar;
+  final String lemma;
+
+  HebrewGreekWord({
+    required this.id,
+    required this.text,
+    required this.grammar,
+    required this.lemma,
   });
-  final int language;
-  final int original;
-  final int partOfSpeech;
-  final int strongsNumber;
-  final int english;
-  final String? punctuation;
+
+  factory HebrewGreekWord.fromJson(Map<String, dynamic> json) {
+    return HebrewGreekWord(
+      id: json['id'],
+      text: json['text'],
+      grammar: json['grammar'],
+      lemma: json['lemma'],
+    );
+  }
+
+  @override
+  String toString() => 'Word(id: $id, text: $text, grammar: $grammar, lemma: $lemma)';
+}
+
+class Gloss {
+  final String id;
+  final String? gloss;
+
+  Gloss({
+    required this.id,
+    required this.gloss,
+  });
+
+  factory Gloss.fromJson(Map<String, dynamic> json) {
+    return Gloss(
+      id: json['id'],
+      gloss: json['gloss'],
+    );
+  }
+
+  @override
+  String toString() => 'Word(id: $id, gloss: $gloss)';
 }
