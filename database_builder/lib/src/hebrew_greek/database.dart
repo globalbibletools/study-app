@@ -50,7 +50,7 @@ class HebrewGreekDatabase {
   }
 
   Future<void> populateHebrewGreekTables() async {
-    final (text, grammar, lemmas) = await _createForeignTables();
+    final (text, grammar, lemmas) = await _populateForeignTables();
 
     int wordCount = 0;
     for (final fileName in bookFileNames) {
@@ -65,7 +65,7 @@ class HebrewGreekDatabase {
     print('Total Hebrew/Greek words: $wordCount');
   }
 
-  Future<ForeignTableMaps> _createForeignTables() async {
+  Future<ForeignTableMaps> _populateForeignTables() async {
     final Set<String> uniqueText = {};
     final Set<String> uniqueGrammar = {};
     final Set<String> uniqueLemma = {};
@@ -76,9 +76,9 @@ class HebrewGreekDatabase {
       print('Finding unique words in $fileName');
       final words = _extractWords(jsonData);
       for (final word in words) {
-        uniqueText.add(word.text);
-        uniqueGrammar.add(word.grammar);
-        uniqueLemma.add(word.lemma);
+        uniqueText.add(word.text.trim());
+        uniqueGrammar.add(word.grammar.trim());
+        uniqueLemma.add(word.lemma.trim());
       }
     }
 
@@ -156,7 +156,7 @@ class HebrewGreekDatabase {
 }
 
 class HebrewGreekWord {
-  final String id;
+  final int id;
   final String text;
   final String grammar;
   final String lemma;
@@ -170,10 +170,10 @@ class HebrewGreekWord {
 
   factory HebrewGreekWord.fromJson(Map<String, dynamic> json) {
     return HebrewGreekWord(
-      id: json['id'],
-      text: json['text'],
-      grammar: json['grammar'],
-      lemma: json['lemma'],
+      id: int.parse(json['id']),
+      text: json['text']?.trim(),
+      grammar: json['grammar']?.trim(),
+      lemma: json['lemma']?.trim(),
     );
   }
 

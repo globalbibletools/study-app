@@ -18,15 +18,16 @@ class GlossDatabase {
   late PreparedStatement _insertText;
 
   void init() {
-    _database = sqlite3.open(languageIsoCode);
+    _database = sqlite3.open('$languageIsoCode.db');
     _createTables();
     _initPreparedStatements();
   }
 
   void deleteDatabase() {
-    final file = File(languageIsoCode);
+    final filename = '$languageIsoCode.db';
+    final file = File(filename);
     if (file.existsSync()) {
-      log('Deleting database file: $languageIsoCode');
+      log('Deleting database file: $filename');
       file.deleteSync();
     }
   }
@@ -46,7 +47,7 @@ class GlossDatabase {
 
     int wordCount = 0;
     for (final fileName in bookFileNames) {
-      final file = File('../../data/hbo+grc/$fileName');
+      final file = File('../../data/$languageIsoCode/$fileName');
       final jsonData = await file.readAsString();
       print('Processing $fileName');
       final words = _extractWords(jsonData);
@@ -123,13 +124,15 @@ class GlossDatabase {
 }
 
 class Gloss {
-  final String id;
+  final int id;
   final String? gloss;
 
   Gloss({required this.id, required this.gloss});
 
   factory Gloss.fromJson(Map<String, dynamic> json) {
-    return Gloss(id: json['id'], gloss: json['gloss']);
+    final id = int.parse(json['id']);
+    var gloss = json['gloss']?.trim();
+    return Gloss(id: id, gloss: gloss);
   }
 
   @override
