@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:studyapp/services/database.dart';
+import 'package:studyapp/services/service_locator.dart';
 
-import 'home.dart';
+import 'home/home.dart';
 import 'theme.dart';
 
-void main() {
-  runApp(GbtStudyApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  setupServiceLocator();
+  await getIt<HebrewGreekDatabase>().init();
+  runApp(const GbtStudyApp());
 }
 
 class GbtStudyApp extends StatelessWidget {
