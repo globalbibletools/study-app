@@ -75,22 +75,27 @@ class _HomeScreenState extends State<HomeScreen> {
       body: Stack(
         children: [
           Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.only(left: 16.0, right: 16.0),
             child: SingleChildScrollView(
-              child: ValueListenableBuilder(
-                valueListenable: manager.textNotifier,
-                builder: (context, text, child) {
-                  return Text(
-                    text,
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodyLarge?.copyWith(fontFamily: 'sbl'),
-                    textDirection:
-                        manager.currentChapterIsRtl
-                            ? TextDirection.rtl
-                            : TextDirection.ltr,
-                  );
-                },
+              child: Column(
+                children: [
+                  ValueListenableBuilder(
+                    valueListenable: manager.textNotifier,
+                    builder: (context, text, child) {
+                      return Text(
+                        text,
+                        style: Theme.of(
+                          context,
+                        ).textTheme.bodyLarge?.copyWith(fontFamily: 'sbl'),
+                        textDirection:
+                            manager.currentChapterIsRtl
+                                ? TextDirection.rtl
+                                : TextDirection.ltr,
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 300.0),
+                ],
               ),
             ),
           ),
