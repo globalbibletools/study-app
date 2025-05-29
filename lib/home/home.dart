@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'chapter_chooser.dart';
 import 'home_manager.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -21,7 +22,25 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Genesis 1')),
+      appBar: AppBar(
+        title: Row(
+          children: [
+            OutlinedButton(child: Text('Genesis'), onPressed: () {}),
+            const SizedBox(width: 10),
+            OutlinedButton(
+              child: ValueListenableBuilder(
+                valueListenable: manager.currentChapterNotifier,
+                builder: (context, value, child) {
+                  return Text('$value');
+                },
+              ),
+              onPressed: () {
+                manager.showChapterChooser();
+              },
+            ),
+          ],
+        ),
+      ),
       drawer: Drawer(
         child: ListView(
           padding: EdgeInsets.zero,
@@ -42,20 +61,38 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: ValueListenableBuilder(
-            valueListenable: manager.textNotifier,
-            builder: (context, text, child) {
-              return Text(
-                text,
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontFamily: 'sbl'),
-                textDirection: TextDirection.rtl,
+      body: Stack(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: SingleChildScrollView(
+              child: ValueListenableBuilder(
+                valueListenable: manager.textNotifier,
+                builder: (context, text, child) {
+                  return Text(
+                    text,
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodyLarge?.copyWith(fontFamily: 'sbl'),
+                    textDirection: TextDirection.rtl,
+                  );
+                },
+              ),
+            ),
+          ),
+          ValueListenableBuilder<int?>(
+            valueListenable: manager.chapterCountNotifier,
+            builder: (context, chapterCount, child) {
+              if (chapterCount == null) {
+                return const SizedBox();
+              }
+              return ChapterChooser(
+                chapterCount: chapterCount,
+                onChapterSelected: manager.onChapterSelected,
               );
             },
           ),
-        ),
+        ],
       ),
     );
   }
