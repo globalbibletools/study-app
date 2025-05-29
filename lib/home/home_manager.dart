@@ -11,6 +11,9 @@ class HomeManager {
   final _db = getIt<HebrewGreekDatabase>();
   int _currentBookId = 1;
 
+  static const _lastOldTestamentBookId = 39;
+  bool get currentChapterIsRtl => _currentBookId <= _lastOldTestamentBookId;
+
   Future<void> init() async {
     _updateCurrentBookName();
     _updateCurrentChapterText();

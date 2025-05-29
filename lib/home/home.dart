@@ -85,7 +85,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     style: Theme.of(
                       context,
                     ).textTheme.bodyLarge?.copyWith(fontFamily: 'sbl'),
-                    textDirection: TextDirection.rtl,
+                    textDirection:
+                        manager.currentChapterIsRtl
+                            ? TextDirection.rtl
+                            : TextDirection.ltr,
                   );
                 },
               ),
