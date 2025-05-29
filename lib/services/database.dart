@@ -48,6 +48,11 @@ class HebrewGreekDatabase {
   }
 
   Future<List<HebrewGreekWord>> getChapter(int bookId, int chapter) async {
+    const int bookMultiplier = 100000000;
+    const int chapterMultiplier = 100000;
+    final int lowerBound = bookId * bookMultiplier + chapter * chapterMultiplier;
+    final int upperBound = bookId * bookMultiplier + (chapter + 1) * chapterMultiplier;
+
     final List<Map<String, dynamic>> words = await _database.rawQuery(
       'SELECT v.${HebrewGreekSchema.versesColId}, '
       't.${HebrewGreekSchema.textColText}, '
@@ -62,7 +67,7 @@ class HebrewGreekDatabase {
       'ON v.${HebrewGreekSchema.versesColLemma} = l.${HebrewGreekSchema.lemmaColId} '
       'WHERE v.${HebrewGreekSchema.versesColId} >= ? AND v.${HebrewGreekSchema.versesColId} < ? '
       'ORDER BY v.${HebrewGreekSchema.versesColId} ASC',
-      [bookId * 1000000 + chapter * 1000, bookId * 1000000 + (chapter + 1) * 1000],
+      [lowerBound, upperBound],
     );
 
     return words

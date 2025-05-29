@@ -8,6 +8,7 @@ class HomeManager {
 
   Future<void> init() async {
     final words = await db.getChapter(1, 1);
+    print('words: $words');
     textNotifier.value = words.map((e) => e.text).join(' ');
   }
 }
