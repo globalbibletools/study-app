@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:studyapp/services/database.dart';
 import 'package:studyapp/services/service_locator.dart';
+import 'package:studyapp/services/user_settings.dart';
 
 class HomeManager {
   final currentBookNotifier = ValueNotifier<String>('');
@@ -9,14 +10,19 @@ class HomeManager {
   final textNotifier = ValueNotifier('');
 
   final _db = getIt<HebrewGreekDatabase>();
+  final _settings = getIt<UserSettings>();
   int _currentBookId = 1;
+
+  void Function()? onTextUpdated;
 
   static const _lastOldTestamentBookId = 39;
   bool get currentChapterIsRtl => _currentBookId <= _lastOldTestamentBookId;
 
   Future<void> init() async {
-    _updateCurrentBookName();
-    _updateCurrentChapterText();
+    final (bookId, chapter) = _settings.currentBookChapter;
+    _updateCurrentBookName(bookId);
+    currentChapterNotifier.value = chapter;
+    _updateText();
   }
 
   void _updateCurrentBookName([int? bookId]) {
@@ -24,10 +30,11 @@ class HomeManager {
     currentBookNotifier.value = _bookIdToFullNameMap[_currentBookId]!;
   }
 
-  Future<void> _updateCurrentChapterText() async {
+  Future<void> _updateText() async {
     final chapter = currentChapterNotifier.value;
     final words = await _db.getChapter(_currentBookId, chapter);
     textNotifier.value = words.map((e) => e.text).join(' ');
+    onTextUpdated?.call();
   }
 
   void showChapterChooser() {
@@ -35,24 +42,25 @@ class HomeManager {
     chapterCountNotifier.value = numberOfChapters;
   }
 
+  Future<void> onBookSelected(int? bookId) async {
+    if (bookId == null) {
+      return;
+    }
+    _updateCurrentBookName(bookId);
+    final currentChapter = 1;
+    currentChapterNotifier.value = currentChapter;
+    await _updateText();
+    await _settings.setCurrentBookChapter(bookId, currentChapter);
+  }
+
   Future<void> onChapterSelected(int? chapter) async {
     chapterCountNotifier.value = null;
     if (chapter == null) {
       return;
     }
-    final words = await _db.getChapter(_currentBookId, chapter);
-    // print('words: $words');
     currentChapterNotifier.value = chapter;
-    textNotifier.value = words.map((e) => e.text).join(' ');
-  }
-
-  void onBookSelected(int? bookId) {
-    if (bookId == null) {
-      return;
-    }
-    _updateCurrentBookName(bookId);
-    currentChapterNotifier.value = 1;
-    _updateCurrentChapterText();
+    await _updateText();
+    await _settings.setCurrentBookChapter(_currentBookId, chapter);
   }
 }
 

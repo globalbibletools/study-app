@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:studyapp/services/database.dart';
 import 'package:studyapp/services/service_locator.dart';
+import 'package:studyapp/services/user_settings.dart';
 
 import 'home/home.dart';
 import 'theme.dart';
@@ -9,6 +10,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   setupServiceLocator();
   await getIt<HebrewGreekDatabase>().init();
+  await getIt<UserSettings>().init();
   runApp(const GbtStudyApp());
 }
 

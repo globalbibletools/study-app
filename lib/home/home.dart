@@ -19,6 +19,19 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     manager.init();
+    manager.onTextUpdated = _scrollToTop;
+  }
+
+  void _scrollToTop() {
+    if (_scrollController.hasClients) {
+      _scrollController.jumpTo(0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   @override
@@ -28,7 +41,7 @@ class _HomeScreenState extends State<HomeScreen> {
         title: Row(
           children: [
             OutlinedButton(
-              child: ValueListenableBuilder(
+              child: ValueListenableBuilder<String>(
                 valueListenable: manager.currentBookNotifier,
                 builder: (context, value, child) {
                   return Text(value);
@@ -84,7 +97,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   ValueListenableBuilder(
                     valueListenable: manager.textNotifier,
                     builder: (context, text, child) {
-                      _scrollController.jumpTo(0);
                       return Text(
                         text,
                         style: Theme.of(
