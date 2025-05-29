@@ -13,6 +13,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final manager = HomeManager();
+  final _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -77,11 +78,13 @@ class _HomeScreenState extends State<HomeScreen> {
           Padding(
             padding: const EdgeInsets.only(left: 16.0, right: 16.0),
             child: SingleChildScrollView(
+              controller: _scrollController,
               child: Column(
                 children: [
                   ValueListenableBuilder(
                     valueListenable: manager.textNotifier,
                     builder: (context, text, child) {
+                      _scrollController.jumpTo(0);
                       return Text(
                         text,
                         style: Theme.of(
