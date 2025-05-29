@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'book_chooser.dart';
 import 'chapter_chooser.dart';
 import 'home_manager.dart';
 
@@ -25,7 +26,17 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: Row(
           children: [
-            OutlinedButton(child: Text('Genesis'), onPressed: () {}),
+            OutlinedButton(
+              child: ValueListenableBuilder(
+                valueListenable: manager.currentBookNotifier,
+                builder: (context, value, child) {
+                  return Text(value);
+                },
+              ),
+              onPressed: () {
+                _showBookChooserDialog();
+              },
+            ),
             const SizedBox(width: 10),
             OutlinedButton(
               child: ValueListenableBuilder(
@@ -95,5 +106,17 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _showBookChooserDialog() async {
+    manager.chapterCountNotifier.value = null;
+    final selectedIndex = await showDialog<int>(
+      context: context,
+      builder: (BuildContext context) {
+        return const BookChooser();
+      },
+    );
+
+    manager.onBookSelected(selectedIndex);
   }
 }
