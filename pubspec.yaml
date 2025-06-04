@@ -29,6 +29,6 @@ flutter:
   fonts:
     - family: sbl
       fonts:
-        - asset: assets/fonts/SBL_Blit.ttf
+        - asset: assets/fonts/SBL_BLit.ttf
   assets:
     - assets/databases/
