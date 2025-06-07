@@ -1,4 +1,6 @@
-import 'package:flutter/foundation.dart';
+import 'package:database_builder/database_builder.dart';
+import 'package:flutter/gestures.dart';
+import 'package:flutter/widgets.dart';
 import 'package:studyapp/services/database.dart';
 import 'package:studyapp/services/service_locator.dart';
 import 'package:studyapp/services/user_settings.dart';
@@ -7,7 +9,7 @@ class HomeManager {
   final currentBookNotifier = ValueNotifier<String>('');
   final currentChapterNotifier = ValueNotifier<int>(1);
   final chapterCountNotifier = ValueNotifier<int?>(null);
-  final textNotifier = ValueNotifier('');
+  final textNotifier = ValueNotifier<TextSpan>(const TextSpan());
 
   final _db = getIt<HebrewGreekDatabase>();
   final _settings = getIt<UserSettings>();
@@ -33,8 +35,28 @@ class HomeManager {
   Future<void> _updateText() async {
     final chapter = currentChapterNotifier.value;
     final words = await _db.getChapter(_currentBookId, chapter);
-    textNotifier.value = words.map((e) => e.text).join(' ');
+    textNotifier.value = _makeWordsClickable(words);
     onTextUpdated?.call();
+  }
+
+  TextSpan _makeWordsClickable(List<HebrewGreekWord> words) {
+    return TextSpan(
+      children:
+          words.map((word) {
+            return TextSpan(
+              text: '${word.text} ',
+              recognizer:
+                  TapGestureRecognizer()
+                    ..onTap = () {
+                      // Handle word tap - can expose this via a callback or state management
+                      print('Id: ${word.id}');
+                      print('Word tapped: ${word.text}');
+                      print('Lemma: ${word.lemma}');
+                      print('Grammar: ${word.grammar}');
+                    },
+            );
+          }).toList(),
+    );
   }
 
   void showChapterChooser() {

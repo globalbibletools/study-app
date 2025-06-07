@@ -97,7 +97,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ValueListenableBuilder(
                     valueListenable: manager.textNotifier,
                     builder: (context, text, child) {
-                      return Text(
+                      return Text.rich(
                         text,
                         style: Theme.of(
                           context,
