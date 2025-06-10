@@ -10,6 +10,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   setupServiceLocator();
   await getIt<HebrewGreekDatabase>().init();
+  await getIt<EnglishDatabase>().init();
   await getIt<UserSettings>().init();
   runApp(const GbtStudyApp());
 }

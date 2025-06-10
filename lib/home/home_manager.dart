@@ -11,7 +11,8 @@ class HomeManager {
   final chapterCountNotifier = ValueNotifier<int?>(null);
   final textNotifier = ValueNotifier<List<HebrewGreekWord>>([]);
 
-  final _db = getIt<HebrewGreekDatabase>();
+  final _hebrewGreekDb = getIt<HebrewGreekDatabase>();
+  final _glossDb = getIt<EnglishDatabase>();
   final _settings = getIt<UserSettings>();
   int _currentBookId = 1;
 
@@ -34,29 +35,32 @@ class HomeManager {
 
   Future<void> _updateText() async {
     final chapter = currentChapterNotifier.value;
-    textNotifier.value = await _db.getChapter(_currentBookId, chapter);
+    textNotifier.value = await _hebrewGreekDb.getChapter(
+      _currentBookId,
+      chapter,
+    );
     onTextUpdated?.call();
   }
 
-  TextSpan _makeWordsClickable(List<HebrewGreekWord> words) {
-    return TextSpan(
-      children:
-          words.map((word) {
-            return TextSpan(
-              text: '${word.text} ',
-              recognizer:
-                  TapGestureRecognizer()
-                    ..onTap = () {
-                      // Handle word tap - can expose this via a callback or state management
-                      print('Id: ${word.id}');
-                      print('Word tapped: ${word.text}');
-                      print('Lemma: ${word.lemma}');
-                      print('Grammar: ${word.grammar}');
-                    },
-            );
-          }).toList(),
-    );
-  }
+  // TextSpan _makeWordsClickable(List<HebrewGreekWord> words) {
+  //   return TextSpan(
+  //     children:
+  //         words.map((word) {
+  //           return TextSpan(
+  //             text: '${word.text} ',
+  //             recognizer:
+  //                 TapGestureRecognizer()
+  //                   ..onTap = () {
+  //                     // Handle word tap - can expose this via a callback or state management
+  //                     print('Id: ${word.id}');
+  //                     print('Word tapped: ${word.text}');
+  //                     print('Lemma: ${word.lemma}');
+  //                     print('Grammar: ${word.grammar}');
+  //                   },
+  //           );
+  //         }).toList(),
+  //   );
+  // }
 
   void showChapterChooser() {
     final numberOfChapters = _bookIdToChapterCountMap[_currentBookId];
@@ -82,6 +86,10 @@ class HomeManager {
     currentChapterNotifier.value = chapter;
     await _updateText();
     await _settings.setCurrentBookChapter(_currentBookId, chapter);
+  }
+
+  Future<String> lookupGlossForId(int id) async {
+    return await _glossDb.getGloss(id) ?? '';
   }
 }
 

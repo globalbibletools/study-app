@@ -7,5 +7,6 @@ final getIt = GetIt.instance;
 
 void setupServiceLocator() {
   getIt.registerLazySingleton<HebrewGreekDatabase>(() => HebrewGreekDatabase());
+  getIt.registerLazySingleton<EnglishDatabase>(() => EnglishDatabase());
   getIt.registerLazySingleton<UserSettings>(() => UserSettings());
 }

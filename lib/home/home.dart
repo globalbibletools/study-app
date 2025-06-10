@@ -39,8 +39,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _showGlossOverlay(
-    BuildContext context,
-    HebrewGreekWord word,
+    // BuildContext context,
+    String word,
     GlobalKey key,
   ) {
     _removeGlossOverlay();
@@ -51,37 +51,53 @@ class _HomeScreenState extends State<HomeScreen> {
     final size = renderBox.size;
     final position = renderBox.localToGlobal(Offset.zero);
 
-    final overlayTop = position.dy - 28.0;
-    final overlayLeft = position.dx;
-
     final theme = Theme.of(context);
+
+    // Measure the width of the popup text
+    final textSpan = TextSpan(text: word, style: theme.textTheme.bodyMedium);
+    final textPainter = TextPainter(
+      text: textSpan,
+      textDirection: TextDirection.rtl,
+    );
+    textPainter.layout();
+
+    const horizontalPadding = 8.0;
+    const verticalPadding = 4.0;
 
     _overlayEntry = OverlayEntry(
       builder:
           (context) => Positioned(
-            top: overlayTop,
-            left: overlayLeft,
+            top: position.dy - 30,
+            left:
+                position.dx +
+                size.width / 2 -
+                textPainter.width / 2 -
+                horizontalPadding,
             child: Container(
               padding: const EdgeInsets.symmetric(
-                horizontal: 8.0,
-                vertical: 4.0,
+                horizontal: horizontalPadding,
+                vertical: verticalPadding,
               ),
               decoration: BoxDecoration(
-                color: theme.cardColor,
+                color: theme.textTheme.bodyMedium!.color,
                 borderRadius: BorderRadius.circular(4),
-                boxShadow: const [
+                boxShadow: [
                   BoxShadow(
-                    color: Colors.black26,
+                    color: Colors.black,
                     blurRadius: 4.0,
                     offset: Offset(0, 2),
                   ),
                 ],
               ),
-              child: Text(word.lemma, style: theme.textTheme.bodyMedium),
+              child: Text(
+                word,
+                style: theme.textTheme.bodyMedium!.copyWith(
+                  color: Colors.black87,
+                ),
+              ),
             ),
           ),
     );
-
     Overlay.of(context).insert(_overlayEntry!);
   }
 
@@ -200,7 +216,10 @@ class _HomeScreenState extends State<HomeScreen> {
       final key = _wordKeys[index];
       return GestureDetector(
         key: key,
-        onTap: () => _showGlossOverlay(context, word, key),
+        onTap: () async {
+          final gloss = await manager.lookupGlossForId(word.id);
+          _showGlossOverlay(gloss, key);
+        },
         child: Text(
           word.text,
           style: const TextStyle(fontFamily: 'sbl', fontSize: 20),
