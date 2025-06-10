@@ -9,7 +9,7 @@ class HomeManager {
   final currentBookNotifier = ValueNotifier<String>('');
   final currentChapterNotifier = ValueNotifier<int>(1);
   final chapterCountNotifier = ValueNotifier<int?>(null);
-  final textNotifier = ValueNotifier<TextSpan>(const TextSpan());
+  final textNotifier = ValueNotifier<List<HebrewGreekWord>>([]);
 
   final _db = getIt<HebrewGreekDatabase>();
   final _settings = getIt<UserSettings>();
@@ -34,8 +34,7 @@ class HomeManager {
 
   Future<void> _updateText() async {
     final chapter = currentChapterNotifier.value;
-    final words = await _db.getChapter(_currentBookId, chapter);
-    textNotifier.value = _makeWordsClickable(words);
+    textNotifier.value = await _db.getChapter(_currentBookId, chapter);
     onTextUpdated?.call();
   }
 
