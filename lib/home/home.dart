@@ -95,6 +95,9 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
     );
     Overlay.of(context).insert(_overlayEntry!);
+    Future.delayed(const Duration(milliseconds: 1500), () {
+      _removeGlossOverlay();
+    });
   }
 
   void _removeGlossOverlay() {
