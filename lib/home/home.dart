@@ -59,16 +59,24 @@ class _HomeScreenState extends State<HomeScreen> {
 
     const horizontalPadding = 8.0;
     const verticalPadding = 4.0;
+    final popupWidth = textPainter.width + (horizontalPadding * 2);
+    final screenSize = MediaQuery.sizeOf(context);
+    double left = position.dx + size.width / 2 - popupWidth / 2;
+    final top = position.dy - 30;
+
+    // Adjust if going off screen
+    const edgePadding = 8.0;
+    if (left < 0) {
+      left = edgePadding;
+    } else if (left + popupWidth > screenSize.width) {
+      left = screenSize.width - popupWidth - edgePadding;
+    }
 
     _overlayEntry = OverlayEntry(
       builder:
           (context) => Positioned(
-            top: position.dy - 30,
-            left:
-                position.dx +
-                size.width / 2 -
-                textPainter.width / 2 -
-                horizontalPadding,
+            top: top,
+            left: left,
             child: Container(
               padding: const EdgeInsets.symmetric(
                 horizontal: horizontalPadding,
