@@ -1,5 +1,4 @@
 import 'package:database_builder/database_builder.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
 import 'package:studyapp/services/database.dart';
 import 'package:studyapp/services/service_locator.dart';
@@ -41,26 +40,6 @@ class HomeManager {
     );
     onTextUpdated?.call();
   }
-
-  // TextSpan _makeWordsClickable(List<HebrewGreekWord> words) {
-  //   return TextSpan(
-  //     children:
-  //         words.map((word) {
-  //           return TextSpan(
-  //             text: '${word.text} ',
-  //             recognizer:
-  //                 TapGestureRecognizer()
-  //                   ..onTap = () {
-  //                     // Handle word tap - can expose this via a callback or state management
-  //                     print('Id: ${word.id}');
-  //                     print('Word tapped: ${word.text}');
-  //                     print('Lemma: ${word.lemma}');
-  //                     print('Grammar: ${word.grammar}');
-  //                   },
-  //           );
-  //         }).toList(),
-  //   );
-  // }
 
   void showChapterChooser() {
     final numberOfChapters = _bookIdToChapterCountMap[_currentBookId];

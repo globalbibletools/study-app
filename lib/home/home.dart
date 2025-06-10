@@ -38,11 +38,7 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  void _showGlossOverlay(
-    // BuildContext context,
-    String word,
-    GlobalKey key,
-  ) {
+  void _showGlossOverlay(String word, GlobalKey key) {
     _removeGlossOverlay();
 
     final renderBox = key.currentContext?.findRenderObject() as RenderBox?;
@@ -120,6 +116,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 },
               ),
               onPressed: () {
+                _removeGlossOverlay();
                 _showBookChooserDialog();
               },
             ),
@@ -132,6 +129,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 },
               ),
               onPressed: () {
+                _removeGlossOverlay();
                 manager.showChapterChooser();
               },
             ),
