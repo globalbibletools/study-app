@@ -222,6 +222,8 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Widget> _createTextWidgets(List<HebrewGreekWord> words) {
     return List.generate(words.length, (index) {
       final word = words[index];
+      final verse = _extractVerse(word);
+      final wordText = (verse == null) ? word.text : '$verse ${word.text}';
       final key = _wordKeys[index];
       return GestureDetector(
         key: key,
@@ -230,7 +232,11 @@ class _HomeScreenState extends State<HomeScreen> {
           _showGlossOverlay(gloss, key);
         },
         child: Text(
-          word.text,
+          wordText,
+          textDirection:
+              manager.currentChapterIsRtl
+                  ? TextDirection.rtl
+                  : TextDirection.ltr,
           style: const TextStyle(fontFamily: 'sbl', fontSize: 20),
         ),
       );
@@ -247,5 +253,13 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     manager.onBookSelected(selectedIndex);
+  }
+
+  int? _extractVerse(HebrewGreekWord word) {
+    // last two digits are the word number
+    final wordNumber = word.id % 100;
+    if (wordNumber > 1) return null;
+    // the next three digits are the verse number
+    return (word.id ~/ 100) % 1000;
   }
 }
