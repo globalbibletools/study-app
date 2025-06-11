@@ -9,6 +9,7 @@ class UserSettings {
 
   static const _currentChapterKey = 'currentChapter';
   static const _currentBookIdKey = 'currentBookId';
+  static const _fontScaleKey = 'fontScale';
 
   (int, int) get currentBookChapter {
     final bookId = _prefs.getInt(_currentBookIdKey) ?? 1;
@@ -20,4 +21,10 @@ class UserSettings {
     await _prefs.setInt(_currentBookIdKey, bookId);
     await _prefs.setInt(_currentChapterKey, chapter);
   }
+
+  Future<void> setFontScale(double scale) async {
+    await _prefs.setDouble(_fontScaleKey, scale);
+  }
+
+  double get fontScale => _prefs.getDouble(_fontScaleKey) ?? 1.0;
 }

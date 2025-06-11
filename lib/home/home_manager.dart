@@ -70,6 +70,14 @@ class HomeManager {
   Future<String> lookupGlossForId(int id) async {
     return await _glossDb.getGloss(id) ?? '';
   }
+
+  Future<void> saveFontScale(double scale) async {
+    await _settings.setFontScale(scale);
+  }
+
+  double getFontScale() {
+    return _settings.fontScale;
+  }
 }
 
 const _bookIdToFullNameMap = {

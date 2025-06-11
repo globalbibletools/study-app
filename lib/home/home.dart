@@ -18,11 +18,16 @@ class _HomeScreenState extends State<HomeScreen> {
   OverlayEntry? _overlayEntry;
   List<GlobalKey> _wordKeys = [];
 
+  static const double _baseFontSize = 20.0;
+  double _currentScale = 1.0;
+  double _previousScale = 1.0;
+
   @override
   void initState() {
     super.initState();
     manager.init();
     manager.onTextUpdated = _scrollToTop;
+    _currentScale = manager.getFontScale();
   }
 
   void _scrollToTop() {
@@ -170,6 +175,20 @@ class _HomeScreenState extends State<HomeScreen> {
       body: GestureDetector(
         onTap: _removeGlossOverlay,
         behavior: HitTestBehavior.translucent,
+        onScaleStart: (details) {
+          _previousScale = _currentScale;
+          _removeGlossOverlay();
+        },
+        onScaleUpdate: (details) {
+          setState(() {
+            _currentScale = _previousScale * details.scale;
+            // Constrain the zoom level to a reasonable range
+            _currentScale = _currentScale.clamp(0.5, 4.0);
+          });
+        },
+        onScaleEnd: (details) {
+          manager.saveFontScale(_currentScale);
+        },
         child: Stack(
           children: [
             Padding(
@@ -237,7 +256,10 @@ class _HomeScreenState extends State<HomeScreen> {
               manager.currentChapterIsRtl
                   ? TextDirection.rtl
                   : TextDirection.ltr,
-          style: const TextStyle(fontFamily: 'sbl', fontSize: 20),
+          style: TextStyle(
+            fontFamily: 'sbl',
+            fontSize: _baseFontSize * _currentScale,
+          ),
         ),
       );
     });
