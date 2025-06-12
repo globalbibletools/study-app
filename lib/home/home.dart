@@ -211,7 +211,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         );
                         final textWidgets = _createTextWidgets(words);
                         return Wrap(
-                          // spacing: 5,
                           textDirection:
                               manager.currentChapterIsRtl
                                   ? TextDirection.rtl
