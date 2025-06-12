@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:database_builder/database_builder.dart';
 import 'package:flutter/material.dart';
@@ -54,11 +55,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final size = renderBox.size;
     final position = renderBox.localToGlobal(Offset.zero);
+    final fontSize = _baseFontSize * _currentScale;
 
     final theme = Theme.of(context);
 
     // Measure the width of the popup text
-    final textSpan = TextSpan(text: word, style: theme.textTheme.bodyMedium);
+    final textSpan = TextSpan(
+      text: word,
+      style: theme.textTheme.bodyMedium!.copyWith(fontSize: fontSize),
+    );
     final textPainter = TextPainter(
       text: textSpan,
       textDirection: TextDirection.rtl,
@@ -70,7 +75,8 @@ class _HomeScreenState extends State<HomeScreen> {
     final popupWidth = textPainter.width + (horizontalPadding * 2);
     final screenSize = MediaQuery.sizeOf(context);
     double left = position.dx + size.width / 2 - popupWidth / 2;
-    final top = position.dy - 30;
+    final verticalOffset = max(30, 30 * _currentScale);
+    final top = position.dy - verticalOffset;
 
     // Adjust if going off screen
     const edgePadding = 8.0;
@@ -105,6 +111,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 word,
                 style: theme.textTheme.bodyMedium!.copyWith(
                   color: Colors.black87,
+                  fontSize: fontSize,
                 ),
               ),
             ),
