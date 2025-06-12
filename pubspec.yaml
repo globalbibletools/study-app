@@ -2,7 +2,7 @@ name: studyapp
 description: "Global Bible Tools Hebrew and Greek Study App"
 publish_to: 'none'
 
-version: 0.3.0+3
+version: 0.3.2+5
 
 environment:
   sdk: ^3.7.2
@@ -29,6 +29,6 @@ flutter:
   fonts:
     - family: sbl
       fonts:
-        - asset: assets/fonts/SBL_BLit.ttf
+        - asset: assets/fonts/sbl_blit.ttf
   assets:
     - assets/databases/
