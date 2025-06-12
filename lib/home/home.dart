@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:database_builder/database_builder.dart';
 import 'package:flutter/material.dart';
 
@@ -16,6 +18,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final manager = HomeManager();
   final _scrollController = ScrollController();
   OverlayEntry? _overlayEntry;
+  Timer? _glossTimer;
   List<GlobalKey> _wordKeys = [];
 
   static const double _baseFontSize = 20.0;
@@ -108,12 +111,14 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
     );
     Overlay.of(context).insert(_overlayEntry!);
-    Future.delayed(const Duration(milliseconds: 1500), () {
+
+    _glossTimer = Timer(const Duration(milliseconds: 1500), () {
       _removeGlossOverlay();
     });
   }
 
   void _removeGlossOverlay() {
+    _glossTimer?.cancel();
     _overlayEntry?.remove();
     _overlayEntry = null;
   }
