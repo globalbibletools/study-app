@@ -211,7 +211,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         );
                         final textWidgets = _createTextWidgets(words);
                         return Wrap(
-                          spacing: 5,
+                          // spacing: 5,
                           textDirection:
                               manager.currentChapterIsRtl
                                   ? TextDirection.rtl
@@ -243,11 +243,15 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  static const maqaph = '־';
+
   List<Widget> _createTextWidgets(List<HebrewGreekWord> words) {
-    return List.generate(words.length, (index) {
+    final textWidgets = List.generate(words.length, (index) {
       final word = words[index];
       final verse = _extractVerse(word);
-      final wordText = (verse == null) ? word.text : '$verse ${word.text}';
+      final space = (word.text.endsWith(maqaph)) ? '' : ' ';
+      final wordText =
+          (verse == null) ? '${word.text}$space' : '$verse ${word.text}$space';
       final key = _wordKeys[index];
       return GestureDetector(
         key: key,
@@ -268,6 +272,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       );
     });
+    return textWidgets;
   }
 
   Future<void> _showBookChooserDialog() async {
