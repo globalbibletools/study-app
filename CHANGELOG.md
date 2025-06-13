@@ -6,6 +6,8 @@
 - Remove drawer menu for now.
 - Fix maqaph spacing issue.
 - Fix popup disappearing too quickly when tapping multiple words.
+- Make popup show for 3 seconds.
+- Make background black and text white.
 
 ## 0.2.0 - June 10, 2025
 

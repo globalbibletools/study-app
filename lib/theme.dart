@@ -2,26 +2,39 @@ import 'package:flutter/material.dart';
 
 final appTheme = ThemeData(
   brightness: Brightness.dark,
-  scaffoldBackgroundColor: const Color(0xFF1A1617),
+  scaffoldBackgroundColor: Colors.black,
   primaryColor: const Color(0xFF00BFB2),
   textTheme: const TextTheme(
     bodyLarge: TextStyle(color: Colors.white, fontSize: 18),
-    bodyMedium: TextStyle(color: Colors.white70),
-    titleLarge: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22),
+    bodyMedium: TextStyle(color: Colors.white),
+    titleLarge: TextStyle(
+      color: Colors.white,
+      fontWeight: FontWeight.bold,
+      fontSize: 22,
+    ),
   ),
   appBarTheme: const AppBarTheme(
-    backgroundColor: Color(0xFF1A1617),
+    backgroundColor: Colors.black,
     iconTheme: IconThemeData(color: Color(0xFF00BFB2)),
-    titleTextStyle: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+    titleTextStyle: TextStyle(
+      color: Colors.white,
+      fontSize: 20,
+      fontWeight: FontWeight.bold,
+    ),
   ),
-  iconTheme: const IconThemeData(color: Color(0xFF00BFB2)), // Added for general icons
+  iconTheme: const IconThemeData(
+    color: Color(0xFF00BFB2),
+  ), // Added for general icons
   elevatedButtonTheme: ElevatedButtonThemeData(
-    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2D2829), foregroundColor: Colors.white),
+    style: ElevatedButton.styleFrom(
+      backgroundColor: Colors.black,
+      foregroundColor: Colors.white,
+    ),
   ),
   colorScheme: const ColorScheme.dark(
     primary: Color(0xFF00BFB2),
     onPrimary: Colors.black,
-    surface: Color(0xFF2D2829),
+    surface: Color.fromARGB(255, 30, 30, 30),
     onSurface: Colors.white,
   ),
 );

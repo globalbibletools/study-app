@@ -26,8 +26,6 @@ class _HomeScreenState extends State<HomeScreen> {
   double _currentScale = 1.0;
   double _previousScale = 1.0;
 
-  int _pointerCount = 0;
-
   @override
   void initState() {
     super.initState();
@@ -57,7 +55,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final size = renderBox.size;
     final position = renderBox.localToGlobal(Offset.zero);
-    final fontSize = _baseFontSize * _currentScale;
+    final fontSize = _baseFontSize * _currentScale * 0.8;
 
     final theme = Theme.of(context);
 
@@ -121,7 +119,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
     Overlay.of(context).insert(_overlayEntry!);
 
-    _glossTimer = Timer(const Duration(milliseconds: 1500), () {
+    _glossTimer = Timer(const Duration(milliseconds: 3000), () {
       _removeGlossOverlay();
     });
   }
@@ -186,76 +184,66 @@ class _HomeScreenState extends State<HomeScreen> {
       //     ],
       //   ),
       // ),
-      body: Listener(
-        onPointerDown: (_) => setState(() => _pointerCount++),
-        onPointerUp: (_) => setState(() => _pointerCount--),
-        onPointerCancel: (_) => setState(() => _pointerCount = 0),
-        child: GestureDetector(
-          onTap: _removeGlossOverlay,
-          behavior: HitTestBehavior.translucent,
-          onScaleStart: (details) {
-            _previousScale = _currentScale;
-            _removeGlossOverlay();
-          },
-          onScaleUpdate: (details) {
-            setState(() {
-              _currentScale = _previousScale * details.scale;
-              // Constrain the zoom level to a reasonable range
-              _currentScale = _currentScale.clamp(0.5, 4.0);
-            });
-          },
-          onScaleEnd: (details) {
-            manager.saveFontScale(_currentScale);
-          },
-          child: Stack(
-            children: [
-              Padding(
+      body: GestureDetector(
+        onTap: _removeGlossOverlay,
+        behavior: HitTestBehavior.translucent,
+        onScaleStart: (details) {
+          _previousScale = _currentScale;
+          _removeGlossOverlay();
+        },
+        onScaleUpdate: (details) {
+          setState(() {
+            _currentScale = _previousScale * details.scale;
+            // Constrain the zoom level to a reasonable range
+            _currentScale = _currentScale.clamp(0.5, 4.0);
+          });
+        },
+        onScaleEnd: (details) {
+          manager.saveFontScale(_currentScale);
+        },
+        child: Stack(
+          children: [
+            SingleChildScrollView(
+              controller: _scrollController,
+              child: Padding(
                 padding: const EdgeInsets.only(left: 16.0, right: 16.0),
-                child: SingleChildScrollView(
-                  controller: _scrollController,
-                  physics:
-                      _pointerCount > 1
-                          // disable scrolling when pinching
-                          ? const NeverScrollableScrollPhysics()
-                          : const ClampingScrollPhysics(),
-                  child: Column(
-                    children: [
-                      ValueListenableBuilder(
-                        valueListenable: manager.textNotifier,
-                        builder: (context, words, child) {
-                          _wordKeys = List.generate(
-                            words.length,
-                            (_) => GlobalKey(),
-                          );
-                          final textWidgets = _createTextWidgets(words);
-                          return Wrap(
-                            textDirection:
-                                manager.currentChapterIsRtl
-                                    ? TextDirection.rtl
-                                    : TextDirection.ltr,
-                            children: textWidgets,
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 300.0),
-                    ],
-                  ),
+                child: Column(
+                  children: [
+                    ValueListenableBuilder(
+                      valueListenable: manager.textNotifier,
+                      builder: (context, words, child) {
+                        _wordKeys = List.generate(
+                          words.length,
+                          (_) => GlobalKey(),
+                        );
+                        final textWidgets = _createTextWidgets(words);
+                        return Wrap(
+                          textDirection:
+                              manager.currentChapterIsRtl
+                                  ? TextDirection.rtl
+                                  : TextDirection.ltr,
+                          children: textWidgets,
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 300.0),
+                  ],
                 ),
               ),
-              ValueListenableBuilder<int?>(
-                valueListenable: manager.chapterCountNotifier,
-                builder: (context, chapterCount, child) {
-                  if (chapterCount == null) {
-                    return const SizedBox();
-                  }
-                  return ChapterChooser(
-                    chapterCount: chapterCount,
-                    onChapterSelected: manager.onChapterSelected,
-                  );
-                },
-              ),
-            ],
-          ),
+            ),
+            ValueListenableBuilder<int?>(
+              valueListenable: manager.chapterCountNotifier,
+              builder: (context, chapterCount, child) {
+                if (chapterCount == null) {
+                  return const SizedBox();
+                }
+                return ChapterChooser(
+                  chapterCount: chapterCount,
+                  onChapterSelected: manager.onChapterSelected,
+                );
+              },
+            ),
+          ],
         ),
       ),
     );

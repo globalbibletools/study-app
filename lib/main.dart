@@ -23,6 +23,7 @@ class GbtStudyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Global Bible Tools',
       theme: appTheme,
+      // home: const ZoomableTextPage(),
       home: const HomeScreen(),
       debugShowCheckedModeBanner: false,
     );
