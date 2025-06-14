@@ -1,4 +1,4 @@
-## 0.3.0
+## 0.3.0 - June 13, 2025
 
 - Add verse numbers.
 - Fix Font for Linux (#13) (@omarandlorraine)

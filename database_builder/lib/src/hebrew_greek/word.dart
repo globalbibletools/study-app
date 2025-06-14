@@ -6,6 +6,7 @@ class HebrewGreekWord {
   /// and WW is the word number.
   final int id;
   final String text;
+  // TODO: these can be looked up on demand from the id. Delete them.
   final String grammar;
   final String lemma;
 
