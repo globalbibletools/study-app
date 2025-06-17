@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:studyapp/home/hebrew_greek_text.dart';
 
@@ -20,16 +21,17 @@ class _HomeScreenState extends State<HomeScreen> {
   // Timer? _glossTimer;
   // List<GlobalKey> _wordKeys = [];
 
-  // static const double _baseFontSize = 20.0;
-  // double _currentScale = 1.0;
-  // double _previousScale = 1.0;
+  // Pinch to zoom font scaling
+  static const double _baseFontSize = 20.0;
+  double _baseScale = 1.0;
+  double _gestureScale = 1.0;
+  bool get _isScaling => _gestureScale != 1.0;
 
   @override
   void initState() {
     super.initState();
     manager.init();
     manager.onTextUpdated = _scrollToTop;
-    // _currentScale = manager.getFontScale();
   }
 
   void _scrollToTop() {
@@ -184,39 +186,64 @@ class _HomeScreenState extends State<HomeScreen> {
       // ),
       body: Stack(
         children: [
-          SingleChildScrollView(
-            controller: _scrollController,
-            child: Padding(
-              padding: const EdgeInsets.only(left: 16.0, right: 16.0),
-              child: Column(
-                children: [
-                  ValueListenableBuilder(
-                    valueListenable: manager.textNotifier,
-                    builder: (context, words, child) {
-                      return HebrewGreekText(
-                        words: words,
-                        textDirection:
-                            manager.currentChapterIsRtl
-                                ? TextDirection.rtl
-                                : TextDirection.ltr,
-                        style: TextStyle(fontFamily: 'sbl'),
-                      );
-                      // _wordKeys = List.generate(
-                      //   words.length,
-                      //   (_) => GlobalKey(),
-                      // );
-                      // final textWidgets = _createTextWidgets(words);
-                      // return Wrap(
-                      //   textDirection:
-                      //       manager.currentChapterIsRtl
-                      //           ? TextDirection.rtl
-                      //           : TextDirection.ltr,
-                      //   children: textWidgets,
-                      // );
-                    },
+          RawGestureDetector(
+            gestures: {
+              CustomScaleGestureRecognizer:
+                  GestureRecognizerFactoryWithHandlers<
+                    CustomScaleGestureRecognizer
+                  >(() => CustomScaleGestureRecognizer(), (
+                    CustomScaleGestureRecognizer instance,
+                  ) {
+                    instance
+                      ..onStart = (details) {
+                        _gestureScale = 1.0;
+                      }
+                      ..onUpdate = (details) {
+                        setState(() {
+                          _gestureScale = details.scale.clamp(0.5, 3.0);
+                        });
+                      }
+                      ..onEnd = (details) {
+                        setState(() {
+                          _baseScale = (_baseScale * _gestureScale).clamp(
+                            0.5,
+                            3.0,
+                          );
+                          _gestureScale = 1.0;
+                        });
+                      };
+                  }),
+            },
+            behavior: HitTestBehavior.translucent,
+            child: SingleChildScrollView(
+              controller: _scrollController,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 16.0, right: 16.0),
+                child: Transform.scale(
+                  scale: _isScaling ? _gestureScale : 1.0,
+                  alignment: Alignment.topCenter,
+                  child: Column(
+                    children: [
+                      ValueListenableBuilder(
+                        valueListenable: manager.textNotifier,
+                        builder: (context, words, child) {
+                          return HebrewGreekText(
+                            words: words,
+                            textDirection:
+                                manager.currentChapterIsRtl
+                                    ? TextDirection.rtl
+                                    : TextDirection.ltr,
+                            style: TextStyle(
+                              fontFamily: 'sbl',
+                              fontSize: _baseFontSize * _baseScale,
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 300.0),
+                    ],
                   ),
-                  const SizedBox(height: 300.0),
-                ],
+                ),
               ),
             ),
           ),
@@ -288,4 +315,15 @@ class _HomeScreenState extends State<HomeScreen> {
   //   // the next three digits are the verse number
   //   return (word.id ~/ 100) % 1000;
   // }
+}
+
+/// Custom recognizer that listens only for scaling (pinch) gestures
+class CustomScaleGestureRecognizer extends ScaleGestureRecognizer {
+  CustomScaleGestureRecognizer({super.debugOwner});
+
+  @override
+  void rejectGesture(int pointer) {
+    // Don't reject just because another gesture (e.g., scroll) won
+    acceptGesture(pointer);
+  }
 }
