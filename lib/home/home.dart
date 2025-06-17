@@ -1,7 +1,4 @@
 import 'dart:async';
-// import 'dart:math';
-
-// import 'package:database_builder/database_builder.dart';
 import 'package:flutter/material.dart';
 import 'package:studyapp/home/hebrew_greek_text.dart';
 
@@ -202,6 +199,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             manager.currentChapterIsRtl
                                 ? TextDirection.rtl
                                 : TextDirection.ltr,
+                        style: TextStyle(fontFamily: 'sbl'),
                       );
                       // _wordKeys = List.generate(
                       //   words.length,
