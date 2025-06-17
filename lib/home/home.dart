@@ -32,6 +32,7 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     manager.init();
     manager.onTextUpdated = _scrollToTop;
+    _baseScale = manager.getFontScale();
   }
 
   void _scrollToTop() {
@@ -210,6 +211,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             3.0,
                           );
                           _gestureScale = 1.0;
+                          manager.saveFontScale(_baseScale);
                         });
                       };
                   }),
