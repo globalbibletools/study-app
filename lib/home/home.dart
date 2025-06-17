@@ -34,7 +34,42 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _scrollToTop() {
     if (_scrollController.hasClients) {
-      _scrollController.jumpTo(0);
+      _scrollController.jumpTo(_estimatedPopupHeight());
+    }
+  }
+
+  double _estimatedPopupHeight() {
+    final popupFontSize = _baseFontSize * _baseScale;
+    return popupFontSize * 2;
+  }
+
+  void _ensurePopupIsVisible(Rect popupRect) {
+    if (!mounted || !_scrollController.hasClients) return;
+
+    final topSafeArea = MediaQuery.of(context).padding.top;
+    final appBarHeight = AppBar().preferredSize.height;
+    final topBarHeight = topSafeArea + appBarHeight;
+
+    if (popupRect.top < topBarHeight) {
+      // Amount the popup is obscured by the app bar and safe area.
+      final scrollAmount = topBarHeight - popupRect.top;
+      // We scroll down, which means decreasing the scroll offset.
+      final newOffset = (_scrollController.offset - scrollAmount).clamp(
+        _scrollController.position.minScrollExtent,
+        _scrollController.position.maxScrollExtent,
+      );
+
+      // Scroll a little bit more to have some padding.
+      final finalOffset = (newOffset - 10.0).clamp(
+        _scrollController.position.minScrollExtent,
+        _scrollController.position.maxScrollExtent,
+      );
+
+      _scrollController.animateTo(
+        finalOffset,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+      );
     }
   }
 
@@ -137,6 +172,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   alignment: Alignment.topCenter,
                   child: Column(
                     children: [
+                      SizedBox(height: _estimatedPopupHeight()),
                       ValueListenableBuilder(
                         valueListenable: manager.textNotifier,
                         builder: (context, words, child) {
@@ -163,6 +199,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             popupWordProvider: (wordId) {
                               return manager.getPopupTextForId(wordId);
                             },
+                            onPopupShown: _ensurePopupIsVisible,
                           );
                         },
                       ),

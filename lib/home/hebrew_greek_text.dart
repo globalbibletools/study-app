@@ -38,6 +38,7 @@ class HebrewGreekText extends LeafRenderObjectWidget {
     this.popupWordProvider,
     this.popupBackgroundColor,
     this.popupTextStyle,
+    this.onPopupShown,
   });
 
   /// The words that will rendered in the text layout
@@ -60,6 +61,11 @@ class HebrewGreekText extends LeafRenderObjectWidget {
 
   /// The text style for the text inside the popup. Defaults to white text.
   final TextStyle? popupTextStyle;
+
+  /// A callback that is invoked when a popup is about to be shown.
+  /// It provides the global [Rect] of the popup, allowing for actions
+  /// like scrolling to ensure visibility.
+  final ValueChanged<Rect>? onPopupShown;
 
   @override
   RenderHebrewGreekText createRenderObject(BuildContext context) {
@@ -85,6 +91,7 @@ class HebrewGreekText extends LeafRenderObjectWidget {
       popupWordProvider: popupWordProvider,
       popupBackgroundColor: popupBackgroundColor ?? Colors.black87,
       popupTextStyle: effectivePopupTextStyle,
+      onPopupShown: onPopupShown,
     );
   }
 
@@ -114,7 +121,8 @@ class HebrewGreekText extends LeafRenderObjectWidget {
       ..verseNumberStyle = effectiveVerseNumberStyle
       ..popupWordProvider = popupWordProvider
       ..popupBackgroundColor = popupBackgroundColor ?? Colors.black87
-      ..popupTextStyle = effectivePopupTextStyle;
+      ..popupTextStyle = effectivePopupTextStyle
+      ..onPopupShown = onPopupShown;
   }
 
   @override
@@ -136,6 +144,9 @@ class HebrewGreekText extends LeafRenderObjectWidget {
     properties.add(
       DiagnosticsProperty<TextStyle>('popupTextStyle', popupTextStyle),
     );
+    properties.add(
+      ObjectFlagProperty<ValueChanged<Rect>>.has('onPopupShown', onPopupShown),
+    );
   }
 }
 
@@ -150,13 +161,15 @@ class RenderHebrewGreekText extends RenderBox {
     AsyncPopupWordProvider? popupWordProvider,
     required Color popupBackgroundColor,
     required TextStyle popupTextStyle,
+    ValueChanged<Rect>? onPopupShown,
   }) : _words = words,
        _textDirection = textDirection,
        _textStyle = style,
        _verseNumberStyle = verseNumberStyle,
        _popupWordProvider = popupWordProvider,
        _popupBackgroundColor = popupBackgroundColor,
-       _popupTextStyle = popupTextStyle {
+       _popupTextStyle = popupTextStyle,
+       _onPopupShown = onPopupShown {
     _updatePainters();
     _tapRecognizer = TapGestureRecognizer()..onTapUp = _handleTapUp;
   }
@@ -246,6 +259,13 @@ class RenderHebrewGreekText extends RenderBox {
       text: TextSpan(text: _popupText!, style: _popupTextStyle),
       textDirection: TextDirection.ltr,
     )..layout();
+  }
+
+  ValueChanged<Rect>? _onPopupShown;
+  ValueChanged<Rect>? get onPopupShown => _onPopupShown;
+  set onPopupShown(ValueChanged<Rect>? value) {
+    if (_onPopupShown == value) return;
+    _onPopupShown = value;
   }
 
   /// Clears all popup state and requests a repaint to make it disappear.
@@ -510,7 +530,6 @@ class RenderHebrewGreekText extends RenderBox {
       if (rect.contains(position)) {
         final verseNumber =
             (_getVerseNumber(_words.firstWhere((w) => w.id == wordId)))!;
-        result.add(BoxHitTestEntry(this, position));
         result.add(VerseNumberHitTestEntry(this, verseNumber));
         return true;
       }
@@ -521,13 +540,14 @@ class RenderHebrewGreekText extends RenderBox {
       final int wordId = entry.key;
       final Rect rect = entry.value;
       if (rect.contains(position)) {
-        result.add(BoxHitTestEntry(this, position));
         result.add(HebrewGreekWordHitTestEntry(this, wordId));
         return true;
       }
     }
 
-    return false;
+    // If no specific word or verse number was hit, the tap was on the background.
+    // Let the default behavior (from super.hitTest) add a generic BoxHitTestEntry.
+    return super.hitTest(result, position: position);
   }
 
   @override
@@ -576,6 +596,16 @@ class RenderHebrewGreekText extends RenderBox {
           if (resultText != null && resultText.isNotEmpty) {
             _popupText = resultText;
             _preparePopupPainter();
+
+            // Notify parent about the popup rect for potential scrolling.
+            final tappedWordRect = _wordRects[tappedId];
+            if (tappedWordRect != null) {
+              final localPopupRect = _getPopupRect(tappedWordRect);
+              final globalTopLeft = localToGlobal(localPopupRect.topLeft);
+              final globalPopupRect = globalTopLeft & localPopupRect.size;
+              onPopupShown?.call(globalPopupRect);
+            }
+
             markNeedsPaint();
             _popupDismissTimer = Timer(
               const Duration(seconds: 3),
@@ -590,6 +620,33 @@ class RenderHebrewGreekText extends RenderBox {
       // The tap was on the background of the widget, not on a specific word or verse number.
       _dismissPopup();
     }
+  }
+
+  Rect _getPopupRect(Rect tappedWordRect) {
+    final popupSize = _popupPainter!.size;
+
+    // Center the popup horizontally above the tapped word.
+    double popupContentX = tappedWordRect.center.dx - (popupSize.width / 2);
+    // Position it vertically above the tapped word.
+    const double verticalMargin = 6.0;
+    double popupContentY =
+        tappedWordRect.top - popupSize.height - verticalMargin;
+
+    // Adjust to stay within the render box's horizontal bounds.
+    if (popupContentX < 0.0) {
+      popupContentX = 0.0;
+    }
+    if (popupContentX + popupSize.width > size.width) {
+      popupContentX = size.width - popupSize.width;
+    }
+
+    // Create the background rect with padding.
+    return Rect.fromLTWH(
+      popupContentX - kPopupHorizontalPadding,
+      popupContentY - kPopupVerticalPadding,
+      popupSize.width + kPopupHorizontalPadding * 2,
+      popupSize.height + kPopupVerticalPadding * 2,
+    );
   }
 
   @override
@@ -631,39 +688,20 @@ class RenderHebrewGreekText extends RenderBox {
     canvas.restore();
   }
 
+  static const double kPopupVerticalPadding = 4.0;
+  static const double kPopupHorizontalPadding = 8.0;
+
   /// Paints the popup background and text.
   void _paintPopup(Canvas canvas, Rect tappedWordRect) {
-    const double kPopupPadding = 8.0;
-    const double kPopupVertMargin = 6.0;
     const double kPopupCornerRadius = 8.0;
 
-    final popupSize = _popupPainter!.size;
-
-    // Center the popup horizontally above the tapped word.
-    double popupContentX = tappedWordRect.center.dx - (popupSize.width / 2);
-    // Position it vertically above the tapped word.
-    double popupContentY =
-        tappedWordRect.top - popupSize.height - kPopupVertMargin;
-
-    // Adjust to stay within the render box's horizontal bounds.
-    if (popupContentX < 0.0) {
-      popupContentX = 0.0;
-    }
-    if (popupContentX + popupSize.width > size.width) {
-      popupContentX = size.width - popupSize.width;
-    }
-    // Note: vertical adjustment is omitted for simplicity, but could be added.
-
-    // Create the background rect with padding.
-    final bgRect = Rect.fromLTWH(
-      popupContentX - kPopupPadding,
-      popupContentY - kPopupPadding,
-      popupSize.width + kPopupPadding * 2,
-      popupSize.height + kPopupPadding * 2,
-    );
+    final bgRect = _getPopupRect(tappedWordRect);
 
     // The final top-left offset for the text painter.
-    final textOffset = Offset(popupContentX, popupContentY);
+    final textOffset = Offset(
+      bgRect.left + kPopupHorizontalPadding,
+      bgRect.top + kPopupVerticalPadding,
+    );
 
     // Draw the background.
     final bgPaint = Paint()..color = _popupBackgroundColor;
