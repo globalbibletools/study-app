@@ -78,6 +78,10 @@ class HomeManager {
   double getFontScale() {
     return _settings.fontScale;
   }
+
+  Future<String?> getPopupTextForId(int wordId) async {
+    return await _glossDb.getGloss(wordId);
+  }
 }
 
 const _bookIdToFullNameMap = {

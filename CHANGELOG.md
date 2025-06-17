@@ -1,4 +1,10 @@
-## 0.3.0 - June 13, 2025
+## 0.4.0 
+
+- Rewrite the text layout implementation to be more performant and customizable.
+- Style the verse numbers.
+- Fix the pinch to zoom.
+
+## 0.3.5 - June 13, 2025
 
 - Add verse numbers.
 - Fix Font for Linux (#13) (@omarandlorraine)

@@ -1,8 +1,16 @@
 import 'dart:math' as math;
 import 'package:database_builder/database_builder.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart'; // For TextStyle and DefaultTextStyle
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
+
+/// A function that returns a string to be displayed in a popup for a given word ID.
+///
+/// The lookup can be asynchronous (e.g., from a database or network).
+/// If the function's Future resolves to null or an empty string,
+/// no popup will be shown for that word.
+typedef AsyncPopupWordProvider = Future<String?> Function(int wordId);
 
 /// A widget that renders Hebrew and Greek text with custom layout and styling.
 ///
@@ -25,6 +33,9 @@ class HebrewGreekText extends LeafRenderObjectWidget {
     this.textDirection = TextDirection.ltr,
     this.textStyle,
     this.verseNumberStyle,
+    this.popupWordProvider,
+    this.popupBackgroundColor,
+    this.popupTextStyle,
   });
 
   /// The words that will rendered in the text layout
@@ -39,6 +50,15 @@ class HebrewGreekText extends LeafRenderObjectWidget {
   /// The style of the rendered verse numbers
   final TextStyle? verseNumberStyle;
 
+  /// An async function that provides the text for the popup when a word is tapped.
+  final AsyncPopupWordProvider? popupWordProvider;
+
+  /// The background color of the popup. Defaults to a dark grey.
+  final Color? popupBackgroundColor;
+
+  /// The text style for the text inside the popup. Defaults to white text.
+  final TextStyle? popupTextStyle;
+
   @override
   RenderHebrewGreekText createRenderObject(BuildContext context) {
     final defaultTextStyle = DefaultTextStyle.of(context);
@@ -50,12 +70,19 @@ class HebrewGreekText extends LeafRenderObjectWidget {
     if (verseNumberStyle == null || verseNumberStyle!.inherit) {
       effectiveVerseNumberStyle = effectiveTextStyle!.merge(verseNumberStyle);
     }
+    final effectivePopupTextStyle = const TextStyle(
+      fontSize: 14,
+      color: Colors.white,
+    ).merge(popupTextStyle);
 
     return RenderHebrewGreekText(
       words: words,
       textDirection: textDirection,
       style: effectiveTextStyle!,
       verseNumberStyle: effectiveVerseNumberStyle,
+      popupWordProvider: popupWordProvider,
+      popupBackgroundColor: popupBackgroundColor ?? Colors.black87,
+      popupTextStyle: effectivePopupTextStyle,
     );
   }
 
@@ -73,12 +100,19 @@ class HebrewGreekText extends LeafRenderObjectWidget {
     if (verseNumberStyle == null || verseNumberStyle!.inherit) {
       effectiveVerseNumberStyle = effectiveTextStyle!.merge(verseNumberStyle);
     }
+    final effectivePopupTextStyle = const TextStyle(
+      fontSize: 14,
+      color: Colors.white,
+    ).merge(popupTextStyle);
 
     renderObject
       ..words = words
       ..textDirection = textDirection
       ..textStyle = effectiveTextStyle!
-      ..verseNumberStyle = effectiveVerseNumberStyle;
+      ..verseNumberStyle = effectiveVerseNumberStyle
+      ..popupWordProvider = popupWordProvider
+      ..popupBackgroundColor = popupBackgroundColor ?? Colors.black87
+      ..popupTextStyle = effectivePopupTextStyle;
   }
 
   @override
@@ -89,6 +123,16 @@ class HebrewGreekText extends LeafRenderObjectWidget {
     properties.add(DiagnosticsProperty<TextStyle>('textStyle', textStyle));
     properties.add(
       DiagnosticsProperty<TextStyle>('verseNumberStyle', verseNumberStyle),
+    );
+    properties.add(
+      ObjectFlagProperty<AsyncPopupWordProvider>.has(
+        'popupWordProvider',
+        popupWordProvider,
+      ),
+    );
+    properties.add(ColorProperty('popupBackgroundColor', popupBackgroundColor));
+    properties.add(
+      DiagnosticsProperty<TextStyle>('popupTextStyle', popupTextStyle),
     );
   }
 }
@@ -101,10 +145,16 @@ class RenderHebrewGreekText extends RenderBox {
     required TextDirection textDirection,
     required TextStyle style,
     required TextStyle? verseNumberStyle,
+    AsyncPopupWordProvider? popupWordProvider,
+    required Color popupBackgroundColor,
+    required TextStyle popupTextStyle,
   }) : _words = words,
        _textDirection = textDirection,
        _textStyle = style,
-       _verseNumberStyle = verseNumberStyle {
+       _verseNumberStyle = verseNumberStyle,
+       _popupWordProvider = popupWordProvider,
+       _popupBackgroundColor = popupBackgroundColor,
+       _popupTextStyle = popupTextStyle {
     _updatePainters();
   }
 
@@ -142,6 +192,64 @@ class RenderHebrewGreekText extends RenderBox {
     _verseNumberStyle = value;
     _needsPaintersUpdate = true;
     markNeedsLayout();
+  }
+
+  AsyncPopupWordProvider? _popupWordProvider;
+  AsyncPopupWordProvider? get popupWordProvider => _popupWordProvider;
+  set popupWordProvider(AsyncPopupWordProvider? value) {
+    if (_popupWordProvider == value) return;
+    _popupWordProvider = value;
+    if (value == null && _tappedWordId != null) {
+      _dismissPopup();
+    }
+  }
+
+  Color _popupBackgroundColor;
+  Color get popupBackgroundColor => _popupBackgroundColor;
+  set popupBackgroundColor(Color value) {
+    if (_popupBackgroundColor == value) return;
+    _popupBackgroundColor = value;
+    if (_tappedWordId != null) {
+      markNeedsPaint();
+    }
+  }
+
+  TextStyle _popupTextStyle;
+  TextStyle get popupTextStyle => _popupTextStyle;
+  set popupTextStyle(TextStyle value) {
+    if (_popupTextStyle == value) return;
+    _popupTextStyle = value;
+    // If style changes, we need to recalculate the popup layout and repaint.
+    if (_tappedWordId != null) {
+      _preparePopupPainter();
+      markNeedsPaint();
+    }
+  }
+
+  int? _tappedWordId;
+  String? _popupText;
+  TextPainter? _popupPainter;
+
+  /// Creates and layouts the [TextPainter] for the popup using the stored text.
+  void _preparePopupPainter() {
+    if (_popupText == null || _popupText!.isEmpty) {
+      _popupPainter = null;
+      return;
+    }
+
+    _popupPainter = TextPainter(
+      text: TextSpan(text: _popupText!, style: _popupTextStyle),
+      textDirection: TextDirection.ltr,
+    )..layout();
+  }
+
+  /// Clears all popup state and requests a repaint to make it disappear.
+  void _dismissPopup() {
+    if (_tappedWordId == null) return;
+    _tappedWordId = null;
+    _popupText = null;
+    _popupPainter = null;
+    markNeedsPaint();
   }
 
   // Cached layout data
@@ -416,13 +524,54 @@ class RenderHebrewGreekText extends RenderBox {
 
   @override
   void handleEvent(PointerEvent event, covariant HitTestEntry entry) {
-    if (event is PointerDownEvent) {
-      if (entry is VerseNumberHitTestEntry) {
-        debugPrint('Tapped on verse number: ${entry.verseNumber}');
-        // You can add a callback here, e.g., onVerseNumberTapped?.call(entry.verseNumber);
-      } else if (entry is HebrewGreekWordHitTestEntry) {
-        debugPrint('Tapped on word with ID: ${entry.wordId}');
+    if (event is! PointerDownEvent) return;
+
+    if (entry is VerseNumberHitTestEntry) {
+      debugPrint('Tapped on verse number: ${entry.verseNumber}');
+      _dismissPopup();
+      return;
+    }
+
+    if (_popupWordProvider == null) return;
+
+    if (entry is HebrewGreekWordHitTestEntry) {
+      final tappedId = entry.wordId;
+
+      // If the same word is tapped again, dismiss the popup.
+      if (tappedId == _tappedWordId) {
+        _dismissPopup();
+        return;
       }
+
+      // Tapped a new word. Update the state and start fetching.
+      // We don't show anything immediately, just set the ID.
+      // The popup will appear after the Future completes.
+      _tappedWordId = tappedId;
+      _popupText = null; // Clear old text
+      _popupPainter = null; // Clear old painter
+      markNeedsPaint(); // Repaint to hide the old popup immediately
+
+      // Call the async provider.
+      _popupWordProvider!(tappedId).then((resultText) {
+        // CRITICAL: Check if the user is still interested in this word.
+        // They might have tapped somewhere else while we were fetching the data.
+        if (_tappedWordId == tappedId) {
+          if (resultText != null && resultText.isNotEmpty) {
+            // We got the data, now store it, prepare the painter, and repaint.
+            _popupText = resultText;
+            _preparePopupPainter();
+            markNeedsPaint();
+          } else {
+            // Provider returned no text, so treat it as a dismissal.
+            _dismissPopup();
+          }
+        }
+        // If _tappedWordId is no longer `tappedId`, do nothing.
+        // The result is for an old request and should be ignored.
+      });
+    } else {
+      // Tapped on the background, dismiss any active popup.
+      _dismissPopup();
     }
   }
 
@@ -454,7 +603,61 @@ class RenderHebrewGreekText extends RenderBox {
       }
     }
 
+    // 3. Paint the popup if a word is tapped AND its painter is ready
+    if (_tappedWordId != null && _popupPainter != null) {
+      final tappedWordRect = _wordRects[_tappedWordId];
+      if (tappedWordRect != null) {
+        _paintPopup(canvas, tappedWordRect);
+      }
+    }
+
     canvas.restore();
+  }
+
+  /// Paints the popup background and text.
+  void _paintPopup(Canvas canvas, Rect tappedWordRect) {
+    const double kPopupPadding = 8.0;
+    const double kPopupVertMargin = 6.0;
+    const double kPopupCornerRadius = 8.0;
+
+    final popupSize = _popupPainter!.size;
+
+    // Center the popup horizontally above the tapped word.
+    double popupContentX = tappedWordRect.center.dx - (popupSize.width / 2);
+    // Position it vertically above the tapped word.
+    double popupContentY =
+        tappedWordRect.top - popupSize.height - kPopupVertMargin;
+
+    // Adjust to stay within the render box's horizontal bounds.
+    if (popupContentX < 0.0) {
+      popupContentX = 0.0;
+    }
+    if (popupContentX + popupSize.width > size.width) {
+      popupContentX = size.width - popupSize.width;
+    }
+    // Note: vertical adjustment is omitted for simplicity, but could be added.
+
+    // Create the background rect with padding.
+    final bgRect = Rect.fromLTWH(
+      popupContentX - kPopupPadding,
+      popupContentY - kPopupPadding,
+      popupSize.width + kPopupPadding * 2,
+      popupSize.height + kPopupPadding * 2,
+    );
+
+    // The final top-left offset for the text painter.
+    final textOffset = Offset(popupContentX, popupContentY);
+
+    // Draw the background.
+    final bgPaint = Paint()..color = _popupBackgroundColor;
+    final rrect = RRect.fromRectAndRadius(
+      bgRect,
+      const Radius.circular(kPopupCornerRadius),
+    );
+    canvas.drawRRect(rrect, bgPaint);
+
+    // Paint the text.
+    _popupPainter!.paint(canvas, textOffset);
   }
 }
 
