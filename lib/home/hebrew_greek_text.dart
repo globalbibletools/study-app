@@ -1,26 +1,23 @@
 import 'dart:math' as math;
 import 'package:database_builder/database_builder.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart'; // For TextStyle and DefaultTextStyle
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
-// A custom HitTestEntry to carry the specific word ID that was hit.
-class HebrewGreekWordHitTestEntry extends HitTestEntry {
-  HebrewGreekWordHitTestEntry(this.renderObject, this.wordId)
-    : super(renderObject);
-
-  final RenderHebrewGreekText renderObject;
-  final int wordId;
-
-  @override
-  String toString() =>
-      '${renderObject.runtimeType} hit test with word ID: $wordId';
-}
-
-// Your custom HitTestEntry and HebrewGreekWord classes should be available here.
-
-// --- The Widget ---
+/// A widget that renders Hebrew and Greek text with custom layout and styling.
+///
+/// This widget takes a list of [HebrewGreekWord] objects and renders them according
+/// to the specified [textDirection] and [style]. It handles proper text layout and
+/// styling for both Hebrew and Greek text.
+///
+/// Example:
+///
+/// HebrewGreekText(
+///   words: [HebrewGreekWord(...)],
+///   textDirection: TextDirection.rtl,
+///   style: TextStyle(fontSize: 18),
+/// )
+///
 class HebrewGreekText extends LeafRenderObjectWidget {
   const HebrewGreekText({
     super.key,
@@ -29,8 +26,13 @@ class HebrewGreekText extends LeafRenderObjectWidget {
     this.style,
   });
 
+  /// The words that will rendered in the text layout
   final List<HebrewGreekWord> words;
+
+  /// RTL for Hebrew and LTR for Greek
   final TextDirection textDirection;
+
+  /// The style of the rendered text
   final TextStyle? style;
 
   @override
@@ -74,7 +76,6 @@ class HebrewGreekText extends LeafRenderObjectWidget {
   }
 }
 
-// --- The RenderObject ---
 class RenderHebrewGreekText extends RenderBox {
   RenderHebrewGreekText({
     required List<HebrewGreekWord> words,
@@ -83,11 +84,9 @@ class RenderHebrewGreekText extends RenderBox {
   }) : _words = words,
        _textDirection = textDirection,
        _style = style {
-    // Initial setup of painters
     _updatePainters();
   }
 
-  // --- PROPERTIES ---
   List<HebrewGreekWord> _words;
   List<HebrewGreekWord> get words => _words;
   set words(List<HebrewGreekWord> value) {
@@ -115,10 +114,10 @@ class RenderHebrewGreekText extends RenderBox {
     markNeedsLayout();
   }
 
-  // --- CACHED LAYOUT DATA ---
+  // Cached layout data
   bool _needsPaintersUpdate = true;
   final List<TextPainter> _wordPainters = [];
-  late final TextPainter _spacePainter;
+  late TextPainter _spacePainter;
   final Map<int, Rect> _wordRects = {};
 
   void _updatePainters() {
@@ -168,7 +167,7 @@ class RenderHebrewGreekText extends RenderBox {
               ? mainAxisOffset + wordSize.width <= availableWidth
               : mainAxisOffset - wordSize.width >= 0;
 
-      // --- Line Wrap Logic ---
+      // Line wrap logic
       if (!fitsOnLine) {
         // Move to the next line
         crossAxisOffset += currentLineMaxHeight;
@@ -179,7 +178,7 @@ class RenderHebrewGreekText extends RenderBox {
       // Track the max height on the current line
       currentLineMaxHeight = math.max(currentLineMaxHeight, wordSize.height);
 
-      // --- Position and Store Rect ---
+      // Position and store Rect
       final Rect wordRect;
       if (isLtr) {
         wordRect = Rect.fromLTWH(
@@ -333,4 +332,17 @@ class RenderHebrewGreekText extends RenderBox {
 
     canvas.restore();
   }
+}
+
+// A custom HitTestEntry to carry the specific word ID that was hit.
+class HebrewGreekWordHitTestEntry extends HitTestEntry {
+  HebrewGreekWordHitTestEntry(this.renderObject, this.wordId)
+    : super(renderObject);
+
+  final RenderHebrewGreekText renderObject;
+  final int wordId;
+
+  @override
+  String toString() =>
+      '${renderObject.runtimeType} hit test with word ID: $wordId';
 }
