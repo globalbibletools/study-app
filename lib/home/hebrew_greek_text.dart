@@ -3,7 +3,6 @@ import 'dart:math' as math;
 import 'package:database_builder/database_builder.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
@@ -80,7 +79,7 @@ class HebrewGreekText extends LeafRenderObjectWidget {
     }
     final effectivePopupTextStyle = const TextStyle(
       fontSize: 14,
-      color: Colors.white,
+      color: Color(0xFFFFFFFF),
     ).merge(popupTextStyle);
 
     return RenderHebrewGreekText(
@@ -89,7 +88,7 @@ class HebrewGreekText extends LeafRenderObjectWidget {
       style: effectiveTextStyle!,
       verseNumberStyle: effectiveVerseNumberStyle,
       popupWordProvider: popupWordProvider,
-      popupBackgroundColor: popupBackgroundColor ?? Colors.black87,
+      popupBackgroundColor: popupBackgroundColor ?? Color(0xFF000000),
       popupTextStyle: effectivePopupTextStyle,
       onPopupShown: onPopupShown,
     );
@@ -110,8 +109,8 @@ class HebrewGreekText extends LeafRenderObjectWidget {
       effectiveVerseNumberStyle = effectiveTextStyle!.merge(verseNumberStyle);
     }
     final effectivePopupTextStyle = const TextStyle(
-      fontSize: 14,
-      color: Colors.white,
+      fontSize: 20,
+      color: Color(0xFFFFFFFF),
     ).merge(popupTextStyle);
 
     renderObject
@@ -120,7 +119,7 @@ class HebrewGreekText extends LeafRenderObjectWidget {
       ..textStyle = effectiveTextStyle!
       ..verseNumberStyle = effectiveVerseNumberStyle
       ..popupWordProvider = popupWordProvider
-      ..popupBackgroundColor = popupBackgroundColor ?? Colors.black87
+      ..popupBackgroundColor = popupBackgroundColor ?? Color(0xFF000000)
       ..popupTextStyle = effectivePopupTextStyle
       ..onPopupShown = onPopupShown;
   }
@@ -241,20 +240,17 @@ class RenderHebrewGreekText extends RenderBox {
   set popupTextStyle(TextStyle value) {
     if (_popupTextStyle == value) return;
     _popupTextStyle = value;
-    // If style changes, we need to recalculate the popup layout and repaint.
     if (_tappedWordId != null) {
       _preparePopupPainter();
       markNeedsPaint();
     }
   }
 
-  /// Creates and layouts the [TextPainter] for the popup using the stored text.
   void _preparePopupPainter() {
     if (_popupText == null || _popupText!.isEmpty) {
       _popupPainter = null;
       return;
     }
-
     _popupPainter = TextPainter(
       text: TextSpan(text: _popupText!, style: _popupTextStyle),
       textDirection: TextDirection.ltr,
@@ -297,7 +293,6 @@ class RenderHebrewGreekText extends RenderBox {
     _wordPainters.clear();
     _verseNumberPainters.clear();
     for (final word in _words) {
-      // Create painter for the word
       final wordPainter = TextPainter(
         text: TextSpan(text: word.text, style: _textStyle),
         textDirection: _textDirection,
@@ -355,7 +350,7 @@ class RenderHebrewGreekText extends RenderBox {
       final verseNumberUnitWidth =
           versePainter != null ? verseNumberSize.width + spaceWidth : 0.0;
 
-      // "NO ORPHAN" RULE: Check if the verse number AND its word fit together
+      // "No orphan" rule: Check if the verse number AND its word fit together
       final totalUnitWidth = verseNumberUnitWidth + wordSize.width;
       final bool fitsOnLine =
           isLtr
@@ -485,11 +480,7 @@ class RenderHebrewGreekText extends RenderBox {
     if (_words.isEmpty) return 0.0;
 
     double totalWidth = 0.0;
-
-    // Sum of all word widths
     totalWidth += _wordPainters.fold(0.0, (sum, p) => sum + p.width);
-
-    // Sum of all verse number widths and the space that follows each one
     totalWidth += _verseNumberPainters.values.fold(
       0.0,
       (sum, p) => sum + p.width + _spacePainter.width,
@@ -523,7 +514,7 @@ class RenderHebrewGreekText extends RenderBox {
       return false;
     }
 
-    // Check verse numbers FIRST
+    // Check verse numbers first
     for (final entry in _verseNumberRects.entries.toList().reversed) {
       final int wordId = entry.key;
       final Rect rect = entry.value;
@@ -617,7 +608,8 @@ class RenderHebrewGreekText extends RenderBox {
         }
       });
     } else {
-      // The tap was on the background of the widget, not on a specific word or verse number.
+      // The tap was on the background of the widget,
+      // not on a specific word or verse number.
       _dismissPopup();
     }
   }
@@ -640,7 +632,6 @@ class RenderHebrewGreekText extends RenderBox {
       popupContentX = size.width - popupSize.width;
     }
 
-    // Create the background rect with padding.
     return Rect.fromLTWH(
       popupContentX - kPopupHorizontalPadding,
       popupContentY - kPopupVerticalPadding,
@@ -667,7 +658,7 @@ class RenderHebrewGreekText extends RenderBox {
       }
     }
 
-    // 2. Paint all the verse numbers on top
+    // 2. Paint all the verse numbers
     for (final entry in _verseNumberPainters.entries) {
       final wordId = entry.key;
       final painter = entry.value;
@@ -691,19 +682,10 @@ class RenderHebrewGreekText extends RenderBox {
   static const double kPopupVerticalPadding = 4.0;
   static const double kPopupHorizontalPadding = 8.0;
 
-  /// Paints the popup background and text.
   void _paintPopup(Canvas canvas, Rect tappedWordRect) {
-    const double kPopupCornerRadius = 8.0;
-
-    final bgRect = _getPopupRect(tappedWordRect);
-
-    // The final top-left offset for the text painter.
-    final textOffset = Offset(
-      bgRect.left + kPopupHorizontalPadding,
-      bgRect.top + kPopupVerticalPadding,
-    );
-
     // Draw the background.
+    const double kPopupCornerRadius = 8.0;
+    final bgRect = _getPopupRect(tappedWordRect);
     final bgPaint = Paint()..color = _popupBackgroundColor;
     final rrect = RRect.fromRectAndRadius(
       bgRect,
@@ -712,6 +694,10 @@ class RenderHebrewGreekText extends RenderBox {
     canvas.drawRRect(rrect, bgPaint);
 
     // Paint the text.
+    final textOffset = Offset(
+      bgRect.left + kPopupHorizontalPadding,
+      bgRect.top + kPopupVerticalPadding,
+    );
     _popupPainter!.paint(canvas, textOffset);
   }
 

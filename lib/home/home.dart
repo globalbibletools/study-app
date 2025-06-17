@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:database_builder/src/hebrew_greek/word.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:studyapp/home/hebrew_greek_text.dart';
@@ -86,82 +87,31 @@ class _HomeScreenState extends State<HomeScreen> {
         title: Row(
           children: [
             OutlinedButton(
+              onPressed: _showBookChooserDialog,
               child: ValueListenableBuilder<String>(
                 valueListenable: manager.currentBookNotifier,
                 builder: (context, value, child) {
                   return Text(value);
                 },
               ),
-              onPressed: () {
-                _showBookChooserDialog();
-              },
             ),
             const SizedBox(width: 10),
             OutlinedButton(
+              onPressed: manager.showChapterChooser,
               child: ValueListenableBuilder(
                 valueListenable: manager.currentChapterNotifier,
                 builder: (context, value, child) {
                   return Text('$value');
                 },
               ),
-              onPressed: () {
-                manager.showChapterChooser();
-              },
             ),
           ],
         ),
       ),
-      // drawer: Drawer(
-      //   child: ListView(
-      //     padding: EdgeInsets.zero,
-      //     children: [
-      //       const DrawerHeader(child: Text('Drawer Header')),
-      //       ListTile(
-      //         title: const Text('Settings'),
-      //         onTap: () {
-      //           Navigator.pop(context);
-      //         },
-      //       ),
-      //       ListTile(
-      //         title: const Text('About'),
-      //         onTap: () {
-      //           Navigator.pop(context);
-      //         },
-      //       ),
-      //     ],
-      //   ),
-      // ),
       body: Stack(
         children: [
           RawGestureDetector(
-            gestures: {
-              CustomScaleGestureRecognizer:
-                  GestureRecognizerFactoryWithHandlers<
-                    CustomScaleGestureRecognizer
-                  >(() => CustomScaleGestureRecognizer(), (
-                    CustomScaleGestureRecognizer instance,
-                  ) {
-                    instance
-                      ..onStart = (details) {
-                        _gestureScale = 1.0;
-                      }
-                      ..onUpdate = (details) {
-                        setState(() {
-                          _gestureScale = details.scale.clamp(0.5, 3.0);
-                        });
-                      }
-                      ..onEnd = (details) {
-                        setState(() {
-                          _baseScale = (_baseScale * _gestureScale).clamp(
-                            0.5,
-                            3.0,
-                          );
-                          _gestureScale = 1.0;
-                          manager.saveFontScale(_baseScale);
-                        });
-                      };
-                  }),
-            },
+            gestures: _zoomGesture,
             behavior: HitTestBehavior.translucent,
             child: SingleChildScrollView(
               controller: _scrollController,
@@ -173,41 +123,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Column(
                     children: [
                       SizedBox(height: _estimatedPopupHeight()),
-                      ValueListenableBuilder(
-                        valueListenable: manager.textNotifier,
-                        builder: (context, words, child) {
-                          return HebrewGreekText(
-                            words: words,
-                            textDirection:
-                                manager.currentChapterIsRtl
-                                    ? TextDirection.rtl
-                                    : TextDirection.ltr,
-                            textStyle: TextStyle(
-                              fontFamily: 'sbl',
-                              fontSize: _baseFontSize * _baseScale,
-                            ),
-                            verseNumberStyle: TextStyle(
-                              fontFamily: 'sbl',
-                              color: Theme.of(context).colorScheme.primary,
-                              fontSize: _baseFontSize * _baseScale * 0.7,
-                            ),
-                            popupBackgroundColor:
-                                Theme.of(context).colorScheme.inverseSurface,
-                            popupTextStyle: TextStyle(
-                              fontFamily: 'sbl',
-                              fontSize: _baseFontSize * _baseScale,
-                              color:
-                                  Theme.of(
-                                    context,
-                                  ).colorScheme.onInverseSurface,
-                            ),
-                            popupWordProvider: (wordId) {
-                              return manager.getPopupTextForId(wordId);
-                            },
-                            onPopupShown: _ensurePopupIsVisible,
-                          );
-                        },
-                      ),
+                      _buildText(),
                       const SizedBox(height: 300.0),
                     ],
                   ),
@@ -215,20 +131,85 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ),
-          ValueListenableBuilder<int?>(
-            valueListenable: manager.chapterCountNotifier,
-            builder: (context, chapterCount, child) {
-              if (chapterCount == null) {
-                return const SizedBox();
-              }
-              return ChapterChooser(
-                chapterCount: chapterCount,
-                onChapterSelected: manager.onChapterSelected,
-              );
-            },
-          ),
+          _buildChapterChooser(),
         ],
       ),
+    );
+  }
+
+  Map<Type, GestureRecognizerFactory<GestureRecognizer>> get _zoomGesture {
+    return {
+      CustomScaleGestureRecognizer:
+          GestureRecognizerFactoryWithHandlers<CustomScaleGestureRecognizer>(
+            () => CustomScaleGestureRecognizer(),
+            (CustomScaleGestureRecognizer instance) {
+              instance
+                ..onStart = (details) {
+                  _gestureScale = 1.0;
+                }
+                ..onUpdate = (details) {
+                  setState(() {
+                    _gestureScale = details.scale.clamp(0.5, 3.0);
+                  });
+                }
+                ..onEnd = (details) {
+                  setState(() {
+                    _baseScale = (_baseScale * _gestureScale).clamp(0.5, 3.0);
+                    _gestureScale = 1.0;
+                    manager.saveFontScale(_baseScale);
+                  });
+                };
+            },
+          ),
+    };
+  }
+
+  ValueListenableBuilder<List<HebrewGreekWord>> _buildText() {
+    return ValueListenableBuilder(
+      valueListenable: manager.textNotifier,
+      builder: (context, words, child) {
+        return HebrewGreekText(
+          words: words,
+          textDirection:
+              manager.currentChapterIsRtl
+                  ? TextDirection.rtl
+                  : TextDirection.ltr,
+          textStyle: TextStyle(
+            fontFamily: 'sbl',
+            fontSize: _baseFontSize * _baseScale,
+          ),
+          verseNumberStyle: TextStyle(
+            fontFamily: 'sbl',
+            color: Theme.of(context).colorScheme.primary,
+            fontSize: _baseFontSize * _baseScale * 0.7,
+          ),
+          popupBackgroundColor: Theme.of(context).colorScheme.inverseSurface,
+          popupTextStyle: TextStyle(
+            fontFamily: 'sbl',
+            fontSize: _baseFontSize * _baseScale,
+            color: Theme.of(context).colorScheme.onInverseSurface,
+          ),
+          popupWordProvider: (wordId) {
+            return manager.getPopupTextForId(wordId);
+          },
+          onPopupShown: _ensurePopupIsVisible,
+        );
+      },
+    );
+  }
+
+  ValueListenableBuilder<int?> _buildChapterChooser() {
+    return ValueListenableBuilder<int?>(
+      valueListenable: manager.chapterCountNotifier,
+      builder: (context, chapterCount, child) {
+        if (chapterCount == null) {
+          return const SizedBox();
+        }
+        return ChapterChooser(
+          chapterCount: chapterCount,
+          onChapterSelected: manager.onChapterSelected,
+        );
+      },
     );
   }
 
@@ -240,7 +221,6 @@ class _HomeScreenState extends State<HomeScreen> {
         return const BookChooser();
       },
     );
-
     manager.onBookSelected(selectedIndex);
   }
 }

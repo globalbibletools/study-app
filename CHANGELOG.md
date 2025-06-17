@@ -3,6 +3,9 @@
 - Rewrite the text layout implementation to be more performant and customizable.
 - Style the verse numbers.
 - Fix the pinch to zoom.
+- Move popup when scrolling.
+- Scroll to put the popup in view when hidden under the app bar.
+- Fix popup near edges getting cut off.
 
 ## 0.3.5 - June 13, 2025
 
