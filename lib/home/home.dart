@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:database_builder/database_builder.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:studyapp/home/hebrew_greek_text.dart';
@@ -235,9 +236,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                 manager.currentChapterIsRtl
                                     ? TextDirection.rtl
                                     : TextDirection.ltr,
-                            style: TextStyle(
+                            textStyle: TextStyle(
                               fontFamily: 'sbl',
                               fontSize: _baseFontSize * _baseScale,
+                            ),
+                            verseNumberStyle: TextStyle(
+                              fontFamily: 'sbl',
+                              color: Theme.of(context).colorScheme.primary,
+                              fontSize: _baseFontSize * _baseScale * 0.7,
                             ),
                           );
                         },
@@ -309,14 +315,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
     manager.onBookSelected(selectedIndex);
   }
-
-  // int? _extractVerse(HebrewGreekWord word) {
-  //   // last two digits are the word number
-  //   final wordNumber = word.id % 100;
-  //   if (wordNumber > 1) return null;
-  //   // the next three digits are the verse number
-  //   return (word.id ~/ 100) % 1000;
-  // }
 }
 
 /// Custom recognizer that listens only for scaling (pinch) gestures
