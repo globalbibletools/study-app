@@ -77,6 +77,8 @@ class HebrewGreekText extends LeafRenderObjectWidget {
 }
 
 class RenderHebrewGreekText extends RenderBox {
+  static const maqaph = '־';
+
   RenderHebrewGreekText({
     required List<HebrewGreekWord> words,
     required TextDirection textDirection,
@@ -178,6 +180,9 @@ class RenderHebrewGreekText extends RenderBox {
       // Track the max height on the current line
       currentLineMaxHeight = math.max(currentLineMaxHeight, wordSize.height);
 
+      final bool endsWithMaqaph = _words[i].text.endsWith(maqaph);
+      final double effectiveSpaceWidth = endsWithMaqaph ? 0.0 : spaceWidth;
+
       // Position and store Rect
       final Rect wordRect;
       if (isLtr) {
@@ -187,7 +192,7 @@ class RenderHebrewGreekText extends RenderBox {
           wordSize.width,
           wordSize.height,
         );
-        mainAxisOffset += wordSize.width + spaceWidth;
+        mainAxisOffset += wordSize.width + effectiveSpaceWidth;
       } else {
         // RTL
         mainAxisOffset -= wordSize.width;
@@ -197,17 +202,23 @@ class RenderHebrewGreekText extends RenderBox {
           wordSize.width,
           wordSize.height,
         );
-        mainAxisOffset -= spaceWidth;
+        mainAxisOffset -= effectiveSpaceWidth;
       }
       _wordRects[_words[i].id] = wordRect;
 
       // Track the maximum width used.
+      // We calculate the line width up to the right edge of the *current* word.
       if (isLtr) {
-        maxLineWidth = math.max(maxLineWidth, mainAxisOffset - spaceWidth);
-      } else {
         maxLineWidth = math.max(
           maxLineWidth,
-          availableWidth - (mainAxisOffset + spaceWidth),
+          mainAxisOffset - effectiveSpaceWidth,
+        );
+      } else {
+        // For RTL, the used width is the difference from the right edge.
+        // `mainAxisOffset` is now at the start of the *next* word (or space).
+        maxLineWidth = math.max(
+          maxLineWidth,
+          availableWidth - mainAxisOffset - effectiveSpaceWidth,
         );
       }
     }
@@ -240,13 +251,19 @@ class RenderHebrewGreekText extends RenderBox {
   @override
   double computeMaxIntrinsicWidth(double height) {
     if (_needsPaintersUpdate) _updatePainters();
-    final double totalWordWidth = _wordPainters.fold(
-      0.0,
-      (sum, p) => sum + p.width,
-    );
-    final double totalSpaceWidth =
-        (_wordPainters.length - 1) * _spacePainter.width;
-    return totalWordWidth + totalSpaceWidth;
+    if (_words.isEmpty) return 0.0;
+
+    // Calculate total width respecting the maqaph rule.
+    double totalWidth = 0.0;
+    totalWidth += _wordPainters.fold(0.0, (sum, p) => sum + p.width);
+
+    // Sum of spaces, skipping words that end with a maqaph
+    for (int i = 0; i < _words.length - 1; i++) {
+      if (!_words[i].text.endsWith(maqaph)) {
+        totalWidth += _spacePainter.width;
+      }
+    }
+    return totalWidth;
   }
 
   @override
