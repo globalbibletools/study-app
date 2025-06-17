@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:database_builder/database_builder.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart'; // For TextStyle and DefaultTextStyle
+import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
@@ -156,7 +158,14 @@ class RenderHebrewGreekText extends RenderBox {
        _popupBackgroundColor = popupBackgroundColor,
        _popupTextStyle = popupTextStyle {
     _updatePainters();
+    _tapRecognizer = TapGestureRecognizer()..onTapUp = _handleTapUp;
   }
+
+  int? _tappedWordId;
+  String? _popupText;
+  TextPainter? _popupPainter;
+  Timer? _popupDismissTimer;
+  late final TapGestureRecognizer _tapRecognizer;
 
   List<HebrewGreekWord> _words;
   List<HebrewGreekWord> get words => _words;
@@ -226,10 +235,6 @@ class RenderHebrewGreekText extends RenderBox {
     }
   }
 
-  int? _tappedWordId;
-  String? _popupText;
-  TextPainter? _popupPainter;
-
   /// Creates and layouts the [TextPainter] for the popup using the stored text.
   void _preparePopupPainter() {
     if (_popupText == null || _popupText!.isEmpty) {
@@ -245,6 +250,9 @@ class RenderHebrewGreekText extends RenderBox {
 
   /// Clears all popup state and requests a repaint to make it disappear.
   void _dismissPopup() {
+    _popupDismissTimer?.cancel();
+    _popupDismissTimer = null;
+
     if (_tappedWordId == null) return;
     _tappedWordId = null;
     _popupText = null;
@@ -524,7 +532,26 @@ class RenderHebrewGreekText extends RenderBox {
 
   @override
   void handleEvent(PointerEvent event, covariant HitTestEntry entry) {
-    if (event is! PointerDownEvent) return;
+    if (event is PointerDownEvent) {
+      _tapRecognizer.addPointer(event);
+    }
+  }
+
+  /// Performs a hit test at a given offset and returns the specific entry.
+  HitTestEntry? _getHitTestEntryForOffset(Offset offset) {
+    final result = BoxHitTestResult();
+    // Use the existing hitTest method to populate the result
+    if (hitTest(result, position: offset)) {
+      // Return the most specific entry (which is added last)
+      return result.path.last.target == this ? result.path.last : null;
+    }
+    return null;
+  }
+
+  /// This method is called by the [TapGestureRecognizer] only when a tap is confirmed.
+  void _handleTapUp(TapUpDetails details) {
+    // Use our helper to find out what was under the user's finger.
+    final entry = _getHitTestEntryForOffset(details.localPosition);
 
     if (entry is VerseNumberHitTestEntry) {
       debugPrint('Tapped on verse number: ${entry.verseNumber}');
@@ -535,42 +562,32 @@ class RenderHebrewGreekText extends RenderBox {
     if (_popupWordProvider == null) return;
 
     if (entry is HebrewGreekWordHitTestEntry) {
+      _popupDismissTimer?.cancel();
+
       final tappedId = entry.wordId;
 
-      // If the same word is tapped again, dismiss the popup.
-      if (tappedId == _tappedWordId) {
-        _dismissPopup();
-        return;
-      }
-
-      // Tapped a new word. Update the state and start fetching.
-      // We don't show anything immediately, just set the ID.
-      // The popup will appear after the Future completes.
       _tappedWordId = tappedId;
-      _popupText = null; // Clear old text
-      _popupPainter = null; // Clear old painter
-      markNeedsPaint(); // Repaint to hide the old popup immediately
+      _popupText = null;
+      _popupPainter = null;
+      markNeedsPaint(); // Hide any old popup immediately
 
-      // Call the async provider.
       _popupWordProvider!(tappedId).then((resultText) {
-        // CRITICAL: Check if the user is still interested in this word.
-        // They might have tapped somewhere else while we were fetching the data.
         if (_tappedWordId == tappedId) {
           if (resultText != null && resultText.isNotEmpty) {
-            // We got the data, now store it, prepare the painter, and repaint.
             _popupText = resultText;
             _preparePopupPainter();
             markNeedsPaint();
+            _popupDismissTimer = Timer(
+              const Duration(seconds: 3),
+              _dismissPopup,
+            );
           } else {
-            // Provider returned no text, so treat it as a dismissal.
             _dismissPopup();
           }
         }
-        // If _tappedWordId is no longer `tappedId`, do nothing.
-        // The result is for an old request and should be ignored.
       });
     } else {
-      // Tapped on the background, dismiss any active popup.
+      // The tap was on the background of the widget, not on a specific word or verse number.
       _dismissPopup();
     }
   }
@@ -658,6 +675,13 @@ class RenderHebrewGreekText extends RenderBox {
 
     // Paint the text.
     _popupPainter!.paint(canvas, textOffset);
+  }
+
+  @override
+  void detach() {
+    _tapRecognizer.dispose();
+    _popupDismissTimer?.cancel();
+    super.detach();
   }
 }
 
