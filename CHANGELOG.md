@@ -1,4 +1,4 @@
-## 0.4.0 
+## 0.4.0 - June 17, 2025
 
 - Rewrite the text layout implementation to be more performant and customizable.
 - Style the verse numbers.

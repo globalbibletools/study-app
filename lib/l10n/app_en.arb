@@ -1,0 +1,268 @@
+{
+  "@@locale": "en",
+  
+  "bookGenesis": "Genesis",
+  "@bookGenesis": {
+    "description": "The name of the first book of the Bible"
+  },
+  "bookExodus": "Exodus",
+  "@bookExodus": {
+    "description": "The name of the second book of the Bible"
+  },
+  "bookLeviticus": "Leviticus",
+  "@bookLeviticus": {
+    "description": "The name of the third book of the Bible"
+  },
+  "bookNumbers": "Numbers",
+  "@bookNumbers": {
+    "description": "The name of the fourth book of the Bible"
+  },
+  "bookDeuteronomy": "Deuteronomy",
+  "@bookDeuteronomy": {
+    "description": "The name of the fifth book of the Bible"
+  },
+  "bookJoshua": "Joshua",
+  "@bookJoshua": {
+    "description": "The name of the sixth book of the Bible"
+  },
+  "bookJudges": "Judges",
+  "@bookJudges": {
+    "description": "The name of the seventh book of the Bible"
+  },
+  "bookRuth": "Ruth",
+  "@bookRuth": {
+    "description": "The name of the eighth book of the Bible"
+  },
+  "book1Samuel": "1 Samuel",
+  "@book1Samuel": {
+    "description": "The name of the ninth book of the Bible"
+  },
+  "book2Samuel": "2 Samuel",
+  "@book2Samuel": {
+    "description": "The name of the tenth book of the Bible"
+  },
+  "book1Kings": "1 Kings",
+  "@book1Kings": {
+    "description": "The name of the eleventh book of the Bible"
+  },
+  "book2Kings": "2 Kings",
+  "@book2Kings": {
+    "description": "The name of the twelfth book of the Bible"
+  },
+  "book1Chronicles": "1 Chronicles",
+  "@book1Chronicles": {
+    "description": "The name of the thirteenth book of the Bible"
+  },
+  "book2Chronicles": "2 Chronicles",
+  "@book2Chronicles": {
+    "description": "The name of the fourteenth book of the Bible"
+  },
+  "bookEzra": "Ezra",
+  "@bookEzra": {
+    "description": "The name of the fifteenth book of the Bible"
+  },
+  "bookNehemiah": "Nehemiah",
+  "@bookNehemiah": {
+    "description": "The name of the sixteenth book of the Bible"
+  },
+  "bookEsther": "Esther",
+  "@bookEsther": {
+    "description": "The name of the seventeenth book of the Bible"
+  },
+  "bookJob": "Job",
+  "@bookJob": {
+    "description": "The name of the eighteenth book of the Bible"
+  },
+  "bookPsalms": "Psalms",
+  "@bookPsalms": {
+    "description": "The name of the nineteenth book of the Bible"
+  },
+  "bookProverbs": "Proverbs",
+  "@bookProverbs": {
+    "description": "The name of the twentieth book of the Bible"
+  },
+  "bookEcclesiastes": "Ecclesiastes",
+  "@bookEcclesiastes": {
+    "description": "The name of the twenty-first book of the Bible"
+  },
+  "bookSongOfSolomon": "Song of Solomon",
+  "@bookSongOfSolomon": {
+    "description": "The name of the twenty-second book of the Bible"
+  },
+  "bookIsaiah": "Isaiah",
+  "@bookIsaiah": {
+    "description": "The name of the twenty-third book of the Bible"
+  },
+  "bookJeremiah": "Jeremiah",
+  "@bookJeremiah": {
+    "description": "The name of the twenty-fourth book of the Bible"
+  },
+  "bookLamentations": "Lamentations",
+  "@bookLamentations": {
+    "description": "The name of the twenty-fifth book of the Bible"
+  },
+  "bookEzekiel": "Ezekiel",
+  "@bookEzekiel": {
+    "description": "The name of the twenty-sixth book of the Bible"
+  },
+  "bookDaniel": "Daniel",
+  "@bookDaniel": {
+    "description": "The name of the twenty-seventh book of the Bible"
+  },
+  "bookHosea": "Hosea",
+  "@bookHosea": {
+    "description": "The name of the twenty-eighth book of the Bible"
+  },
+  "bookJoel": "Joel",
+  "@bookJoel": {
+    "description": "The name of the twenty-ninth book of the Bible"
+  },
+  "bookAmos": "Amos",
+  "@bookAmos": {
+    "description": "The name of the thirtieth book of the Bible"
+  },
+  "bookObadiah": "Obadiah",
+  "@bookObadiah": {
+    "description": "The name of the thirty-first book of the Bible"
+  },
+  "bookJonah": "Jonah",
+  "@bookJonah": {
+    "description": "The name of the thirty-second book of the Bible"
+  },
+  "bookMicah": "Micah",
+  "@bookMicah": {
+    "description": "The name of the thirty-third book of the Bible"
+  },
+  "bookNahum": "Nahum",
+  "@bookNahum": {
+    "description": "The name of the thirty-fourth book of the Bible"
+  },
+  "bookHabakkuk": "Habakkuk",
+  "@bookHabakkuk": {
+    "description": "The name of the thirty-fifth book of the Bible"
+  },
+  "bookZephaniah": "Zephaniah",
+  "@bookZephaniah": {
+    "description": "The name of the thirty-sixth book of the Bible"
+  },
+  "bookHaggai": "Haggai",
+  "@bookHaggai": {
+    "description": "The name of the thirty-seventh book of the Bible"
+  },
+  "bookZechariah": "Zechariah",
+  "@bookZechariah": {
+    "description": "The name of the thirty-eighth book of the Bible"
+  },
+  "bookMalachi": "Malachi",
+  "@bookMalachi": {
+    "description": "The name of the thirty-ninth book of the Bible"
+  },
+  "bookMatthew": "Matthew",
+  "@bookMatthew": {
+    "description": "The name of the fortieth book of the Bible"
+  },
+  "bookMark": "Mark",
+  "@bookMark": {
+    "description": "The name of the forty-first book of the Bible"
+  },
+  "bookLuke": "Luke",
+  "@bookLuke": {
+    "description": "The name of the forty-second book of the Bible"
+  },
+  "bookJohn": "John",
+  "@bookJohn": {
+    "description": "The name of the forty-third book of the Bible"
+  },
+  "bookActs": "Acts",
+  "@bookActs": {
+    "description": "The name of the forty-fourth book of the Bible"
+  },
+  "bookRomans": "Romans",
+  "@bookRomans": {
+    "description": "The name of the forty-fifth book of the Bible"
+  },
+  "book1Corinthians": "1 Corinthians",
+  "@book1Corinthians": {
+    "description": "The name of the forty-sixth book of the Bible"
+  },
+  "book2Corinthians": "2 Corinthians",
+  "@book2Corinthians": {
+    "description": "The name of the forty-seventh book of the Bible"
+  },
+  "bookGalatians": "Galatians",
+  "@bookGalatians": {
+    "description": "The name of the forty-eighth book of the Bible"
+  },
+  "bookEphesians": "Ephesians",
+  "@bookEphesians": {
+    "description": "The name of the forty-ninth book of the Bible"
+  },
+  "bookPhilippians": "Philippians",
+  "@bookPhilippians": {
+    "description": "The name of the fiftieth book of the Bible"
+  },
+  "bookColossians": "Colossians",
+  "@bookColossians": {
+    "description": "The name of the fifty-first book of the Bible"
+  },
+  "book1Thessalonians": "1 Thessalonians",
+  "@book1Thessalonians": {
+    "description": "The name of the fifty-second book of the Bible"
+  },
+  "book2Thessalonians": "2 Thessalonians",
+  "@book2Thessalonians": {
+    "description": "The name of the fifty-third book of the Bible"
+  },
+  "book1Timothy": "1 Timothy",
+  "@book1Timothy": {
+    "description": "The name of the fifty-fourth book of the Bible"
+  },
+  "book2Timothy": "2 Timothy",
+  "@book2Timothy": {
+    "description": "The name of the fifty-fifth book of the Bible"
+  },
+  "bookTitus": "Titus",
+  "@bookTitus": {
+    "description": "The name of the fifty-sixth book of the Bible"
+  },
+  "bookPhilemon": "Philemon",
+  "@bookPhilemon": {
+    "description": "The name of the fifty-seventh book of the Bible"
+  },
+  "bookHebrews": "Hebrews",
+  "@bookHebrews": {
+    "description": "The name of the fifty-eighth book of the Bible"
+  },
+  "bookJames": "James",
+  "@bookJames": {
+    "description": "The name of the fifty-ninth book of the Bible"
+  },
+  "book1Peter": "1 Peter",
+  "@book1Peter": {
+    "description": "The name of the sixtieth book of the Bible"
+  },
+  "book2Peter": "2 Peter",
+  "@book2Peter": {
+    "description": "The name of the sixty-first book of the Bible"
+  },
+  "book1John": "1 John",
+  "@book1John": {
+    "description": "The name of the sixty-second book of the Bible"
+  },
+  "book2John": "2 John",
+  "@book2John": {
+    "description": "The name of the sixty-third book of the Bible"
+  },
+  "book3John": "3 John",
+  "@book3John": {
+    "description": "The name of the sixty-fourth book of the Bible"
+  },
+  "bookJude": "Jude",
+  "@bookJude": {
+    "description": "The name of the sixty-fifth book of the Bible"
+  },
+  "bookRevelation": "Revelation",
+  "@bookRevelation": {
+    "description": "The name of the sixty-sixth book of the Bible"
+  }
+}

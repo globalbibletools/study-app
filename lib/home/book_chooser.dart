@@ -1,7 +1,101 @@
 import 'package:flutter/material.dart';
+import 'package:studyapp/l10n/app_localizations.dart';
 
-class BookChooser extends StatelessWidget {
+class BookChooser extends StatefulWidget {
   const BookChooser({super.key});
+
+  @override
+  State<BookChooser> createState() => _BookChooserState();
+}
+
+class _BookChooserState extends State<BookChooser> {
+  late final List<String> _oldTestamentBooks;
+  late final List<String> _newTestamentBooks;
+
+  void _initializeBooks() {
+    _oldTestamentBooks = [
+      AppLocalizations.of(context)!.bookGenesis,
+      AppLocalizations.of(context)!.bookExodus,
+      AppLocalizations.of(context)!.bookLeviticus,
+      AppLocalizations.of(context)!.bookNumbers,
+      AppLocalizations.of(context)!.bookDeuteronomy,
+      AppLocalizations.of(context)!.bookJoshua,
+      AppLocalizations.of(context)!.bookJudges,
+      AppLocalizations.of(context)!.bookRuth,
+      AppLocalizations.of(context)!.book1Samuel,
+      AppLocalizations.of(context)!.book2Samuel,
+      AppLocalizations.of(context)!.book1Kings,
+      AppLocalizations.of(context)!.book2Kings,
+      AppLocalizations.of(context)!.book1Chronicles,
+      AppLocalizations.of(context)!.book2Chronicles,
+      AppLocalizations.of(context)!.bookEzra,
+      AppLocalizations.of(context)!.bookNehemiah,
+      AppLocalizations.of(context)!.bookEsther,
+      AppLocalizations.of(context)!.bookJob,
+      AppLocalizations.of(context)!.bookPsalms,
+      AppLocalizations.of(context)!.bookProverbs,
+      AppLocalizations.of(context)!.bookEcclesiastes,
+      AppLocalizations.of(context)!.bookSongOfSolomon,
+      AppLocalizations.of(context)!.bookIsaiah,
+      AppLocalizations.of(context)!.bookJeremiah,
+      AppLocalizations.of(context)!.bookLamentations,
+      AppLocalizations.of(context)!.bookEzekiel,
+      AppLocalizations.of(context)!.bookDaniel,
+      AppLocalizations.of(context)!.bookHosea,
+      AppLocalizations.of(context)!.bookJoel,
+      AppLocalizations.of(context)!.bookAmos,
+      AppLocalizations.of(context)!.bookObadiah,
+      AppLocalizations.of(context)!.bookJonah,
+      AppLocalizations.of(context)!.bookMicah,
+      AppLocalizations.of(context)!.bookNahum,
+      AppLocalizations.of(context)!.bookHabakkuk,
+      AppLocalizations.of(context)!.bookZephaniah,
+      AppLocalizations.of(context)!.bookHaggai,
+      AppLocalizations.of(context)!.bookZechariah,
+      AppLocalizations.of(context)!.bookMalachi,
+    ];
+
+    _newTestamentBooks = [
+      AppLocalizations.of(context)!.bookMatthew,
+      AppLocalizations.of(context)!.bookMark,
+      AppLocalizations.of(context)!.bookLuke,
+      AppLocalizations.of(context)!.bookJohn,
+      AppLocalizations.of(context)!.bookActs,
+      AppLocalizations.of(context)!.bookRomans,
+      AppLocalizations.of(context)!.book1Corinthians,
+      AppLocalizations.of(context)!.book2Corinthians,
+      AppLocalizations.of(context)!.bookGalatians,
+      AppLocalizations.of(context)!.bookEphesians,
+      AppLocalizations.of(context)!.bookPhilippians,
+      AppLocalizations.of(context)!.bookColossians,
+      AppLocalizations.of(context)!.book1Thessalonians,
+      AppLocalizations.of(context)!.book2Thessalonians,
+      AppLocalizations.of(context)!.book1Timothy,
+      AppLocalizations.of(context)!.book2Timothy,
+      AppLocalizations.of(context)!.bookTitus,
+      AppLocalizations.of(context)!.bookPhilemon,
+      AppLocalizations.of(context)!.bookHebrews,
+      AppLocalizations.of(context)!.bookJames,
+      AppLocalizations.of(context)!.book1Peter,
+      AppLocalizations.of(context)!.book2Peter,
+      AppLocalizations.of(context)!.book1John,
+      AppLocalizations.of(context)!.book2John,
+      AppLocalizations.of(context)!.book3John,
+      AppLocalizations.of(context)!.bookJude,
+      AppLocalizations.of(context)!.bookRevelation,
+    ];
+  }
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _initializeBooks();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -64,75 +158,3 @@ class BookChooser extends StatelessWidget {
     );
   }
 }
-
-const _oldTestamentBooks = [
-  "Genesis",
-  "Exodus",
-  "Leviticus",
-  "Numbers",
-  "Deuteronomy",
-  "Joshua",
-  "Judges",
-  "Ruth",
-  "1 Samuel",
-  "2 Samuel",
-  "1 Kings",
-  "2 Kings",
-  "1 Chronicles",
-  "2 Chronicles",
-  "Ezra",
-  "Nehemiah",
-  "Esther",
-  "Job",
-  "Psalms",
-  "Proverbs",
-  "Ecclesiastes",
-  "Song of Solomon",
-  "Isaiah",
-  "Jeremiah",
-  "Lamentations",
-  "Ezekiel",
-  "Daniel",
-  "Hosea",
-  "Joel",
-  "Amos",
-  "Obadiah",
-  "Jonah",
-  "Micah",
-  "Nahum",
-  "Habakkuk",
-  "Zephaniah",
-  "Haggai",
-  "Zechariah",
-  "Malachi",
-];
-
-const _newTestamentBooks = [
-  "Matthew",
-  "Mark",
-  "Luke",
-  "John",
-  "Acts",
-  "Romans",
-  "1 Corinthians",
-  "2 Corinthians",
-  "Galatians",
-  "Ephesians",
-  "Philippians",
-  "Colossians",
-  "1 Thessalonians",
-  "2 Thessalonians",
-  "1 Timothy",
-  "2 Timothy",
-  "Titus",
-  "Philemon",
-  "Hebrews",
-  "James",
-  "1 Peter",
-  "2 Peter",
-  "1 John",
-  "2 John",
-  "3 John",
-  "Jude",
-  "Revelation",
-];

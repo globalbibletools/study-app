@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:studyapp/l10n/app_localizations.dart';
 import 'package:studyapp/services/database.dart';
 import 'package:studyapp/services/service_locator.dart';
 import 'package:studyapp/services/user_settings.dart';
@@ -22,6 +23,9 @@ class GbtStudyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Global Bible Tools',
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      locale: const Locale('es'),
       theme: appTheme,
       home: const HomeScreen(),
       debugShowCheckedModeBanner: false,
