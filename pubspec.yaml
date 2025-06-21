@@ -35,3 +35,4 @@ flutter:
         - asset: assets/fonts/sbl_blit.ttf
   assets:
     - assets/databases/
+    - assets/images/logo.png

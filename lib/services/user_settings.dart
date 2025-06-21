@@ -37,7 +37,11 @@ class UserSettings {
     return Locale(localeCode);
   }
 
-  Future<void> setLocale(Locale locale) async {
-    await _prefs.setString(_localeKey, locale.toString());
+  Future<void> setLocale(String? localeCode) async {
+    if (localeCode == null) {
+      await _prefs.remove(_localeKey);
+    } else {
+      await _prefs.setString(_localeKey, localeCode);
+    }
   }
 }

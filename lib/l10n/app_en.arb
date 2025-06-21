@@ -1,6 +1,24 @@
 {
   "@@locale": "en",
-  
+
+  "settings": "Settings",
+  "@settings": {
+    "description": "The title of the Settings screen"
+  },
+  "language": "Language",
+  "@language": {
+    "description": "Settings menu item to change the app language"
+  },
+  "currentLanguage": "English",
+  "@currentLanguage": {
+    "description": "The name of the language for this locale"
+  },
+
+  "about": "About",
+  "@about": {
+    "description": "The title of the About screen"
+  },
+
   "bookGenesis": "Genesis",
   "@bookGenesis": {
     "description": "The name of the first book of the Bible"

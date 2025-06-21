@@ -98,6 +98,30 @@ abstract class AppLocalizations {
     Locale('es'),
   ];
 
+  /// The title of the Settings screen
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get settings;
+
+  /// Settings menu item to change the app language
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get language;
+
+  /// The name of the language for this locale
+  ///
+  /// In en, this message translates to:
+  /// **'English'**
+  String get currentLanguage;
+
+  /// The title of the About screen
+  ///
+  /// In en, this message translates to:
+  /// **'About'**
+  String get about;
+
   /// The name of the first book of the Bible
   ///
   /// In en, this message translates to:

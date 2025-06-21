@@ -1,5 +1,12 @@
 { 
     "@@locale": "es",
+
+    "settings": "Ajustes",
+    "language": "Idioma",
+    "currentLanguage": "Español",
+    
+    "about": "Acerca de",
+
     "bookGenesis": "Génesis",
     "bookExodus": "Éxodo",
     "bookLeviticus": "Levítico",

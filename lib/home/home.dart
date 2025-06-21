@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:database_builder/database_builder.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:studyapp/home/drawer.dart';
 import 'package:studyapp/home/hebrew_greek_text.dart';
 
 import 'book_chooser.dart';
@@ -108,6 +109,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
+      drawer: const AppDrawer(),
       body: Stack(
         children: [
           RawGestureDetector(
