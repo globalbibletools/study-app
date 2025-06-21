@@ -1,3 +1,7 @@
+## 0.5.0 
+
+- Support localization in English and Spanish
+
 ## 0.4.0 - June 17, 2025
 
 - Rewrite the text layout implementation to be more performant and customizable.

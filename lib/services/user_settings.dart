@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:shared_preferences/shared_preferences.dart';
 
 class UserSettings {
@@ -10,6 +12,7 @@ class UserSettings {
   static const _currentChapterKey = 'currentChapter';
   static const _currentBookIdKey = 'currentBookId';
   static const _fontScaleKey = 'fontScale';
+  static const _localeKey = 'locale';
 
   (int, int) get currentBookChapter {
     final bookId = _prefs.getInt(_currentBookIdKey) ?? 1;
@@ -27,4 +30,14 @@ class UserSettings {
   }
 
   double get fontScale => _prefs.getDouble(_fontScaleKey) ?? 1.0;
+
+  Locale? get locale {
+    final localeCode = _prefs.getString(_localeKey);
+    if (localeCode == null) return null;
+    return Locale(localeCode);
+  }
+
+  Future<void> setLocale(Locale locale) async {
+    await _prefs.setString(_localeKey, locale.toString());
+  }
 }
