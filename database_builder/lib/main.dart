@@ -2,8 +2,8 @@ import 'src/gloss/database.dart';
 import 'src/hebrew_greek/database.dart';
 
 Future<void> main(List<String> arguments) async {
-  await _createHebrewGreekDatabase();
-  await _createGlossDatabase('eng');
+  // await _createHebrewGreekDatabase();
+  await _createGlossDatabase('spa');
 }
 
 Future<void> _createHebrewGreekDatabase() async {
