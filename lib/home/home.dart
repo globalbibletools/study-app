@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:database_builder/src/hebrew_greek/word.dart';
+import 'package:database_builder/database_builder.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:studyapp/home/hebrew_greek_text.dart';
@@ -26,9 +26,9 @@ class _HomeScreenState extends State<HomeScreen> {
   bool get _isScaling => _gestureScale != 1.0;
 
   @override
-  void initState() {
-    super.initState();
-    manager.init();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    manager.init(context);
     manager.onTextUpdated = _scrollToTop;
     _baseScale = manager.getFontScale();
   }
@@ -221,7 +221,9 @@ class _HomeScreenState extends State<HomeScreen> {
         return const BookChooser();
       },
     );
-    manager.onBookSelected(selectedIndex);
+    if (mounted) {
+      manager.onBookSelected(context, selectedIndex);
+    }
   }
 }
 

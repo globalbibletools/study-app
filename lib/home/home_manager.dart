@@ -1,5 +1,6 @@
 import 'package:database_builder/database_builder.dart';
 import 'package:flutter/widgets.dart';
+import 'package:studyapp/l10n/app_localizations.dart';
 import 'package:studyapp/services/database.dart';
 import 'package:studyapp/services/service_locator.dart';
 import 'package:studyapp/services/user_settings.dart';
@@ -20,16 +21,16 @@ class HomeManager {
   static const _lastOldTestamentBookId = 39;
   bool get currentChapterIsRtl => _currentBookId <= _lastOldTestamentBookId;
 
-  Future<void> init() async {
+  Future<void> init(BuildContext context) async {
     final (bookId, chapter) = _settings.currentBookChapter;
-    _updateCurrentBookName(bookId);
+    _updateCurrentBookName(context, bookId);
     currentChapterNotifier.value = chapter;
     _updateText();
   }
 
-  void _updateCurrentBookName([int? bookId]) {
+  void _updateCurrentBookName(BuildContext context, int? bookId) {
     _currentBookId = bookId ?? 1;
-    currentBookNotifier.value = _bookIdToFullNameMap[_currentBookId]!;
+    currentBookNotifier.value = _bookNameFromId(context, _currentBookId);
   }
 
   Future<void> _updateText() async {
@@ -46,11 +47,11 @@ class HomeManager {
     chapterCountNotifier.value = numberOfChapters;
   }
 
-  Future<void> onBookSelected(int? bookId) async {
+  Future<void> onBookSelected(BuildContext context, int? bookId) async {
     if (bookId == null) {
       return;
     }
-    _updateCurrentBookName(bookId);
+    _updateCurrentBookName(context, bookId);
     final currentChapter = 1;
     currentChapterNotifier.value = currentChapter;
     await _updateText();
@@ -84,74 +85,145 @@ class HomeManager {
   }
 }
 
-const _bookIdToFullNameMap = {
-  1: 'Genesis',
-  2: 'Exodus',
-  3: 'Leviticus',
-  4: 'Numbers',
-  5: 'Deuteronomy',
-  6: 'Joshua',
-  7: 'Judges',
-  8: 'Ruth',
-  9: '1 Samuel',
-  10: '2 Samuel',
-  11: '1 Kings',
-  12: '2 Kings',
-  13: '1 Chronicles',
-  14: '2 Chronicles',
-  15: 'Ezra',
-  16: 'Nehemiah',
-  17: 'Esther',
-  18: 'Job',
-  19: 'Psalm',
-  20: 'Proverbs',
-  21: 'Ecclesiastes',
-  22: 'Song of Solomon',
-  23: 'Isaiah',
-  24: 'Jeremiah',
-  25: 'Lamentations',
-  26: 'Ezekiel',
-  27: 'Daniel',
-  28: 'Hosea',
-  29: 'Joel',
-  30: 'Amos',
-  31: 'Obadiah',
-  32: 'Jonah',
-  33: 'Micah',
-  34: 'Nahum',
-  35: 'Habakkuk',
-  36: 'Zephaniah',
-  37: 'Haggai',
-  38: 'Zechariah',
-  39: 'Malachi',
-  40: 'Matthew',
-  41: 'Mark',
-  42: 'Luke',
-  43: 'John',
-  44: 'Acts',
-  45: 'Romans',
-  46: '1 Corinthians',
-  47: '2 Corinthians',
-  48: 'Galatians',
-  49: 'Ephesians',
-  50: 'Philippians',
-  51: 'Colossians',
-  52: '1 Thessalonians',
-  53: '2 Thessalonians',
-  54: '1 Timothy',
-  55: '2 Timothy',
-  56: 'Titus',
-  57: 'Philemon',
-  58: 'Hebrews',
-  59: 'James',
-  60: '1 Peter',
-  61: '2 Peter',
-  62: '1 John',
-  63: '2 John',
-  64: '3 John',
-  65: 'Jude',
-  66: 'Revelation',
-};
+String _bookNameFromId(BuildContext context, int bookId) {
+  switch (bookId) {
+    case 1:
+      return AppLocalizations.of(context)!.bookGenesis;
+    case 2:
+      return AppLocalizations.of(context)!.bookExodus;
+    case 3:
+      return AppLocalizations.of(context)!.bookLeviticus;
+    case 4:
+      return AppLocalizations.of(context)!.bookNumbers;
+    case 5:
+      return AppLocalizations.of(context)!.bookDeuteronomy;
+    case 6:
+      return AppLocalizations.of(context)!.bookJoshua;
+    case 7:
+      return AppLocalizations.of(context)!.bookJudges;
+    case 8:
+      return AppLocalizations.of(context)!.bookRuth;
+    case 9:
+      return AppLocalizations.of(context)!.book1Samuel;
+    case 10:
+      return AppLocalizations.of(context)!.book2Samuel;
+    case 11:
+      return AppLocalizations.of(context)!.book1Kings;
+    case 12:
+      return AppLocalizations.of(context)!.book2Kings;
+    case 13:
+      return AppLocalizations.of(context)!.book1Chronicles;
+    case 14:
+      return AppLocalizations.of(context)!.book2Chronicles;
+    case 15:
+      return AppLocalizations.of(context)!.bookEzra;
+    case 16:
+      return AppLocalizations.of(context)!.bookNehemiah;
+    case 17:
+      return AppLocalizations.of(context)!.bookEsther;
+    case 18:
+      return AppLocalizations.of(context)!.bookJob;
+    case 19:
+      return AppLocalizations.of(context)!.bookPsalms;
+    case 20:
+      return AppLocalizations.of(context)!.bookProverbs;
+    case 21:
+      return AppLocalizations.of(context)!.bookEcclesiastes;
+    case 22:
+      return AppLocalizations.of(context)!.bookSongOfSolomon;
+    case 23:
+      return AppLocalizations.of(context)!.bookIsaiah;
+    case 24:
+      return AppLocalizations.of(context)!.bookJeremiah;
+    case 25:
+      return AppLocalizations.of(context)!.bookLamentations;
+    case 26:
+      return AppLocalizations.of(context)!.bookEzekiel;
+    case 27:
+      return AppLocalizations.of(context)!.bookDaniel;
+    case 28:
+      return AppLocalizations.of(context)!.bookHosea;
+    case 29:
+      return AppLocalizations.of(context)!.bookJoel;
+    case 30:
+      return AppLocalizations.of(context)!.bookAmos;
+    case 31:
+      return AppLocalizations.of(context)!.bookObadiah;
+    case 32:
+      return AppLocalizations.of(context)!.bookJonah;
+    case 33:
+      return AppLocalizations.of(context)!.bookMicah;
+    case 34:
+      return AppLocalizations.of(context)!.bookNahum;
+    case 35:
+      return AppLocalizations.of(context)!.bookHabakkuk;
+    case 36:
+      return AppLocalizations.of(context)!.bookZephaniah;
+    case 37:
+      return AppLocalizations.of(context)!.bookHaggai;
+    case 38:
+      return AppLocalizations.of(context)!.bookZechariah;
+    case 39:
+      return AppLocalizations.of(context)!.bookMalachi;
+    case 40:
+      return AppLocalizations.of(context)!.bookMatthew;
+    case 41:
+      return AppLocalizations.of(context)!.bookMark;
+    case 42:
+      return AppLocalizations.of(context)!.bookLuke;
+    case 43:
+      return AppLocalizations.of(context)!.bookJohn;
+    case 44:
+      return AppLocalizations.of(context)!.bookActs;
+    case 45:
+      return AppLocalizations.of(context)!.bookRomans;
+    case 46:
+      return AppLocalizations.of(context)!.book1Corinthians;
+    case 47:
+      return AppLocalizations.of(context)!.book2Corinthians;
+    case 48:
+      return AppLocalizations.of(context)!.bookGalatians;
+    case 49:
+      return AppLocalizations.of(context)!.bookEphesians;
+    case 50:
+      return AppLocalizations.of(context)!.bookPhilippians;
+    case 51:
+      return AppLocalizations.of(context)!.bookColossians;
+    case 52:
+      return AppLocalizations.of(context)!.book1Thessalonians;
+    case 53:
+      return AppLocalizations.of(context)!.book2Thessalonians;
+    case 54:
+      return AppLocalizations.of(context)!.book1Timothy;
+    case 55:
+      return AppLocalizations.of(context)!.book2Timothy;
+    case 56:
+      return AppLocalizations.of(context)!.bookTitus;
+    case 57:
+      return AppLocalizations.of(context)!.bookPhilemon;
+    case 58:
+      return AppLocalizations.of(context)!.bookHebrews;
+    case 59:
+      return AppLocalizations.of(context)!.bookJames;
+    case 60:
+      return AppLocalizations.of(context)!.book1Peter;
+    case 61:
+      return AppLocalizations.of(context)!.book2Peter;
+    case 62:
+      return AppLocalizations.of(context)!.book1John;
+    case 63:
+      return AppLocalizations.of(context)!.book2John;
+    case 64:
+      return AppLocalizations.of(context)!.book3John;
+    case 65:
+      return AppLocalizations.of(context)!.bookJude;
+    case 66:
+      return AppLocalizations.of(context)!.bookRevelation;
+
+    default:
+      return '';
+  }
+}
 
 final Map<int, int> _bookIdToChapterCountMap = {
   1: 50, // Genesis
