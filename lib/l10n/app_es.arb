@@ -4,6 +4,14 @@
     "settings": "Ajustes",
     "language": "Idioma",
     "currentLanguage": "Español",
+
+    "downloadGlossesMessage": "Para mostrar los significados de palabras en Español, es necesario descargar los datos. ¿Desea descargarlos ahora?",
+    "useEnglish": "Usar Inglés",
+    "download": "Descargar",
+    "cancel": "Cancelar",
+    "downloadingGlossesMessage": "Descargando significados de palabras en Español...",
+    "downloadComplete": "Descarga completa.",
+    "downloadFailed": "La descarga falló. Por favor, revise su conexión a internet e inténtelo de nuevo.",
     
     "about": "Acerca de",
 

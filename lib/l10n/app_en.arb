@@ -14,6 +14,35 @@
     "description": "The name of the language for this locale"
   },
 
+  "downloadGlossesMessage": "To show word meanings in English, the data needs to be downloaded. Would you like to download it now?",
+  "@downloadGlossesMessage": {
+      "description": "Message asking user to download glosses for a specific language."
+  },
+  "useEnglish": "Use English",
+  "@useEnglish": {
+    "description": "Label for the dialog button to use English glosses"
+  },
+  "download": "Download",
+  "@download": {
+    "description": "Label for the download button"
+  },
+  "cancel": "Cancel",
+  "@cancel": {
+    "description": "Label for the cancel button"
+  },
+  "downloadingGlossesMessage": "Downloading word meanings in English...",
+  "@downloadingGlossesMessage": {
+      "description": "Message shown while glosses are downloading."
+  },
+  "downloadComplete": "Download complete.",
+  "@downloadComplete": {
+    "description": "Message shown when glosses finish downloading."
+  },
+  "downloadFailed": "Download failed. Please check your internet connection and try again.",
+  "@downloadFailed": {
+    "description": "Message shown when glosses fail to download."
+  },
+
   "about": "About",
   "@about": {
     "description": "The title of the About screen"

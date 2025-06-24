@@ -18,6 +18,30 @@ class AppLocalizationsEs extends AppLocalizations {
   String get currentLanguage => 'Español';
 
   @override
+  String get downloadGlossesMessage =>
+      'Para mostrar los significados de palabras en Español, es necesario descargar los datos. ¿Desea descargarlos ahora?';
+
+  @override
+  String get useEnglish => 'Usar Inglés';
+
+  @override
+  String get download => 'Descargar';
+
+  @override
+  String get cancel => 'Cancelar';
+
+  @override
+  String get downloadingGlossesMessage =>
+      'Descargando significados de palabras en Español...';
+
+  @override
+  String get downloadComplete => 'Descarga completa.';
+
+  @override
+  String get downloadFailed =>
+      'La descarga falló. Por favor, revise su conexión a internet e inténtelo de nuevo.';
+
+  @override
   String get about => 'Acerca de';
 
   @override

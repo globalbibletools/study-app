@@ -4,10 +4,13 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:studyapp/home/drawer.dart';
 import 'package:studyapp/home/hebrew_greek_text.dart';
+import 'package:studyapp/l10n/app_localizations.dart';
 
 import 'book_chooser.dart';
 import 'chapter_chooser.dart';
 import 'home_manager.dart';
+
+enum DownloadDialogChoice { useEnglish, download }
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -25,6 +28,67 @@ class _HomeScreenState extends State<HomeScreen> {
   double _baseScale = 1.0;
   double _gestureScale = 1.0;
   bool get _isScaling => _gestureScale != 1.0;
+
+  @override
+  void initState() {
+    super.initState();
+    manager.onGlossDownloadNeeded = _showDownloadDialog;
+  }
+
+  Future<void> _showDownloadDialog(Locale locale) async {
+    final l10n = AppLocalizations.of(context)!;
+
+    final choice =
+        await showDialog<DownloadDialogChoice>(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              content: Text(l10n.downloadGlossesMessage),
+              actions: <Widget>[
+                TextButton(
+                  child: Text(l10n.useEnglish),
+                  onPressed:
+                      () => Navigator.of(
+                        context,
+                      ).pop(DownloadDialogChoice.useEnglish),
+                ),
+                FilledButton(
+                  child: Text(l10n.download),
+                  onPressed:
+                      () => Navigator.of(
+                        context,
+                      ).pop(DownloadDialogChoice.download),
+                ),
+              ],
+            );
+          },
+        ) ??
+        DownloadDialogChoice.useEnglish;
+
+    if (!mounted) return;
+
+    if (choice == DownloadDialogChoice.useEnglish) {
+      await manager.setLanguageToEnglish(locale);
+    } else {
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(l10n.downloadingGlossesMessage),
+          duration: const Duration(seconds: 30),
+        ),
+      );
+
+      try {
+        await manager.downloadGlosses(locale);
+        messenger.hideCurrentSnackBar();
+        messenger.showSnackBar(SnackBar(content: Text(l10n.downloadComplete)));
+      } catch (e) {
+        messenger.hideCurrentSnackBar();
+        messenger.showSnackBar(SnackBar(content: Text(l10n.downloadFailed)));
+      }
+    }
+  }
 
   @override
   void didChangeDependencies() {
@@ -192,7 +256,8 @@ class _HomeScreenState extends State<HomeScreen> {
             color: Theme.of(context).colorScheme.onInverseSurface,
           ),
           popupWordProvider: (wordId) {
-            return manager.getPopupTextForId(wordId);
+            final locale = Localizations.localeOf(context);
+            return manager.getPopupTextForId(locale, wordId);
           },
           onPopupShown: _ensurePopupIsVisible,
         );

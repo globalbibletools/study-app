@@ -1,5 +1,8 @@
+import 'dart:developer';
+
 import 'package:database_builder/database_builder.dart';
 import 'package:flutter/widgets.dart';
+import 'package:studyapp/app_state.dart';
 import 'package:studyapp/l10n/app_localizations.dart';
 import 'package:studyapp/services/database.dart';
 import 'package:studyapp/services/service_locator.dart';
@@ -12,11 +15,13 @@ class HomeManager {
   final textNotifier = ValueNotifier<List<HebrewGreekWord>>([]);
 
   final _hebrewGreekDb = getIt<HebrewGreekDatabase>();
-  final _glossDb = getIt<EnglishDatabase>();
+  final _englishGlossDb = getIt<EnglishDatabase>();
+  final _glossService = getIt<GlossService>();
   final _settings = getIt<UserSettings>();
   int _currentBookId = 1;
 
   void Function()? onTextUpdated;
+  void Function(Locale)? onGlossDownloadNeeded;
 
   static const _lastOldTestamentBookId = 39;
   bool get currentChapterIsRtl => _currentBookId <= _lastOldTestamentBookId;
@@ -25,7 +30,8 @@ class HomeManager {
     final (bookId, chapter) = _settings.currentBookChapter;
     _updateCurrentBookName(context, bookId);
     currentChapterNotifier.value = chapter;
-    _updateText();
+    await _updateText();
+    await _initLocalizedGlosses();
   }
 
   void _updateCurrentBookName(BuildContext context, int? bookId) {
@@ -40,6 +46,15 @@ class HomeManager {
       chapter,
     );
     onTextUpdated?.call();
+  }
+
+  Future<void> _initLocalizedGlosses() async {
+    final languageCode = _settings.locale?.languageCode;
+    if (languageCode == null || languageCode == 'en') {
+      return;
+    }
+    log('Initializing localized database');
+    await _glossService.initDb(languageCode);
   }
 
   void showChapterChooser() {
@@ -68,10 +83,6 @@ class HomeManager {
     await _settings.setCurrentBookChapter(_currentBookId, chapter);
   }
 
-  Future<String> lookupGlossForId(int id) async {
-    return await _glossDb.getGloss(id) ?? '';
-  }
-
   Future<void> saveFontScale(double scale) async {
     await _settings.setFontScale(scale);
   }
@@ -80,8 +91,50 @@ class HomeManager {
     return _settings.fontScale;
   }
 
-  Future<String?> getPopupTextForId(int wordId) async {
-    return await _glossDb.getGloss(wordId);
+  bool isDownloadableLanguage(Locale locale) {
+    if (locale.languageCode == 'en') return false;
+    return AppLocalizations.supportedLocales.any(
+      (l) => l.languageCode == locale.languageCode,
+    );
+  }
+
+  Future<String?> getPopupTextForId(Locale uiLocale, int wordId) async {
+    final glossLocale = _settings.locale ?? uiLocale;
+
+    if (!isDownloadableLanguage(glossLocale)) {
+      return await _getEnglishGloss(wordId);
+    }
+
+    final langCode = glossLocale.languageCode;
+    final dbExists = await _glossService.glossDbExists(langCode);
+    if (dbExists) {
+      final localizedGloss = await _glossService.getGloss(langCode, wordId);
+      return localizedGloss ?? await _getEnglishGloss(wordId);
+    } else {
+      onGlossDownloadNeeded?.call(Locale(langCode));
+      return await _getEnglishGloss(wordId);
+    }
+  }
+
+  Future<String?> _getEnglishGloss(int wordId) async {
+    return await _englishGlossDb.getGloss(wordId);
+  }
+
+  // Called from the UI when user agrees to download.
+  Future<void> downloadGlosses(Locale locale) async {
+    try {
+      await _glossService.downloadAndInstallGlossDb(locale.languageCode);
+      await _glossService.initDb(locale.languageCode);
+    } catch (e) {
+      log('Gloss download failed for ${locale.languageCode}: $e');
+      rethrow;
+    }
+  }
+
+  // Called from the UI when user wants to use English instead of downloading.
+  Future<void> setLanguageToEnglish(Locale originalLocale) async {
+    await _settings.setLocale('en');
+    getIt<AppState>().init();
   }
 }
 

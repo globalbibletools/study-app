@@ -116,6 +116,48 @@ abstract class AppLocalizations {
   /// **'English'**
   String get currentLanguage;
 
+  /// Message asking user to download glosses for a specific language.
+  ///
+  /// In en, this message translates to:
+  /// **'To show word meanings in English, the data needs to be downloaded. Would you like to download it now?'**
+  String get downloadGlossesMessage;
+
+  /// Label for the dialog button to use English glosses
+  ///
+  /// In en, this message translates to:
+  /// **'Use English'**
+  String get useEnglish;
+
+  /// Label for the download button
+  ///
+  /// In en, this message translates to:
+  /// **'Download'**
+  String get download;
+
+  /// Label for the cancel button
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get cancel;
+
+  /// Message shown while glosses are downloading.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading word meanings in English...'**
+  String get downloadingGlossesMessage;
+
+  /// Message shown when glosses finish downloading.
+  ///
+  /// In en, this message translates to:
+  /// **'Download complete.'**
+  String get downloadComplete;
+
+  /// Message shown when glosses fail to download.
+  ///
+  /// In en, this message translates to:
+  /// **'Download failed. Please check your internet connection and try again.'**
+  String get downloadFailed;
+
   /// The title of the About screen
   ///
   /// In en, this message translates to:

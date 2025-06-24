@@ -20,6 +20,10 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   intl: ^0.20.2
+  connectivity_plus: ^6.1.4
+  archive: ^4.0.7
+  http: ^1.4.0
+  path_provider: ^2.1.5
 
 dev_dependencies:
   flutter_test:

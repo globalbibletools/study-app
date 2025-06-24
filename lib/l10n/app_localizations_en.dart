@@ -18,6 +18,30 @@ class AppLocalizationsEn extends AppLocalizations {
   String get currentLanguage => 'English';
 
   @override
+  String get downloadGlossesMessage =>
+      'To show word meanings in English, the data needs to be downloaded. Would you like to download it now?';
+
+  @override
+  String get useEnglish => 'Use English';
+
+  @override
+  String get download => 'Download';
+
+  @override
+  String get cancel => 'Cancel';
+
+  @override
+  String get downloadingGlossesMessage =>
+      'Downloading word meanings in English...';
+
+  @override
+  String get downloadComplete => 'Download complete.';
+
+  @override
+  String get downloadFailed =>
+      'Download failed. Please check your internet connection and try again.';
+
+  @override
   String get about => 'About';
 
   @override
