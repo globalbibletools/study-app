@@ -1,6 +1,9 @@
 { 
     "@@locale": "es",
 
+    "appName": "Herramientas Bíblicas Globales",
+    "sourceCode": "Código fuente",
+
     "settings": "Ajustes",
     "language": "Idioma",
     "currentLanguage": "Español",

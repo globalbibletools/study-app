@@ -9,6 +9,12 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get appName => 'Global Bible Tools';
+
+  @override
+  String get sourceCode => 'App source code';
+
+  @override
   String get settings => 'Settings';
 
   @override

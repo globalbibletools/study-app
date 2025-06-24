@@ -98,6 +98,18 @@ abstract class AppLocalizations {
     Locale('es'),
   ];
 
+  /// Displayed on the About page
+  ///
+  /// In en, this message translates to:
+  /// **'Global Bible Tools'**
+  String get appName;
+
+  /// Button text for the link to the source code on GitHub
+  ///
+  /// In en, this message translates to:
+  /// **'App source code'**
+  String get sourceCode;
+
   /// The title of the Settings screen
   ///
   /// In en, this message translates to:

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:studyapp/about/about.dart';
 import 'package:studyapp/l10n/app_localizations.dart';
 import 'package:studyapp/settings/settings_page.dart';
 
@@ -40,10 +41,10 @@ class AppDrawer extends StatelessWidget {
               title: Text(AppLocalizations.of(context)!.about),
               onTap: () {
                 Navigator.pop(context);
-                // Navigator.push(
-                //   context,
-                //   MaterialPageRoute(builder: (context) => const AboutPage()),
-                // );
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AboutPage()),
+                );
               },
             ),
           ],

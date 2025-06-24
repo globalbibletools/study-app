@@ -1,6 +1,15 @@
 {
   "@@locale": "en",
 
+  "appName": "Global Bible Tools",
+  "@appName": {
+    "description": "Displayed on the About page"
+  },
+  "sourceCode": "App source code",
+  "@sourceCode": {
+    "description": "Button text for the link to the source code on GitHub"
+  },
+
   "settings": "Settings",
   "@settings": {
     "description": "The title of the Settings screen"

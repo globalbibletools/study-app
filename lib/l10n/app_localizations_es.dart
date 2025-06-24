@@ -9,6 +9,12 @@ class AppLocalizationsEs extends AppLocalizations {
   AppLocalizationsEs([String locale = 'es']) : super(locale);
 
   @override
+  String get appName => 'Herramientas Bíblicas Globales';
+
+  @override
+  String get sourceCode => 'Código fuente';
+
+  @override
   String get settings => 'Ajustes';
 
   @override

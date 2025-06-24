@@ -1,6 +1,9 @@
-## 0.5.0 
+## 0.5.1 
 
-- Support localization in English and Spanish
+- Support localization in Spanish
+- Download Spanish gloss database
+- Add about screen
+- Change launcher icon title to "GBT"
 
 ## 0.4.0 - June 17, 2025
 
