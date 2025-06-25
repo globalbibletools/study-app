@@ -1,9 +1,10 @@
-## 0.5.1 
+## 0.5.2 - June 24, 2025
 
-- Support localization in Spanish
-- Download Spanish gloss database
-- Add about screen
-- Change launcher icon title to "GBT"
+- Add multilingual support with Spanish test case.
+- Download Spanish gloss database.
+- Add about screen.
+- Change launcher icon title to "GBT".
+- Upgrade Flutter to 3.32.4.
 
 ## 0.4.0 - June 17, 2025
 

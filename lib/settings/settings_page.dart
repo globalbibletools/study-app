@@ -102,7 +102,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   final previousLanguage = manager.currentLanguage;
                   final selectedLanguage = await _chooseLanguage();
                   if (selectedLanguage == null) return;
-                  manager.setLanguage(selectedLanguage);
+                  await manager.setLanguage(selectedLanguage);
                   if (selectedLanguage == Language.english) return;
                   final isDownloaded = await manager.isLanguageDownloaded(
                     selectedLanguage,

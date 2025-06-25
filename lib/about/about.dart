@@ -105,8 +105,10 @@ class _AboutPageState extends State<AboutPage> {
                     );
                     if (!context.mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Email copied to clipboard'),
+                      SnackBar(
+                        content: Text(
+                          AppLocalizations.of(context)!.emailCopied,
+                        ),
                       ),
                     );
                   },

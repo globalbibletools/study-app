@@ -15,6 +15,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get sourceCode => 'Código fuente';
 
   @override
+  String get emailCopied => 'Correo electrónico copiado';
+
+  @override
   String get settings => 'Ajustes';
 
   @override

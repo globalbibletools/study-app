@@ -110,6 +110,12 @@ abstract class AppLocalizations {
   /// **'App source code'**
   String get sourceCode;
 
+  /// Message shown after email button clicked
+  ///
+  /// In en, this message translates to:
+  /// **'Email copied'**
+  String get emailCopied;
+
   /// The title of the Settings screen
   ///
   /// In en, this message translates to:
