@@ -28,7 +28,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get downloadGlossesMessage =>
-      'Para mostrar los significados de palabras en Español, es necesario descargar los datos. ¿Desea descargarlos ahora?';
+      'Para mostrar los significados en Español (glosas) de las palabras hebreas, es necesario descargar los datos. ¿Desea descargarlos ahora?';
 
   @override
   String get useEnglish => 'Usar Inglés';
@@ -41,14 +41,14 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get downloadingGlossesMessage =>
-      'Descargando significados de palabras en Español...';
+      'Descargando significados (glosas) de las palabras en Español...';
 
   @override
   String get downloadComplete => 'Descarga completa.';
 
   @override
   String get downloadFailed =>
-      'La descarga falló. Por favor, revise su conexión a internet e inténtelo de nuevo.';
+      'La descarga falló. Por favor, revise su conexión al internet e inténtelo de nuevo.';
 
   @override
   String get about => 'Acerca de';
@@ -117,7 +117,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get bookEcclesiastes => 'Eclesiastés';
 
   @override
-  String get bookSongOfSolomon => 'Cantar de los Cantares';
+  String get bookSongOfSolomon => 'Cantares';
 
   @override
   String get bookIsaiah => 'Isaías';
@@ -156,7 +156,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get bookNahum => 'Nahum';
 
   @override
-  String get bookHabakkuk => 'Habacuque';
+  String get bookHabakkuk => 'Habacuc';
 
   @override
   String get bookZephaniah => 'Sofonías';

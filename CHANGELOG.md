@@ -1,3 +1,7 @@
+## 0.5.3 - June 25, 2025
+
+- Fix Spanish localization errors.
+
 ## 0.5.2 - June 24, 2025
 
 - Add multilingual support with Spanish test case.
