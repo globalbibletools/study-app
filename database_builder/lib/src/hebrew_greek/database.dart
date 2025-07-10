@@ -6,7 +6,6 @@ import 'package:sqlite3/sqlite3.dart';
 
 import '../book_id.dart';
 import 'schema.dart';
-import 'word.dart';
 
 typedef ForeignTableMaps = (
   Map<String, int>,
@@ -107,18 +106,18 @@ class HebrewGreekDatabase {
     return map;
   }
 
-  List<HebrewGreekWord> _extractWords(String jsonString) {
+  List<_HebrewGreekWord> _extractWords(String jsonString) {
     final Map<String, dynamic> data = jsonDecode(jsonString);
     final List<dynamic> chapters = data['chapters'];
 
-    final List<HebrewGreekWord> words = [];
+    final List<_HebrewGreekWord> words = [];
 
     for (var chapter in chapters) {
       final verses = chapter['verses'] as List<dynamic>;
       for (var verse in verses) {
         final wordList = verse['words'] as List<dynamic>;
         for (var word in wordList) {
-          words.add(HebrewGreekWord.fromJson(word));
+          words.add(_HebrewGreekWord.fromJson(word));
         }
       }
     }
@@ -127,7 +126,7 @@ class HebrewGreekDatabase {
   }
 
   void _addHebrewGreekWords(
-    List<HebrewGreekWord> words,
+    List<_HebrewGreekWord> words,
     Map<String, int> textMap,
     Map<String, int> grammarMap,
     Map<String, int> lemmaMap,
@@ -154,4 +153,36 @@ class HebrewGreekDatabase {
     _insertLemma.dispose();
     _database.dispose();
   }
+}
+
+class _HebrewGreekWord {
+  /// ID is in the form of BBCCCVVVWW,
+  /// where BB is the book number,
+  /// CC is the chapter number,
+  /// VVV is the verse number,
+  /// and WW is the word number.
+  final int id;
+  final String text;
+  final String grammar;
+  final String lemma;
+
+  _HebrewGreekWord({
+    required this.id,
+    required this.text,
+    required this.grammar,
+    required this.lemma,
+  });
+
+  factory _HebrewGreekWord.fromJson(Map<String, dynamic> json) {
+    return _HebrewGreekWord(
+      id: int.parse(json['id']),
+      text: json['text']?.trim(),
+      grammar: json['grammar']?.trim(),
+      lemma: json['lemma']?.trim(),
+    );
+  }
+
+  @override
+  String toString() =>
+      'HebrewGreekWord(id: $id, text: $text, grammar: $grammar, lemma: $lemma)';
 }

@@ -1,8 +1,8 @@
 import 'dart:developer';
 
-import 'package:database_builder/database_builder.dart';
 import 'package:flutter/widgets.dart';
 import 'package:studyapp/app_state.dart';
+import 'package:studyapp/common/word.dart';
 import 'package:studyapp/l10n/app_localizations.dart';
 import 'package:studyapp/services/database.dart';
 import 'package:studyapp/services/service_locator.dart';

@@ -1,7 +1,7 @@
 import 'dart:async';
-import 'package:database_builder/database_builder.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:studyapp/common/word.dart';
 import 'package:studyapp/home/drawer.dart';
 import 'package:studyapp/home/hebrew_greek_text.dart';
 import 'package:studyapp/l10n/app_localizations.dart';
@@ -260,6 +260,9 @@ class _HomeScreenState extends State<HomeScreen> {
             return manager.getPopupTextForId(locale, wordId);
           },
           onPopupShown: _ensurePopupIsVisible,
+          onWordLongPress: (wordId) {
+            print('wordId: $wordId');
+          },
         );
       },
     );

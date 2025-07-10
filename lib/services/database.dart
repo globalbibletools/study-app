@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:http/http.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'package:studyapp/common/word.dart';
 
 class HebrewGreekDatabase {
   static const _databaseName = 'hebrew_greek.db';
@@ -65,16 +66,10 @@ class HebrewGreekDatabase {
 
     final List<Map<String, dynamic>> words = await _database.rawQuery(
       'SELECT v.${HebrewGreekSchema.versesColId}, '
-      't.${HebrewGreekSchema.textColText}, '
-      'g.${HebrewGreekSchema.grammarColGrammar}, '
-      'l.${HebrewGreekSchema.lemmaColLemma} '
+      't.${HebrewGreekSchema.textColText} '
       'FROM ${HebrewGreekSchema.versesTable} v '
       'JOIN ${HebrewGreekSchema.textTable} t '
       'ON v.${HebrewGreekSchema.versesColText} = t.${HebrewGreekSchema.textColId} '
-      'JOIN ${HebrewGreekSchema.grammarTable} g '
-      'ON v.${HebrewGreekSchema.versesColGrammar} = g.${HebrewGreekSchema.grammarColId} '
-      'JOIN ${HebrewGreekSchema.lemmaTable} l '
-      'ON v.${HebrewGreekSchema.versesColLemma} = l.${HebrewGreekSchema.lemmaColId} '
       'WHERE v.${HebrewGreekSchema.versesColId} >= ? AND v.${HebrewGreekSchema.versesColId} < ? '
       'ORDER BY v.${HebrewGreekSchema.versesColId} ASC',
       [lowerBound, upperBound],
@@ -85,8 +80,6 @@ class HebrewGreekDatabase {
           (word) => HebrewGreekWord(
             id: word[HebrewGreekSchema.versesColId],
             text: word[HebrewGreekSchema.textColText],
-            grammar: word[HebrewGreekSchema.grammarColGrammar],
-            lemma: word[HebrewGreekSchema.lemmaColLemma],
           ),
         )
         .toList();

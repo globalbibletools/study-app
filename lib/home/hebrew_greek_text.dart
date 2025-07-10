@@ -1,10 +1,13 @@
 import 'dart:async';
 import 'dart:math' as math;
-import 'package:database_builder/database_builder.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
+import 'package:studyapp/common/word.dart';
+
+/// A function that is called when a word is long-pressed.
+typedef WordActionCallback = void Function(int wordId);
 
 /// A function that returns a string to be displayed in a popup for a given word ID.
 ///
@@ -38,6 +41,7 @@ class HebrewGreekText extends LeafRenderObjectWidget {
     this.popupBackgroundColor,
     this.popupTextStyle,
     this.onPopupShown,
+    this.onWordLongPress,
   });
 
   /// The words that will rendered in the text layout
@@ -66,6 +70,9 @@ class HebrewGreekText extends LeafRenderObjectWidget {
   /// like scrolling to ensure visibility.
   final ValueChanged<Rect>? onPopupShown;
 
+  /// A callback that is invoked when a word is long-pressed.
+  final WordActionCallback? onWordLongPress;
+
   @override
   RenderHebrewGreekText createRenderObject(BuildContext context) {
     final defaultTextStyle = DefaultTextStyle.of(context);
@@ -91,6 +98,7 @@ class HebrewGreekText extends LeafRenderObjectWidget {
       popupBackgroundColor: popupBackgroundColor ?? Color(0xFF000000),
       popupTextStyle: effectivePopupTextStyle,
       onPopupShown: onPopupShown,
+      onWordLongPress: onWordLongPress,
     );
   }
 
@@ -121,7 +129,8 @@ class HebrewGreekText extends LeafRenderObjectWidget {
       ..popupWordProvider = popupWordProvider
       ..popupBackgroundColor = popupBackgroundColor ?? Color(0xFF000000)
       ..popupTextStyle = effectivePopupTextStyle
-      ..onPopupShown = onPopupShown;
+      ..onPopupShown = onPopupShown
+      ..onWordLongPress = onWordLongPress;
   }
 
   @override
@@ -146,6 +155,12 @@ class HebrewGreekText extends LeafRenderObjectWidget {
     properties.add(
       ObjectFlagProperty<ValueChanged<Rect>>.has('onPopupShown', onPopupShown),
     );
+    properties.add(
+      ObjectFlagProperty<WordActionCallback>.has(
+        'onWordLongPress',
+        onWordLongPress,
+      ),
+    );
   }
 }
 
@@ -161,6 +176,7 @@ class RenderHebrewGreekText extends RenderBox {
     required Color popupBackgroundColor,
     required TextStyle popupTextStyle,
     ValueChanged<Rect>? onPopupShown,
+    WordActionCallback? onWordLongPress,
   }) : _words = words,
        _textDirection = textDirection,
        _textStyle = style,
@@ -171,6 +187,8 @@ class RenderHebrewGreekText extends RenderBox {
        _onPopupShown = onPopupShown {
     _updatePainters();
     _tapRecognizer = TapGestureRecognizer()..onTapUp = _handleTapUp;
+    _longPressRecognizer =
+        LongPressGestureRecognizer()..onLongPressStart = _handleLongPressStart;
   }
 
   int? _tappedWordId;
@@ -178,6 +196,7 @@ class RenderHebrewGreekText extends RenderBox {
   TextPainter? _popupPainter;
   Timer? _popupDismissTimer;
   late final TapGestureRecognizer _tapRecognizer;
+  late final LongPressGestureRecognizer _longPressRecognizer;
 
   List<HebrewGreekWord> _words;
   List<HebrewGreekWord> get words => _words;
@@ -262,6 +281,13 @@ class RenderHebrewGreekText extends RenderBox {
   set onPopupShown(ValueChanged<Rect>? value) {
     if (_onPopupShown == value) return;
     _onPopupShown = value;
+  }
+
+  WordActionCallback? _onWordLongPress;
+  WordActionCallback? get onWordLongPress => _onWordLongPress;
+  set onWordLongPress(WordActionCallback? value) {
+    if (_onWordLongPress == value) return;
+    _onWordLongPress = value;
   }
 
   /// Clears all popup state and requests a repaint to make it disappear.
@@ -545,6 +571,7 @@ class RenderHebrewGreekText extends RenderBox {
   void handleEvent(PointerEvent event, covariant HitTestEntry entry) {
     if (event is PointerDownEvent) {
       _tapRecognizer.addPointer(event);
+      _longPressRecognizer.addPointer(event);
     }
   }
 
@@ -640,6 +667,17 @@ class RenderHebrewGreekText extends RenderBox {
     );
   }
 
+  /// This method is called by the [LongPressGestureRecognizer].
+  void _handleLongPressStart(LongPressStartDetails details) {
+    // Find out what was under the user's finger.
+    final entry = _getHitTestEntryForOffset(details.localPosition);
+    if (onWordLongPress == null) return;
+    if (entry is HebrewGreekWordHitTestEntry) {
+      _dismissPopup();
+      onWordLongPress!(entry.wordId);
+    }
+  }
+
   @override
   void paint(PaintingContext context, Offset offset) {
     if (_words.isEmpty) return;
@@ -704,6 +742,7 @@ class RenderHebrewGreekText extends RenderBox {
   @override
   void detach() {
     _tapRecognizer.dispose();
+    _longPressRecognizer.dispose();
     _popupDismissTimer?.cancel();
     super.detach();
   }
