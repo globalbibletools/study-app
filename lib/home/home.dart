@@ -260,9 +260,7 @@ class _HomeScreenState extends State<HomeScreen> {
             return manager.getPopupTextForId(locale, wordId);
           },
           onPopupShown: _ensurePopupIsVisible,
-          onWordLongPress: (wordId) {
-            print('wordId: $wordId');
-          },
+          onWordLongPress: _showWordDetails,
         );
       },
     );
@@ -294,6 +292,22 @@ class _HomeScreenState extends State<HomeScreen> {
     if (mounted) {
       manager.onBookSelected(context, selectedIndex);
     }
+  }
+
+  Future<void> _showWordDetails(int wordId) async {
+    print('wordId: $wordId');
+    final lemmaGrammar = await manager.getLemmaAndGrammar(wordId);
+    if (!mounted || lemmaGrammar == null) return;
+    final (lemma, grammar) = lemmaGrammar;
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            content: SingleChildScrollView(
+              child: ListBody(children: <Widget>[Text(lemma), Text(grammar)]),
+            ),
+          ),
+    );
   }
 }
 

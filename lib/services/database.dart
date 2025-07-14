@@ -84,6 +84,28 @@ class HebrewGreekDatabase {
         )
         .toList();
   }
+
+  Future<(String, String)?> getLemmaAndGrammar(int wordId) async {
+    final List<Map<String, dynamic>> result = await _database.rawQuery(
+      '''SELECT l.${HebrewGreekSchema.lemmaColLemma}, g.${HebrewGreekSchema.grammarColGrammar}
+      FROM ${HebrewGreekSchema.versesTable} v
+      JOIN ${HebrewGreekSchema.lemmaTable} l 
+      ON v.${HebrewGreekSchema.versesColLemma} = l.${HebrewGreekSchema.lemmaColId}
+      JOIN ${HebrewGreekSchema.grammarTable} g 
+      ON v.${HebrewGreekSchema.versesColGrammar} = g.${HebrewGreekSchema.grammarColId}
+      WHERE v.${HebrewGreekSchema.versesColId} = ?''',
+      [wordId],
+    );
+
+    if (result.isEmpty) {
+      return null;
+    }
+
+    final row = result.first;
+    final lemma = row[HebrewGreekSchema.lemmaColLemma] as String;
+    final grammar = row[HebrewGreekSchema.grammarColGrammar] as String;
+    return (lemma, grammar);
+  }
 }
 
 class EnglishDatabase {

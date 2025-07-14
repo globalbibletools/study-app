@@ -136,6 +136,10 @@ class HomeManager {
     await _settings.setLocale('en');
     getIt<AppState>().init();
   }
+
+  Future<(String, String)?> getLemmaAndGrammar(int wordId) async {
+    return await _hebrewGreekDb.getLemmaAndGrammar(wordId);
+  }
 }
 
 String _bookNameFromId(BuildContext context, int bookId) {
