@@ -1,3 +1,7 @@
+## 0.6.0 - July 14, 2025
+
+- Show lemma (Strong's number) and grammar abbreviation when word is long pressed.
+
 ## 0.5.3 - June 25, 2025
 
 - Fix Spanish localization errors.
