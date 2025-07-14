@@ -1,0 +1,3919 @@
+Adj
+Adj-AFP
+Adj-AFP-C
+Adj-AFS
+Adj-AFS-C
+Adj-AFS-S
+Adj-AMP
+Adj-AMP-C
+Adj-AMS
+Adj-AMS-C
+Adj-ANP
+Adj-ANP-C
+Adj-ANP-S
+Adj-ANS
+Adj-ANS-C
+Adj-ANS-S
+Adj-DFP
+Adj-DFP-C
+Adj-DFS
+Adj-DFS-C
+Adj-DFS-S
+Adj-DMP
+Adj-DMP-C
+Adj-DMS
+Adj-DMS-C
+Adj-DMS-S
+Adj-DNP
+Adj-DNP-S
+Adj-DNS
+Adj-DNS-C
+Adj-DNS-S
+Adj-GFP
+Adj-GFP-S
+Adj-GFS
+Adj-GFS-C
+Adj-GMP
+Adj-GMP-C
+Adj-GMP-S
+Adj-GMS
+Adj-GMS-C
+Adj-GMS-S
+Adj-GNP
+Adj-GNP-C
+Adj-GNP-S
+Adj-GNS
+Adj-GNS-S
+Adj-NFP
+Adj-NFP-C
+Adj-NFP-S
+Adj-NFS
+Adj-NFS-C
+Adj-NFS-S
+Adj-NMP
+Adj-NMP-C
+Adj-NMS
+Adj-NMS-C
+Adj-NMS-S
+Adj-NNP
+Adj-NNP-C
+Adj-NNS
+Adj-NNS-C
+Adj-VFS
+Adj-VMP
+Adj-VMP-C
+Adj-VMS
+Adj-VMS-S
+Adj-VNP
+Adj-VNS
+Adj-fp
+Adj-fpc
+Adj-fpc | 2mp
+Adj-fpc | 3mp
+Adj-fpd
+Adj-fs
+Adj-fsc
+Adj-fsc | 1cs
+Adj-fsc | 2fs
+Adj-fsc | 3ms
+Adj-fsd
+Adj-mp
+Adj-mpc
+Adj-mpc | 1cp
+Adj-mpc | 1cs
+Adj-mpc | 2fs
+Adj-mpc | 2mp
+Adj-mpc | 2ms
+Adj-mpc | 3fs
+Adj-mpc | 3mp
+Adj-mpc | 3ms
+Adj-mpd
+Adj-ms
+Adj-msc
+Adj-msc | 1cs
+Adj-msc | 2mp
+Adj-msc | 2ms
+Adj-msc | 3mp
+Adj-msc | 3ms
+Adj-msd
+Adv
+Adv | 1cp
+Adv | 1cs
+Adv | 2fs
+Adv | 2mp
+Adv | 2ms
+Adv | 3fp
+Adv | 3fs
+Adv | 3mp
+Adv | 3ms
+Adv-C
+Adv-NegPrt
+Adv-S
+Art | Adj-fp
+Art | Adj-fpc | 3fs
+Art | Adj-fs
+Art | Adj-fs | 3fs
+Art | Adj-fsc
+Art | Adj-mp
+Art | Adj-mpc
+Art | Adj-ms
+Art | Adj-ms | 3fs
+Art | Adj-msc
+Art | Adv
+Art | N-cd
+Art | N-cdc
+Art | N-cp
+Art | N-cpc | 1cs
+Art | N-cpc | 3ms
+Art | N-cs
+Art | N-cs | 3fs
+Art | N-csc
+Art | N-csc | 1cs
+Art | N-fd
+Art | N-fp
+Art | N-fpc
+Art | N-fs
+Art | N-fs | 3fs
+Art | N-fsc
+Art | N-fsc | 3ms
+Art | N-mb
+Art | N-md
+Art | N-mp
+Art | N-mp | 3fs
+Art | N-mpc
+Art | N-mpc | 2mp
+Art | N-ms
+Art | N-ms | 3fs
+Art | N-msc
+Art | N-msc | 1cs
+Art | N-msc | 2ms
+Art | N-msc | 3ms
+Art | N-proper-fp
+Art | N-proper-fs
+Art | N-proper-fs | 3fs
+Art | N-proper-gms
+Art | N-proper-mb
+Art | N-proper-mp
+Art | N-proper-ms
+Art | Number-cp
+Art | Number-fd
+Art | Number-fp
+Art | Number-fs
+Art | Number-fsc
+Art | Number-md
+Art | Number-mdc
+Art | Number-mp
+Art | Number-ms
+Art | Number-ofs
+Art | Number-ofsc
+Art | Number-omp
+Art | Number-oms
+Art | Pro-1cs
+Art | Pro-2mp
+Art | Pro-2ms
+Art | Pro-3fp
+Art | Pro-3fs
+Art | Pro-3mp
+Art | Pro-3ms
+Art | Pro-cp
+Art | Pro-fs
+Art | Pro-ms
+Art | V-Hifil-Perf-3cp
+Art | V-Hifil-Perf-3ms
+Art | V-Hifil-Prtcpl-fs
+Art | V-Hifil-Prtcpl-mp
+Art | V-Hifil-Prtcpl-ms
+Art | V-Hifil-Prtcpl-msc
+Art | V-Hifil-Prtcpl-msc | 2mp
+Art | V-Hifil-Prtcpl-msc | 2ms
+Art | V-Hifil-Prtcpl-msc | 3mp
+Art | V-Hifil-Prtcpl-msc | 3ms
+Art | V-Hitpael-Prtcpl-fp
+Art | V-Hitpael-Prtcpl-fs
+Art | V-Hitpael-Prtcpl-mp
+Art | V-Hitpael-Prtcpl-ms
+Art | V-Hofal-Prtcpl-fs
+Art | V-Hofal-Prtcpl-mp
+Art | V-Hofal-Prtcpl-ms
+Art | V-Nifal-Perf-3cp
+Art | V-Nifal-Perf-3ms
+Art | V-Nifal-Prtcpl-fp
+Art | V-Nifal-Prtcpl-fs
+Art | V-Nifal-Prtcpl-mp
+Art | V-Nifal-Prtcpl-ms
+Art | V-Piel-Prtcpl-fp
+Art | V-Piel-Prtcpl-fs
+Art | V-Piel-Prtcpl-mp
+Art | V-Piel-Prtcpl-ms
+Art | V-Piel-Prtcpl-msc | 1cs
+Art | V-Piel-Prtcpl-msc | 2fs
+Art | V-Pual-Perf-3fs
+Art | V-Pual-Prtcpl-fp
+Art | V-Pual-Prtcpl-fs
+Art | V-Pual-Prtcpl-mp
+Art | V-Pual-Prtcpl-ms
+Art | V-Qal-Perf-3cp
+Art | V-Qal-Perf-3fs
+Art | V-Qal-Prtcpl-fp
+Art | V-Qal-Prtcpl-fs
+Art | V-Qal-Prtcpl-fsc
+Art | V-Qal-Prtcpl-mp
+Art | V-Qal-Prtcpl-ms
+Art | V-Qal-Prtcpl-msc
+Art | V-Qal-Prtcpl-msc | 3ms
+Art | V-Qal-QalPassPrtcpl-fp
+Art | V-Qal-QalPassPrtcpl-fs
+Art | V-Qal-QalPassPrtcpl-mp
+Art | V-Qal-QalPassPrtcpl-mpc
+Art | V-Qal-QalPassPrtcpl-ms
+Art | V-QalPass-Prtcpl-ms
+Art, Prep-b | N-cp
+Art, Prep-b | N-csc
+Art, Prep-b | N-mp
+Art, Prep-b | N-msc
+Art, Prep-k | N-fs
+Art, Prep-k | N-fsc
+Art, Prep-k | N-fsc | 3fs
+Art, Prep-k | N-mpc
+Art, Prep-k | N-msc
+Art, Prep-l | N-mp
+Art, Prep-l | N-ms
+Art, Prep-l | N-msc
+Art, Prep-l, Art | Adj-ms
+Art, Prep-m | N-fsc | 2ms
+Art, Prep-m | N-mpc | 2ms
+Art-AFP
+Art-AFS
+Art-AMP
+Art-AMS
+Art-ANP
+Art-ANS
+Art-DFP
+Art-DFS
+Art-DMP
+Art-DMS
+Art-DNP
+Art-DNS
+Art-GFP
+Art-GFS
+Art-GMP
+Art-GMS
+Art-GNP
+Art-GNS
+Art-NFP
+Art-NFS
+Art-NMP
+Art-NMS
+Art-NNP
+Art-NNS
+Art-VFP
+Art-VFS
+Art-VMP
+Art-VMS
+Art-VNP
+Art-VNS
+Conj
+Conj-w | Adj-fp
+Conj-w | Adj-fpc
+Conj-w | Adj-fpc | 3mp
+Conj-w | Adj-fs
+Conj-w | Adj-fsc
+Conj-w | Adj-fsd
+Conj-w | Adj-mp
+Conj-w | Adj-mpc
+Conj-w | Adj-mpc | 1cs
+Conj-w | Adj-mpc | 2mp
+Conj-w | Adj-mpc | 2ms
+Conj-w | Adj-mpc | 3fs
+Conj-w | Adj-mpc | 3mp
+Conj-w | Adj-mpc | 3ms
+Conj-w | Adj-ms
+Conj-w | Adj-msc
+Conj-w | Adj-msc | 2ms
+Conj-w | Adj-msc | 3ms
+Conj-w | Adj-msd
+Conj-w | Adv
+Conj-w | Adv | 1cs
+Conj-w | Adv | 2fs
+Conj-w | Adv | 2ms
+Conj-w | Adv | 3fs
+Conj-w | Adv | 3mp
+Conj-w | Adv | 3ms
+Conj-w | Adv-NegPrt
+Conj-w | Conj
+Conj-w | DirObjM
+Conj-w | DirObjM | 1cp
+Conj-w | DirObjM | 1cs
+Conj-w | DirObjM | 2fs
+Conj-w | DirObjM | 2mp
+Conj-w | DirObjM | 2ms
+Conj-w | DirObjM | 3fp
+Conj-w | DirObjM | 3fs
+Conj-w | DirObjM | 3mp
+Conj-w | DirObjM | 3ms
+Conj-w | Interjection
+Conj-w | Interjection | 1cs
+Conj-w | Interjection | 2mp
+Conj-w | Interjection | 2ms
+Conj-w | Interjection | 3mp
+Conj-w | Interjection | 3ms
+Conj-w | Interrog
+Conj-w | Interrog | 3ms
+Conj-w | N-cd
+Conj-w | N-cdc
+Conj-w | N-cdc | 1cp
+Conj-w | N-cdc | 1cs
+Conj-w | N-cdc | 2fs
+Conj-w | N-cdc | 2mp
+Conj-w | N-cdc | 2ms
+Conj-w | N-cdc | 3ms
+Conj-w | N-cp
+Conj-w | N-cpc
+Conj-w | N-cpc | 1cp
+Conj-w | N-cpc | 1cs
+Conj-w | N-cpc | 2ms
+Conj-w | N-cpc | 3fp
+Conj-w | N-cpc | 3fs
+Conj-w | N-cpc | 3mp
+Conj-w | N-cpc | 3ms
+Conj-w | N-cs
+Conj-w | N-csc
+Conj-w | N-csc | 1cp
+Conj-w | N-csc | 1cs
+Conj-w | N-csc | 2mp
+Conj-w | N-csc | 2ms
+Conj-w | N-csc | 3fs
+Conj-w | N-csc | 3mp
+Conj-w | N-csc | 3ms
+Conj-w | N-fd
+Conj-w | N-fdc
+Conj-w | N-fdc | 1cs
+Conj-w | N-fdc | 2fs
+Conj-w | N-fdc | 2ms
+Conj-w | N-fdc | 3fs
+Conj-w | N-fdc | 3mp
+Conj-w | N-fdc | 3ms
+Conj-w | N-fp
+Conj-w | N-fpc
+Conj-w | N-fpc | 1cp
+Conj-w | N-fpc | 1cs
+Conj-w | N-fpc | 2fs
+Conj-w | N-fpc | 2mp
+Conj-w | N-fpc | 2ms
+Conj-w | N-fpc | 3fp
+Conj-w | N-fpc | 3fs
+Conj-w | N-fpc | 3mp
+Conj-w | N-fpc | 3ms
+Conj-w | N-fpd
+Conj-w | N-fs
+Conj-w | N-fs | 3fs
+Conj-w | N-fsc
+Conj-w | N-fsc | 1cp
+Conj-w | N-fsc | 1cs
+Conj-w | N-fsc | 2fp
+Conj-w | N-fsc | 2fs
+Conj-w | N-fsc | 2mp
+Conj-w | N-fsc | 2ms
+Conj-w | N-fsc | 3fs
+Conj-w | N-fsc | 3mp
+Conj-w | N-fsc | 3ms
+Conj-w | N-fsd
+Conj-w | N-md
+Conj-w | N-mdc
+Conj-w | N-mdc | 1cp
+Conj-w | N-mdc | 1cs
+Conj-w | N-mdc | 2fs
+Conj-w | N-mdc | 2ms
+Conj-w | N-mdc | 3fs
+Conj-w | N-mdc | 3mp
+Conj-w | N-mdc | 3ms
+Conj-w | N-mp
+Conj-w | N-mpc
+Conj-w | N-mpc | 1cp
+Conj-w | N-mpc | 1cs
+Conj-w | N-mpc | 2fs
+Conj-w | N-mpc | 2mp
+Conj-w | N-mpc | 2ms
+Conj-w | N-mpc | 3fp
+Conj-w | N-mpc | 3fs
+Conj-w | N-mpc | 3mp
+Conj-w | N-mpc | 3ms
+Conj-w | N-mpd
+Conj-w | N-ms
+Conj-w | N-ms | 1cs
+Conj-w | N-ms | 3fs
+Conj-w | N-msc
+Conj-w | N-msc | 1cp
+Conj-w | N-msc | 1cs
+Conj-w | N-msc | 2fp
+Conj-w | N-msc | 2fs
+Conj-w | N-msc | 2mp
+Conj-w | N-msc | 2ms
+Conj-w | N-msc | 3fs
+Conj-w | N-msc | 3mp
+Conj-w | N-msc | 3ms
+Conj-w | N-msd
+Conj-w | N-proper
+Conj-w | N-proper-fs
+Conj-w | N-proper-fs | 3fs
+Conj-w | N-proper-md
+Conj-w | N-proper-mp
+Conj-w | N-proper-ms
+Conj-w | Number-cp
+Conj-w | Number-cpc | 3ms
+Conj-w | Number-fd
+Conj-w | Number-fdc
+Conj-w | Number-fs
+Conj-w | Number-fsc
+Conj-w | Number-md
+Conj-w | Number-mdc
+Conj-w | Number-mdc | 3mp
+Conj-w | Number-ms
+Conj-w | Number-msc
+Conj-w | Number-ofpc | 3ms
+Conj-w | Number-ofs
+Conj-w | Number-ofsc
+Conj-w | Number-ofsc | 3ms
+Conj-w | Number-omp
+Conj-w | Prep
+Conj-w | Prep | 1cp
+Conj-w | Prep | 1cs
+Conj-w | Prep | 2fs
+Conj-w | Prep | 2mp
+Conj-w | Prep | 2ms
+Conj-w | Prep | 3fp
+Conj-w | Prep | 3fs
+Conj-w | Prep | 3mp
+Conj-w | Prep | 3ms
+Conj-w | Pro
+Conj-w | Pro-1cp
+Conj-w | Pro-1cs
+Conj-w | Pro-2fp
+Conj-w | Pro-2fs
+Conj-w | Pro-2mp
+Conj-w | Pro-2ms
+Conj-w | Pro-3fp
+Conj-w | Pro-3fs
+Conj-w | Pro-3mp
+Conj-w | Pro-3ms
+Conj-w | Pro-cp
+Conj-w | Pro-fs
+Conj-w | Pro-ms
+Conj-w | Pro-r
+Conj-w | V-Hifil-ConjImperf-1cp
+Conj-w | V-Hifil-ConjImperf-1cp | 3mp
+Conj-w | V-Hifil-ConjImperf-1cs
+Conj-w | V-Hifil-ConjImperf-1cs | 2ms
+Conj-w | V-Hifil-ConjImperf-1cs | 3mp
+Conj-w | V-Hifil-ConjImperf-1cs | 3ms
+Conj-w | V-Hifil-ConjImperf-1cs | 3mse
+Conj-w | V-Hifil-ConjImperf-2fs
+Conj-w | V-Hifil-ConjImperf-2mp
+Conj-w | V-Hifil-ConjImperf-2mp | 1cs
+Conj-w | V-Hifil-ConjImperf-2ms
+Conj-w | V-Hifil-ConjImperf-2ms | 1cs
+Conj-w | V-Hifil-ConjImperf-2ms | 3mp
+Conj-w | V-Hifil-ConjImperf-3fs
+Conj-w | V-Hifil-ConjImperf-3fs | 1cs
+Conj-w | V-Hifil-ConjImperf-3fs | 2ms
+Conj-w | V-Hifil-ConjImperf-3fs | 2mse
+Conj-w | V-Hifil-ConjImperf-3fs | 3fse
+Conj-w | V-Hifil-ConjImperf-3fs | 3ms
+Conj-w | V-Hifil-ConjImperf-3mp
+Conj-w | V-Hifil-ConjImperf-3mp | 1cs
+Conj-w | V-Hifil-ConjImperf-3mp | 2fs
+Conj-w | V-Hifil-ConjImperf-3mp | 2ms
+Conj-w | V-Hifil-ConjImperf-3mp | 3mp
+Conj-w | V-Hifil-ConjImperf-3mp | 3ms
+Conj-w | V-Hifil-ConjImperf-3ms
+Conj-w | V-Hifil-ConjImperf-3ms | 1cp
+Conj-w | V-Hifil-ConjImperf-3ms | 1cs
+Conj-w | V-Hifil-ConjImperf-3ms | 2ms
+Conj-w | V-Hifil-ConjImperf-3ms | 3fs
+Conj-w | V-Hifil-ConjImperf-3ms | 3mp
+Conj-w | V-Hifil-ConjImperf.Cohort-1cp
+Conj-w | V-Hifil-ConjImperf.Cohort-1cs
+Conj-w | V-Hifil-ConjImperf.Jus-1cs
+Conj-w | V-Hifil-ConjImperf.Jus-2ms
+Conj-w | V-Hifil-ConjImperf.Jus-3fs
+Conj-w | V-Hifil-ConjImperf.Jus-3ms
+Conj-w | V-Hifil-ConjImperf.Jus-3ms | 1cs
+Conj-w | V-Hifil-ConjImperf.Jus-3ms | 2mp
+Conj-w | V-Hifil-ConjImperf.Jus-3ms | 2ms
+Conj-w | V-Hifil-ConjImperf.h-1cp
+Conj-w | V-Hifil-ConjImperf.h-1cp | 3fse
+Conj-w | V-Hifil-ConjImperf.h-1cp | 3mp
+Conj-w | V-Hifil-ConjImperf.h-1cp | 3ms
+Conj-w | V-Hifil-ConjImperf.h-1cp | 3mse
+Conj-w | V-Hifil-ConjImperf.h-1cs
+Conj-w | V-Hifil-ConjImperf.h-1cs | 2ms
+Conj-w | V-Hifil-ConjImperf.h-1cs | 2mse
+Conj-w | V-Hifil-ConjImperf.h-1cs | 3mp
+Conj-w | V-Hifil-ConjPerf-1cp
+Conj-w | V-Hifil-ConjPerf-1cp | 3mp
+Conj-w | V-Hifil-ConjPerf-1cs
+Conj-w | V-Hifil-ConjPerf-1cs | 2fs2
+Conj-w | V-Hifil-ConjPerf-1cs | 2ms
+Conj-w | V-Hifil-ConjPerf-1cs | 3fs
+Conj-w | V-Hifil-ConjPerf-1cs | 3mp
+Conj-w | V-Hifil-ConjPerf-1cs | 3ms
+Conj-w | V-Hifil-ConjPerf-2fp
+Conj-w | V-Hifil-ConjPerf-2fs
+Conj-w | V-Hifil-ConjPerf-2fs | 3ms
+Conj-w | V-Hifil-ConjPerf-2mp
+Conj-w | V-Hifil-ConjPerf-2ms
+Conj-w | V-Hifil-ConjPerf-2ms | 1cs
+Conj-w | V-Hifil-ConjPerf-2ms | 1cs2
+Conj-w | V-Hifil-ConjPerf-2ms | 3fs
+Conj-w | V-Hifil-ConjPerf-2ms | 3mp
+Conj-w | V-Hifil-ConjPerf-2ms | 3ms
+Conj-w | V-Hifil-ConjPerf-3cp
+Conj-w | V-Hifil-ConjPerf-3cp | 1cs2
+Conj-w | V-Hifil-ConjPerf-3cp | 2fs2
+Conj-w | V-Hifil-ConjPerf-3cp | 2ms
+Conj-w | V-Hifil-ConjPerf-3cp | 3mp
+Conj-w | V-Hifil-ConjPerf-3cp | 3ms
+Conj-w | V-Hifil-ConjPerf-3fs
+Conj-w | V-Hifil-ConjPerf-3mp
+Conj-w | V-Hifil-ConjPerf-3ms
+Conj-w | V-Hifil-ConjPerf-3ms | 1cp2
+Conj-w | V-Hifil-ConjPerf-3ms | 1cs
+Conj-w | V-Hifil-ConjPerf-3ms | 1cs2
+Conj-w | V-Hifil-ConjPerf-3ms | 2ms
+Conj-w | V-Hifil-ConjPerf-3ms | 3fs
+Conj-w | V-Hifil-ConjPerf-3ms | 3mp
+Conj-w | V-Hifil-ConjPerf-3ms | 3ms
+Conj-w | V-Hifil-ConsecImperf-1cp
+Conj-w | V-Hifil-ConsecImperf-1cp | 3mp
+Conj-w | V-Hifil-ConsecImperf-1cp | 3ms
+Conj-w | V-Hifil-ConsecImperf-1cs
+Conj-w | V-Hifil-ConsecImperf-1cs | 2fs
+Conj-w | V-Hifil-ConsecImperf-1cs | 3fs
+Conj-w | V-Hifil-ConsecImperf-1cs | 3mp
+Conj-w | V-Hifil-ConsecImperf-1cs | 3ms
+Conj-w | V-Hifil-ConsecImperf-2fs
+Conj-w | V-Hifil-ConsecImperf-2mp
+Conj-w | V-Hifil-ConsecImperf-2mp | 3mp
+Conj-w | V-Hifil-ConsecImperf-2mp | Pn
+Conj-w | V-Hifil-ConsecImperf-2ms
+Conj-w | V-Hifil-ConsecImperf-2ms | 1cp
+Conj-w | V-Hifil-ConsecImperf-2ms | 1cs
+Conj-w | V-Hifil-ConsecImperf-2ms | 3mp
+Conj-w | V-Hifil-ConsecImperf-3fp
+Conj-w | V-Hifil-ConsecImperf-3fs
+Conj-w | V-Hifil-ConsecImperf-3fs | 1cs
+Conj-w | V-Hifil-ConsecImperf-3fs | 3mp
+Conj-w | V-Hifil-ConsecImperf-3fs | 3ms
+Conj-w | V-Hifil-ConsecImperf-3mp
+Conj-w | V-Hifil-ConsecImperf-3mp | 2ms
+Conj-w | V-Hifil-ConsecImperf-3mp | 3fs
+Conj-w | V-Hifil-ConsecImperf-3mp | 3mp
+Conj-w | V-Hifil-ConsecImperf-3mp | 3ms
+Conj-w | V-Hifil-ConsecImperf-3ms
+Conj-w | V-Hifil-ConsecImperf-3ms | 1cp
+Conj-w | V-Hifil-ConsecImperf-3ms | 1cs
+Conj-w | V-Hifil-ConsecImperf-3ms | 2ms
+Conj-w | V-Hifil-ConsecImperf-3ms | 3fp
+Conj-w | V-Hifil-ConsecImperf-3ms | 3fs
+Conj-w | V-Hifil-ConsecImperf-3ms | 3mp
+Conj-w | V-Hifil-ConsecImperf-3ms | 3ms
+Conj-w | V-Hifil-ConsecImperf-3ms | 3mse
+Conj-w | V-Hifil-Imp-fs
+Conj-w | V-Hifil-Imp-fs | 3ms
+Conj-w | V-Hifil-Imp-mp
+Conj-w | V-Hifil-Imp-mp | 1cs
+Conj-w | V-Hifil-Imp-mp | 3fs
+Conj-w | V-Hifil-Imp-mp | 3ms
+Conj-w | V-Hifil-Imp-ms
+Conj-w | V-Hifil-Imp-ms | 1cp
+Conj-w | V-Hifil-Imp-ms | 1cs
+Conj-w | V-Hifil-Imp-ms | 3fs
+Conj-w | V-Hifil-Imp-ms | 3mp
+Conj-w | V-Hifil-Imp-ms | 3ms
+Conj-w | V-Hifil-Imperf.Jus-1cs
+Conj-w | V-Hifil-Imperf.Jus-3ms
+Conj-w | V-Hifil-Inf
+Conj-w | V-Hifil-Inf | 3ms
+Conj-w | V-Hifil-InfAbs
+Conj-w | V-Hifil-Prtcpl-fp
+Conj-w | V-Hifil-Prtcpl-fs
+Conj-w | V-Hifil-Prtcpl-fsc
+Conj-w | V-Hifil-Prtcpl-mp
+Conj-w | V-Hifil-Prtcpl-mpc
+Conj-w | V-Hifil-Prtcpl-mpc | 2fs
+Conj-w | V-Hifil-Prtcpl-mpc | 2ms
+Conj-w | V-Hifil-Prtcpl-mpc | 3fs
+Conj-w | V-Hifil-Prtcpl-ms
+Conj-w | V-Hifil-Prtcpl-msc
+Conj-w | V-Hifil-Prtcpl-msc | 1cs
+Conj-w | V-Hifil-Prtcpl-msc | 3fs
+Conj-w | V-Hifil-QalPassPrtcpl-ms
+Conj-w | V-Hitpael-ConjImperf-1cp
+Conj-w | V-Hitpael-ConjImperf-1cs
+Conj-w | V-Hitpael-ConjImperf-2fs
+Conj-w | V-Hitpael-ConjImperf-3fs
+Conj-w | V-Hitpael-ConjImperf-3mp
+Conj-w | V-Hitpael-ConjImperf-3ms
+Conj-w | V-Hitpael-ConjImperf.Cohort-1cp
+Conj-w | V-Hitpael-ConjImperf.Cohort-1cs
+Conj-w | V-Hitpael-ConjImperf.Jus-3ms
+Conj-w | V-Hitpael-ConjImperf.h-1cp
+Conj-w | V-Hitpael-ConjImperf.h-1cs
+Conj-w | V-Hitpael-ConjPerf-1cs
+Conj-w | V-Hitpael-ConjPerf-2fs
+Conj-w | V-Hitpael-ConjPerf-2mp
+Conj-w | V-Hitpael-ConjPerf-2ms
+Conj-w | V-Hitpael-ConjPerf-3cp
+Conj-w | V-Hitpael-ConjPerf-3cp | 3mp
+Conj-w | V-Hitpael-ConjPerf-3fs
+Conj-w | V-Hitpael-ConjPerf-3ms
+Conj-w | V-Hitpael-ConsecImperf-1cp
+Conj-w | V-Hitpael-ConsecImperf-1cs
+Conj-w | V-Hitpael-ConsecImperf-1cs | 3fs
+Conj-w | V-Hitpael-ConsecImperf-2ms
+Conj-w | V-Hitpael-ConsecImperf-3fp
+Conj-w | V-Hitpael-ConsecImperf-3fs
+Conj-w | V-Hitpael-ConsecImperf-3mp
+Conj-w | V-Hitpael-ConsecImperf-3ms
+Conj-w | V-Hitpael-Imp-fp
+Conj-w | V-Hitpael-Imp-fs
+Conj-w | V-Hitpael-Imp-mp
+Conj-w | V-Hitpael-Imp-ms
+Conj-w | V-Hitpael-Inf | 3mp
+Conj-w | V-Hitpael-Prtcpl-mp
+Conj-w | V-Hitpael-Prtcpl-ms
+Conj-w | V-Hitpael-Prtcpl-msc | 1cs
+Conj-w | V-Hofal-ConjImperf-3fs
+Conj-w | V-Hofal-ConjImperf-3mp
+Conj-w | V-Hofal-ConjImperf-3ms
+Conj-w | V-Hofal-ConjImperf.h-1cp | 3mp
+Conj-w | V-Hofal-ConjPerf-2mp
+Conj-w | V-Hofal-ConjPerf-2ms
+Conj-w | V-Hofal-ConjPerf-3cp
+Conj-w | V-Hofal-ConjPerf-3fs
+Conj-w | V-Hofal-ConjPerf-3ms
+Conj-w | V-Hofal-ConsecImperf-2fs
+Conj-w | V-Hofal-ConsecImperf-3fs
+Conj-w | V-Hofal-ConsecImperf-3mp
+Conj-w | V-Hofal-ConsecImperf-3ms
+Conj-w | V-Hofal-Imp-ms | 3fs
+Conj-w | V-Hofal-InfAbs
+Conj-w | V-Nifal-ConjImperf-1cp
+Conj-w | V-Nifal-ConjImperf-1cs
+Conj-w | V-Nifal-ConjImperf-2mp
+Conj-w | V-Nifal-ConjImperf-3fs
+Conj-w | V-Nifal-ConjImperf-3mp
+Conj-w | V-Nifal-ConjImperf-3mp | Pn
+Conj-w | V-Nifal-ConjImperf-3ms
+Conj-w | V-Nifal-ConjImperf.Cohort-1cp
+Conj-w | V-Nifal-ConjImperf.Cohort-1cs
+Conj-w | V-Nifal-ConjImperf.Jus-3fs
+Conj-w | V-Nifal-ConjImperf.Jus-3ms
+Conj-w | V-Nifal-ConjImperf.h-1cs
+Conj-w | V-Nifal-ConjPerf-1cp
+Conj-w | V-Nifal-ConjPerf-1cs
+Conj-w | V-Nifal-ConjPerf-2fs
+Conj-w | V-Nifal-ConjPerf-2mp
+Conj-w | V-Nifal-ConjPerf-2ms
+Conj-w | V-Nifal-ConjPerf-3cp
+Conj-w | V-Nifal-ConjPerf-3fs
+Conj-w | V-Nifal-ConjPerf-3mp
+Conj-w | V-Nifal-ConjPerf-3ms
+Conj-w | V-Nifal-ConsecImperf-1cs
+Conj-w | V-Nifal-ConsecImperf-1cs | 3fs
+Conj-w | V-Nifal-ConsecImperf-2fs
+Conj-w | V-Nifal-ConsecImperf-2mp
+Conj-w | V-Nifal-ConsecImperf-2ms
+Conj-w | V-Nifal-ConsecImperf-3fp
+Conj-w | V-Nifal-ConsecImperf-3fs
+Conj-w | V-Nifal-ConsecImperf-3mp
+Conj-w | V-Nifal-ConsecImperf-3mp | 1cs
+Conj-w | V-Nifal-ConsecImperf-3ms
+Conj-w | V-Nifal-Imp-mp
+Conj-w | V-Nifal-Imp-ms
+Conj-w | V-Nifal-Inf
+Conj-w | V-Nifal-InfAbs
+Conj-w | V-Nifal-Prtcpl-fp
+Conj-w | V-Nifal-Prtcpl-fpc | 3ms
+Conj-w | V-Nifal-Prtcpl-fs
+Conj-w | V-Nifal-Prtcpl-mp
+Conj-w | V-Nifal-Prtcpl-mpc | 3mp
+Conj-w | V-Nifal-Prtcpl-ms
+Conj-w | V-Nifal-Prtcpl-msc
+Conj-w | V-Nithpael-ConjPerf-3cp
+Conj-w | V-Nithpael-ConjPerf-3ms
+Conj-w | V-Piel-ConjImperf-1cp
+Conj-w | V-Piel-ConjImperf-1cs
+Conj-w | V-Piel-ConjImperf-1cs | 2ms
+Conj-w | V-Piel-ConjImperf-1cs | 3mp
+Conj-w | V-Piel-ConjImperf-1cs | 3ms
+Conj-w | V-Piel-ConjImperf-1cs | 3mse
+Conj-w | V-Piel-ConjImperf-2fs | 3mp
+Conj-w | V-Piel-ConjImperf-2mp | 1cs, Pn
+Conj-w | V-Piel-ConjImperf-2ms
+Conj-w | V-Piel-ConjImperf-2ms | 1cp
+Conj-w | V-Piel-ConjImperf-2ms | 1cs
+Conj-w | V-Piel-ConjImperf-3fp
+Conj-w | V-Piel-ConjImperf-3fs
+Conj-w | V-Piel-ConjImperf-3fs | 1cp
+Conj-w | V-Piel-ConjImperf-3fs | 2mse
+Conj-w | V-Piel-ConjImperf-3fs | 3fs
+Conj-w | V-Piel-ConjImperf-3mp
+Conj-w | V-Piel-ConjImperf-3mp | 1cs
+Conj-w | V-Piel-ConjImperf-3mp | 2ms
+Conj-w | V-Piel-ConjImperf-3mp | 3fs
+Conj-w | V-Piel-ConjImperf-3mp | 3ms
+Conj-w | V-Piel-ConjImperf-3ms
+Conj-w | V-Piel-ConjImperf-3ms | 1cp
+Conj-w | V-Piel-ConjImperf-3ms | 1cs
+Conj-w | V-Piel-ConjImperf-3ms | 1cse
+Conj-w | V-Piel-ConjImperf-3ms | 2ms
+Conj-w | V-Piel-ConjImperf-3ms | 2mse
+Conj-w | V-Piel-ConjImperf-3ms | 3mp
+Conj-w | V-Piel-ConjImperf-3ms | 3ms
+Conj-w | V-Piel-ConjImperf-3ms | 3mse
+Conj-w | V-Piel-ConjImperf.Cohort-1cp
+Conj-w | V-Piel-ConjImperf.Cohort-1cs
+Conj-w | V-Piel-ConjImperf.Jus-3fs
+Conj-w | V-Piel-ConjImperf.h-1cp
+Conj-w | V-Piel-ConjImperf.h-1cp | 3mse
+Conj-w | V-Piel-ConjImperf.h-1cs
+Conj-w | V-Piel-ConjImperf.h-1cs | 2fs
+Conj-w | V-Piel-ConjImperf.h-1cs | 2ms
+Conj-w | V-Piel-ConjImperf.h-1cs | 2mse
+Conj-w | V-Piel-ConjImperf.h-1cs | 3mp
+Conj-w | V-Piel-ConjImperf.h-1cs | 3ms
+Conj-w | V-Piel-ConjImperf.h-1cs | 3mse
+Conj-w | V-Piel-ConjPerf-1cp
+Conj-w | V-Piel-ConjPerf-1cp | 2ms
+Conj-w | V-Piel-ConjPerf-1cs
+Conj-w | V-Piel-ConjPerf-1cs | 2fs
+Conj-w | V-Piel-ConjPerf-1cs | 2fs2
+Conj-w | V-Piel-ConjPerf-1cs | 2ms
+Conj-w | V-Piel-ConjPerf-1cs | 3fs
+Conj-w | V-Piel-ConjPerf-1cs | 3mp
+Conj-w | V-Piel-ConjPerf-1cs | 3ms
+Conj-w | V-Piel-ConjPerf-2fs
+Conj-w | V-Piel-ConjPerf-2mp
+Conj-w | V-Piel-ConjPerf-2ms
+Conj-w | V-Piel-ConjPerf-2ms | 1cs
+Conj-w | V-Piel-ConjPerf-2ms | 1cs2
+Conj-w | V-Piel-ConjPerf-2ms | 3fs
+Conj-w | V-Piel-ConjPerf-2ms | 3mp
+Conj-w | V-Piel-ConjPerf-2ms | 3ms
+Conj-w | V-Piel-ConjPerf-3cp
+Conj-w | V-Piel-ConjPerf-3cp | 1cs2
+Conj-w | V-Piel-ConjPerf-3cp | 2fs2
+Conj-w | V-Piel-ConjPerf-3cp | 3fs
+Conj-w | V-Piel-ConjPerf-3cp | 3mp
+Conj-w | V-Piel-ConjPerf-3cp | 3ms
+Conj-w | V-Piel-ConjPerf-3fs
+Conj-w | V-Piel-ConjPerf-3fs | 3fs
+Conj-w | V-Piel-ConjPerf-3fs | 3mp
+Conj-w | V-Piel-ConjPerf-3fs | 3ms
+Conj-w | V-Piel-ConjPerf-3mp
+Conj-w | V-Piel-ConjPerf-3ms
+Conj-w | V-Piel-ConjPerf-3ms | 2ms
+Conj-w | V-Piel-ConjPerf-3ms | 2mse2
+Conj-w | V-Piel-ConjPerf-3ms | 3fs
+Conj-w | V-Piel-ConjPerf-3ms | 3mp
+Conj-w | V-Piel-ConjPerf-3ms | 3ms
+Conj-w | V-Piel-ConsecImperf-1cp
+Conj-w | V-Piel-ConsecImperf-1cp | 2ms
+Conj-w | V-Piel-ConsecImperf-1cp | 3fs
+Conj-w | V-Piel-ConsecImperf-1cs
+Conj-w | V-Piel-ConsecImperf-1cs | 2fs
+Conj-w | V-Piel-ConsecImperf-1cs | 2ms
+Conj-w | V-Piel-ConsecImperf-1cs | 2mse
+Conj-w | V-Piel-ConsecImperf-1cs | 3fs
+Conj-w | V-Piel-ConsecImperf-1cs | 3mp
+Conj-w | V-Piel-ConsecImperf-1cs | 3ms
+Conj-w | V-Piel-ConsecImperf-2fp
+Conj-w | V-Piel-ConsecImperf-2fs
+Conj-w | V-Piel-ConsecImperf-2fs | 3mp
+Conj-w | V-Piel-ConsecImperf-2mp
+Conj-w | V-Piel-ConsecImperf-2mp | 1cs
+Conj-w | V-Piel-ConsecImperf-2ms
+Conj-w | V-Piel-ConsecImperf-2ms | 1cs
+Conj-w | V-Piel-ConsecImperf-2ms | 3fs
+Conj-w | V-Piel-ConsecImperf-2ms | 3mp
+Conj-w | V-Piel-ConsecImperf-2ms | 3ms
+Conj-w | V-Piel-ConsecImperf-3fp
+Conj-w | V-Piel-ConsecImperf-3fs
+Conj-w | V-Piel-ConsecImperf-3fs | 1cs
+Conj-w | V-Piel-ConsecImperf-3fs | 3fs
+Conj-w | V-Piel-ConsecImperf-3fs | 3mp
+Conj-w | V-Piel-ConsecImperf-3fs | 3ms
+Conj-w | V-Piel-ConsecImperf-3mp
+Conj-w | V-Piel-ConsecImperf-3mp | 1cp
+Conj-w | V-Piel-ConsecImperf-3mp | 3fs
+Conj-w | V-Piel-ConsecImperf-3mp | 3mp
+Conj-w | V-Piel-ConsecImperf-3mp | 3ms
+Conj-w | V-Piel-ConsecImperf-3ms
+Conj-w | V-Piel-ConsecImperf-3ms | 1cp
+Conj-w | V-Piel-ConsecImperf-3ms | 1cs
+Conj-w | V-Piel-ConsecImperf-3ms | 2ms
+Conj-w | V-Piel-ConsecImperf-3ms | 3fs
+Conj-w | V-Piel-ConsecImperf-3ms | 3mp
+Conj-w | V-Piel-ConsecImperf-3ms | 3ms
+Conj-w | V-Piel-Imp-fp
+Conj-w | V-Piel-Imp-fs
+Conj-w | V-Piel-Imp-mp
+Conj-w | V-Piel-Imp-mp | 1cs
+Conj-w | V-Piel-Imp-mp | 3ms
+Conj-w | V-Piel-Imp-ms
+Conj-w | V-Piel-Imp-ms | 1cp
+Conj-w | V-Piel-Imp-ms | 1cs
+Conj-w | V-Piel-Imp-ms | 3fs
+Conj-w | V-Piel-Imp-ms | 3mp
+Conj-w | V-Piel-Imp-ms | 3ms
+Conj-w | V-Piel-Inf
+Conj-w | V-Piel-InfAbs
+Conj-w | V-Piel-Prtcpl-fp
+Conj-w | V-Piel-Prtcpl-fs
+Conj-w | V-Piel-Prtcpl-fsc
+Conj-w | V-Piel-Prtcpl-mp
+Conj-w | V-Piel-Prtcpl-mpc
+Conj-w | V-Piel-Prtcpl-mpc | 1cp
+Conj-w | V-Piel-Prtcpl-mpc | 1cs
+Conj-w | V-Piel-Prtcpl-mpc | 2fs
+Conj-w | V-Piel-Prtcpl-mpc | 2ms
+Conj-w | V-Piel-Prtcpl-mpc | 3ms
+Conj-w | V-Piel-Prtcpl-ms
+Conj-w | V-Piel-Prtcpl-msc
+Conj-w | V-Piel-Prtcpl-msc | 1cs
+Conj-w | V-Piel-Prtcpl-msc | 2mp
+Conj-w | V-Piel-Prtcpl-msc | 2ms
+Conj-w | V-Piel-Prtcpl-msc | 3ms
+Conj-w | V-Piel-QalPassPrtcpl-fpd
+Conj-w | V-Pual-ConjImperf-2fs
+Conj-w | V-Pual-ConjPerf-3cp
+Conj-w | V-Pual-ConjPerf-3ms
+Conj-w | V-Pual-ConsecImperf-3mp
+Conj-w | V-Pual-ConsecImperf-3ms
+Conj-w | V-Pual-Prtcpl-fp
+Conj-w | V-Pual-Prtcpl-fs
+Conj-w | V-Pual-Prtcpl-mp
+Conj-w | V-Pual-Prtcpl-mpc | 1cs
+Conj-w | V-Pual-Prtcpl-mpc | 3ms
+Conj-w | V-Pual-Prtcpl-ms
+Conj-w | V-Pual-Prtcpl-msc | 1cs
+Conj-w | V-Qal-ConjImperf-1cp
+Conj-w | V-Qal-ConjImperf-1cp | 3fse
+Conj-w | V-Qal-ConjImperf-1cp | 3mp
+Conj-w | V-Qal-ConjImperf-1cs
+Conj-w | V-Qal-ConjImperf-1cs | 2fs
+Conj-w | V-Qal-ConjImperf-1cs | 2ms
+Conj-w | V-Qal-ConjImperf-1cs | 3mp
+Conj-w | V-Qal-ConjImperf-1cs | 3ms
+Conj-w | V-Qal-ConjImperf-1cs | 3mse
+Conj-w | V-Qal-ConjImperf-2fs
+Conj-w | V-Qal-ConjImperf-2mp
+Conj-w | V-Qal-ConjImperf-2ms
+Conj-w | V-Qal-ConjImperf-2ms | 1cs
+Conj-w | V-Qal-ConjImperf-2ms | 3mp
+Conj-w | V-Qal-ConjImperf-2ms | 3mse
+Conj-w | V-Qal-ConjImperf-3fp
+Conj-w | V-Qal-ConjImperf-3fs
+Conj-w | V-Qal-ConjImperf-3fs | 1cs
+Conj-w | V-Qal-ConjImperf-3fs | 2mse
+Conj-w | V-Qal-ConjImperf-3fs | 3fse
+Conj-w | V-Qal-ConjImperf-3fs | 3mp
+Conj-w | V-Qal-ConjImperf-3mp
+Conj-w | V-Qal-ConjImperf-3mp | 1cs
+Conj-w | V-Qal-ConjImperf-3mp | 2mp
+Conj-w | V-Qal-ConjImperf-3mp | 3fs
+Conj-w | V-Qal-ConjImperf-3mp | 3ms
+Conj-w | V-Qal-ConjImperf-3mp | Pn
+Conj-w | V-Qal-ConjImperf-3ms
+Conj-w | V-Qal-ConjImperf-3ms | 1cp
+Conj-w | V-Qal-ConjImperf-3ms | 1cs
+Conj-w | V-Qal-ConjImperf-3ms | 2ms
+Conj-w | V-Qal-ConjImperf-3ms | 2mse
+Conj-w | V-Qal-ConjImperf-3ms | 3fs
+Conj-w | V-Qal-ConjImperf-3ms | 3fse
+Conj-w | V-Qal-ConjImperf-3ms | 3mp
+Conj-w | V-Qal-ConjImperf-3ms | 3ms
+Conj-w | V-Qal-ConjImperf.Cohort-1cp
+Conj-w | V-Qal-ConjImperf.Cohort-1cs
+Conj-w | V-Qal-ConjImperf.Jus-1cp
+Conj-w | V-Qal-ConjImperf.Jus-1cs
+Conj-w | V-Qal-ConjImperf.Jus-2ms
+Conj-w | V-Qal-ConjImperf.Jus-3fs
+Conj-w | V-Qal-ConjImperf.Jus-3ms
+Conj-w | V-Qal-ConjImperf.h-1cp
+Conj-w | V-Qal-ConjImperf.h-1cp | 2mse
+Conj-w | V-Qal-ConjImperf.h-1cp | 3fse
+Conj-w | V-Qal-ConjImperf.h-1cp | 3ms
+Conj-w | V-Qal-ConjImperf.h-1cp | 3mse
+Conj-w | V-Qal-ConjImperf.h-1cs
+Conj-w | V-Qal-ConjImperf.h-1cs | 2ms
+Conj-w | V-Qal-ConjImperf.h-1cs | 2mse
+Conj-w | V-Qal-ConjImperf.h-1cs | 3fse
+Conj-w | V-Qal-ConjImperf.h-1cs | 3mp
+Conj-w | V-Qal-ConjImperf.h-1cs | 3ms
+Conj-w | V-Qal-ConjImperf.h-1cs | 3mse
+Conj-w | V-Qal-ConjPerf-1cp
+Conj-w | V-Qal-ConjPerf-1cp | 2ms
+Conj-w | V-Qal-ConjPerf-1cp | 3fs
+Conj-w | V-Qal-ConjPerf-1cp | 3mp
+Conj-w | V-Qal-ConjPerf-1cp | 3ms
+Conj-w | V-Qal-ConjPerf-1cs
+Conj-w | V-Qal-ConjPerf-1cs | 2fs2
+Conj-w | V-Qal-ConjPerf-1cs | 2ms
+Conj-w | V-Qal-ConjPerf-1cs | 3fs
+Conj-w | V-Qal-ConjPerf-1cs | 3mp
+Conj-w | V-Qal-ConjPerf-1cs | 3ms
+Conj-w | V-Qal-ConjPerf-2fp
+Conj-w | V-Qal-ConjPerf-2fs
+Conj-w | V-Qal-ConjPerf-2fs | 3ms
+Conj-w | V-Qal-ConjPerf-2mp
+Conj-w | V-Qal-ConjPerf-2ms
+Conj-w | V-Qal-ConjPerf-2ms | 1cp2
+Conj-w | V-Qal-ConjPerf-2ms | 1cs
+Conj-w | V-Qal-ConjPerf-2ms | 1cs2
+Conj-w | V-Qal-ConjPerf-2ms | 3fs
+Conj-w | V-Qal-ConjPerf-2ms | 3mp
+Conj-w | V-Qal-ConjPerf-2ms | 3ms
+Conj-w | V-Qal-ConjPerf-3cp
+Conj-w | V-Qal-ConjPerf-3cp | 1cs2
+Conj-w | V-Qal-ConjPerf-3cp | 2fs2
+Conj-w | V-Qal-ConjPerf-3cp | 2ms
+Conj-w | V-Qal-ConjPerf-3cp | 3fs
+Conj-w | V-Qal-ConjPerf-3cp | 3mp
+Conj-w | V-Qal-ConjPerf-3cp | 3ms
+Conj-w | V-Qal-ConjPerf-3fp
+Conj-w | V-Qal-ConjPerf-3fs
+Conj-w | V-Qal-ConjPerf-3fs | 3mp
+Conj-w | V-Qal-ConjPerf-3mp
+Conj-w | V-Qal-ConjPerf-3ms
+Conj-w | V-Qal-ConjPerf-3ms | 1cp2
+Conj-w | V-Qal-ConjPerf-3ms | 1cs
+Conj-w | V-Qal-ConjPerf-3ms | 1cs2
+Conj-w | V-Qal-ConjPerf-3ms | 2fs2
+Conj-w | V-Qal-ConjPerf-3ms | 2ms
+Conj-w | V-Qal-ConjPerf-3ms | 3fs
+Conj-w | V-Qal-ConjPerf-3ms | 3mp
+Conj-w | V-Qal-ConjPerf-3ms | 3ms
+Conj-w | V-Qal-ConsecImperf-1cp
+Conj-w | V-Qal-ConsecImperf-1cp | 3fs
+Conj-w | V-Qal-ConsecImperf-1cp | 3mp
+Conj-w | V-Qal-ConsecImperf-1cp | 3ms
+Conj-w | V-Qal-ConsecImperf-1cs
+Conj-w | V-Qal-ConsecImperf-1cs | 2fs
+Conj-w | V-Qal-ConsecImperf-1cs | 2ms
+Conj-w | V-Qal-ConsecImperf-1cs | 2mse
+Conj-w | V-Qal-ConsecImperf-1cs | 3fs
+Conj-w | V-Qal-ConsecImperf-1cs | 3fse
+Conj-w | V-Qal-ConsecImperf-1cs | 3mp
+Conj-w | V-Qal-ConsecImperf-1cs | 3ms
+Conj-w | V-Qal-ConsecImperf-2fs
+Conj-w | V-Qal-ConsecImperf-2fs | 3mp
+Conj-w | V-Qal-ConsecImperf-2mp
+Conj-w | V-Qal-ConsecImperf-2mp | Pn
+Conj-w | V-Qal-ConsecImperf-2ms
+Conj-w | V-Qal-ConsecImperf-2ms | 1cp
+Conj-w | V-Qal-ConsecImperf-2ms | 1cs
+Conj-w | V-Qal-ConsecImperf-2ms | 3fs
+Conj-w | V-Qal-ConsecImperf-2ms | 3mp
+Conj-w | V-Qal-ConsecImperf-2ms | 3ms
+Conj-w | V-Qal-ConsecImperf-2ms | 3mse
+Conj-w | V-Qal-ConsecImperf-3fp
+Conj-w | V-Qal-ConsecImperf-3fs
+Conj-w | V-Qal-ConsecImperf-3fs | 1cs
+Conj-w | V-Qal-ConsecImperf-3fs | 3fs
+Conj-w | V-Qal-ConsecImperf-3fs | 3mp
+Conj-w | V-Qal-ConsecImperf-3fs | 3ms
+Conj-w | V-Qal-ConsecImperf-3mp
+Conj-w | V-Qal-ConsecImperf-3mp | 1cs
+Conj-w | V-Qal-ConsecImperf-3mp | 2ms
+Conj-w | V-Qal-ConsecImperf-3mp | 3fs
+Conj-w | V-Qal-ConsecImperf-3mp | 3mp
+Conj-w | V-Qal-ConsecImperf-3mp | 3ms
+Conj-w | V-Qal-ConsecImperf-3mp | Pn
+Conj-w | V-Qal-ConsecImperf-3ms
+Conj-w | V-Qal-ConsecImperf-3ms | 1cp
+Conj-w | V-Qal-ConsecImperf-3ms | 1cs
+Conj-w | V-Qal-ConsecImperf-3ms | 2ms
+Conj-w | V-Qal-ConsecImperf-3ms | 2mse
+Conj-w | V-Qal-ConsecImperf-3ms | 3fs
+Conj-w | V-Qal-ConsecImperf-3ms | 3fse
+Conj-w | V-Qal-ConsecImperf-3ms | 3mp
+Conj-w | V-Qal-ConsecImperf-3ms | 3ms
+Conj-w | V-Qal-ConsecImperf-3ms | 3mse
+Conj-w | V-Qal-Imp-fp
+Conj-w | V-Qal-Imp-fs
+Conj-w | V-Qal-Imp-mp
+Conj-w | V-Qal-Imp-mp | 1cs
+Conj-w | V-Qal-Imp-mp | 3fs
+Conj-w | V-Qal-Imp-mp | 3ms
+Conj-w | V-Qal-Imp-ms
+Conj-w | V-Qal-Imp-ms | 1cp
+Conj-w | V-Qal-Imp-ms | 1cs
+Conj-w | V-Qal-Imp-ms | 3fs
+Conj-w | V-Qal-Imp-ms | 3fse
+Conj-w | V-Qal-Imp-ms | 3mp
+Conj-w | V-Qal-Imp-ms | 3ms
+Conj-w | V-Qal-Imp-ms | 3mse
+Conj-w | V-Qal-Imperf.Cohort-1cp
+Conj-w | V-Qal-Imperf.Cohort-3fs
+Conj-w | V-Qal-Imperf.Jus-3fs
+Conj-w | V-Qal-Inf
+Conj-w | V-Qal-Inf | 1cs
+Conj-w | V-Qal-Inf | 2ms
+Conj-w | V-Qal-InfAbs
+Conj-w | V-Qal-Prtcpl-fp
+Conj-w | V-Qal-Prtcpl-fpc
+Conj-w | V-Qal-Prtcpl-fpc | 2fs
+Conj-w | V-Qal-Prtcpl-fs
+Conj-w | V-Qal-Prtcpl-fsc
+Conj-w | V-Qal-Prtcpl-mp
+Conj-w | V-Qal-Prtcpl-mpc
+Conj-w | V-Qal-Prtcpl-mpc | 1cp
+Conj-w | V-Qal-Prtcpl-mpc | 1cs
+Conj-w | V-Qal-Prtcpl-mpc | 2fs
+Conj-w | V-Qal-Prtcpl-mpc | 2mp
+Conj-w | V-Qal-Prtcpl-mpc | 2ms
+Conj-w | V-Qal-Prtcpl-mpc | 3fp
+Conj-w | V-Qal-Prtcpl-mpc | 3fs
+Conj-w | V-Qal-Prtcpl-mpc | 3mp
+Conj-w | V-Qal-Prtcpl-mpc | 3ms
+Conj-w | V-Qal-Prtcpl-mpd
+Conj-w | V-Qal-Prtcpl-ms
+Conj-w | V-Qal-Prtcpl-msc
+Conj-w | V-Qal-Prtcpl-msc | 1cs
+Conj-w | V-Qal-Prtcpl-msc | 2fs
+Conj-w | V-Qal-Prtcpl-msc | 2ms
+Conj-w | V-Qal-Prtcpl-msc | 3fs
+Conj-w | V-Qal-Prtcpl-msc | 3ms
+Conj-w | V-Qal-QalPassPrtcpl-fp
+Conj-w | V-Qal-QalPassPrtcpl-fpc
+Conj-w | V-Qal-QalPassPrtcpl-fs
+Conj-w | V-Qal-QalPassPrtcpl-fsc
+Conj-w | V-Qal-QalPassPrtcpl-mp
+Conj-w | V-Qal-QalPassPrtcpl-mpc
+Conj-w | V-Qal-QalPassPrtcpl-mpc | 3mp
+Conj-w | V-Qal-QalPassPrtcpl-mpc | 3ms
+Conj-w | V-Qal-QalPassPrtcpl-ms
+Conj-w | V-Qal-QalPassPrtcpl-msc
+Conj-w | V-Qal-QalPassPrtcpl-msc | 2ms
+Conj-w | V-Qal-QalPassPrtcpl-msc | 3ms
+Conj-w | V-QalPass-ConjPerf-3ms
+Conj-w | V-QalPass-ConsecImperf-3fs
+Conj-w | V-QalPass-ConsecImperf-3ms
+Conj-w, Art | Adj-fp
+Conj-w, Art | Adj-fs
+Conj-w, Art | Adj-mp
+Conj-w, Art | Adj-ms
+Conj-w, Art | N-cp
+Conj-w, Art | N-cs
+Conj-w, Art | N-fd
+Conj-w, Art | N-fp
+Conj-w, Art | N-fs
+Conj-w, Art | N-md
+Conj-w, Art | N-mp
+Conj-w, Art | N-ms
+Conj-w, Art | N-msc | 3ms
+Conj-w, Art | N-proper-fs
+Conj-w, Art | N-proper-mb
+Conj-w, Art | N-proper-mp
+Conj-w, Art | N-proper-ms
+Conj-w, Art | Number-cp
+Conj-w, Art | Number-fd
+Conj-w, Art | Number-fp
+Conj-w, Art | Number-fs
+Conj-w, Art | Number-ms
+Conj-w, Art | Number-ofs
+Conj-w, Art | Number-oms
+Conj-w, Art | Prep | 3fs
+Conj-w, Art | V-Hifil-Prtcpl-mp
+Conj-w, Art | V-Hifil-Prtcpl-ms
+Conj-w, Art | V-Hitpael-Prtcpl-mp
+Conj-w, Art | V-Hitpael-Prtcpl-ms
+Conj-w, Art | V-Nifal-Prtcpl-fp
+Conj-w, Art | V-Nifal-Prtcpl-fs
+Conj-w, Art | V-Nifal-Prtcpl-mp
+Conj-w, Art | V-Nifal-Prtcpl-ms
+Conj-w, Art | V-Piel-Prtcpl-mp
+Conj-w, Art | V-Piel-Prtcpl-ms
+Conj-w, Art | V-Pual-Prtcpl-fs
+Conj-w, Art | V-Qal-Prtcpl-fp
+Conj-w, Art | V-Qal-Prtcpl-fs
+Conj-w, Art | V-Qal-Prtcpl-mp
+Conj-w, Art | V-Qal-Prtcpl-ms
+Conj-w, Art | V-Qal-Prtcpl-msc | 2ms
+Conj-w, Art | V-Qal-Prtcpl-msc | 3fs
+Conj-w, Art | V-Qal-QalPassPrtcpl-fp
+Conj-w, Art | V-Qal-QalPassPrtcpl-fs
+Conj-w, Art | V-Qal-QalPassPrtcpl-mp
+Conj-w, Art | V-Qal-QalPassPrtcpl-ms
+Conj-w, Pg | Adv-NegPrt
+Conj-w, Pi | Interjection | 3ms
+Conj-w, Pr | V-Qal-ConjPerf-1cs
+Conj-w, Prep | Adj-ms
+Conj-w, Prep | N-fdc
+Conj-w, Prep | N-fs
+Conj-w, Prep | N-mpc
+Conj-w, Prep | N-ms
+Conj-w, Prep | N-msc
+Conj-w, Prep | N-proper-fs
+Conj-w, Prep | N-proper-ms
+Conj-w, Prep | V-Hifil-Inf
+Conj-w, Prep | V-Hifil-Prtcpl-mpc
+Conj-w, Prep | V-Piel-Inf
+Conj-w, Prep | V-Qal-Inf
+Conj-w, Prep | V-Qal-Inf | 3mp
+Conj-w, Prep | V-Qal-Prtcpl-mp
+Conj-w, Prep, Art | N-ms
+Conj-w, Prep-b | Adj-mpc | 1cp
+Conj-w, Prep-b | Adj-ms
+Conj-w, Prep-b | Adj-msc | 3ms
+Conj-w, Prep-b | Adv
+Conj-w, Prep-b | Adv-NegPrt
+Conj-w, Prep-b | Interrog
+Conj-w, Prep-b | N-cd
+Conj-w, Prep-b | N-cdc
+Conj-w, Prep-b | N-cp
+Conj-w, Prep-b | N-cpc
+Conj-w, Prep-b | N-cpc | 1cp
+Conj-w, Prep-b | N-cpc | 2ms
+Conj-w, Prep-b | N-cpc | 3mp
+Conj-w, Prep-b | N-cs
+Conj-w, Prep-b | N-csc
+Conj-w, Prep-b | N-csc | 3mp
+Conj-w, Prep-b | N-csc | 3ms
+Conj-w, Prep-b | N-fdc
+Conj-w, Prep-b | N-fdc | 1cs
+Conj-w, Prep-b | N-fdc | 2mp
+Conj-w, Prep-b | N-fdc | 2ms
+Conj-w, Prep-b | N-fdc | 3mp
+Conj-w, Prep-b | N-fdc | 3ms
+Conj-w, Prep-b | N-fp
+Conj-w, Prep-b | N-fpc
+Conj-w, Prep-b | N-fpc | 1cp
+Conj-w, Prep-b | N-fpc | 1cs
+Conj-w, Prep-b | N-fpc | 2ms
+Conj-w, Prep-b | N-fpc | 3fp
+Conj-w, Prep-b | N-fpc | 3fs
+Conj-w, Prep-b | N-fpc | 3mp
+Conj-w, Prep-b | N-fpc | 3ms
+Conj-w, Prep-b | N-fs
+Conj-w, Prep-b | N-fsc
+Conj-w, Prep-b | N-fsc | 1cp
+Conj-w, Prep-b | N-fsc | 1cs
+Conj-w, Prep-b | N-fsc | 2fs
+Conj-w, Prep-b | N-fsc | 2mp
+Conj-w, Prep-b | N-fsc | 2ms
+Conj-w, Prep-b | N-fsc | 3fs
+Conj-w, Prep-b | N-fsc | 3mp
+Conj-w, Prep-b | N-fsc | 3ms
+Conj-w, Prep-b | N-fsd
+Conj-w, Prep-b | N-mp
+Conj-w, Prep-b | N-mpc
+Conj-w, Prep-b | N-mpc | 1cp
+Conj-w, Prep-b | N-mpc | 1cs
+Conj-w, Prep-b | N-mpc | 2fs
+Conj-w, Prep-b | N-mpc | 2mp
+Conj-w, Prep-b | N-mpc | 2ms
+Conj-w, Prep-b | N-mpc | 3fs
+Conj-w, Prep-b | N-mpc | 3mp
+Conj-w, Prep-b | N-mpc | 3ms
+Conj-w, Prep-b | N-ms
+Conj-w, Prep-b | N-msc
+Conj-w, Prep-b | N-msc | 1cp
+Conj-w, Prep-b | N-msc | 1cs
+Conj-w, Prep-b | N-msc | 2mp
+Conj-w, Prep-b | N-msc | 2ms
+Conj-w, Prep-b | N-msc | 3fs
+Conj-w, Prep-b | N-msc | 3mp
+Conj-w, Prep-b | N-msc | 3ms
+Conj-w, Prep-b | N-proper-fs
+Conj-w, Prep-b | N-proper-ms
+Conj-w, Prep-b | Number-cp
+Conj-w, Prep-b | Number-fd
+Conj-w, Prep-b | Number-fdc
+Conj-w, Prep-b | Number-fs
+Conj-w, Prep-b | Number-fsc
+Conj-w, Prep-b | Number-md
+Conj-w, Prep-b | Number-mdc
+Conj-w, Prep-b | Number-ms
+Conj-w, Prep-b | Number-msc
+Conj-w, Prep-b | Pro-cp
+Conj-w, Prep-b | Pro-fs
+Conj-w, Prep-b | Pro-ms
+Conj-w, Prep-b | Pro-r
+Conj-w, Prep-b | V-Hifil-Inf
+Conj-w, Prep-b | V-Hifil-Inf | 1cs
+Conj-w, Prep-b | V-Hifil-Inf | 2mp
+Conj-w, Prep-b | V-Hifil-Inf | 3mp
+Conj-w, Prep-b | V-Hitpael-Inf
+Conj-w, Prep-b | V-Nifal-Inf
+Conj-w, Prep-b | V-Nifal-Inf | 2ms
+Conj-w, Prep-b | V-Nifal-Inf | 3mp
+Conj-w, Prep-b | V-Nifal-Inf | 3ms
+Conj-w, Prep-b | V-Nifal-Prtcpl-fp
+Conj-w, Prep-b | V-Piel-Inf
+Conj-w, Prep-b | V-Piel-Inf | 1cs
+Conj-w, Prep-b | V-Piel-Inf | 2mp
+Conj-w, Prep-b | V-Piel-Inf | 3ms
+Conj-w, Prep-b | V-Qal-Inf
+Conj-w, Prep-b | V-Qal-Inf | 1cs
+Conj-w, Prep-b | V-Qal-Inf | 2fs
+Conj-w, Prep-b | V-Qal-Inf | 2mp
+Conj-w, Prep-b | V-Qal-Inf | 2ms
+Conj-w, Prep-b | V-Qal-Inf | 3fs
+Conj-w, Prep-b | V-Qal-Inf | 3mp
+Conj-w, Prep-b | V-Qal-Inf | 3ms
+Conj-w, Prep-b | V-Qal-Prtcpl-mpc
+Conj-w, Prep-b | V-Qal-Prtcpl-mpc | 1cs
+Conj-w, Prep-b | V-Qal-QalPassPrtcpl-ms
+Conj-w, Prep-b, Art | Adj-ms
+Conj-w, Prep-b, Art | N-cp
+Conj-w, Prep-b, Art | N-cs
+Conj-w, Prep-b, Art | N-fp
+Conj-w, Prep-b, Art | N-fs
+Conj-w, Prep-b, Art | N-mp
+Conj-w, Prep-b, Art | N-ms
+Conj-w, Prep-b, Art | N-proper-fs
+Conj-w, Prep-b, Art | N-proper-mp
+Conj-w, Prep-b, Art | N-proper-ms
+Conj-w, Prep-b, Art | Number-ms
+Conj-w, Prep-b, Art | Number-ofs
+Conj-w, Prep-b, Art | Number-oms
+Conj-w, Prep-b, Art | V-Nifal-Prtcpl-mp
+Conj-w, Prep-b, Art | V-Piel-Prtcpl-mp
+Conj-w, Prep-b, Art | V-Qal-Prtcpl-mp
+Conj-w, Prep-b, Art | V-Qal-QalPassPrtcpl-mp
+Conj-w, Prep-k | Adj-ms
+Conj-w, Prep-k | Adv
+Conj-w, Prep-k | Interrog
+Conj-w, Prep-k | N-cs
+Conj-w, Prep-k | N-csc
+Conj-w, Prep-k | N-csc | 3mp
+Conj-w, Prep-k | N-fd
+Conj-w, Prep-k | N-fp
+Conj-w, Prep-k | N-fpc
+Conj-w, Prep-k | N-fpc | 2fs
+Conj-w, Prep-k | N-fpc | 2mp
+Conj-w, Prep-k | N-fpc | 2ms
+Conj-w, Prep-k | N-fpc | 3mp
+Conj-w, Prep-k | N-fs
+Conj-w, Prep-k | N-fsc
+Conj-w, Prep-k | N-fsc | 1cs
+Conj-w, Prep-k | N-fsc | 2ms
+Conj-w, Prep-k | N-fsc | 3ms
+Conj-w, Prep-k | N-mp
+Conj-w, Prep-k | N-mpc
+Conj-w, Prep-k | N-mpc | 1cp
+Conj-w, Prep-k | N-mpc | 2mp
+Conj-w, Prep-k | N-mpc | 2ms
+Conj-w, Prep-k | N-mpc | 3fp
+Conj-w, Prep-k | N-mpc | 3mp
+Conj-w, Prep-k | N-ms
+Conj-w, Prep-k | N-msc
+Conj-w, Prep-k | N-msc | 1cs
+Conj-w, Prep-k | N-msc | 2ms
+Conj-w, Prep-k | N-msc | 3fs
+Conj-w, Prep-k | N-msc | 3mp
+Conj-w, Prep-k | N-msc | 3ms
+Conj-w, Prep-k | N-msd
+Conj-w, Prep-k | N-proper-fs
+Conj-w, Prep-k | N-proper-ms
+Conj-w, Prep-k | Number-msc
+Conj-w, Prep-k | Pro-3fp
+Conj-w, Prep-k | Pro-3mp
+Conj-w, Prep-k | Pro-cp
+Conj-w, Prep-k | Pro-fs
+Conj-w, Prep-k | Pro-ms
+Conj-w, Prep-k | Pro-r
+Conj-w, Prep-k | V-Hifil-Inf
+Conj-w, Prep-k | V-Hitpael-Inf
+Conj-w, Prep-k | V-Hitpael-Inf | 3ms
+Conj-w, Prep-k | V-Piel-Inf
+Conj-w, Prep-k | V-Piel-Inf | 3mp
+Conj-w, Prep-k | V-Qal-Inf
+Conj-w, Prep-k | V-Qal-Inf | 1cs
+Conj-w, Prep-k | V-Qal-Inf | 3mp
+Conj-w, Prep-k | V-Qal-Inf | 3ms
+Conj-w, Prep-k | V-Qal-Prtcpl-fs
+Conj-w, Prep-k | V-Qal-Prtcpl-ms
+Conj-w, Prep-k, Art | Adj-fs
+Conj-w, Prep-k, Art | Adj-ms
+Conj-w, Prep-k, Art | N-cp
+Conj-w, Prep-k, Art | N-cs
+Conj-w, Prep-k, Art | N-fp
+Conj-w, Prep-k, Art | N-fs
+Conj-w, Prep-k, Art | N-mp
+Conj-w, Prep-k, Art | N-ms
+Conj-w, Prep-l
+Conj-w, Prep-l | Adj-fs
+Conj-w, Prep-l | Adj-mp
+Conj-w, Prep-l | Adj-mpc
+Conj-w, Prep-l | Adj-mpc | 3ms
+Conj-w, Prep-l | Adj-msc
+Conj-w, Prep-l | Adj-msc | 2ms
+Conj-w, Prep-l | Adj-msd
+Conj-w, Prep-l | Adv
+Conj-w, Prep-l | Adv | 3fs
+Conj-w, Prep-l | Adv-NegPrt
+Conj-w, Prep-l | Interrog
+Conj-w, Prep-l | N-cdc
+Conj-w, Prep-l | N-cp
+Conj-w, Prep-l | N-cpc
+Conj-w, Prep-l | N-cpc | 2ms
+Conj-w, Prep-l | N-cpc | 3ms
+Conj-w, Prep-l | N-cs
+Conj-w, Prep-l | N-csc
+Conj-w, Prep-l | N-fdc
+Conj-w, Prep-l | N-fp
+Conj-w, Prep-l | N-fpc
+Conj-w, Prep-l | N-fpc | 1cs
+Conj-w, Prep-l | N-fpc | 2mp
+Conj-w, Prep-l | N-fpc | 2ms
+Conj-w, Prep-l | N-fpc | 3fs
+Conj-w, Prep-l | N-fpc | 3ms
+Conj-w, Prep-l | N-fs
+Conj-w, Prep-l | N-fsc
+Conj-w, Prep-l | N-fsc | 1cp
+Conj-w, Prep-l | N-fsc | 1cs
+Conj-w, Prep-l | N-fsc | 2fs
+Conj-w, Prep-l | N-fsc | 2ms
+Conj-w, Prep-l | N-fsc | 3fs
+Conj-w, Prep-l | N-fsc | 3mp
+Conj-w, Prep-l | N-fsc | 3ms
+Conj-w, Prep-l | N-mp
+Conj-w, Prep-l | N-mpc
+Conj-w, Prep-l | N-mpc | 1cp
+Conj-w, Prep-l | N-mpc | 1cs
+Conj-w, Prep-l | N-mpc | 2mp
+Conj-w, Prep-l | N-mpc | 2ms
+Conj-w, Prep-l | N-mpc | 3fs
+Conj-w, Prep-l | N-mpc | 3mp
+Conj-w, Prep-l | N-mpc | 3ms
+Conj-w, Prep-l | N-mpd
+Conj-w, Prep-l | N-ms
+Conj-w, Prep-l | N-msc
+Conj-w, Prep-l | N-msc | 1cp
+Conj-w, Prep-l | N-msc | 1cs
+Conj-w, Prep-l | N-msc | 2fs
+Conj-w, Prep-l | N-msc | 2ms
+Conj-w, Prep-l | N-msc | 3fs
+Conj-w, Prep-l | N-msc | 3mp
+Conj-w, Prep-l | N-msc | 3ms
+Conj-w, Prep-l | N-msd
+Conj-w, Prep-l | N-proper-fp
+Conj-w, Prep-l | N-proper-fs
+Conj-w, Prep-l | N-proper-mp
+Conj-w, Prep-l | N-proper-ms
+Conj-w, Prep-l | Number-fsc
+Conj-w, Prep-l | Number-md
+Conj-w, Prep-l | Number-mp
+Conj-w, Prep-l | Number-ms
+Conj-w, Prep-l | Pro-3fp
+Conj-w, Prep-l | Pro-cp
+Conj-w, Prep-l | Pro-r
+Conj-w, Prep-l | V-Hifil-Inf
+Conj-w, Prep-l | V-Hifil-Inf | 2ms
+Conj-w, Prep-l | V-Hifil-Inf | 3ms
+Conj-w, Prep-l | V-Hitpael-Inf
+Conj-w, Prep-l | V-Nifal-Inf
+Conj-w, Prep-l | V-Piel-Inf
+Conj-w, Prep-l | V-Piel-Inf | 3fs
+Conj-w, Prep-l | V-Piel-Inf | 3mp
+Conj-w, Prep-l | V-Piel-Inf | 3ms
+Conj-w, Prep-l | V-Piel-Prtcpl-mpc | 1cs
+Conj-w, Prep-l | V-Qal-Inf
+Conj-w, Prep-l | V-Qal-Inf | 1cp
+Conj-w, Prep-l | V-Qal-Inf | 2mp
+Conj-w, Prep-l | V-Qal-Inf | 2ms
+Conj-w, Prep-l | V-Qal-Inf | 3fs
+Conj-w, Prep-l | V-Qal-Inf | 3ms
+Conj-w, Prep-l | V-Qal-Prtcpl-fp
+Conj-w, Prep-l | V-Qal-Prtcpl-mp
+Conj-w, Prep-l | V-Qal-Prtcpl-mpc
+Conj-w, Prep-l | V-Qal-Prtcpl-mpc | 3ms
+Conj-w, Prep-l | V-Qal-Prtcpl-ms
+Conj-w, Prep-l | V-Qal-Prtcpl-msc | 1cs
+Conj-w, Prep-l | V-Qal-Prtcpl-msc | 3ms
+Conj-w, Prep-l | V-Qal-QalPassPrtcpl-mp
+Conj-w, Prep-l, Art | Adj-mp
+Conj-w, Prep-l, Art | Adj-ms
+Conj-w, Prep-l, Art | N-cp
+Conj-w, Prep-l, Art | N-cs
+Conj-w, Prep-l, Art | N-fp
+Conj-w, Prep-l, Art | N-fs
+Conj-w, Prep-l, Art | N-mp
+Conj-w, Prep-l, Art | N-ms
+Conj-w, Prep-l, Art | N-ms | 3fs
+Conj-w, Prep-l, Art | N-msc
+Conj-w, Prep-l, Art | N-proper-fs
+Conj-w, Prep-l, Art | N-proper-mp
+Conj-w, Prep-l, Art | N-proper-ms
+Conj-w, Prep-l, Art | V-Hifil-Prtcpl-mp
+Conj-w, Prep-l, Art | V-Hifil-Prtcpl-ms
+Conj-w, Prep-l, Art | V-Hofal-Prtcpl-fs
+Conj-w, Prep-l, Art | V-Nifal-Prtcpl-fs
+Conj-w, Prep-l, Art | V-Piel-Prtcpl-mp
+Conj-w, Prep-l, Art | V-Qal-Prtcpl-mp
+Conj-w, Prep-l, Art | V-Qal-Prtcpl-ms
+Conj-w, Prep-l, Prep-m | N-fsc
+Conj-w, Prep-l, Prep-m | N-mp
+Conj-w, Prep-l, Prep-m | N-msc
+Conj-w, Prep-m
+Conj-w, Prep-m | 1cs
+Conj-w, Prep-m | 3fs
+Conj-w, Prep-m | 3ms
+Conj-w, Prep-m | Adj-mpc
+Conj-w, Prep-m | Adj-ms
+Conj-w, Prep-m | Adv
+Conj-w, Prep-m | DirObjM
+Conj-w, Prep-m | N-cdc | 3ms
+Conj-w, Prep-m | N-cpc
+Conj-w, Prep-m | N-cpc | 1cs
+Conj-w, Prep-m | N-cpc | 2ms
+Conj-w, Prep-m | N-cpc | 3mp
+Conj-w, Prep-m | N-cs
+Conj-w, Prep-m | N-csc
+Conj-w, Prep-m | N-csc | 1cs
+Conj-w, Prep-m | N-csc | 3mp
+Conj-w, Prep-m | N-csc | 3ms
+Conj-w, Prep-m | N-fdc
+Conj-w, Prep-m | N-fp
+Conj-w, Prep-m | N-fpc
+Conj-w, Prep-m | N-fpc | 2fs
+Conj-w, Prep-m | N-fpc | 3mp
+Conj-w, Prep-m | N-fs
+Conj-w, Prep-m | N-fsc
+Conj-w, Prep-m | N-fsc | 1cs
+Conj-w, Prep-m | N-fsc | 2ms
+Conj-w, Prep-m | N-fsc | 3mp
+Conj-w, Prep-m | N-fsc | 3ms
+Conj-w, Prep-m | N-mdc | 3ms
+Conj-w, Prep-m | N-mp
+Conj-w, Prep-m | N-mpc
+Conj-w, Prep-m | N-mpc | 1cs
+Conj-w, Prep-m | N-mpc | 2mp
+Conj-w, Prep-m | N-mpc | 2ms
+Conj-w, Prep-m | N-mpc | 3fp
+Conj-w, Prep-m | N-mpc | 3fs
+Conj-w, Prep-m | N-mpc | 3mp
+Conj-w, Prep-m | N-ms
+Conj-w, Prep-m | N-ms | 3fs
+Conj-w, Prep-m | N-msc
+Conj-w, Prep-m | N-msc | 1cs
+Conj-w, Prep-m | N-msc | 2mp
+Conj-w, Prep-m | N-msc | 2ms
+Conj-w, Prep-m | N-msc | 3fs
+Conj-w, Prep-m | N-msc | 3mp
+Conj-w, Prep-m | N-msc | 3ms
+Conj-w, Prep-m | N-proper-fs
+Conj-w, Prep-m | N-proper-fs | 3fs
+Conj-w, Prep-m | N-proper-mp
+Conj-w, Prep-m | N-proper-ms
+Conj-w, Prep-m | Pro-cp
+Conj-w, Prep-m | Pro-ms
+Conj-w, Prep-m | Pro-r
+Conj-w, Prep-m | V-Hifil-Prtcpl-mpc
+Conj-w, Prep-m | V-Hitpael-Inf
+Conj-w, Prep-m | V-Piel-Inf
+Conj-w, Prep-m | V-Qal-Inf
+Conj-w, Prep-m | V-Qal-Inf | 3ms
+Conj-w, Prep-m | V-Qal-Prtcpl-fsc
+Conj-w, Prep-m | V-Qal-Prtcpl-mpc | 1cs
+Conj-w, Prep-m | V-Qal-Prtcpl-ms
+Conj-w, Prep-m, Art | Adj-fp
+Conj-w, Prep-m, Art | N-fs
+Conj-w, Prep-m, Art | N-mp
+Conj-w, Prep-m, Art | N-ms
+Conj-w, Prep-m, Art | N-proper-mp
+Conj-w, Prep-m, Prep-l | Adv | 3fs
+Conj-w, Prep-m, Prep-l | N-cpc
+Conj-w, Prep-m, Prep-l | N-mp
+Conj-w, Prep-m, Prep-l | N-msc
+DPro-AFP
+DPro-AFS
+DPro-AMP
+DPro-AMS
+DPro-ANP
+DPro-ANS
+DPro-DFP
+DPro-DFS
+DPro-DMP
+DPro-DMS
+DPro-DNP
+DPro-DNS
+DPro-GFP
+DPro-GFS
+DPro-GMP
+DPro-GMS
+DPro-GNP
+DPro-GNS
+DPro-NFP
+DPro-NFS
+DPro-NMP
+DPro-NMS
+DPro-NNP
+DPro-NNS
+DirObj
+DirObjM
+DirObjM | 1cp
+DirObjM | 1cs
+DirObjM | 2fs
+DirObjM | 2mp
+DirObjM | 2ms
+DirObjM | 3fp
+DirObjM | 3fs
+DirObjM | 3mp
+DirObjM | 3ms
+Heb
+I
+IPro-AFP
+IPro-AFS
+IPro-AMP
+IPro-AMS
+IPro-ANP
+IPro-ANS
+IPro-DFS
+IPro-DMP
+IPro-DMS
+IPro-DNS
+IPro-GFP
+IPro-GFS
+IPro-GMP
+IPro-GMS
+IPro-GNP
+IPro-GNS
+IPro-NFP
+IPro-NFS
+IPro-NMP
+IPro-NMS
+IPro-NNP
+IPro-NNS
+Indec
+IntPrtcl
+Interjection
+Interjection | 1cp
+Interjection | 1cs
+Interjection | 2fs
+Interjection | 2mp
+Interjection | 2ms
+Interjection | 3fs
+Interjection | 3mp
+Interjection | 3ms
+Interrog
+Interrog | 2ms
+Interrog | 3mp
+Interrog | 3ms
+Interrog | Prep-l | V-Qal-Prtcpl-ms
+Interrog, Prep-k, Art | V-Qal-Prtcpl-ms
+Interrog, Prep-l, Art | V-Qal-Prtcpl-mp
+N
+N-AFP
+N-AFS
+N-AMP
+N-AMS
+N-ANP
+N-ANS
+N-DFP
+N-DFS
+N-DMP
+N-DMS
+N-DNP
+N-DNS
+N-GFP
+N-GFS
+N-GMP
+N-GMS
+N-GNP
+N-GNS
+N-NFP
+N-NFS
+N-NMP
+N-NMS
+N-NNP
+N-NNS
+N-VFP
+N-VFS
+N-VMP
+N-VMS
+N-VNP
+N-VNS
+N-cd
+N-cdc
+N-cdc | 1cp
+N-cdc | 1cs
+N-cdc | 2fs
+N-cdc | 2mp
+N-cdc | 2ms
+N-cdc | 3fs
+N-cdc | 3mp
+N-cdc | 3ms
+N-cp
+N-cpc
+N-cpc | 1cp
+N-cpc | 1cs
+N-cpc | 2fs
+N-cpc | 2mp
+N-cpc | 2ms
+N-cpc | 3fs
+N-cpc | 3mp
+N-cpc | 3ms
+N-cs
+N-cs | 3fs
+N-csc
+N-csc | 1cp
+N-csc | 1cs
+N-csc | 2fs
+N-csc | 2mp
+N-csc | 2ms
+N-csc | 3fs
+N-csc | 3mp
+N-csc | 3ms
+N-csd
+N-fd
+N-fdc
+N-fdc | 1cp
+N-fdc | 1cs
+N-fdc | 2fs
+N-fdc | 2mp
+N-fdc | 2ms
+N-fdc | 3fp
+N-fdc | 3fs
+N-fdc | 3mp
+N-fdc | 3ms
+N-fp
+N-fpc
+N-fpc | 1cp
+N-fpc | 1cs
+N-fpc | 2fp
+N-fpc | 2fs
+N-fpc | 2mp
+N-fpc | 2ms
+N-fpc | 3fp
+N-fpc | 3fs
+N-fpc | 3mp
+N-fpc | 3ms
+N-fpd
+N-fs
+N-fs | 3fs
+N-fsc
+N-fsc | 1cp
+N-fsc | 1cs
+N-fsc | 2fp
+N-fsc | 2fs
+N-fsc | 2mp
+N-fsc | 2ms
+N-fsc | 3fp
+N-fsc | 3fs
+N-fsc | 3mp
+N-fsc | 3ms
+N-fsd
+N-md
+N-mdc
+N-mdc | 1cp
+N-mdc | 1cs
+N-mdc | 2fs
+N-mdc | 2mp
+N-mdc | 2ms
+N-mdc | 3fp
+N-mdc | 3fs
+N-mdc | 3mp
+N-mdc | 3ms
+N-mdd
+N-mp
+N-mp | 3fs
+N-mpc
+N-mpc | 1cp
+N-mpc | 1cs
+N-mpc | 2fp
+N-mpc | 2fs
+N-mpc | 2mp
+N-mpc | 2ms
+N-mpc | 3fp
+N-mpc | 3fs
+N-mpc | 3mp
+N-mpc | 3ms
+N-mpd
+N-ms
+N-ms | 3fs
+N-msc
+N-msc | 1cp
+N-msc | 1cs
+N-msc | 2fp
+N-msc | 2fs
+N-msc | 2mp
+N-msc | 2ms
+N-msc | 3fp
+N-msc | 3fs
+N-msc | 3mp
+N-msc | 3ms
+N-msd
+N-proper
+N-proper | 1cp
+N-proper-fb
+N-proper-fp
+N-proper-fs
+N-proper-fs | 3fs
+N-proper-mb
+N-proper-md
+N-proper-mp
+N-proper-mpd
+N-proper-ms
+N-proper-ms | 3fs
+N-proper-msc | 1cs
+Number-cp
+Number-cpc | 2ms
+Number-cpc | 3mp
+Number-cpc | 3ms
+Number-csc
+Number-fd
+Number-fdc
+Number-fdc | 3fp
+Number-fdc | 3mp
+Number-fp
+Number-fpc
+Number-fs
+Number-fsc
+Number-md
+Number-mdc
+Number-mdc | 1cp
+Number-mdc | 2mp
+Number-mdc | 3mp
+Number-mp
+Number-mpc
+Number-ms
+Number-msc
+Number-msc | 2mp
+Number-msc | 3mp
+Number-msd
+Number-ofs
+Number-ofs | 3fs
+Number-ofsc
+Number-ofsc | 2fs
+Number-ofsc | 3ms
+Number-ofsd
+Number-omp
+Number-oms
+Number-omsd
+PPro-A1P
+PPro-A1S
+PPro-A2P
+PPro-A2S
+PPro-AF1P
+PPro-AF1S
+PPro-AF2P
+PPro-AF2S
+PPro-AF3P
+PPro-AF3S
+PPro-AM1P
+PPro-AM1S
+PPro-AM2P
+PPro-AM2S
+PPro-AM3P
+PPro-AM3S
+PPro-AN1P
+PPro-AN1S
+PPro-AN2P
+PPro-AN2S
+PPro-AN3P
+PPro-AN3S
+PPro-D1P
+PPro-D1S
+PPro-D2P
+PPro-D2S
+PPro-DF1P
+PPro-DF1S
+PPro-DF2P
+PPro-DF2S
+PPro-DF3P
+PPro-DF3S
+PPro-DM1P
+PPro-DM1S
+PPro-DM2P
+PPro-DM2S
+PPro-DM3P
+PPro-DM3S
+PPro-DN1P
+PPro-DN1S
+PPro-DN3P
+PPro-DN3S
+PPro-G1P
+PPro-G1S
+PPro-G2P
+PPro-G2S
+PPro-GF1P
+PPro-GF1S
+PPro-GF2P
+PPro-GF2S
+PPro-GF3P
+PPro-GF3S
+PPro-GM1S
+PPro-GM2S
+PPro-GM3P
+PPro-GM3S
+PPro-GN1P
+PPro-GN3P
+PPro-GN3S
+PPro-N1P
+PPro-N1S
+PPro-N2P
+PPro-N2S
+PPro-NF1P
+PPro-NF1S
+PPro-NF2P
+PPro-NF3S
+PPro-NFS
+PPro-NM1P
+PPro-NM1S
+PPro-NM2P
+PPro-NM2S
+PPro-NM3P
+PPro-NM3S
+PPro-NN1P
+PPro-NN1S
+PPro-NN2P
+PPro-NN2S
+PPro-NN3P
+PPro-NN3S
+Pd | N-ms
+Pd | V-Qal-Imperf-2fs
+Pg, Prep-k | Pro-ms
+Pg, Prep-l | Pro-ms
+Pr | Interrog
+Pr | Pro-3ms
+Pr, Prep-b | N-msc | 1cp
+Pr, Prep-b, Art | N-mp
+Pr, Prep-l | N-proper-ms
+Prep
+Prep | 1cp
+Prep | 1cs
+Prep | 2fp
+Prep | 2fs
+Prep | 2mp
+Prep | 2ms
+Prep | 3fp
+Prep | 3fs
+Prep | 3mp
+Prep | 3ms
+Prep | Adj-ms
+Prep | Adv
+Prep | DirObjM
+Prep | N-cdc | 3ms
+Prep | N-cpc | 3ms
+Prep | N-cs
+Prep | N-csc
+Prep | N-fdc | 2ms
+Prep | N-fs
+Prep | N-fsc
+Prep | N-mpc | 3ms
+Prep | N-ms
+Prep | N-msc
+Prep | N-msc | 1cs
+Prep | N-msc | 3fp
+Prep | N-msc | 3ms
+Prep | N-proper-fs
+Prep | N-proper-fs | 3fs
+Prep | N-proper-ms
+Prep | Prep
+Prep | Prep | 2ms
+Prep | Pro-3mp
+Prep | Pro-r
+Prep | V-Hifil-Inf
+Prep | V-Nifal-Inf
+Prep | V-Piel-Inf
+Prep | V-Qal-Inf
+Prep | V-Qal-Inf | 1cp
+Prep | V-Qal-Inf | 1cs
+Prep, Art | N-cs
+Prep, Art | N-fs
+Prep, Art | N-mp
+Prep, Art | N-ms
+Prep, Art | N-proper-fs
+Prep, Art | Number-cp
+Prep-b | Adj-fp
+Prep-b | Adj-fpc | 2ms
+Prep-b | Adj-fpc | 3mp
+Prep-b | Adj-fs
+Prep-b | Adj-mp
+Prep-b | Adj-mpc
+Prep-b | Adj-mpc | 1cs
+Prep-b | Adj-mpc | 3ms
+Prep-b | Adj-ms
+Prep-b | Adj-msc
+Prep-b | Adj-msc | 3ms
+Prep-b | Adv
+Prep-b | Adv | 1cs
+Prep-b | Adv | 3fs
+Prep-b | Adv | 3ms
+Prep-b | Adv-NegPrt
+Prep-b | Interrog
+Prep-b | N-cd
+Prep-b | N-cdc
+Prep-b | N-cdc | 1cp
+Prep-b | N-cdc | 1cs
+Prep-b | N-cdc | 2fs
+Prep-b | N-cdc | 2mp
+Prep-b | N-cdc | 2ms
+Prep-b | N-cdc | 3fp
+Prep-b | N-cdc | 3fs
+Prep-b | N-cdc | 3mp
+Prep-b | N-cdc | 3ms
+Prep-b | N-cp
+Prep-b | N-cpc
+Prep-b | N-cpc | 1cp
+Prep-b | N-cpc | 1cs
+Prep-b | N-cpc | 2mp
+Prep-b | N-cpc | 2ms
+Prep-b | N-cpc | 3fp
+Prep-b | N-cpc | 3mp
+Prep-b | N-cpc | 3ms
+Prep-b | N-cs
+Prep-b | N-csc
+Prep-b | N-csc | 1cs
+Prep-b | N-csc | 2ms
+Prep-b | N-csc | 3fs
+Prep-b | N-csc | 3mp
+Prep-b | N-csc | 3ms
+Prep-b | N-fd
+Prep-b | N-fdc
+Prep-b | N-fdc | 1cp
+Prep-b | N-fdc | 1cs
+Prep-b | N-fdc | 2fs
+Prep-b | N-fdc | 2mp
+Prep-b | N-fdc | 2ms
+Prep-b | N-fdc | 3fp
+Prep-b | N-fdc | 3fs
+Prep-b | N-fdc | 3mp
+Prep-b | N-fdc | 3ms
+Prep-b | N-fp
+Prep-b | N-fpc
+Prep-b | N-fpc | 1cp
+Prep-b | N-fpc | 1cs
+Prep-b | N-fpc | 2fs
+Prep-b | N-fpc | 2mp
+Prep-b | N-fpc | 2ms
+Prep-b | N-fpc | 3fs
+Prep-b | N-fpc | 3mp
+Prep-b | N-fpc | 3ms
+Prep-b | N-fpd
+Prep-b | N-fs
+Prep-b | N-fsc
+Prep-b | N-fsc | 1cp
+Prep-b | N-fsc | 1cs
+Prep-b | N-fsc | 2fp
+Prep-b | N-fsc | 2fs
+Prep-b | N-fsc | 2mp
+Prep-b | N-fsc | 2ms
+Prep-b | N-fsc | 3fs
+Prep-b | N-fsc | 3mp
+Prep-b | N-fsc | 3ms
+Prep-b | N-fsd
+Prep-b | N-md
+Prep-b | N-mdc
+Prep-b | N-mdc | 1cp
+Prep-b | N-mdc | 3fs
+Prep-b | N-mdc | 3mp
+Prep-b | N-mdc | 3ms
+Prep-b | N-mdd
+Prep-b | N-mp
+Prep-b | N-mpc
+Prep-b | N-mpc | 1cp
+Prep-b | N-mpc | 1cs
+Prep-b | N-mpc | 2fs
+Prep-b | N-mpc | 2mp
+Prep-b | N-mpc | 2ms
+Prep-b | N-mpc | 3fp
+Prep-b | N-mpc | 3fs
+Prep-b | N-mpc | 3mp
+Prep-b | N-mpc | 3ms
+Prep-b | N-mpd
+Prep-b | N-ms
+Prep-b | N-msc
+Prep-b | N-msc | 1cp
+Prep-b | N-msc | 1cs
+Prep-b | N-msc | 2fs
+Prep-b | N-msc | 2mp
+Prep-b | N-msc | 2ms
+Prep-b | N-msc | 3fs
+Prep-b | N-msc | 3mp
+Prep-b | N-msc | 3ms
+Prep-b | N-msd
+Prep-b | N-proper-fs
+Prep-b | N-proper-fs | 3fs
+Prep-b | N-proper-mp
+Prep-b | N-proper-ms
+Prep-b | Number-cp
+Prep-b | Number-csc
+Prep-b | Number-fd
+Prep-b | Number-fdc
+Prep-b | Number-fpc
+Prep-b | Number-fpc | 3ms
+Prep-b | Number-fs
+Prep-b | Number-fsc
+Prep-b | Number-md
+Prep-b | Number-mdc
+Prep-b | Number-mpc
+Prep-b | Number-mpc | 3ms
+Prep-b | Number-ms
+Prep-b | Number-msc
+Prep-b | Number-msc | 3ms
+Prep-b | Number-ofsc
+Prep-b | Prep
+Prep-b | Pro-3fp
+Prep-b | Pro-3mp
+Prep-b | Pro-cp
+Prep-b | Pro-fs
+Prep-b | Pro-ms
+Prep-b | Pro-r
+Prep-b | V-Hifil-Inf
+Prep-b | V-Hifil-Inf | 1cs
+Prep-b | V-Hifil-Inf | 2mp
+Prep-b | V-Hifil-Inf | 2ms
+Prep-b | V-Hifil-Inf | 3fs
+Prep-b | V-Hifil-Inf | 3mp
+Prep-b | V-Hifil-Inf | 3ms
+Prep-b | V-Hifil-Prtcpl-mpc
+Prep-b | V-Hifil-Prtcpl-ms
+Prep-b | V-Hifil-Prtcpl-msc
+Prep-b | V-Hitpael-Inf
+Prep-b | V-Hitpael-Inf | 1cs
+Prep-b | V-Hitpael-Inf | 2ms
+Prep-b | V-Hitpael-Inf | 3mp
+Prep-b | V-Hitpael-Inf | 3ms
+Prep-b | V-Hofal-Inf | 3fs
+Prep-b | V-Nifal-Inf
+Prep-b | V-Nifal-Inf | 1cs
+Prep-b | V-Nifal-Inf | 2mp
+Prep-b | V-Nifal-Inf | 2ms
+Prep-b | V-Nifal-Inf | 3mp
+Prep-b | V-Nifal-Inf | 3ms
+Prep-b | V-Nifal-Prtcpl-fpc | 2ms
+Prep-b | V-Nifal-Prtcpl-fpc | 3ms
+Prep-b | V-Nifal-Prtcpl-mpc
+Prep-b | V-Piel-Inf
+Prep-b | V-Piel-Inf | 1cs
+Prep-b | V-Piel-Inf | 2fp
+Prep-b | V-Piel-Inf | 2fs
+Prep-b | V-Piel-Inf | 2mp
+Prep-b | V-Piel-Inf | 2ms
+Prep-b | V-Piel-Inf | 3fs
+Prep-b | V-Piel-Inf | 3mp
+Prep-b | V-Piel-Inf | 3ms
+Prep-b | V-Piel-Prtcpl-mpc
+Prep-b | V-Piel-Prtcpl-ms
+Prep-b | V-Qal-Inf
+Prep-b | V-Qal-Inf | 1cp
+Prep-b | V-Qal-Inf | 1cs
+Prep-b | V-Qal-Inf | 2fs
+Prep-b | V-Qal-Inf | 2mp
+Prep-b | V-Qal-Inf | 2ms
+Prep-b | V-Qal-Inf | 3fp
+Prep-b | V-Qal-Inf | 3fs
+Prep-b | V-Qal-Inf | 3mp
+Prep-b | V-Qal-Inf | 3ms
+Prep-b | V-Qal-Prtcpl-mp
+Prep-b | V-Qal-Prtcpl-mpc
+Prep-b | V-Qal-Prtcpl-mpc | 1cs
+Prep-b | V-Qal-Prtcpl-mpc | 3mp
+Prep-b | V-Qal-Prtcpl-mpc | 3ms
+Prep-b | V-Qal-Prtcpl-ms
+Prep-b | V-Qal-Prtcpl-msc
+Prep-b, Art | Adj-fp
+Prep-b, Art | Adj-fs
+Prep-b, Art | Adj-mp
+Prep-b, Art | Adj-ms
+Prep-b, Art | Adv
+Prep-b, Art | N-cd
+Prep-b, Art | N-cp
+Prep-b, Art | N-cs
+Prep-b, Art | N-fd
+Prep-b, Art | N-fp
+Prep-b, Art | N-fpc
+Prep-b, Art | N-fpc | 1cp
+Prep-b, Art | N-fs
+Prep-b, Art | N-fs | 3fs
+Prep-b, Art | N-fsc
+Prep-b, Art | N-fsc | 2ms
+Prep-b, Art | N-md
+Prep-b, Art | N-mp
+Prep-b, Art | N-mpc
+Prep-b, Art | N-mpc | 3mp
+Prep-b, Art | N-ms
+Prep-b, Art | N-msc
+Prep-b, Art | N-msc | 1cs
+Prep-b, Art | N-proper-fs
+Prep-b, Art | N-proper-fs | 3fs
+Prep-b, Art | N-proper-mp
+Prep-b, Art | N-proper-ms
+Prep-b, Art | Number-cp
+Prep-b, Art | Number-fsc
+Prep-b, Art | Number-md
+Prep-b, Art | Number-ms
+Prep-b, Art | Number-ofs
+Prep-b, Art | Number-omp
+Prep-b, Art | Number-oms
+Prep-b, Art | V-Hifil-Perf-3ms
+Prep-b, Art | V-Hifil-Prtcpl-mp
+Prep-b, Art | V-Nifal-Prtcpl-ms
+Prep-b, Art | V-Piel-Prtcpl-mp
+Prep-b, Art | V-Qal-Prtcpl-mp
+Prep-b, Art | V-Qal-Prtcpl-ms
+Prep-b, Art | V-Qal-QalPassPrtcpl-mp
+Prep-b, Art | V-Qal-QalPassPrtcpl-ms
+Prep-b, Art | V-Qal-QalPassPrtcpl-msc | 3ms
+Prep-b, Pro-r | Adv
+Prep-b, Pro-r | Conj
+Prep-b, Pro-r | Interrog
+Prep-b, Pro-r | Prep | 1cs
+Prep-k | 3ms
+Prep-k | Adj-mp
+Prep-k | Adj-ms
+Prep-k | Adj-msc
+Prep-k | Adv
+Prep-k | Adv-NegPrt
+Prep-k | Interrog
+Prep-k | N-cdc
+Prep-k | N-cp
+Prep-k | N-cpc
+Prep-k | N-cpc | 1cp
+Prep-k | N-cpc | 2fs
+Prep-k | N-cpc | 2mp
+Prep-k | N-cpc | 3ms
+Prep-k | N-cs
+Prep-k | N-csc
+Prep-k | N-csc | 3mp
+Prep-k | N-csc | 3ms
+Prep-k | N-fdc
+Prep-k | N-fp
+Prep-k | N-fpc
+Prep-k | N-fpc | 2mp
+Prep-k | N-fpc | 3mp
+Prep-k | N-fpc | 3ms
+Prep-k | N-fs
+Prep-k | N-fsc
+Prep-k | N-fsc | 1cp
+Prep-k | N-fsc | 1cs
+Prep-k | N-fsc | 2fp
+Prep-k | N-fsc | 2mp
+Prep-k | N-fsc | 2ms
+Prep-k | N-fsc | 3fs
+Prep-k | N-fsc | 3mp
+Prep-k | N-fsc | 3ms
+Prep-k | N-mdc
+Prep-k | N-mp
+Prep-k | N-mpc
+Prep-k | N-mpc | 1cp
+Prep-k | N-mpc | 1cs
+Prep-k | N-mpc | 2mp
+Prep-k | N-mpc | 2ms
+Prep-k | N-mpc | 3fs
+Prep-k | N-mpc | 3mp
+Prep-k | N-mpc | 3ms
+Prep-k | N-ms
+Prep-k | N-msc
+Prep-k | N-msc | 1cp
+Prep-k | N-msc | 1cs
+Prep-k | N-msc | 2fs
+Prep-k | N-msc | 2mp
+Prep-k | N-msc | 2ms
+Prep-k | N-msc | 3fp
+Prep-k | N-msc | 3fs
+Prep-k | N-msc | 3mp
+Prep-k | N-msc | 3ms
+Prep-k | N-msd
+Prep-k | N-proper-fc
+Prep-k | N-proper-fs
+Prep-k | N-proper-ms
+Prep-k | Number-cp
+Prep-k | Number-fs
+Prep-k | Number-fsc
+Prep-k | Number-md
+Prep-k | Number-mdc
+Prep-k | Number-ms
+Prep-k | Number-msc
+Prep-k | Prep
+Prep-k | Pro-3fp
+Prep-k | Pro-3mp
+Prep-k | Pro-cp
+Prep-k | Pro-fs
+Prep-k | Pro-ms
+Prep-k | Pro-r
+Prep-k | V-Hifil-Inf
+Prep-k | V-Hifil-Inf | 1cs
+Prep-k | V-Hifil-Inf | 2ms
+Prep-k | V-Hifil-Inf | 3mp
+Prep-k | V-Hifil-Inf | 3ms
+Prep-k | V-Hifil-Prtcpl-fs
+Prep-k | V-Hifil-Prtcpl-mpc
+Prep-k | V-Hifil-Prtcpl-ms
+Prep-k | V-Hitpael-Inf
+Prep-k | V-Hitpael-Inf | 2ms
+Prep-k | V-Hitpael-Prtcpl-mp
+Prep-k | V-Hitpael-Prtcpl-ms
+Prep-k | V-Nifal-Inf
+Prep-k | V-Nifal-Inf | 1cs
+Prep-k | V-Piel-Inf
+Prep-k | V-Piel-Inf | 2mp
+Prep-k | V-Piel-Inf | 2ms
+Prep-k | V-Piel-Inf | 3fs
+Prep-k | V-Piel-Inf | 3ms
+Prep-k | V-Piel-Prtcpl-mp
+Prep-k | V-Piel-Prtcpl-mpc
+Prep-k | V-Piel-Prtcpl-ms
+Prep-k | V-Pual-Prtcpl-ms
+Prep-k | V-Qal-Inf
+Prep-k | V-Qal-Inf | 1cs
+Prep-k | V-Qal-Inf | 2mp
+Prep-k | V-Qal-Inf | 2ms
+Prep-k | V-Qal-Inf | 3fp
+Prep-k | V-Qal-Inf | 3fs
+Prep-k | V-Qal-Inf | 3mp
+Prep-k | V-Qal-Inf | 3ms
+Prep-k | V-Qal-Prtcpl-fs
+Prep-k | V-Qal-Prtcpl-mp
+Prep-k | V-Qal-Prtcpl-mpc
+Prep-k | V-Qal-Prtcpl-ms
+Prep-k | V-Qal-Prtcpl-msc
+Prep-k | V-Qal-QalPassPrtcpl-fpc
+Prep-k | V-Qal-QalPassPrtcpl-fsc
+Prep-k | V-Qal-QalPassPrtcpl-ms
+Prep-k, Art | Adj-fs
+Prep-k, Art | Adj-mp
+Prep-k, Art | Adj-ms
+Prep-k, Art | N-cp
+Prep-k, Art | N-cs
+Prep-k, Art | N-csc
+Prep-k, Art | N-fp
+Prep-k, Art | N-fs
+Prep-k, Art | N-fsc | 3fs
+Prep-k, Art | N-mp
+Prep-k, Art | N-ms
+Prep-k, Art | N-msc
+Prep-k, Art | N-proper-fs
+Prep-k, Art | N-proper-mp
+Prep-k, Art | Number-msc
+Prep-k, Art | V-Hifil-Prtcpl-ms
+Prep-k, Art | V-Nifal-Prtcpl-fp
+Prep-k, Art | V-Qal-Prtcpl-fs
+Prep-k, Art | V-Qal-Prtcpl-mp
+Prep-k, Art | V-Qal-Prtcpl-ms
+Prep-k, Art | V-Qal-QalPassPrtcpl-ms
+Prep-k, Prep-b, Art | Adj-fs
+Prep-k, Prep-b, Art | N-fs
+Prep-k, Prep-b, Art | N-msc
+Prep-k, Prep-m | N-mpc
+Prep-k, Prep-m | Number-fsc
+Prep-k, Pro-r | N-ms
+Prep-k, Pro-r | V-Qal-Imperf-3fs
+Prep-k, Pro-r | V-Qal-Perf-3ms
+Prep-k, Pro-r, Art | N-ms
+Prep-l
+Prep-l | 1cs
+Prep-l | 2mp
+Prep-l | 2ms
+Prep-l | 3mp
+Prep-l | 3ms
+Prep-l | Adj-fs
+Prep-l | Adj-mp
+Prep-l | Adj-mpc
+Prep-l | Adj-mpc | 1cs
+Prep-l | Adj-mpc | 2ms
+Prep-l | Adj-mpc | 3ms
+Prep-l | Adj-ms
+Prep-l | Adj-msc
+Prep-l | Adj-msc | 1cs
+Prep-l | Adj-msc | 2ms
+Prep-l | Adj-msc | 3ms
+Prep-l | Adv
+Prep-l | Adv | 1cp
+Prep-l | Adv | 1cs
+Prep-l | Adv | 3fs
+Prep-l | Adv-NegPrt
+Prep-l | Interrog
+Prep-l | Interrog | Prep-b, Art | Adj-fs
+Prep-l | N-cd
+Prep-l | N-cdc
+Prep-l | N-cdc | 1cp
+Prep-l | N-cdc | 1cs
+Prep-l | N-cdc | 2mp
+Prep-l | N-cdc | 2ms
+Prep-l | N-cdc | 3mp
+Prep-l | N-cdc | 3ms
+Prep-l | N-cp
+Prep-l | N-cpc
+Prep-l | N-cpc | 2ms
+Prep-l | N-cpc | 3mp
+Prep-l | N-cpc | 3ms
+Prep-l | N-cs
+Prep-l | N-cs | 3fs
+Prep-l | N-csc
+Prep-l | N-csc | 1cp
+Prep-l | N-csc | 1cs
+Prep-l | N-csc | 2fs
+Prep-l | N-csc | 2mp
+Prep-l | N-csc | 2ms
+Prep-l | N-csc | 3fs
+Prep-l | N-csc | 3mp
+Prep-l | N-csc | 3ms
+Prep-l | N-fd
+Prep-l | N-fdc
+Prep-l | N-fdc | 1cs
+Prep-l | N-fdc | 2ms
+Prep-l | N-fdc | 3ms
+Prep-l | N-fp
+Prep-l | N-fpc
+Prep-l | N-fpc | 1cp
+Prep-l | N-fpc | 1cs
+Prep-l | N-fpc | 2mp
+Prep-l | N-fpc | 2ms
+Prep-l | N-fpc | 3fs
+Prep-l | N-fpc | 3mp
+Prep-l | N-fpc | 3ms
+Prep-l | N-fs
+Prep-l | N-fs | 3fs
+Prep-l | N-fsc
+Prep-l | N-fsc | 1cp
+Prep-l | N-fsc | 1cs
+Prep-l | N-fsc | 2fp
+Prep-l | N-fsc | 2fs
+Prep-l | N-fsc | 2mp
+Prep-l | N-fsc | 2ms
+Prep-l | N-fsc | 3fp
+Prep-l | N-fsc | 3fs
+Prep-l | N-fsc | 3mp
+Prep-l | N-fsc | 3ms
+Prep-l | N-fsd
+Prep-l | N-mdc
+Prep-l | N-mdc | 1cs
+Prep-l | N-mdc | 2ms
+Prep-l | N-mdc | 3ms
+Prep-l | N-mdd
+Prep-l | N-mp
+Prep-l | N-mpc
+Prep-l | N-mpc | 1cp
+Prep-l | N-mpc | 1cs
+Prep-l | N-mpc | 2fs
+Prep-l | N-mpc | 2mp
+Prep-l | N-mpc | 2ms
+Prep-l | N-mpc | 3fp
+Prep-l | N-mpc | 3fs
+Prep-l | N-mpc | 3mp
+Prep-l | N-mpc | 3ms
+Prep-l | N-mpd
+Prep-l | N-ms
+Prep-l | N-msc
+Prep-l | N-msc | 1cp
+Prep-l | N-msc | 1cs
+Prep-l | N-msc | 2fs
+Prep-l | N-msc | 2mp
+Prep-l | N-msc | 2ms
+Prep-l | N-msc | 3fp
+Prep-l | N-msc | 3fs
+Prep-l | N-msc | 3mp
+Prep-l | N-msc | 3ms
+Prep-l | N-msd
+Prep-l | N-proper-fp
+Prep-l | N-proper-fs
+Prep-l | N-proper-fs | 3fs
+Prep-l | N-proper-mp
+Prep-l | N-proper-ms
+Prep-l | Number-cp
+Prep-l | Number-csc
+Prep-l | Number-fdc
+Prep-l | Number-fdc | 3fp
+Prep-l | Number-fp
+Prep-l | Number-fs
+Prep-l | Number-fsc
+Prep-l | Number-md
+Prep-l | Number-mdc
+Prep-l | Number-mdc | 3mp
+Prep-l | Number-mp
+Prep-l | Number-mpc
+Prep-l | Number-ms
+Prep-l | Number-msc
+Prep-l | Number-msc | 3fp
+Prep-l | Number-msc | 3mp
+Prep-l | Pro-3fp
+Prep-l | Pro-3mp
+Prep-l | Pro-cp
+Prep-l | Pro-fs
+Prep-l | Pro-ms
+Prep-l | Pro-r
+Prep-l | V-Hifil-Inf
+Prep-l | V-Hifil-Inf | 1cp
+Prep-l | V-Hifil-Inf | 1cs
+Prep-l | V-Hifil-Inf | 2fs
+Prep-l | V-Hifil-Inf | 2mp
+Prep-l | V-Hifil-Inf | 2ms
+Prep-l | V-Hifil-Inf | 3fs
+Prep-l | V-Hifil-Inf | 3mp
+Prep-l | V-Hifil-Inf | 3ms
+Prep-l | V-Hifil-InfAbs
+Prep-l | V-Hifil-Prtcpl-fs
+Prep-l | V-Hifil-Prtcpl-mp
+Prep-l | V-Hifil-Prtcpl-mpc
+Prep-l | V-Hifil-Prtcpl-ms
+Prep-l | V-Hifil-Prtcpl-msc
+Prep-l | V-Hifil-Prtcpl-msc | 3ms
+Prep-l | V-Hitpael-Inf
+Prep-l | V-Nifal-Inf
+Prep-l | V-Nifal-Inf | 3mp
+Prep-l | V-Nifal-Inf | 3ms
+Prep-l | V-Nifal-Prtcpl-fpc | 3ms
+Prep-l | V-Nifal-Prtcpl-mp
+Prep-l | V-Nifal-Prtcpl-mpc
+Prep-l | V-Nifal-Prtcpl-mpc | 3ms
+Prep-l | V-Nifal-Prtcpl-ms
+Prep-l | V-Piel-Inf
+Prep-l | V-Piel-Inf | 1cp
+Prep-l | V-Piel-Inf | 1cs
+Prep-l | V-Piel-Inf | 2mp
+Prep-l | V-Piel-Inf | 2ms
+Prep-l | V-Piel-Inf | 2mse
+Prep-l | V-Piel-Inf | 3fs
+Prep-l | V-Piel-Inf | 3fse
+Prep-l | V-Piel-Inf | 3mp
+Prep-l | V-Piel-Inf | 3ms
+Prep-l | V-Piel-Prtcpl-fp
+Prep-l | V-Piel-Prtcpl-mpc | 1cs
+Prep-l | V-Piel-Prtcpl-msc
+Prep-l | V-Piel-Prtcpl-msc | 1cs
+Prep-l | V-Pual-Prtcpl-mpc | 1cs
+Prep-l | V-Qal-Inf
+Prep-l | V-Qal-Inf | 1cp
+Prep-l | V-Qal-Inf | 1cs
+Prep-l | V-Qal-Inf | 2fs
+Prep-l | V-Qal-Inf | 2mp
+Prep-l | V-Qal-Inf | 2ms
+Prep-l | V-Qal-Inf | 3fs
+Prep-l | V-Qal-Inf | 3mp
+Prep-l | V-Qal-Inf | 3ms
+Prep-l | V-Qal-Prtcpl-fp
+Prep-l | V-Qal-Prtcpl-fs
+Prep-l | V-Qal-Prtcpl-fsc | 3fs
+Prep-l | V-Qal-Prtcpl-fsc | 3ms
+Prep-l | V-Qal-Prtcpl-mp
+Prep-l | V-Qal-Prtcpl-mpc
+Prep-l | V-Qal-Prtcpl-mpc | 1cp
+Prep-l | V-Qal-Prtcpl-mpc | 1cs
+Prep-l | V-Qal-Prtcpl-mpc | 2fs
+Prep-l | V-Qal-Prtcpl-mpc | 2ms
+Prep-l | V-Qal-Prtcpl-mpc | 3mp
+Prep-l | V-Qal-Prtcpl-mpc | 3ms
+Prep-l | V-Qal-Prtcpl-ms
+Prep-l | V-Qal-Prtcpl-msc
+Prep-l | V-Qal-Prtcpl-msc | 2ms
+Prep-l | V-Qal-Prtcpl-msc | 3ms
+Prep-l | V-Qal-QalPassPrtcpl-mp
+Prep-l | V-Qal-QalPassPrtcpl-mpc
+Prep-l | V-Qal-QalPassPrtcpl-mpc | 3mp
+Prep-l | V-Qal-QalPassPrtcpl-mpc | 3ms
+Prep-l, Art | Adj-fs
+Prep-l, Art | Adj-mp
+Prep-l, Art | Adj-ms
+Prep-l, Art | Adj-msc
+Prep-l, Art | N-cd
+Prep-l, Art | N-cp
+Prep-l, Art | N-cs
+Prep-l, Art | N-fd
+Prep-l, Art | N-fp
+Prep-l, Art | N-fs
+Prep-l, Art | N-fs | 3fs
+Prep-l, Art | N-fsc
+Prep-l, Art | N-mp
+Prep-l, Art | N-ms
+Prep-l, Art | N-ms | 3fs
+Prep-l, Art | N-msc
+Prep-l, Art | N-msc | 3ms
+Prep-l, Art | N-proper-fs
+Prep-l, Art | N-proper-mp
+Prep-l, Art | N-proper-ms
+Prep-l, Art | Number-cp
+Prep-l, Art | Number-fs
+Prep-l, Art | Number-mp
+Prep-l, Art | Number-ms
+Prep-l, Art | Number-msc
+Prep-l, Art | Number-oms
+Prep-l, Art | V-Hifil-Prtcpl-mp
+Prep-l, Art | V-Hifil-Prtcpl-ms
+Prep-l, Art | V-Hitpael-Prtcpl-ms
+Prep-l, Art | V-Hofal-Prtcpl-ms
+Prep-l, Art | V-Nifal-Prtcpl-mp
+Prep-l, Art | V-Piel-Prtcpl-fp
+Prep-l, Art | V-Piel-Prtcpl-mp
+Prep-l, Art | V-Piel-Prtcpl-mpc | 1cs
+Prep-l, Art | V-Piel-Prtcpl-ms
+Prep-l, Art | V-Qal-Prtcpl-mp
+Prep-l, Art | V-Qal-Prtcpl-ms
+Prep-l, Art | V-Qal-QalPassPrtcpl-mp
+Prep-l, Prep-b | N-ms
+Prep-l, Prep-m | Adj-ms
+Prep-l, Prep-m | Adj-msc | 3mp
+Prep-l, Prep-m | N-mpc
+Prep-l, Prep-m | N-ms
+Prep-l, Prep-m | N-msc
+Prep-l, Prep-m | N-proper-ms
+Prep-l, Prep-m | Prep
+Prep-m
+Prep-m | 1cp
+Prep-m | 1cs
+Prep-m | 2fs
+Prep-m | 2mp
+Prep-m | 2ms
+Prep-m | 3fs
+Prep-m | 3mp
+Prep-m | 3ms
+Prep-m | Adj-fs
+Prep-m | Adj-mp
+Prep-m | Adj-mpc
+Prep-m | Adj-ms
+Prep-m | Adj-msc
+Prep-m | Adj-msc | 3mp
+Prep-m | Adv
+Prep-m | Adv | 1cs
+Prep-m | Adv | 2ms
+Prep-m | Adv | 3mp
+Prep-m | DirObjM
+Prep-m | DirObjM | 1cs
+Prep-m | DirObjM | 2fs
+Prep-m | DirObjM | 2mp
+Prep-m | DirObjM | 2ms
+Prep-m | DirObjM | 3mp
+Prep-m | DirObjM | 3ms
+Prep-m | Interrog
+Prep-m | N-cdc
+Prep-m | N-cdc | 1cs
+Prep-m | N-cdc | 2fs
+Prep-m | N-cdc | 2ms
+Prep-m | N-cdc | 3ms
+Prep-m | N-cpc
+Prep-m | N-cpc | 1cp
+Prep-m | N-cpc | 2mp
+Prep-m | N-cpc | 2ms
+Prep-m | N-cpc | 3fs
+Prep-m | N-cpc | 3mp
+Prep-m | N-cpc | 3ms
+Prep-m | N-cs
+Prep-m | N-csc
+Prep-m | N-csc | 1cp
+Prep-m | N-csc | 1cs
+Prep-m | N-csc | 2fs
+Prep-m | N-csc | 2ms
+Prep-m | N-csc | 3mp
+Prep-m | N-csc | 3ms
+Prep-m | N-fdc
+Prep-m | N-fdc | 3ms
+Prep-m | N-fp
+Prep-m | N-fpc
+Prep-m | N-fpc | 1cp
+Prep-m | N-fpc | 1cs
+Prep-m | N-fpc | 2fs
+Prep-m | N-fpc | 2mp
+Prep-m | N-fpc | 2ms
+Prep-m | N-fpc | 3mp
+Prep-m | N-fpc | 3ms
+Prep-m | N-fs
+Prep-m | N-fs | 3fs
+Prep-m | N-fsc
+Prep-m | N-fsc | 1cp
+Prep-m | N-fsc | 1cs
+Prep-m | N-fsc | 2fp
+Prep-m | N-fsc | 2fs
+Prep-m | N-fsc | 2mp
+Prep-m | N-fsc | 2ms
+Prep-m | N-fsc | 3fs
+Prep-m | N-fsc | 3mp
+Prep-m | N-fsc | 3ms
+Prep-m | N-fsd
+Prep-m | N-md
+Prep-m | N-mdc
+Prep-m | N-mdc | 2ms
+Prep-m | N-mdc | 3ms
+Prep-m | N-mp
+Prep-m | N-mpc
+Prep-m | N-mpc | 1cp
+Prep-m | N-mpc | 1cs
+Prep-m | N-mpc | 2fs
+Prep-m | N-mpc | 2mp
+Prep-m | N-mpc | 2ms
+Prep-m | N-mpc | 3fs
+Prep-m | N-mpc | 3mp
+Prep-m | N-mpc | 3ms
+Prep-m | N-ms
+Prep-m | N-ms | 3fs
+Prep-m | N-msc
+Prep-m | N-msc | 1cp
+Prep-m | N-msc | 1cs
+Prep-m | N-msc | 2fs
+Prep-m | N-msc | 2mp
+Prep-m | N-msc | 2ms
+Prep-m | N-msc | 3fp
+Prep-m | N-msc | 3fs
+Prep-m | N-msc | 3mp
+Prep-m | N-msc | 3ms
+Prep-m | N-msd
+Prep-m | N-proper-fs
+Prep-m | N-proper-fs | 3fs
+Prep-m | N-proper-mp
+Prep-m | N-proper-ms
+Prep-m | Number-fd
+Prep-m | Number-fdc
+Prep-m | Number-fpc
+Prep-m | Number-fs
+Prep-m | Number-fsc
+Prep-m | Number-mdc
+Prep-m | Number-mdc | 3mp
+Prep-m | Number-mpc
+Prep-m | Number-ms
+Prep-m | Number-msc
+Prep-m | Pro-3fp
+Prep-m | Pro-3mp
+Prep-m | Pro-cp
+Prep-m | Pro-fs
+Prep-m | Pro-ms
+Prep-m | Pro-r
+Prep-m | V-Hifil-Inf
+Prep-m | V-Hifil-Inf | 2ms
+Prep-m | V-Hifil-Inf | 3mp
+Prep-m | V-Hifil-Inf | 3ms
+Prep-m | V-Hifil-InfAbs
+Prep-m | V-Hifil-Prtcpl-mpc
+Prep-m | V-Hifil-Prtcpl-ms
+Prep-m | V-Hitpael-Inf
+Prep-m | V-Hitpael-Prtcpl-mp
+Prep-m | V-Hitpael-Prtcpl-mpc | 1cs
+Prep-m | V-Hitpael-Prtcpl-ms
+Prep-m | V-Nifal-Prtcpl-fp
+Prep-m | V-Piel-Inf
+Prep-m | V-Piel-Inf | 3mp
+Prep-m | V-Piel-Inf | 3ms
+Prep-m | V-Qal-Inf
+Prep-m | V-Qal-Inf | 1cp
+Prep-m | V-Qal-Inf | 1cs
+Prep-m | V-Qal-Inf | 2fs
+Prep-m | V-Qal-Inf | 2mp
+Prep-m | V-Qal-Inf | 2ms
+Prep-m | V-Qal-Inf | 3fs
+Prep-m | V-Qal-Inf | 3mp
+Prep-m | V-Qal-Inf | 3ms
+Prep-m | V-Qal-Prtcpl-fs
+Prep-m | V-Qal-Prtcpl-fsc
+Prep-m | V-Qal-Prtcpl-mp
+Prep-m | V-Qal-Prtcpl-mpc
+Prep-m | V-Qal-Prtcpl-mpc | 1cs
+Prep-m | V-Qal-Prtcpl-mpc | 2mp
+Prep-m | V-Qal-Prtcpl-mpc | 2ms
+Prep-m | V-Qal-Prtcpl-mpc | 3mp
+Prep-m | V-Qal-Prtcpl-ms
+Prep-m | V-Qal-Prtcpl-msc
+Prep-m | V-Qal-Prtcpl-msc | 1cp
+Prep-m | V-Qal-Prtcpl-msc | 1cs
+Prep-m | V-Qal-Prtcpl-msc | 3ms
+Prep-m | V-Qal-QalPassPrtcpl-mpc
+Prep-m, Art | Adj-fp
+Prep-m, Art | N-cs
+Prep-m, Art | N-fp
+Prep-m, Art | N-fs
+Prep-m, Art | N-mp
+Prep-m, Art | N-ms
+Prep-m, Art | N-proper-fs
+Prep-m, Art | N-proper-mp
+Prep-m, Art | Number-cp
+Prep-m, Art | V-Qal-Prtcpl-ms
+Prep-m, Prep-l | Adv
+Prep-m, Prep-l | Adv | 3fs
+Prep-m, Prep-l | N-cpc
+Prep-m, Prep-l | N-cpc | 1cp
+Prep-m, Prep-l | N-cpc | 2ms
+Prep-m, Prep-l | N-cpc | 3ms
+Prep-m, Prep-l | N-mpc | 1cs
+Prep-m, Prep-l | N-mpc | 2mp
+Prep-m, Prep-l | N-ms
+Prep-m, Prep-l | N-msc
+Prep-m, Prep-l | N-msc | 3ms
+Prep-m, Prep-l | V-Qal-Inf
+Prep-m, Pro-r | Prep | 1cp
+Prep-m, Pro-r | V-Qal-Imperf-2ms
+Pro
+Pro-1cp
+Pro-1cs
+Pro-2fp
+Pro-2fs
+Pro-2mp
+Pro-2ms
+Pro-3cp
+Pro-3fp
+Pro-3fs
+Pro-3mp
+Pro-3ms
+Pro-cp
+Pro-cs
+Pro-fs
+Pro-ms
+Pro-r
+Pro-r | Adj-ms
+Pro-r | Adv
+Pro-r | Adv-NegPrt
+Pro-r | Conj
+Pro-r | N-fsc
+Pro-r | N-ms
+Pro-r | N-msc
+Pro-r | N-msc | 1cs
+Pro-r | N-msc | 2fs
+Pro-r | N-msc | 3mp
+Pro-r | N-proper-ms
+Pro-r | Prep
+Pro-r | Prep | 3mp
+Pro-r | Pro-1cs
+Pro-r | Pro-2ms
+Pro-r | Pro-3mp
+Pro-r | Pro-3ms
+Pro-r | V-Hifil-Imperf-1cs | 3mse
+Pro-r | V-Hifil-Imperf.Jus-3ms
+Pro-r | V-Hifil-Inf
+Pro-r | V-Hifil-Perf-1cs | 3ms
+Pro-r | V-Hifil-Perf-3ms
+Pro-r | V-Hifil-Prtcpl-ms
+Pro-r | V-Nifal-Imperf-3ms
+Pro-r | V-Nifal-Perf-3cp
+Pro-r | V-Nifal-Perf-3ms
+Pro-r | V-Nifal-Prtcpl-mp
+Pro-r | V-Piel-Imperf-3ms
+Pro-r | V-Piel-Perf-1cp | 3ms
+Pro-r | V-Piel-Perf-3fs
+Pro-r | V-Pual-Imperf-3ms
+Pro-r | V-Pual-Perf-3fs
+Pro-r | V-Qal-Imperf-3mp
+Pro-r | V-Qal-Imperf-3ms
+Pro-r | V-Qal-Imperf-3ms | 1cp
+Pro-r | V-Qal-Perf-1cs
+Pro-r | V-Qal-Perf-2fs
+Pro-r | V-Qal-Perf-3cp
+Pro-r | V-Qal-Perf-3fs
+Pro-r | V-Qal-Perf-3fs | 1cs
+Pro-r | V-Qal-Perf-3ms
+Pro-r | V-Qal-Perf-3ms | 3ms
+Pro-r | V-Qal-Prtcpl-fs
+Pro-r | V-Qal-Prtcpl-fsc
+Pro-r | V-Qal-Prtcpl-mp
+Pro-r | V-Qal-Prtcpl-ms
+Pro-r, Art | N-mp
+Pro-r, Art | N-ms
+Prtcl
+RecPro-AMP
+RecPro-DMP
+RecPro-DNP
+RecPro-GMP
+RefPro-AF3P
+RefPro-AF3S
+RefPro-AM3P
+RefPro-AM3S
+RefPro-AN3P
+RefPro-DF3P
+RefPro-DF3S
+RefPro-DM3P
+RefPro-DM3S
+RefPro-GF3P
+RefPro-GF3S
+RefPro-GM3P
+RefPro-GM3S
+RefPro-GN3P
+RefPro-GN3S
+RelPro-AFP
+RelPro-AFS
+RelPro-AMP
+RelPro-AMS
+RelPro-ANP
+RelPro-ANS
+RelPro-DFP
+RelPro-DFS
+RelPro-DMP
+RelPro-DMS
+RelPro-DNP
+RelPro-DNS
+RelPro-GFP
+RelPro-GFS
+RelPro-GMP
+RelPro-GMS
+RelPro-GNP
+RelPro-GNS
+RelPro-NFP
+RelPro-NFS
+RelPro-NMP
+RelPro-NMS
+RelPro-NNP
+RelPro-NNS
+V-AIA-1P
+V-AIA-1S
+V-AIA-2P
+V-AIA-2S
+V-AIA-3P
+V-AIA-3S
+V-AIM-1P
+V-AIM-1S
+V-AIM-2P
+V-AIM-2S
+V-AIM-3P
+V-AIM-3S
+V-AIP-1P
+V-AIP-1S
+V-AIP-2P
+V-AIP-2S
+V-AIP-3P
+V-AIP-3S
+V-AMA-2P
+V-AMA-2S
+V-AMA-3P
+V-AMA-3S
+V-AMM-2P
+V-AMM-2S
+V-AMM-3P
+V-AMM-3S
+V-AMP-2P
+V-AMP-2S
+V-AMP-3P
+V-AMP-3S
+V-ANA
+V-ANM
+V-ANM-3S
+V-ANM/P
+V-ANP
+V-AOA-3P
+V-AOA-3S
+V-AOM-1S
+V-AOM-3S
+V-AOP-3S
+V-APA-AFP
+V-APA-AFS
+V-APA-AMP
+V-APA-AMS
+V-APA-ANP
+V-APA-ANS
+V-APA-DFP
+V-APA-DFS
+V-APA-DMP
+V-APA-DMS
+V-APA-GFS
+V-APA-GMP
+V-APA-GMS
+V-APA-GNS
+V-APA-NFP
+V-APA-NFS
+V-APA-NMP
+V-APA-NMS
+V-APA-NNP
+V-APA-NNS
+V-APM-AFS
+V-APM-AMP
+V-APM-AMS
+V-APM-ANP
+V-APM-ANS
+V-APM-DMP
+V-APM-DNP
+V-APM-GFP
+V-APM-GFS
+V-APM-GMP
+V-APM-GMS
+V-APM-GNP
+V-APM-GNS
+V-APM-NFP
+V-APM-NFS
+V-APM-NMP
+V-APM-NMS
+V-APM-NNS
+V-APM/P-ANP
+V-APM/P-GFS
+V-APM/P-NMS
+V-APP-AFS
+V-APP-AMP
+V-APP-AMS
+V-APP-ANP
+V-APP-ANS
+V-APP-DFS
+V-APP-DMS
+V-APP-DNP
+V-APP-DNS
+V-APP-GFP
+V-APP-GFS
+V-APP-GMP
+V-APP-GMS
+V-APP-GNP
+V-APP-GNS
+V-APP-NFP
+V-APP-NFS
+V-APP-NMP
+V-APP-NMS
+V-APP-NNP
+V-APP-NNS
+V-ASA-1P
+V-ASA-1S
+V-ASA-2P
+V-ASA-2S
+V-ASA-3P
+V-ASA-3S
+V-ASM-1P
+V-ASM-1S
+V-ASM-2P
+V-ASM-2S
+V-ASM-3P
+V-ASM-3S
+V-ASP-1P
+V-ASP-1S
+V-ASP-2P
+V-ASP-2S
+V-ASP-3P
+V-ASP-3S
+V-FI-3P
+V-FIA-1P
+V-FIA-1S
+V-FIA-2P
+V-FIA-2S
+V-FIA-3P
+V-FIA-3S
+V-FIM-1P
+V-FIM-1S
+V-FIM-2P
+V-FIM-2S
+V-FIM-3P
+V-FIM-3S
+V-FIM/P-2P
+V-FIP-1P
+V-FIP-1S
+V-FIP-2P
+V-FIP-2S
+V-FIP-3P
+V-FIP-3S
+V-FNA
+V-FNM
+V-FPA-ANP
+V-FPA-NMP
+V-FPA-NMS
+V-FPM-ANS
+V-FPP-GNP
+V-Hifil-Imp-fp
+V-Hifil-Imp-fs
+V-Hifil-Imp-fs | 1cs
+V-Hifil-Imp-mp
+V-Hifil-Imp-mp | 1cp
+V-Hifil-Imp-mp | 1cs
+V-Hifil-Imp-mp | 3fs
+V-Hifil-Imp-mp | 3mp
+V-Hifil-Imp-mp | 3ms
+V-Hifil-Imp-ms
+V-Hifil-Imp-ms | 1cp
+V-Hifil-Imp-ms | 1cs
+V-Hifil-Imp-ms | 3fs
+V-Hifil-Imp-ms | 3mp
+V-Hifil-Imp-ms | 3ms
+V-Hifil-Imperf-1cp
+V-Hifil-Imperf-1cp | 2ms
+V-Hifil-Imperf-1cs
+V-Hifil-Imperf-1cs | 2fs
+V-Hifil-Imperf-1cs | 2ms
+V-Hifil-Imperf-1cs | 2mse
+V-Hifil-Imperf-1cs | 3fs
+V-Hifil-Imperf-1cs | 3fse
+V-Hifil-Imperf-1cs | 3mp
+V-Hifil-Imperf-1cs | 3ms
+V-Hifil-Imperf-1cs | 3mse
+V-Hifil-Imperf-2fp
+V-Hifil-Imperf-2fs
+V-Hifil-Imperf-2mp
+V-Hifil-Imperf-2mp | 1cs
+V-Hifil-Imperf-2mp | 1cse
+V-Hifil-Imperf-2mp | 3fs
+V-Hifil-Imperf-2mp | 3mp
+V-Hifil-Imperf-2mp | 3ms
+V-Hifil-Imperf-2mp | Pn
+V-Hifil-Imperf-2ms
+V-Hifil-Imperf-2ms | 1cp
+V-Hifil-Imperf-2ms | 1cs
+V-Hifil-Imperf-2ms | 3fs
+V-Hifil-Imperf-2ms | 3fse
+V-Hifil-Imperf-2ms | 3mp
+V-Hifil-Imperf-2ms | 3ms
+V-Hifil-Imperf-2ms | 3mse
+V-Hifil-Imperf-3fp
+V-Hifil-Imperf-3fp | 2fs
+V-Hifil-Imperf-3fs
+V-Hifil-Imperf-3fs | 1cp
+V-Hifil-Imperf-3fs | 1cs
+V-Hifil-Imperf-3fs | 2fs
+V-Hifil-Imperf-3fs | 2mse
+V-Hifil-Imperf-3fs | 3fse
+V-Hifil-Imperf-3fs | 3mp
+V-Hifil-Imperf-3fs | 3ms
+V-Hifil-Imperf-3fs | 3mse
+V-Hifil-Imperf-3mp
+V-Hifil-Imperf-3mp | 1cp
+V-Hifil-Imperf-3mp | 1cs
+V-Hifil-Imperf-3mp | 1cse
+V-Hifil-Imperf-3mp | 2fs
+V-Hifil-Imperf-3mp | 2ms
+V-Hifil-Imperf-3mp | 3fs
+V-Hifil-Imperf-3mp | 3mp
+V-Hifil-Imperf-3mp | 3ms
+V-Hifil-Imperf-3mp | Pn
+V-Hifil-Imperf-3ms
+V-Hifil-Imperf-3ms | 1cp
+V-Hifil-Imperf-3ms | 1cs
+V-Hifil-Imperf-3ms | 1cse
+V-Hifil-Imperf-3ms | 2fs
+V-Hifil-Imperf-3ms | 2mpe
+V-Hifil-Imperf-3ms | 2ms
+V-Hifil-Imperf-3ms | 2mse
+V-Hifil-Imperf-3ms | 3fp
+V-Hifil-Imperf-3ms | 3fs
+V-Hifil-Imperf-3ms | 3fse
+V-Hifil-Imperf-3ms | 3mp
+V-Hifil-Imperf-3ms | 3ms
+V-Hifil-Imperf-3ms | 3mse
+V-Hifil-Imperf.Cohort-1cp
+V-Hifil-Imperf.Cohort-1cs
+V-Hifil-Imperf.Cohort-3ms
+V-Hifil-Imperf.Jus-1cp
+V-Hifil-Imperf.Jus-1cs
+V-Hifil-Imperf.Jus-2ms
+V-Hifil-Imperf.Jus-3fs
+V-Hifil-Imperf.Jus-3ms
+V-Hifil-Imperf.Jus-3ms | 2ms
+V-Hifil-Imperf.h-1cp
+V-Hifil-Imperf.h-1cp | 3mse
+V-Hifil-Imperf.h-1cs
+V-Hifil-Imperf.h-1cs | 2ms
+V-Hifil-Imperf.h-1cs | 2mse
+V-Hifil-Imperf.h-1cs | 3fse
+V-Hifil-Imperf.h-1cs | 3mp
+V-Hifil-Imperf.h-1cs | 3mse
+V-Hifil-Inf
+V-Hifil-Inf | 1cp
+V-Hifil-Inf | 1cs
+V-Hifil-Inf | 2mp
+V-Hifil-Inf | 2ms
+V-Hifil-Inf | 3fs
+V-Hifil-Inf | 3mp
+V-Hifil-Inf | 3ms
+V-Hifil-InfAbs
+V-Hifil-Perf-1cp
+V-Hifil-Perf-1cp | 3mp
+V-Hifil-Perf-1cs
+V-Hifil-Perf-1cs | 2fs
+V-Hifil-Perf-1cs | 2ms
+V-Hifil-Perf-1cs | 3fs
+V-Hifil-Perf-1cs | 3mp
+V-Hifil-Perf-1cs | 3ms
+V-Hifil-Perf-2fs
+V-Hifil-Perf-2fs | 1cp
+V-Hifil-Perf-2fs | 1cs
+V-Hifil-Perf-2mp
+V-Hifil-Perf-2mp | 1cp
+V-Hifil-Perf-2ms
+V-Hifil-Perf-2ms | 1cp
+V-Hifil-Perf-2ms | 1cs
+V-Hifil-Perf-2ms | 3mp
+V-Hifil-Perf-2ms | 3ms
+V-Hifil-Perf-3cp
+V-Hifil-Perf-3cp | 1cs
+V-Hifil-Perf-3cp | 2fs
+V-Hifil-Perf-3cp | 2ms
+V-Hifil-Perf-3cp | 3fs
+V-Hifil-Perf-3cp | 3mp
+V-Hifil-Perf-3cp | 3ms
+V-Hifil-Perf-3fs
+V-Hifil-Perf-3fs | 1cp
+V-Hifil-Perf-3fs | 1cs
+V-Hifil-Perf-3fs | 3mp
+V-Hifil-Perf-3fs | 3ms
+V-Hifil-Perf-3mp
+V-Hifil-Perf-3mp | 1cp
+V-Hifil-Perf-3mp | 3ms
+V-Hifil-Perf-3ms
+V-Hifil-Perf-3ms | 1cp
+V-Hifil-Perf-3ms | 1cs
+V-Hifil-Perf-3ms | 2fs
+V-Hifil-Perf-3ms | 2ms
+V-Hifil-Perf-3ms | 3fs
+V-Hifil-Perf-3ms | 3mp
+V-Hifil-Perf-3ms | 3ms
+V-Hifil-Prtcpl-fp
+V-Hifil-Prtcpl-fpc | 2fs
+V-Hifil-Prtcpl-fs
+V-Hifil-Prtcpl-fsc
+V-Hifil-Prtcpl-fsc | 3fs
+V-Hifil-Prtcpl-fsc | 3ms
+V-Hifil-Prtcpl-mp
+V-Hifil-Prtcpl-mpc
+V-Hifil-Prtcpl-mpc | 1cs
+V-Hifil-Prtcpl-mpc | 2fs
+V-Hifil-Prtcpl-mpc | 3ms
+V-Hifil-Prtcpl-ms
+V-Hifil-Prtcpl-msc
+V-Hifil-Prtcpl-msc | 1cs
+V-Hifil-Prtcpl-msc | 2fs
+V-Hifil-Prtcpl-msc | 2mp
+V-Hifil-Prtcpl-msc | 2ms
+V-Hifil-Prtcpl-msc | 3fs
+V-Hifil-Prtcpl-msc | 3mp
+V-Hifil-Prtcpl-msc | 3ms
+V-Hifil-QalPassPrtcpl-mp
+V-Hifil-QalPassPrtcpl-ms
+V-Hitpael-Imp-fs
+V-Hitpael-Imp-mp
+V-Hitpael-Imp-ms
+V-Hitpael-Imp-ms | 3fs
+V-Hitpael-Imperf-1cp
+V-Hitpael-Imperf-1cs
+V-Hitpael-Imperf-1cs | 3mp
+V-Hitpael-Imperf-2fs
+V-Hitpael-Imperf-2fs | Pn
+V-Hitpael-Imperf-2mp
+V-Hitpael-Imperf-2ms
+V-Hitpael-Imperf-3fp
+V-Hitpael-Imperf-3fs
+V-Hitpael-Imperf-3mp
+V-Hitpael-Imperf-3mp | Pn
+V-Hitpael-Imperf-3ms
+V-Hitpael-Imperf.Cohort-1cp
+V-Hitpael-Imperf.Cohort-1cs
+V-Hitpael-Imperf.Jus-2ms
+V-Hitpael-Imperf.Jus-3mp
+V-Hitpael-Imperf.Jus-3ms
+V-Hitpael-Imperf.h-1cp
+V-Hitpael-Imperf.h-1cs
+V-Hitpael-Inf
+V-Hitpael-Inf | 2ms
+V-Hitpael-Inf | 3mp
+V-Hitpael-Inf | 3ms
+V-Hitpael-InfAbs
+V-Hitpael-Perf-1cp
+V-Hitpael-Perf-1cs
+V-Hitpael-Perf-2fs
+V-Hitpael-Perf-2mp
+V-Hitpael-Perf-2ms
+V-Hitpael-Perf-3cp
+V-Hitpael-Perf-3fp
+V-Hitpael-Perf-3fs
+V-Hitpael-Perf-3mp
+V-Hitpael-Perf-3ms
+V-Hitpael-Prtcpl-fp
+V-Hitpael-Prtcpl-fs
+V-Hitpael-Prtcpl-fsc
+V-Hitpael-Prtcpl-mp
+V-Hitpael-Prtcpl-ms
+V-Hitpael-Prtcpl-msc
+V-Hitpael-Prtcpl-msc | 3ms
+V-Hofal-Imp-mp
+V-Hofal-Imperf-1cs
+V-Hofal-Imperf-2mp
+V-Hofal-Imperf-2mp | Pn
+V-Hofal-Imperf-2ms
+V-Hofal-Imperf-2ms | 3mp
+V-Hofal-Imperf-3fp
+V-Hofal-Imperf-3fs
+V-Hofal-Imperf-3mp
+V-Hofal-Imperf-3ms
+V-Hofal-Inf
+V-Hofal-Inf | 3fs
+V-Hofal-InfAbs
+V-Hofal-Perf-1cp
+V-Hofal-Perf-1cs
+V-Hofal-Perf-2fs
+V-Hofal-Perf-2ms
+V-Hofal-Perf-3cp
+V-Hofal-Perf-3fs
+V-Hofal-Perf-3mp
+V-Hofal-Perf-3ms
+V-Hofal-Prtcpl-fp
+V-Hofal-Prtcpl-fpc
+V-Hofal-Prtcpl-fs
+V-Hofal-Prtcpl-mp
+V-Hofal-Prtcpl-mpc
+V-Hofal-Prtcpl-ms
+V-Hofal-Prtcpl-msc
+V-IIA-1P
+V-IIA-1S
+V-IIA-2P
+V-IIA-2S
+V-IIA-3P
+V-IIA-3S
+V-IIM-1P
+V-IIM-1S
+V-IIM-2S
+V-IIM-3P
+V-IIM-3S
+V-IIM/P-1P
+V-IIM/P-1S
+V-IIM/P-2P
+V-IIM/P-2S
+V-IIM/P-3P
+V-IIM/P-3S
+V-IIP-1P
+V-IIP-3P
+V-IIP-3S
+V-LIA-1S
+V-LIA-2P
+V-LIA-2S
+V-LIA-3P
+V-LIA-3S
+V-LIM-3P
+V-LIM-3S
+V-LIM/P-3S
+V-M-2P
+V-M-2S
+V-Nifal-Imp-fs
+V-Nifal-Imp-mp
+V-Nifal-Imp-ms
+V-Nifal-Imp-ms | 3fs
+V-Nifal-Imperf-1cp
+V-Nifal-Imperf-1cs
+V-Nifal-Imperf-2fp
+V-Nifal-Imperf-2fs
+V-Nifal-Imperf-2mp
+V-Nifal-Imperf-2mp | Pn
+V-Nifal-Imperf-2ms
+V-Nifal-Imperf-2ms | 1cs
+V-Nifal-Imperf-3fp
+V-Nifal-Imperf-3fs
+V-Nifal-Imperf-3mp
+V-Nifal-Imperf-3mp | Pn
+V-Nifal-Imperf-3ms
+V-Nifal-Imperf.Cohort-1cp
+V-Nifal-Imperf.Cohort-1cs
+V-Nifal-Imperf.Jus-3fs
+V-Nifal-Imperf.Jus-3ms
+V-Nifal-Imperf.h-1cp
+V-Nifal-Imperf.h-1cs
+V-Nifal-Inf
+V-Nifal-Inf | 1cs
+V-Nifal-Inf | 2mp
+V-Nifal-Inf | 2ms
+V-Nifal-Inf | 3fs
+V-Nifal-Inf | 3mp
+V-Nifal-Inf | 3ms
+V-Nifal-InfAbs
+V-Nifal-Perf-1cp
+V-Nifal-Perf-1cs
+V-Nifal-Perf-2fs
+V-Nifal-Perf-2mp
+V-Nifal-Perf-2ms
+V-Nifal-Perf-3cp
+V-Nifal-Perf-3fs
+V-Nifal-Perf-3mp
+V-Nifal-Perf-3ms
+V-Nifal-Prtcpl-fp
+V-Nifal-Prtcpl-fpc
+V-Nifal-Prtcpl-fpc | 1cs
+V-Nifal-Prtcpl-fpc | 2ms
+V-Nifal-Prtcpl-fpc | 3ms
+V-Nifal-Prtcpl-fs
+V-Nifal-Prtcpl-fsc
+V-Nifal-Prtcpl-mp
+V-Nifal-Prtcpl-mpc
+V-Nifal-Prtcpl-mpc | 1cs
+V-Nifal-Prtcpl-mpc | 2fs
+V-Nifal-Prtcpl-mpc | 3fs
+V-Nifal-Prtcpl-mpc | 3ms
+V-Nifal-Prtcpl-ms
+V-Nifal-Prtcpl-ms | 3ms
+V-Nifal-Prtcpl-msc
+V-Nifal-Prtcpl-msc | 2mp
+V-Nifal-Prtcpl-msc | 2ms
+V-Nifal-Prtcpl-msc | 3ms
+V-Nithpael-Perf-3fs
+V-PI-3S
+V-PIA-1P
+V-PIA-1S
+V-PIA-2P
+V-PIA-2S
+V-PIA-3P
+V-PIA-3S
+V-PIM-1P
+V-PIM-1S
+V-PIM-2P
+V-PIM-3P
+V-PIM-3S
+V-PIM/P-1P
+V-PIM/P-1S
+V-PIM/P-2P
+V-PIM/P-2S
+V-PIM/P-3P
+V-PIM/P-3S
+V-PIP-1S
+V-PIP-3S
+V-PMA-2P
+V-PMA-2S
+V-PMA-3P
+V-PMA-3S
+V-PMM-2P
+V-PMM-2S
+V-PMM/P-2P
+V-PMM/P-2S
+V-PMM/P-3P
+V-PMM/P-3S
+V-PMP-2P
+V-PMP-3S
+V-PNA
+V-PNM
+V-PNM/P
+V-PNP
+V-POA-2P
+V-POA-3P
+V-POA-3S
+V-POM/P-1S
+V-POM/P-3P
+V-POM/P-3S
+V-PPA-AFP
+V-PPA-AFS
+V-PPA-AMP
+V-PPA-AMS
+V-PPA-ANP
+V-PPA-ANS
+V-PPA-DFP
+V-PPA-DFS
+V-PPA-DMP
+V-PPA-DMS
+V-PPA-DNP
+V-PPA-DNS
+V-PPA-GFP
+V-PPA-GFS
+V-PPA-GMP
+V-PPA-GMS
+V-PPA-GNP
+V-PPA-GNS
+V-PPA-NFP
+V-PPA-NFS
+V-PPA-NM3S
+V-PPA-NMP
+V-PPA-NMS
+V-PPA-NNP
+V-PPA-NNS
+V-PPA-VFS
+V-PPA-VMP
+V-PPA-VMS
+V-PPM-AFS
+V-PPM-AMP
+V-PPM-AMS
+V-PPM-ANS
+V-PPM-DMP
+V-PPM-DMS
+V-PPM-GFP
+V-PPM-GFS
+V-PPM-GMP
+V-PPM-GMS
+V-PPM-GNP
+V-PPM-GNS
+V-PPM-NFP
+V-PPM-NFS
+V-PPM-NMP
+V-PPM-NMS
+V-PPM-NNS
+V-PPM/P-AFP
+V-PPM/P-AFS
+V-PPM/P-AMP
+V-PPM/P-AMS
+V-PPM/P-ANP
+V-PPM/P-ANS
+V-PPM/P-DFP
+V-PPM/P-DFS
+V-PPM/P-DMP
+V-PPM/P-DMS
+V-PPM/P-DNP
+V-PPM/P-DNS
+V-PPM/P-GFP
+V-PPM/P-GFS
+V-PPM/P-GMP
+V-PPM/P-GMS
+V-PPM/P-GNP
+V-PPM/P-GNS
+V-PPM/P-NFP
+V-PPM/P-NFS
+V-PPM/P-NMP
+V-PPM/P-NMS
+V-PPM/P-NNP
+V-PPM/P-NNS
+V-PPM/P-VMP
+V-PPM/P-VMS
+V-PPP-DMP
+V-PPP-GMP
+V-PPP-GMS
+V-PPP-NMP
+V-PSA-1P
+V-PSA-1S
+V-PSA-2P
+V-PSA-2S
+V-PSA-3P
+V-PSA-3S
+V-PSM-1P
+V-PSM-1S
+V-PSM-2S
+V-PSM-3S
+V-PSM/P-1P
+V-PSM/P-1S
+V-PSM/P-2P
+V-PSM/P-2S
+V-PSM/P-3P
+V-PSM/P-3S
+V-Piel-ConsecImperf-2fs
+V-Piel-Imp-fs
+V-Piel-Imp-mp
+V-Piel-Imp-mp | 1cp
+V-Piel-Imp-mp | 1cs
+V-Piel-Imp-mp | 3fs
+V-Piel-Imp-mp | 3ms
+V-Piel-Imp-ms
+V-Piel-Imp-ms | 1cp
+V-Piel-Imp-ms | 1cs
+V-Piel-Imp-ms | 3fs
+V-Piel-Imp-ms | 3ms
+V-Piel-Imperf-1cp
+V-Piel-Imperf-1cp | 3mse
+V-Piel-Imperf-1cs
+V-Piel-Imperf-1cs | 2fs
+V-Piel-Imperf-1cs | 2mp
+V-Piel-Imperf-1cs | 2ms
+V-Piel-Imperf-1cs | 2mse
+V-Piel-Imperf-1cs | 3fse
+V-Piel-Imperf-1cs | 3mp
+V-Piel-Imperf-1cs | 3ms
+V-Piel-Imperf-1cs | 3mse
+V-Piel-Imperf-2fp
+V-Piel-Imperf-2fs
+V-Piel-Imperf-2mp
+V-Piel-Imperf-2mp | 1cs
+V-Piel-Imperf-2mp | 3mp
+V-Piel-Imperf-2mp | Pn
+V-Piel-Imperf-2ms
+V-Piel-Imperf-2ms | 1cp
+V-Piel-Imperf-2ms | 1cs
+V-Piel-Imperf-2ms | 1cse
+V-Piel-Imperf-2ms | 2mse
+V-Piel-Imperf-2ms | 3fse
+V-Piel-Imperf-2ms | 3mp
+V-Piel-Imperf-2ms | 3ms
+V-Piel-Imperf-2ms | 3mse
+V-Piel-Imperf-3fp
+V-Piel-Imperf-3fs
+V-Piel-Imperf-3fs | 1cs
+V-Piel-Imperf-3fs | 1cse
+V-Piel-Imperf-3fs | 2fs
+V-Piel-Imperf-3fs | 2mp
+V-Piel-Imperf-3fs | 2ms
+V-Piel-Imperf-3fs | 2mse
+V-Piel-Imperf-3fs | 3mp
+V-Piel-Imperf-3fs | 3mse
+V-Piel-Imperf-3mp
+V-Piel-Imperf-3mp | 1cp
+V-Piel-Imperf-3mp | 1cs
+V-Piel-Imperf-3mp | 1cs, Pn
+V-Piel-Imperf-3mp | 1cse
+V-Piel-Imperf-3mp | 2fs, Pn
+V-Piel-Imperf-3mp | 2ms
+V-Piel-Imperf-3mp | 2ms, Pn
+V-Piel-Imperf-3mp | 3fs
+V-Piel-Imperf-3mp | 3mp
+V-Piel-Imperf-3mp | 3ms
+V-Piel-Imperf-3mp | 3mse
+V-Piel-Imperf-3mp | Pn
+V-Piel-Imperf-3ms
+V-Piel-Imperf-3ms | 1cp
+V-Piel-Imperf-3ms | 1cs
+V-Piel-Imperf-3ms | 1cse
+V-Piel-Imperf-3ms | 2fs
+V-Piel-Imperf-3ms | 2ms
+V-Piel-Imperf-3ms | 2mse
+V-Piel-Imperf-3ms | 3fs
+V-Piel-Imperf-3ms | 3fse
+V-Piel-Imperf-3ms | 3mp
+V-Piel-Imperf-3ms | 3ms
+V-Piel-Imperf-3ms | 3mse
+V-Piel-Imperf.Cohort-1cp
+V-Piel-Imperf.Cohort-1cs
+V-Piel-Imperf.Jus-2ms
+V-Piel-Imperf.Jus-3mp | 2ms
+V-Piel-Imperf.Jus-3ms
+V-Piel-Imperf.Jus-3ms | 2ms
+V-Piel-Imperf.h-1cs
+V-Piel-Imperf.h-1cs | 2mp
+V-Piel-Imperf.h-1cs | 2ms
+V-Piel-Imperf.h-1cs | 2mse
+V-Piel-Imperf.h-1cs | 3mse
+V-Piel-Inf
+V-Piel-Inf | 1cs
+V-Piel-Inf | 2mp
+V-Piel-Inf | 2ms
+V-Piel-Inf | 2mse
+V-Piel-Inf | 3fs
+V-Piel-Inf | 3mp
+V-Piel-Inf | 3ms
+V-Piel-InfAbs
+V-Piel-Perf-1cp
+V-Piel-Perf-1cp | 2mp
+V-Piel-Perf-1cp | 2ms
+V-Piel-Perf-1cp | 3ms
+V-Piel-Perf-1cs
+V-Piel-Perf-1cs | 2fs
+V-Piel-Perf-1cs | 2ms
+V-Piel-Perf-1cs | 3fs
+V-Piel-Perf-1cs | 3mp
+V-Piel-Perf-1cs | 3ms
+V-Piel-Perf-2fp
+V-Piel-Perf-2fs
+V-Piel-Perf-2fs | 1cs
+V-Piel-Perf-2fs | 2ms
+V-Piel-Perf-2mp
+V-Piel-Perf-2ms
+V-Piel-Perf-2ms | 1cp
+V-Piel-Perf-2ms | 1cs
+V-Piel-Perf-2ms | 3fs
+V-Piel-Perf-2ms | 3mp
+V-Piel-Perf-2ms | 3ms
+V-Piel-Perf-3cp
+V-Piel-Perf-3cp | 1cs
+V-Piel-Perf-3cp | 2fs
+V-Piel-Perf-3cp | 2ms
+V-Piel-Perf-3cp | 3fs
+V-Piel-Perf-3cp | 3mp
+V-Piel-Perf-3cp | 3ms
+V-Piel-Perf-3fs
+V-Piel-Perf-3fs | 1cs
+V-Piel-Perf-3fs | 2fs
+V-Piel-Perf-3fs | 3fs
+V-Piel-Perf-3fs | 3ms
+V-Piel-Perf-3mp
+V-Piel-Perf-3mp | 1cs
+V-Piel-Perf-3ms
+V-Piel-Perf-3ms | 1cp
+V-Piel-Perf-3ms | 1cs
+V-Piel-Perf-3ms | 1cse
+V-Piel-Perf-3ms | 2ms
+V-Piel-Perf-3ms | 3fp
+V-Piel-Perf-3ms | 3fs
+V-Piel-Perf-3ms | 3mp
+V-Piel-Perf-3ms | 3ms
+V-Piel-Prtcpl-fp
+V-Piel-Prtcpl-fs
+V-Piel-Prtcpl-fsc
+V-Piel-Prtcpl-fsc | 2ms
+V-Piel-Prtcpl-mp
+V-Piel-Prtcpl-mpc
+V-Piel-Prtcpl-mpc | 1cs
+V-Piel-Prtcpl-mpc | 2fs
+V-Piel-Prtcpl-mpc | 2mp
+V-Piel-Prtcpl-mpc | 2ms
+V-Piel-Prtcpl-mpc | 3fs
+V-Piel-Prtcpl-mpc | 3ms
+V-Piel-Prtcpl-ms
+V-Piel-Prtcpl-msc
+V-Piel-Prtcpl-msc | 1cp
+V-Piel-Prtcpl-msc | 1cs
+V-Piel-Prtcpl-msc | 2fs
+V-Piel-Prtcpl-msc | 2mp
+V-Piel-Prtcpl-msc | 2ms
+V-Piel-Prtcpl-msc | 2mse
+V-Piel-Prtcpl-msc | 3fs
+V-Piel-Prtcpl-msc | 3mp
+V-Piel-Prtcpl-msc | 3ms
+V-Piel-QalPassPrtcpl-fs
+V-Piel-QalPassPrtcpl-mp
+V-Piel-QalPassPrtcpl-ms
+V-Poel-Perf-1cs
+V-Pual-Imperf-2mp
+V-Pual-Imperf-2ms
+V-Pual-Imperf-3fp
+V-Pual-Imperf-3fs
+V-Pual-Imperf-3mp
+V-Pual-Imperf-3ms
+V-Pual-Inf | 3ms
+V-Pual-InfAbs
+V-Pual-Perf-1cp
+V-Pual-Perf-1cs
+V-Pual-Perf-2fs
+V-Pual-Perf-2mp
+V-Pual-Perf-2ms
+V-Pual-Perf-3cp
+V-Pual-Perf-3fs
+V-Pual-Perf-3mp
+V-Pual-Perf-3ms
+V-Pual-Prtcpl-fp
+V-Pual-Prtcpl-fpc
+V-Pual-Prtcpl-fs
+V-Pual-Prtcpl-fsc
+V-Pual-Prtcpl-mp
+V-Pual-Prtcpl-mpc
+V-Pual-Prtcpl-mpc | 1cs
+V-Pual-Prtcpl-mpc | 3ms
+V-Pual-Prtcpl-ms
+V-Pual-Prtcpl-msc | 1cs
+V-Qal-ConjImperf-3fs
+V-Qal-ConsecImperf-3fs
+V-Qal-ConsecImperf-3ms
+V-Qal-Imp-fp
+V-Qal-Imp-fs
+V-Qal-Imp-mp
+V-Qal-Imp-mp | 1cp
+V-Qal-Imp-mp | 1cs
+V-Qal-Imp-mp | 3fs
+V-Qal-Imp-mp | 3mp
+V-Qal-Imp-mp | 3ms
+V-Qal-Imp-ms
+V-Qal-Imp-ms | 1cp
+V-Qal-Imp-ms | 1cs
+V-Qal-Imp-ms | 2ms
+V-Qal-Imp-ms | 3fs
+V-Qal-Imp-ms | 3fse
+V-Qal-Imp-ms | 3mp
+V-Qal-Imp-ms | 3ms
+V-Qal-Imp-ms | 3mse
+V-Qal-Imperf-1cp
+V-Qal-Imperf-1cp | 2ms
+V-Qal-Imperf-1cp | 3mse
+V-Qal-Imperf-1cs
+V-Qal-Imperf-1cs | 2fs
+V-Qal-Imperf-1cs | 2ms
+V-Qal-Imperf-1cs | 2mse
+V-Qal-Imperf-1cs | 3fse
+V-Qal-Imperf-1cs | 3mp
+V-Qal-Imperf-1cs | 3ms
+V-Qal-Imperf-1cs | 3mse
+V-Qal-Imperf-2fp
+V-Qal-Imperf-2fs
+V-Qal-Imperf-2fs | Pn
+V-Qal-Imperf-2mp
+V-Qal-Imperf-2mp | 1cs
+V-Qal-Imperf-2mp | 3fs
+V-Qal-Imperf-2mp | 3mp
+V-Qal-Imperf-2mp | 3ms
+V-Qal-Imperf-2mp | Pn
+V-Qal-Imperf-2ms
+V-Qal-Imperf-2ms | 1cp
+V-Qal-Imperf-2ms | 1cs
+V-Qal-Imperf-2ms | 3fs
+V-Qal-Imperf-2ms | 3fse
+V-Qal-Imperf-2ms | 3mp
+V-Qal-Imperf-2ms | 3ms
+V-Qal-Imperf-2ms | 3mse
+V-Qal-Imperf-3fp
+V-Qal-Imperf-3fp | 1cs
+V-Qal-Imperf-3fs
+V-Qal-Imperf-3fs | 1cp
+V-Qal-Imperf-3fs | 1cs
+V-Qal-Imperf-3fs | 2fs
+V-Qal-Imperf-3fs | 2mp
+V-Qal-Imperf-3fs | 2ms
+V-Qal-Imperf-3fs | 2mse
+V-Qal-Imperf-3fs | 3fs
+V-Qal-Imperf-3fs | 3fse
+V-Qal-Imperf-3fs | 3mp
+V-Qal-Imperf-3fs | 3ms
+V-Qal-Imperf-3fs | 3mse
+V-Qal-Imperf-3mp
+V-Qal-Imperf-3mp | 1cp
+V-Qal-Imperf-3mp | 1cs
+V-Qal-Imperf-3mp | 1cs, Pn
+V-Qal-Imperf-3mp | 2fs
+V-Qal-Imperf-3mp | 2ms
+V-Qal-Imperf-3mp | 2ms, Pn
+V-Qal-Imperf-3mp | 3fp
+V-Qal-Imperf-3mp | 3fs
+V-Qal-Imperf-3mp | 3fs, Pn
+V-Qal-Imperf-3mp | 3mp
+V-Qal-Imperf-3mp | 3ms
+V-Qal-Imperf-3mp | 3ms, Pn
+V-Qal-Imperf-3mp | Pn
+V-Qal-Imperf-3ms
+V-Qal-Imperf-3ms | 1cp
+V-Qal-Imperf-3ms | 1cpe
+V-Qal-Imperf-3ms | 1cs
+V-Qal-Imperf-3ms | 2fs
+V-Qal-Imperf-3ms | 2mpe
+V-Qal-Imperf-3ms | 2ms
+V-Qal-Imperf-3ms | 2mse
+V-Qal-Imperf-3ms | 3fs
+V-Qal-Imperf-3ms | 3fse
+V-Qal-Imperf-3ms | 3mp
+V-Qal-Imperf-3ms | 3ms
+V-Qal-Imperf-3ms | 3mse
+V-Qal-Imperf.Cohort-1cp
+V-Qal-Imperf.Cohort-1cs
+V-Qal-Imperf.Cohort-3fs
+V-Qal-Imperf.Jus-1cs
+V-Qal-Imperf.Jus-2ms
+V-Qal-Imperf.Jus-3fs
+V-Qal-Imperf.Jus-3mp
+V-Qal-Imperf.Jus-3ms
+V-Qal-Imperf.h-1cp
+V-Qal-Imperf.h-1cp | 3mp
+V-Qal-Imperf.h-1cs
+V-Qal-Imperf.h-1cs | 2fs
+V-Qal-Imperf.h-1cs | 2ms
+V-Qal-Imperf.h-1cs | 3fse
+V-Qal-Inf
+V-Qal-Inf | 1cp
+V-Qal-Inf | 1cs
+V-Qal-Inf | 2fs
+V-Qal-Inf | 2mp
+V-Qal-Inf | 2ms
+V-Qal-Inf | 3fp
+V-Qal-Inf | 3fs
+V-Qal-Inf | 3mp
+V-Qal-Inf | 3ms
+V-Qal-InfAbs
+V-Qal-Perf-1cp
+V-Qal-Perf-1cp | 2ms
+V-Qal-Perf-1cp | 3fs
+V-Qal-Perf-1cp | 3mp
+V-Qal-Perf-1cp | 3ms
+V-Qal-Perf-1cs
+V-Qal-Perf-1cs | 1cs
+V-Qal-Perf-1cs | 2fs
+V-Qal-Perf-1cs | 2ms
+V-Qal-Perf-1cs | 3fp
+V-Qal-Perf-1cs | 3fs
+V-Qal-Perf-1cs | 3mp
+V-Qal-Perf-1cs | 3ms
+V-Qal-Perf-2fp
+V-Qal-Perf-2fs
+V-Qal-Perf-2fs | 1cp
+V-Qal-Perf-2fs | 1cs
+V-Qal-Perf-2fs | 3mp
+V-Qal-Perf-2mp
+V-Qal-Perf-2mp | 1cs
+V-Qal-Perf-2ms
+V-Qal-Perf-2ms | 1cp
+V-Qal-Perf-2ms | 1cs
+V-Qal-Perf-2ms | 3fs
+V-Qal-Perf-2ms | 3mp
+V-Qal-Perf-2ms | 3ms
+V-Qal-Perf-3cp
+V-Qal-Perf-3cp | 1cp
+V-Qal-Perf-3cp | 1cs
+V-Qal-Perf-3cp | 2fs
+V-Qal-Perf-3cp | 2ms
+V-Qal-Perf-3cp | 3fs
+V-Qal-Perf-3cp | 3mp
+V-Qal-Perf-3cp | 3ms
+V-Qal-Perf-3cp | Pn
+V-Qal-Perf-3fp
+V-Qal-Perf-3fs
+V-Qal-Perf-3fs | 1cp
+V-Qal-Perf-3fs | 1cs
+V-Qal-Perf-3fs | 2fs
+V-Qal-Perf-3fs | 2ms
+V-Qal-Perf-3fs | 3fs
+V-Qal-Perf-3fs | 3mp
+V-Qal-Perf-3fs | 3ms
+V-Qal-Perf-3mp
+V-Qal-Perf-3mp | 3ms
+V-Qal-Perf-3ms
+V-Qal-Perf-3ms | 1cp
+V-Qal-Perf-3ms | 1cs
+V-Qal-Perf-3ms | 1cse
+V-Qal-Perf-3ms | 2fs
+V-Qal-Perf-3ms | 2ms
+V-Qal-Perf-3ms | 3fs
+V-Qal-Perf-3ms | 3mp
+V-Qal-Perf-3ms | 3ms
+V-Qal-Prtcpl-1cs | 2ms
+V-Qal-Prtcpl-fp
+V-Qal-Prtcpl-fpc
+V-Qal-Prtcpl-fpc | 1cp
+V-Qal-Prtcpl-fpc | 2fs
+V-Qal-Prtcpl-fs
+V-Qal-Prtcpl-fsc
+V-Qal-Prtcpl-fsc | 1cs
+V-Qal-Prtcpl-fsc | 2fs
+V-Qal-Prtcpl-fsc | 2mp
+V-Qal-Prtcpl-fsc | 2ms
+V-Qal-Prtcpl-fsc | 3mp
+V-Qal-Prtcpl-fsc | 3ms
+V-Qal-Prtcpl-fsd
+V-Qal-Prtcpl-mp
+V-Qal-Prtcpl-mpc
+V-Qal-Prtcpl-mpc | 1cp
+V-Qal-Prtcpl-mpc | 1cs
+V-Qal-Prtcpl-mpc | 2fs
+V-Qal-Prtcpl-mpc | 2mp
+V-Qal-Prtcpl-mpc | 2ms
+V-Qal-Prtcpl-mpc | 3fp
+V-Qal-Prtcpl-mpc | 3fs
+V-Qal-Prtcpl-mpc | 3mp
+V-Qal-Prtcpl-mpc | 3ms
+V-Qal-Prtcpl-mpd
+V-Qal-Prtcpl-ms
+V-Qal-Prtcpl-msc
+V-Qal-Prtcpl-msc | 1cp
+V-Qal-Prtcpl-msc | 1cs
+V-Qal-Prtcpl-msc | 2fs
+V-Qal-Prtcpl-msc | 2mp
+V-Qal-Prtcpl-msc | 2ms
+V-Qal-Prtcpl-msc | 2mse
+V-Qal-Prtcpl-msc | 3fs
+V-Qal-Prtcpl-msc | 3mp
+V-Qal-Prtcpl-msc | 3ms
+V-Qal-QalPassPrtcpl-fp
+V-Qal-QalPassPrtcpl-fpc
+V-Qal-QalPassPrtcpl-fpc | 2mp
+V-Qal-QalPassPrtcpl-fs
+V-Qal-QalPassPrtcpl-fsc
+V-Qal-QalPassPrtcpl-mp
+V-Qal-QalPassPrtcpl-mpc
+V-Qal-QalPassPrtcpl-mpc | 1cs
+V-Qal-QalPassPrtcpl-mpc | 2mp
+V-Qal-QalPassPrtcpl-mpc | 2ms
+V-Qal-QalPassPrtcpl-mpc | 3fs
+V-Qal-QalPassPrtcpl-mpc | 3mp
+V-Qal-QalPassPrtcpl-mpc | 3ms
+V-Qal-QalPassPrtcpl-ms
+V-Qal-QalPassPrtcpl-msc
+V-Qal-QalPassPrtcpl-msc | 1cp
+V-Qal-QalPassPrtcpl-msc | 1cs
+V-Qal-QalPassPrtcpl-msc | 3ms
+V-QalPass-Imperf-2mp
+V-QalPass-Imperf-2ms
+V-QalPass-Imperf-3ms
+V-QalPass-Perf-1cp
+V-QalPass-Perf-1cs
+V-QalPass-Perf-2fs
+V-QalPass-Perf-2mp
+V-QalPass-Perf-2ms
+V-QalPass-Perf-3cp
+V-QalPass-Perf-3fs
+V-QalPass-Perf-3ms
+V-QalPass-Prtcpl-fs
+V-QalPass-Prtcpl-ms
+V-RIA-1P
+V-RIA-1S
+V-RIA-2P
+V-RIA-2S
+V-RIA-3P
+V-RIA-3S
+V-RIM-2S
+V-RIM-3S
+V-RIM/P-1P
+V-RIM/P-1S
+V-RIM/P-2P
+V-RIM/P-2S
+V-RIM/P-3P
+V-RIM/P-3S
+V-RIP-1P
+V-RMA-2P
+V-RMM/P-2P
+V-RMM/P-2S
+V-RNA
+V-RNM/P
+V-RPA-AFS
+V-RPA-AMP
+V-RPA-AMS
+V-RPA-ANP
+V-RPA-ANS
+V-RPA-DMP
+V-RPA-DMS
+V-RPA-DNS
+V-RPA-GFS
+V-RPA-GMP
+V-RPA-GMS
+V-RPA-GNP
+V-RPA-NFP
+V-RPA-NFS
+V-RPA-NMP
+V-RPA-NMS
+V-RPA-NNP
+V-RPA-NNS
+V-RPM-AMS
+V-RPM-NMP
+V-RPM-NMS
+V-RPM/P-AFP
+V-RPM/P-AFS
+V-RPM/P-AMP
+V-RPM/P-AMS
+V-RPM/P-ANP
+V-RPM/P-ANS
+V-RPM/P-DFP
+V-RPM/P-DFS
+V-RPM/P-DMP
+V-RPM/P-DMS
+V-RPM/P-DNP
+V-RPM/P-DNS
+V-RPM/P-GFP
+V-RPM/P-GFS
+V-RPM/P-GMP
+V-RPM/P-GMS
+V-RPM/P-GNP
+V-RPM/P-GNS
+V-RPM/P-NFP
+V-RPM/P-NFS
+V-RPM/P-NMP
+V-RPM/P-NMS
+V-RPM/P-NNP
+V-RPM/P-NNS
+V-RPM/P-VFS
+V-RPM/P-VMP
+V-RPM/P-VMS
+V-RPP-AFS
+V-RPP-AMP
+V-RPP-NFS
+V-RSA-1P
+V-RSA-1S
+V-RSA-2P
+V-RSA-2S
+V-Tiftl-Perf-1cs
