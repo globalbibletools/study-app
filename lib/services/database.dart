@@ -85,7 +85,35 @@ class HebrewGreekDatabase {
         .toList();
   }
 
-  Future<(String, String)?> getLemmaAndGrammar(int wordId) async {
+  Future<String?> getWordForId(int wordId) async {
+    //  const int bookMultiplier = 100000000;
+    // const int chapterMultiplier = 100000;
+    // final int lowerBound =
+    //     bookId * bookMultiplier + chapter * chapterMultiplier;
+    // final int upperBound =
+    //     bookId * bookMultiplier + (chapter + 1) * chapterMultiplier;
+
+    final List<Map<String, dynamic>> words = await _database.rawQuery(
+      'SELECT v.${HebrewGreekSchema.versesColId}, '
+      't.${HebrewGreekSchema.textColText} '
+      'FROM ${HebrewGreekSchema.versesTable} v '
+      'JOIN ${HebrewGreekSchema.textTable} t '
+      'ON v.${HebrewGreekSchema.versesColText} = t.${HebrewGreekSchema.textColId} '
+      'WHERE v.${HebrewGreekSchema.versesColId} == ?',
+      [wordId],
+    );
+
+    return words.first[HebrewGreekSchema.textColText];
+    // .map(
+    //   (word) => HebrewGreekWord(
+    //     id: word[HebrewGreekSchema.versesColId],
+    //     text: word[HebrewGreekSchema.textColText],
+    //   ),
+    // )
+    // .toList();
+  }
+
+  Future<(String, String)?> getStrongsAndGrammar(int wordId) async {
     final List<Map<String, dynamic>> result = await _database.rawQuery(
       '''SELECT l.${HebrewGreekSchema.lemmaColLemma}, g.${HebrewGreekSchema.grammarColGrammar}
       FROM ${HebrewGreekSchema.versesTable} v

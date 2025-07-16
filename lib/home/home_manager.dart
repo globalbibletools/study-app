@@ -137,9 +137,32 @@ class HomeManager {
     getIt<AppState>().init();
   }
 
-  Future<(String, String)?> getLemmaAndGrammar(int wordId) async {
-    return await _hebrewGreekDb.getLemmaAndGrammar(wordId);
+  Future<WordDetails> getWordDetails(Locale uiLocale, int wordId) async {
+    final word = await _hebrewGreekDb.getWordForId(wordId);
+    final gloss = await getPopupTextForId(uiLocale, wordId);
+    final (strongs, grammar) =
+        await _hebrewGreekDb.getStrongsAndGrammar(wordId) ?? ('', '');
+    return WordDetails(
+      word: word ?? '',
+      gloss: gloss ?? '',
+      strongsCode: strongs,
+      grammar: grammar,
+    );
   }
+}
+
+class WordDetails {
+  const WordDetails({
+    required this.word,
+    required this.gloss,
+    required this.strongsCode,
+    required this.grammar,
+  });
+
+  final String word;
+  final String gloss;
+  final String strongsCode;
+  final String grammar;
 }
 
 String _bookNameFromId(BuildContext context, int bookId) {

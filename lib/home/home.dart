@@ -29,6 +29,8 @@ class _HomeScreenState extends State<HomeScreen> {
   double _gestureScale = 1.0;
   bool get _isScaling => _gestureScale != 1.0;
 
+  double get _fontSize => _baseFontSize * _baseScale;
+
   @override
   void initState() {
     super.initState();
@@ -105,8 +107,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   double _estimatedPopupHeight() {
-    final popupFontSize = _baseFontSize * _baseScale;
-    return popupFontSize * 2;
+    return _fontSize * 2;
   }
 
   void _ensurePopupIsVisible(Rect popupRect) {
@@ -240,19 +241,16 @@ class _HomeScreenState extends State<HomeScreen> {
               manager.currentChapterIsRtl
                   ? TextDirection.rtl
                   : TextDirection.ltr,
-          textStyle: TextStyle(
-            fontFamily: 'sbl',
-            fontSize: _baseFontSize * _baseScale,
-          ),
+          textStyle: TextStyle(fontFamily: 'sbl', fontSize: _fontSize),
           verseNumberStyle: TextStyle(
             fontFamily: 'sbl',
             color: Theme.of(context).colorScheme.primary,
-            fontSize: _baseFontSize * _baseScale * 0.7,
+            fontSize: _fontSize * 0.7,
           ),
           popupBackgroundColor: Theme.of(context).colorScheme.inverseSurface,
           popupTextStyle: TextStyle(
             fontFamily: 'sbl',
-            fontSize: _baseFontSize * _baseScale,
+            fontSize: _fontSize,
             color: Theme.of(context).colorScheme.onInverseSurface,
           ),
           popupWordProvider: (wordId) {
@@ -296,15 +294,51 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _showWordDetails(int wordId) async {
     print('wordId: $wordId');
-    final lemmaGrammar = await manager.getLemmaAndGrammar(wordId);
-    if (!mounted || lemmaGrammar == null) return;
-    final (lemma, grammar) = lemmaGrammar;
+    final locale = Localizations.localeOf(context);
+    final wordDetails = await manager.getWordDetails(locale, wordId);
+    if (!mounted || wordDetails.word.isEmpty) return;
     showDialog(
       context: context,
       builder:
           (context) => AlertDialog(
             content: SingleChildScrollView(
-              child: ListBody(children: <Widget>[Text(lemma), Text(grammar)]),
+              child: Column(
+                children: [
+                  SelectableText(
+                    wordDetails.word,
+                    style: TextStyle(
+                      fontFamily: 'sbl',
+                      fontSize: _fontSize * 2,
+                    ),
+                  ),
+                  SelectableText(
+                    wordDetails.grammar,
+                    style: TextStyle(
+                      fontFamily: 'sbl',
+                      fontSize: _fontSize * 0.7,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  SelectableText(
+                    wordDetails.gloss,
+                    style: TextStyle(
+                      fontFamily: 'sbl',
+                      fontSize: _fontSize * 0.7,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextButton(
+                    child: Text(
+                      wordDetails.strongsCode,
+                      style: TextStyle(
+                        fontFamily: 'sbl',
+                        fontSize: _fontSize * 0.7,
+                      ),
+                    ),
+                    onPressed: () {},
+                  ),
+                ],
+              ),
             ),
           ),
     );
