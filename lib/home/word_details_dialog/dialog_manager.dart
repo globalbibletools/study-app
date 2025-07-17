@@ -11,7 +11,7 @@ class WordDetailsDialogManager {
   Future<WordDetails> getWordDetails(Locale uiLocale, int wordId) async {
     final word = await _hebrewGreekDb.getWordForId(wordId);
     final gloss = await _glossService.glossForId(
-      uiLocale: uiLocale,
+      locale: uiLocale,
       wordId: wordId,
     );
     final (strongs, grammar) =

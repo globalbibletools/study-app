@@ -51,7 +51,6 @@ class GlossDatabase {
       _currentLangCode = '';
     }
 
-    print('opening database');
     _database = await openDatabase(path, readOnly: true);
     _currentLangCode = langCode;
   }

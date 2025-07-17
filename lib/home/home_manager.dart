@@ -99,7 +99,7 @@ class HomeManager {
 
   Future<String?> getPopupTextForId(Locale uiLocale, int wordId) async {
     return _glossService.glossForId(
-      uiLocale: uiLocale,
+      locale: uiLocale,
       wordId: wordId,
       onDatabaseMissing: onGlossDownloadNeeded,
     );

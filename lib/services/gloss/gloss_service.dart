@@ -32,11 +32,11 @@ class GlossService {
   }
 
   Future<String?> glossForId({
-    required Locale uiLocale,
+    required Locale locale,
     required int wordId,
     void Function(Locale)? onDatabaseMissing,
   }) async {
-    final glossLocale = _settings.locale ?? uiLocale;
+    final glossLocale = _settings.locale;
 
     if (!_isDownloadableLanguage(glossLocale)) {
       return await _englishGlossDb.getGloss(wordId);
