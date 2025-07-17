@@ -13,18 +13,18 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   final manager = SettingsManager();
 
-  Future<Language?> _chooseLanguage() async {
-    return await showDialog<Language>(
+  Future<Locale?> _chooseLocale() async {
+    return await showDialog<Locale>(
       context: context,
       builder: (BuildContext context) {
         return SimpleDialog(
           children: <Widget>[
             SimpleDialogOption(
-              onPressed: () => Navigator.pop(context, Language.english),
+              onPressed: () => Navigator.pop(context, const Locale('en')),
               child: const Text('English'),
             ),
             SimpleDialogOption(
-              onPressed: () => Navigator.pop(context, Language.spanish),
+              onPressed: () => Navigator.pop(context, const Locale('es')),
               child: const Text('Español'),
             ),
           ],
@@ -34,8 +34,8 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _showDownloadDialog(
-    Language previousLanguage,
-    Language newLanguage,
+    Locale previousLocale,
+    Locale newLocale,
   ) async {
     final l10n = AppLocalizations.of(context)!;
     final shouldDownload =
@@ -62,7 +62,7 @@ class _SettingsPageState extends State<SettingsPage> {
     if (!mounted) return;
 
     if (!shouldDownload) {
-      await manager.setLanguage(previousLanguage);
+      await manager.setLocale(previousLocale);
     } else {
       final messenger = ScaffoldMessenger.of(context);
       messenger.showSnackBar(
@@ -73,7 +73,7 @@ class _SettingsPageState extends State<SettingsPage> {
       );
 
       try {
-        await manager.downloadGlosses(newLanguage);
+        await manager.downloadGlosses(newLocale);
         messenger.hideCurrentSnackBar();
         messenger.showSnackBar(SnackBar(content: Text(l10n.downloadComplete)));
       } catch (e) {
@@ -99,20 +99,17 @@ class _SettingsPageState extends State<SettingsPage> {
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
                 onTap: () async {
-                  final previousLanguage = manager.currentLanguage;
-                  final selectedLanguage = await _chooseLanguage();
-                  if (selectedLanguage == null) return;
-                  await manager.setLanguage(selectedLanguage);
-                  if (selectedLanguage == Language.english) return;
-                  final isDownloaded = await manager.isLanguageDownloaded(
-                    selectedLanguage,
+                  final previousLocale = manager.currentLocale;
+                  final selectedLocale = await _chooseLocale();
+                  if (selectedLocale == null) return;
+                  await manager.setLocale(selectedLocale);
+                  if (selectedLocale.languageCode == 'en') return;
+                  final isDownloaded = await manager.isLocaleDownloaded(
+                    selectedLocale,
                   );
                   if (isDownloaded) return;
                   WidgetsBinding.instance.addPostFrameCallback((_) async {
-                    await _showDownloadDialog(
-                      previousLanguage,
-                      selectedLanguage,
-                    );
+                    await _showDownloadDialog(previousLocale, selectedLocale);
                   });
                 },
               ),

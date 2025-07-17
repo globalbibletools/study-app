@@ -31,9 +31,8 @@ class UserSettings {
 
   double get fontScale => _prefs.getDouble(_fontScaleKey) ?? 1.0;
 
-  Locale? get locale {
-    final localeCode = _prefs.getString(_localeKey);
-    if (localeCode == null) return null;
+  Locale get locale {
+    final localeCode = _prefs.getString(_localeKey) ?? 'en';
     return Locale(localeCode);
   }
 

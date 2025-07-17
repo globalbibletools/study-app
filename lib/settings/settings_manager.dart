@@ -2,51 +2,44 @@ import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:studyapp/app_state.dart';
-import 'package:studyapp/services/database.dart';
+import 'package:studyapp/services/gloss/gloss_service.dart';
 import 'package:studyapp/services/service_locator.dart';
 import 'package:studyapp/services/user_settings.dart';
 
-enum Language {
-  english('en'),
-  spanish('es'),
-  system(null);
+// enum Language {
+//   english('en'),
+//   spanish('es'),
+//   system(null);
 
-  final String? code;
-  const Language(this.code);
-}
+//   final String? code;
+//   const Language(this.code);
+// }
 
 class SettingsManager extends ChangeNotifier {
   final _settings = getIt<UserSettings>();
   final appState = getIt<AppState>();
   final _glossService = getIt<GlossService>();
 
-  Language get currentLanguage {
-    switch (_settings.locale?.languageCode) {
-      case 'en':
-        return Language.english;
-      case 'es':
-        return Language.spanish;
-      default:
-        return Language.system;
-    }
-  }
+  static const defaultLocale = Locale('en');
 
-  Future<void> setLanguage(Language selectedLanguage) async {
-    await _settings.setLocale(selectedLanguage.code);
+  Locale get currentLocale => _settings.locale ?? defaultLocale;
+
+  Future<void> setLocale(Locale selectedLocale) async {
+    await _settings.setLocale(selectedLocale.languageCode);
     appState.init();
   }
 
-  Future<bool> isLanguageDownloaded(Language selectedLanguage) async {
-    return await _glossService.glossDbExists(selectedLanguage.code!);
+  Future<bool> isLocaleDownloaded(Locale selectedLocale) async {
+    return await _glossService.glossesExists(selectedLocale);
   }
 
   // Called from the UI when user agrees to download.
-  Future<void> downloadGlosses(Language language) async {
+  Future<void> downloadGlosses(Locale locale) async {
     try {
-      await _glossService.downloadAndInstallGlossDb(language.code!);
-      await _glossService.initDb(language.code!);
+      await _glossService.downloadGlosses(locale);
+      // await _glossService.initDb(language.code!);
     } catch (e) {
-      log('Gloss download failed for ${language.code!}: $e');
+      log('Gloss download failed for ${locale.languageCode}: $e');
       rethrow;
     }
   }

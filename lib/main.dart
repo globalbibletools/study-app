@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:studyapp/l10n/app_localizations.dart';
-import 'package:studyapp/services/database.dart';
+import 'package:studyapp/services/gloss/gloss_service.dart';
+import 'package:studyapp/services/hebrew_greek/database.dart';
 import 'package:studyapp/services/service_locator.dart';
 import 'package:studyapp/services/user_settings.dart';
 
@@ -11,9 +12,9 @@ import 'theme.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   setupServiceLocator();
-  await getIt<HebrewGreekDatabase>().init();
-  await getIt<EnglishDatabase>().init();
   await getIt<UserSettings>().init();
+  await getIt<HebrewGreekDatabase>().init();
+  await getIt<GlossService>().init();
   runApp(const GbtStudyApp());
 }
 

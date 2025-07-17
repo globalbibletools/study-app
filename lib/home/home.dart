@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:studyapp/common/word.dart';
 import 'package:studyapp/home/drawer.dart';
 import 'package:studyapp/home/hebrew_greek_text.dart';
+import 'package:studyapp/home/word_details_dialog/word_details_dialog.dart';
 import 'package:studyapp/l10n/app_localizations.dart';
 
 import 'book_chooser.dart';
@@ -294,53 +295,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _showWordDetails(int wordId) async {
     print('wordId: $wordId');
-    final locale = Localizations.localeOf(context);
-    final wordDetails = await manager.getWordDetails(locale, wordId);
-    if (!mounted || wordDetails.word.isEmpty) return;
     showDialog(
       context: context,
       builder:
-          (context) => AlertDialog(
-            content: SingleChildScrollView(
-              child: Column(
-                children: [
-                  SelectableText(
-                    wordDetails.word,
-                    style: TextStyle(
-                      fontFamily: 'sbl',
-                      fontSize: _fontSize * 2,
-                    ),
-                  ),
-                  SelectableText(
-                    wordDetails.grammar,
-                    style: TextStyle(
-                      fontFamily: 'sbl',
-                      fontSize: _fontSize * 0.7,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  SelectableText(
-                    wordDetails.gloss,
-                    style: TextStyle(
-                      fontFamily: 'sbl',
-                      fontSize: _fontSize * 0.7,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextButton(
-                    child: Text(
-                      wordDetails.strongsCode,
-                      style: TextStyle(
-                        fontFamily: 'sbl',
-                        fontSize: _fontSize * 0.7,
-                      ),
-                    ),
-                    onPressed: () {},
-                  ),
-                ],
-              ),
-            ),
-          ),
+          (context) => WordDetailsDialog(wordId: wordId, fontSize: _fontSize),
     );
   }
 }
