@@ -109,25 +109,41 @@ class _WordDetailsDialogState extends State<WordDetailsDialog> {
     final screenSize = MediaQuery.sizeOf(context);
     final bottomPosition = screenSize.height - _grammarPanelRect!.top + 32.0;
     final padding = 20.0;
+    final maxWidth = _grammarPanelRect!.width + 2 * padding;
+
     return Positioned(
+      // Define a horizontal area centered over the dialog content.
       left: _grammarPanelRect!.left - padding,
-      width: _grammarPanelRect!.width + 2 * padding,
+      right: screenSize.width - (_grammarPanelRect!.right + padding),
       bottom: bottomPosition,
-      child: Material(
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(8.0),
-          child: Container(
-            padding: EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-            color: Theme.of(context).colorScheme.inverseSurface,
-            child: Text(
-              manager.grammarExpansion ?? 'No details found.',
-              textAlign: TextAlign.center,
-              style: defaultStyle!.copyWith(
-                color: Theme.of(context).colorScheme.onInverseSurface,
+      // Use a Row to center the actual popup within the defined area.
+      // The Row itself will expand to fill the horizontal space.
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Material(
+            elevation: 4.0,
+            borderRadius: BorderRadius.circular(8.0),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8.0),
+              child: Container(
+                constraints: BoxConstraints(maxWidth: maxWidth),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8.0,
+                  vertical: 4.0,
+                ),
+                color: Theme.of(context).colorScheme.inverseSurface,
+                child: Text(
+                  manager.grammarExpansion ?? '',
+                  textAlign: TextAlign.center,
+                  style: defaultStyle!.copyWith(
+                    color: Theme.of(context).colorScheme.onInverseSurface,
+                  ),
+                ),
               ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }
