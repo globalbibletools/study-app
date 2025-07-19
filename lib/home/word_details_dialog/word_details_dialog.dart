@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:studyapp/home/similar_verses/similar_verses_page.dart';
 import 'package:studyapp/home/word_details_dialog/dialog_manager.dart';
 
 /// A dialog that displays detailed information about a single word.
@@ -90,7 +91,17 @@ class _WordDetailsDialogState extends State<WordDetailsDialog> {
                     const SizedBox(height: 16),
                     TextButton(
                       child: Text(wordDetails.strongsCode, style: defaultStyle),
-                      onPressed: () {},
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder:
+                                (context) => SimilarVersesPage(
+                                  strongsCode: wordDetails.strongsCode,
+                                ),
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),

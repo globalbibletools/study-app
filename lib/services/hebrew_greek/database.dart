@@ -5,6 +5,7 @@ import 'package:database_builder/database_builder.dart';
 import 'package:flutter/services.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'package:studyapp/common/reference.dart';
 import 'package:studyapp/common/word.dart';
 
 class HebrewGreekDatabase {
@@ -115,5 +116,65 @@ class HebrewGreekDatabase {
     final lemma = row[HebrewGreekSchema.lemmaColLemma] as String;
     final grammar = row[HebrewGreekSchema.grammarColGrammar] as String;
     return (lemma, grammar);
+  }
+
+  Future<List<int>> allWordsForStrongsCode(String strongsCode) async {
+    final List<Map<String, dynamic>> maps = await _database.rawQuery(
+      '''SELECT v.${HebrewGreekSchema.versesColId}
+      FROM ${HebrewGreekSchema.versesTable} AS v
+      INNER JOIN ${HebrewGreekSchema.lemmaTable} AS l 
+      ON v.${HebrewGreekSchema.versesColLemma} = l.${HebrewGreekSchema.lemmaColId}
+      WHERE l.${HebrewGreekSchema.lemmaColLemma} = ?
+      ''',
+      [strongsCode],
+    );
+
+    if (maps.isNotEmpty) {
+      return maps
+          .map((map) => map[HebrewGreekSchema.versesColId] as int)
+          .toList();
+    }
+
+    return [];
+  }
+
+  Future<List<HebrewGreekWord>> wordsForVerseWithStrongsCode(
+    Reference reference,
+  ) async {
+    const int bookMultiplier = 100000000;
+    const int chapterMultiplier = 100000;
+    const int verseMultiplier = 100;
+    final int lowerBound =
+        reference.bookId * bookMultiplier +
+        reference.chapter * chapterMultiplier +
+        reference.verse * verseMultiplier;
+    final int upperBound =
+        reference.bookId * bookMultiplier +
+        reference.chapter * chapterMultiplier +
+        (reference.verse + 1) * verseMultiplier;
+
+    final List<Map<String, dynamic>> words = await _database.rawQuery(
+      'SELECT v.${HebrewGreekSchema.versesColId}, '
+      't.${HebrewGreekSchema.textColText}, '
+      'l.${HebrewGreekSchema.lemmaColLemma} '
+      'FROM ${HebrewGreekSchema.versesTable} v '
+      'JOIN ${HebrewGreekSchema.textTable} t '
+      'ON v.${HebrewGreekSchema.versesColText} = t.${HebrewGreekSchema.textColId} '
+      'JOIN ${HebrewGreekSchema.lemmaTable} l '
+      'ON v.${HebrewGreekSchema.versesColLemma} = l.${HebrewGreekSchema.lemmaColId} '
+      'WHERE v.${HebrewGreekSchema.versesColId} >= ? AND v.${HebrewGreekSchema.versesColId} < ? '
+      'ORDER BY v.${HebrewGreekSchema.versesColId} ASC',
+      [lowerBound, upperBound],
+    );
+
+    return words
+        .map(
+          (word) => HebrewGreekWord(
+            id: word[HebrewGreekSchema.versesColId],
+            text: word[HebrewGreekSchema.textColText],
+            strongsCode: word[HebrewGreekSchema.lemmaColLemma],
+          ),
+        )
+        .toList();
   }
 }
