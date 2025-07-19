@@ -18,7 +18,6 @@ class WordDetailsDialog extends StatefulWidget {
 }
 
 class _WordDetailsDialogState extends State<WordDetailsDialog> {
-  final wordDetailsNotifier = ValueNotifier<WordDetails?>(null);
   final manager = WordDetailsDialogManager();
   TextStyle? highlightStyle;
   TextStyle? defaultStyle;
@@ -26,7 +25,9 @@ class _WordDetailsDialogState extends State<WordDetailsDialog> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _lookupWordDetails();
+    final locale = Localizations.localeOf(context);
+    manager.init(locale, widget.wordId);
+    // _lookupWordDetails();
     highlightStyle = TextStyle(
       fontFamily: 'sbl',
       fontSize: widget.fontSize * 0.7,
@@ -38,17 +39,12 @@ class _WordDetailsDialogState extends State<WordDetailsDialog> {
     );
   }
 
-  Future<void> _lookupWordDetails() async {
-    final locale = Localizations.localeOf(context);
-    final wordDetails = await manager.getWordDetails(locale, widget.wordId);
-    wordDetailsNotifier.value = wordDetails;
-  }
-
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<WordDetails?>(
-      valueListenable: wordDetailsNotifier,
-      builder: (context, wordDetails, child) {
+    return ListenableBuilder(
+      listenable: manager,
+      builder: (context, child) {
+        final wordDetails = manager.wordDetails;
         if (wordDetails == null) return const SizedBox();
         return AlertDialog(
           content: SingleChildScrollView(
@@ -88,7 +84,7 @@ class _WordDetailsDialogState extends State<WordDetailsDialog> {
 
   TextSpan _buildTappableGrammar(String grammar) {
     final List<TextSpan> spans = [];
-    final separatorPattern = RegExp(r'[|,]'); // No capturing group needed here
+    final separatorPattern = RegExp(r'[|,]');
 
     grammar.splitMapJoin(
       separatorPattern,

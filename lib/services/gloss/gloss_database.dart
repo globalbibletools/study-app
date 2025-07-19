@@ -35,7 +35,7 @@ class GlossDatabase {
   }
 
   Future<void> initDb(String langCode) async {
-    if (_currentLangCode == langCode) {
+    if (langCode == 'en' || _currentLangCode == langCode) {
       return;
     }
 
@@ -56,6 +56,10 @@ class GlossDatabase {
   }
 
   Future<String?> getGloss(String langCode, int wordId) async {
+    if (_database == null) {
+      await initDb(langCode);
+    }
+
     try {
       final query = '''
         SELECT t.${GlossSchema.textColText}
