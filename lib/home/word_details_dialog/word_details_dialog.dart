@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:studyapp/home/word_details_dialog/dialog_manager.dart';
@@ -23,6 +25,7 @@ class _WordDetailsDialogState extends State<WordDetailsDialog> {
   TextStyle? defaultStyle;
   final _dialogKey = GlobalKey();
   Rect? _grammarPanelRect;
+  Timer? _grammarPopupTimer;
 
   @override
   void didChangeDependencies() {
@@ -38,6 +41,12 @@ class _WordDetailsDialogState extends State<WordDetailsDialog> {
       fontFamily: 'sbl',
       fontSize: widget.fontSize * 0.7,
     );
+  }
+
+  @override
+  void dispose() {
+    _grammarPopupTimer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -143,8 +152,12 @@ class _WordDetailsDialogState extends State<WordDetailsDialog> {
             recognizer:
                 TapGestureRecognizer()
                   ..onTap = () {
+                    _grammarPopupTimer?.cancel();
                     final grammar = nonMatch.trim();
                     manager.showGrammar(grammar);
+                    _grammarPopupTimer = Timer(const Duration(seconds: 3), () {
+                      manager.hideGrammar();
+                    });
                   },
           ),
         );

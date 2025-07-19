@@ -64,6 +64,11 @@ class WordDetailsDialogManager extends ChangeNotifier {
 
     return output.toString();
   }
+
+  void hideGrammar() {
+    grammarExpansion = null;
+    notifyListeners();
+  }
 }
 
 class WordDetails {
