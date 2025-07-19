@@ -9,8 +9,6 @@ import 'package:studyapp/services/service_locator.dart';
 class WordDetailsDialogManager extends ChangeNotifier {
   final _hebrewGreekDb = getIt<HebrewGreekDatabase>();
   final _glossService = getIt<GlossService>();
-  // final wordDetailsNotifier = ValueNotifier<WordDetails?>(null);
-  // final grammarListener = ValueNotifier<String?>(null);
 
   WordDetails? wordDetails;
   String? grammarExpansion;
@@ -39,8 +37,6 @@ class WordDetailsDialogManager extends ChangeNotifier {
   void showGrammar(String grammar) {
     grammarExpansion = _parsePart(grammar);
     notifyListeners();
-    // grammarListener.value = _parsePart(grammar);
-    // print('showGrammarListener.value: ${grammarListener.value}');
   }
 
   /// Parses a single morphological part (e.g., "Prep-l" or "Art").

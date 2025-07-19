@@ -21,13 +21,14 @@ class _WordDetailsDialogState extends State<WordDetailsDialog> {
   final manager = WordDetailsDialogManager();
   TextStyle? highlightStyle;
   TextStyle? defaultStyle;
+  final _dialogKey = GlobalKey();
+  Rect? _grammarPanelRect;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final locale = Localizations.localeOf(context);
     manager.init(locale, widget.wordId);
-    // _lookupWordDetails();
     highlightStyle = TextStyle(
       fontFamily: 'sbl',
       fontSize: widget.fontSize * 0.7,
@@ -46,39 +47,79 @@ class _WordDetailsDialogState extends State<WordDetailsDialog> {
       builder: (context, child) {
         final wordDetails = manager.wordDetails;
         if (wordDetails == null) return const SizedBox();
-        return AlertDialog(
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SelectableText(
-                  wordDetails.word,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontFamily: 'sbl',
-                    fontSize: widget.fontSize * 2,
-                  ),
+        final renderBox =
+            _dialogKey.currentContext?.findRenderObject() as RenderBox?;
+        if (renderBox != null) {
+          _grammarPanelRect =
+              renderBox.localToGlobal(Offset.zero) & renderBox.size;
+        }
+        return Stack(
+          children: [
+            AlertDialog(
+              content: SingleChildScrollView(
+                key: _dialogKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SelectableText(
+                      wordDetails.word,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontFamily: 'sbl',
+                        fontSize: widget.fontSize * 2,
+                      ),
+                    ),
+                    SelectableText.rich(
+                      _buildTappableGrammar(wordDetails.grammar),
+                    ),
+                    const SizedBox(height: 16),
+                    SelectableText(
+                      wordDetails.gloss,
+                      textAlign: TextAlign.center,
+                      style: defaultStyle,
+                    ),
+                    const SizedBox(height: 16),
+                    TextButton(
+                      child: Text(wordDetails.strongsCode, style: defaultStyle),
+                      onPressed: () {},
+                    ),
+                  ],
                 ),
-                SelectableText.rich(
-                  _buildTappableGrammar(wordDetails.grammar),
-                  // style: defaultStyle,
-                ),
-                const SizedBox(height: 16),
-                SelectableText(
-                  wordDetails.gloss,
-                  textAlign: TextAlign.center,
-                  style: defaultStyle,
-                ),
-                const SizedBox(height: 16),
-                TextButton(
-                  child: Text(wordDetails.strongsCode, style: defaultStyle),
-                  onPressed: () {},
-                ),
-              ],
+              ),
             ),
-          ),
+
+            if (_grammarPanelRect != null && manager.grammarExpansion != null)
+              _buildGrammarExpansionPanel(),
+          ],
         );
       },
+    );
+  }
+
+  Widget _buildGrammarExpansionPanel() {
+    final screenSize = MediaQuery.sizeOf(context);
+    final bottomPosition = screenSize.height - _grammarPanelRect!.top + 32.0;
+    final padding = 20.0;
+    return Positioned(
+      left: _grammarPanelRect!.left - padding,
+      width: _grammarPanelRect!.width + 2 * padding,
+      bottom: bottomPosition,
+      child: Material(
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(8.0),
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+            color: Theme.of(context).colorScheme.inverseSurface,
+            child: Text(
+              manager.grammarExpansion ?? 'No details found.',
+              textAlign: TextAlign.center,
+              style: defaultStyle!.copyWith(
+                color: Theme.of(context).colorScheme.onInverseSurface,
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -103,7 +144,7 @@ class _WordDetailsDialogState extends State<WordDetailsDialog> {
                 TapGestureRecognizer()
                   ..onTap = () {
                     final grammar = nonMatch.trim();
-                    print('Recognizer Tapped: "$grammar"');
+                    manager.showGrammar(grammar);
                   },
           ),
         );
