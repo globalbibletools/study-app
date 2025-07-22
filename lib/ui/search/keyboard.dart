@@ -32,26 +32,85 @@ class _HebrewKeyboardState extends State<HebrewKeyboard> {
     final currentText = controller.text;
     final selection = controller.selection;
 
-    // Replace the selected text (if any) with the new character.
     final newText = currentText.replaceRange(
       selection.start,
       selection.end,
       text,
     );
-
-    // The new cursor position should be after the inserted text.
-    // For RTL text (like Hebrew), the TextField using this controller will
-    // correctly place the cursor visually to the left of the new character.
     final newCursorOffset = selection.start + text.length;
 
-    // Update the controller's value with the new text and selection.
-    // Using `copyWith` on `value` is the recommended way to update
-    // both text and selection atomically, preventing potential issues.
+    final replacedText = _replaceWithFinalLetterForms(newText);
+
     controller.value = controller.value.copyWith(
-      text: newText,
+      text: replacedText,
       selection: TextSelection.collapsed(offset: newCursorOffset),
-      composing: TextRange.empty, // Clear any composing text
+      composing: TextRange.empty,
     );
+  }
+
+  /// Automatically replaces Hebrew letters with their final-form counterparts
+  /// (sofit) at the end of words, and corrects final-form letters that are
+  /// mistakenly used in the middle of a word.
+  ///
+  /// For example:
+  /// - "כספ" followed by a space becomes "כסף ".
+  /// - "שלום" remains "שלום".
+  /// - "מלך" remains "מלך".
+  /// - Corrects "שלוםך" to "שלומך" by replacing the final Kaf.
+  String _replaceWithFinalLetterForms(String text) {
+    // Mapping of regular letters to their final forms.
+    const Map<String, String> finalLetterMap = {
+      'כ': 'ך', // Kaf -> Final Kaf
+      'מ': 'ם', // Mem -> Final Mem
+      'נ': 'ן', // Nun -> Final Nun
+      'פ': 'ף', // Pe -> Final Pe
+      'צ': 'ץ', // Tsadi -> Final Tsadi
+    };
+
+    // Mapping of final-form letters back to their regular forms.
+    const Map<String, String> regularLetterMap = {
+      'ך': 'כ', // Final Kaf -> Kaf
+      'ם': 'מ', // Final Mem -> Mem
+      'ן': 'נ', // Final Nun -> Nun
+      'ף': 'פ', // Final Pe -> Pe
+      'ץ': 'צ', // Final Tsadi -> Tsadi
+    };
+
+    // Regex to find a final-form letter that is followed by another Hebrew letter.
+    // This is an incorrect usage that needs to be corrected.
+    // The `(?=...)` is a positive lookahead, which checks the character
+    // after the match without including it in the match itself.
+    final RegExp regularFormRegex = RegExp(
+      r'[ךםןףץ](?=[\u0590-\u05FF])',
+      unicode: true,
+    );
+
+    // Regex to find a regular-form letter that should be a final form.
+    // This matches a letter that is NOT followed by another Hebrew letter.
+    // This could be the end of the string, or followed by a space, punctuation, etc.
+    // The `(?!...)` is a negative lookahead.
+    final RegExp finalFormRegex = RegExp(
+      r'[כמנפצ](?![\u0590-\u05FF])',
+      unicode: true,
+    );
+
+    // --- Step 1: Correct any final letters that are now in the middle of a word.
+    // e.g., if the user had "שלם" and then typed "ו", it becomes "שלםו".
+    // This step will correct "שלםו" to "שלמו".
+    String correctedText = text.replaceAllMapped(regularFormRegex, (match) {
+      final matchedChar = match.group(0)!;
+      return regularLetterMap[matchedChar]!;
+    });
+
+    // --- Step 2: Convert letters at the end of words to their final form.
+    // e.g., if the text is "עכשיו אני כותב", this will change "כותב" to "כותב".
+    // No, that's a bad example. Let's use "כספ" -> "כסף".
+    correctedText = correctedText.replaceAllMapped(finalFormRegex, (match) {
+      final matchedChar = match.group(0)!;
+      return finalLetterMap[matchedChar]!;
+    });
+
+    return correctedText;
   }
 
   /// Handles a single backspace press, correctly managing cursor position
@@ -68,11 +127,9 @@ class _HebrewKeyboardState extends State<HebrewKeyboard> {
     if (selection.isCollapsed) {
       // No text is selected, delete the character before the cursor.
       if (start == 0) {
-        return; // Nothing to delete at the beginning.
+        return;
       }
-      // Create the new text by removing the character before the cursor.
       final newText = text.substring(0, start - 1) + text.substring(start);
-      // Update the controller with the new text and move the cursor back.
       controller.value = controller.value.copyWith(
         text: newText,
         selection: TextSelection.collapsed(offset: start - 1),
@@ -80,10 +137,7 @@ class _HebrewKeyboardState extends State<HebrewKeyboard> {
       );
     } else {
       // A range of text is selected, so delete the selection.
-      // Create the new text by removing the selected range.
       final newText = text.replaceRange(start, end, '');
-      // Update the controller with the new text and place the cursor at the
-      // beginning of the original selection.
       controller.value = controller.value.copyWith(
         text: newText,
         selection: TextSelection.collapsed(offset: start),
@@ -91,8 +145,6 @@ class _HebrewKeyboardState extends State<HebrewKeyboard> {
       );
     }
   }
-
-  // --- BUILD METHODS ---
 
   @override
   Widget build(BuildContext context) {
@@ -143,13 +195,13 @@ class _HebrewKeyboardState extends State<HebrewKeyboard> {
       textDirection: TextDirection.rtl,
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        // Backspace Key with Long-Press Gesture Detector
+        // Backspace
         Expanded(
           child: Padding(
             padding: const EdgeInsets.all(4.0),
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: widget.keyColor.withOpacity(0.8),
+                backgroundColor: widget.keyColor,
                 foregroundColor: widget.keyTextColor,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8.0),
@@ -157,10 +209,13 @@ class _HebrewKeyboardState extends State<HebrewKeyboard> {
                 padding: const EdgeInsets.symmetric(vertical: 16.0),
               ),
               onPressed: _onBackspacePressed,
-              child: Icon(
-                Icons.backspace_outlined,
-                size: 24,
-                color: widget.keyTextColor,
+              child: Transform.scale(
+                scaleX: -1,
+                child: Icon(
+                  Icons.backspace_outlined,
+                  size: 24,
+                  color: widget.keyTextColor,
+                ),
               ),
             ),
           ),
@@ -179,7 +234,7 @@ class _HebrewKeyboardState extends State<HebrewKeyboard> {
             padding: const EdgeInsets.all(4.0),
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: widget.keyColor.withOpacity(0.8),
+                backgroundColor: widget.keyColor,
                 foregroundColor: widget.keyTextColor,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8.0),

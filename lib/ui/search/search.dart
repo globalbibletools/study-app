@@ -49,9 +49,7 @@ class _SearchPageState extends State<SearchPage> {
               child: TextField(
                 controller: _controller,
                 focusNode: _focusNode,
-                // Important: This makes the text field non-editable by the system keyboard,
-                // but still allows it to show a cursor and be manipulated by our custom keyboard.
-                readOnly: true,
+                readOnly: true, // non-editable by the system keyboard
                 showCursor: true,
                 textDirection: TextDirection.rtl,
                 style: const TextStyle(fontSize: 24, fontFamily: 'sbl'),
