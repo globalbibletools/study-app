@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:studyapp/ui/about/about.dart';
 import 'package:studyapp/l10n/app_localizations.dart';
+import 'package:studyapp/ui/search/search.dart';
 import 'package:studyapp/ui/settings/settings_page.dart';
 
 class AppDrawer extends StatelessWidget {
@@ -29,6 +30,7 @@ class AppDrawer extends StatelessWidget {
             ),
             ListTile(
               title: Text(AppLocalizations.of(context)!.settings),
+              leading: Icon(Icons.settings_outlined),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(
@@ -38,7 +40,19 @@ class AppDrawer extends StatelessWidget {
               },
             ),
             ListTile(
+              title: Text(AppLocalizations.of(context)!.search),
+              leading: Icon(Icons.search),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const SearchPage()),
+                );
+              },
+            ),
+            ListTile(
               title: Text(AppLocalizations.of(context)!.about),
+              leading: Icon(Icons.info_outline),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(

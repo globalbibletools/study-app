@@ -51,6 +51,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Download failed. Please check your internet connection and try again.';
 
   @override
+  String get search => 'Search';
+
+  @override
   String get about => 'About';
 
   @override

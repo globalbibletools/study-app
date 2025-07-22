@@ -56,6 +56,11 @@
     "description": "Message shown when glosses fail to download."
   },
 
+  "search": "Search",
+  "@search": {
+    "description": "The title of the Search screen"
+  },
+
   "about": "About",
   "@about": {
     "description": "The title of the About screen"

@@ -176,6 +176,12 @@ abstract class AppLocalizations {
   /// **'Download failed. Please check your internet connection and try again.'**
   String get downloadFailed;
 
+  /// The title of the Search screen
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get search;
+
   /// The title of the About screen
   ///
   /// In en, this message translates to:
