@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:studyapp/l10n/app_localizations.dart';
 import 'package:studyapp/ui/search/keyboard.dart';
 
+import 'search_manager.dart';
+
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
 
@@ -10,29 +12,26 @@ class SearchPage extends StatefulWidget {
 }
 
 class _SearchPageState extends State<SearchPage> {
+  final manager = SearchPageManager();
   late final TextEditingController _controller;
-  bool _isKeyboardVisible = false;
   final FocusNode _focusNode = FocusNode();
 
   @override
   void initState() {
     super.initState();
     _controller = TextEditingController();
-    // Add a listener to the text field's focus node
-    _focusNode.addListener(_onFocusChange);
+    _controller.addListener(_onTextChanged);
   }
 
-  void _onFocusChange() {
-    setState(() {
-      // Show keyboard when the text field has focus, hide otherwise
-      _isKeyboardVisible = _focusNode.hasFocus;
-    });
+  void _onTextChanged() {
+    final prefix = _controller.text;
+    manager.search(prefix);
   }
 
   @override
   void dispose() {
+    _controller.removeListener(_onTextChanged);
     _controller.dispose();
-    _focusNode.removeListener(_onFocusChange);
     _focusNode.dispose();
     super.dispose();
   }
@@ -57,17 +56,32 @@ class _SearchPageState extends State<SearchPage> {
                 onTapOutside: (event) {
                   // empty to prevent losing focus
                 },
+                // onChanged: (value) {
+                //   manager.search(value);
+                // },
               ),
             ),
-            Expanded(child: ListView()),
-            if (_isKeyboardVisible)
-              HebrewKeyboard(
-                controller: _controller,
-                backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-                keyColor: Theme.of(context).colorScheme.surface,
-                keyTextColor: Theme.of(context).colorScheme.onSurface,
-                onLanguageChange: () {},
+            Expanded(
+              child: ValueListenableBuilder(
+                valueListenable: manager.resultsNotifier,
+                builder: (context, results, child) {
+                  return ListView.builder(
+                    itemCount: results.length,
+                    itemBuilder: (context, index) {
+                      final word = results[index];
+                      return ListTile(title: Text(word));
+                    },
+                  );
+                },
               ),
+            ),
+            HebrewKeyboard(
+              controller: _controller,
+              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+              keyColor: Theme.of(context).colorScheme.surface,
+              keyTextColor: Theme.of(context).colorScheme.onSurface,
+              onLanguageChange: () {},
+            ),
           ],
         ),
       ),

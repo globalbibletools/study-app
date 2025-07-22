@@ -10,7 +10,7 @@ import 'package:studyapp/common/word.dart';
 
 class HebrewGreekDatabase {
   static const _databaseName = 'hebrew_greek.db';
-  static const _databaseVersion = 1;
+  static const _databaseVersion = 2;
   late Database _database;
 
   Future<void> init() async {
@@ -26,7 +26,7 @@ class HebrewGreekDatabase {
       var currentVersion = await _getDatabaseVersion(path);
       if (currentVersion != _databaseVersion) {
         log(
-          'Updating database from version $currentVersion to $_databaseVersion',
+          'Updating Hebrew/Greek database from version $currentVersion to $_databaseVersion',
         );
         await deleteDatabase(path);
         await _copyDatabaseFromAssets(path);
@@ -176,5 +176,43 @@ class HebrewGreekDatabase {
           ),
         )
         .toList();
+  }
+
+  /// Queries the database for all unique words starting with a given prefix,
+  /// using a robust "whitelist" normalization for fuzzy matching.
+  ///
+  /// - [prefix]: The search prefix. Diacritics, punctuation, and case will be ignored.
+  ///
+  /// Returns a `Future<List<String>>` containing the matching words with their
+  /// original formatting.
+  Future<List<String>> getWordsStartingWith(String prefix) async {
+    if (prefix.isEmpty) {
+      return [];
+    }
+
+    final String normalizedPrefix = filterAllButHebrewGreekNoDiacritics(prefix);
+
+    if (normalizedPrefix.isEmpty) {
+      return [];
+    }
+
+    // Query the 'normalized' column, but SELECT the original 'text' column.
+    // We no longer need 'COLLATE NOCASE' because we handle it in Dart.
+    final String sql =
+        'SELECT DISTINCT ${HebrewGreekSchema.textColText} '
+        'FROM ${HebrewGreekSchema.textTable} '
+        'WHERE ${HebrewGreekSchema.textColNormalized} LIKE ?';
+
+    final pattern = '$normalizedPrefix%';
+
+    final maps = await _database.rawQuery(sql, [pattern]);
+
+    if (maps.isNotEmpty) {
+      return maps
+          .map((map) => map[HebrewGreekSchema.textColText] as String)
+          .toList();
+    }
+
+    return [];
   }
 }

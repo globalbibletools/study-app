@@ -51,12 +51,6 @@ class _HebrewKeyboardState extends State<HebrewKeyboard> {
   /// Automatically replaces Hebrew letters with their final-form counterparts
   /// (sofit) at the end of words, and corrects final-form letters that are
   /// mistakenly used in the middle of a word.
-  ///
-  /// For example:
-  /// - "כספ" followed by a space becomes "כסף ".
-  /// - "שלום" remains "שלום".
-  /// - "מלך" remains "מלך".
-  /// - Corrects "שלוםך" to "שלומך" by replacing the final Kaf.
   String _replaceWithFinalLetterForms(String text) {
     // Mapping of regular letters to their final forms.
     const Map<String, String> finalLetterMap = {
@@ -77,34 +71,24 @@ class _HebrewKeyboardState extends State<HebrewKeyboard> {
     };
 
     // Regex to find a final-form letter that is followed by another Hebrew letter.
-    // This is an incorrect usage that needs to be corrected.
-    // The `(?=...)` is a positive lookahead, which checks the character
-    // after the match without including it in the match itself.
     final RegExp regularFormRegex = RegExp(
       r'[ךםןףץ](?=[\u0590-\u05FF])',
       unicode: true,
     );
 
     // Regex to find a regular-form letter that should be a final form.
-    // This matches a letter that is NOT followed by another Hebrew letter.
-    // This could be the end of the string, or followed by a space, punctuation, etc.
-    // The `(?!...)` is a negative lookahead.
     final RegExp finalFormRegex = RegExp(
       r'[כמנפצ](?![\u0590-\u05FF])',
       unicode: true,
     );
 
     // --- Step 1: Correct any final letters that are now in the middle of a word.
-    // e.g., if the user had "שלם" and then typed "ו", it becomes "שלםו".
-    // This step will correct "שלםו" to "שלמו".
     String correctedText = text.replaceAllMapped(regularFormRegex, (match) {
       final matchedChar = match.group(0)!;
       return regularLetterMap[matchedChar]!;
     });
 
     // --- Step 2: Convert letters at the end of words to their final form.
-    // e.g., if the text is "עכשיו אני כותב", this will change "כותב" to "כותב".
-    // No, that's a bad example. Let's use "כספ" -> "כסף".
     correctedText = correctedText.replaceAllMapped(finalFormRegex, (match) {
       final matchedChar = match.group(0)!;
       return finalLetterMap[matchedChar]!;

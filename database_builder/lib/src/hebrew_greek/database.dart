@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:sqlite3/sqlite3.dart';
 
 import '../book_id.dart';
+import 'normalization.dart';
 import 'schema.dart';
 
 typedef ForeignTableMaps = (
@@ -38,6 +39,7 @@ class HebrewGreekDatabase {
   void _createTables() {
     _database.execute(HebrewGreekSchema.createVersesTable);
     _database.execute(HebrewGreekSchema.createTextTable);
+    _database.execute(HebrewGreekSchema.createTextNormalizedIndex);
     _database.execute(HebrewGreekSchema.createGrammarTable);
     _database.execute(HebrewGreekSchema.createLemmaTable);
   }
@@ -82,7 +84,10 @@ class HebrewGreekDatabase {
       }
     }
 
-    final Map<String, int> textMap = _createTable(uniqueText, _insertText);
+    final Map<String, int> textMap = _createTableWithNormalization(
+      uniqueText,
+      _insertText,
+    );
     final Map<String, int> grammarMap = _createTable(
       uniqueGrammar,
       _insertGrammar,
@@ -90,6 +95,24 @@ class HebrewGreekDatabase {
     final Map<String, int> lemmaMap = _createTable(uniqueLemma, _insertLemma);
 
     return (textMap, grammarMap, lemmaMap);
+  }
+
+  Map<String, int> _createTableWithNormalization(
+    Set<String> unique,
+    PreparedStatement stmt,
+  ) {
+    final list = unique.toList()..sort();
+    final Map<String, int> map = {};
+    _database.execute('BEGIN TRANSACTION;');
+    for (int i = 0; i < list.length; i++) {
+      final text = list[i];
+      final normalized = filterAllButHebrewGreekNoDiacritics(text);
+      final id = i + 1;
+      map[text] = id;
+      stmt.execute([id, text, normalized]);
+    }
+    _database.execute('COMMIT;');
+    return map;
   }
 
   Map<String, int> _createTable(Set<String> unique, PreparedStatement stmt) {

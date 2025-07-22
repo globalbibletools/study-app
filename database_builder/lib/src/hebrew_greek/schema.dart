@@ -12,7 +12,8 @@ class HebrewGreekSchema {
   static const versesColGrammar = 'grammar'; // foreign key to grammar table
   static const versesColLemma = 'lemma'; // foreign key to lemma table
 
-  static const createVersesTable = '''
+  static const createVersesTable =
+      '''
   CREATE TABLE IF NOT EXISTS $versesTable (
     $versesColId INTEGER PRIMARY KEY,
     $versesColText INTEGER NOT NULL,
@@ -21,7 +22,8 @@ class HebrewGreekSchema {
   )
   ''';
 
-  static const insertVerseWord = '''
+  static const insertVerseWord =
+      '''
   INSERT INTO $versesTable 
     ($versesColId, $versesColText, $versesColGrammar, $versesColLemma) 
     VALUES (?, ?, ?, ?);
@@ -32,18 +34,28 @@ class HebrewGreekSchema {
 
   static const textColId = '_id';
   static const textColText = 'text';
+  static const textColNormalized = 'normalized'; // no diacritics
 
-  static const createTextTable = '''
+  static const createTextTable =
+      '''
   CREATE TABLE IF NOT EXISTS $textTable (
     $textColId INTEGER PRIMARY KEY,
-    $textColText TEXT NOT NULL
+    $textColText TEXT NOT NULL,
+    $textColNormalized TEXT NOT NULL
   )
   ''';
 
-  static const insertText = '''
+  static const createTextNormalizedIndex =
+      '''
+  CREATE INDEX IF NOT EXISTS idx_normalized
+  ON $textTable ($textColNormalized);
+  ''';
+
+  static const insertText =
+      '''
   INSERT INTO $textTable
-    ($textColId, $textColText)
-    VALUES (?, ?);
+    ($textColId, $textColText, $textColNormalized)
+    VALUES (?, ?, ?);
   ''';
 
   // Part of speech table
@@ -52,14 +64,16 @@ class HebrewGreekSchema {
   static const grammarColId = '_id';
   static const grammarColGrammar = 'grammar';
 
-  static const createGrammarTable = '''
+  static const createGrammarTable =
+      '''
   CREATE TABLE IF NOT EXISTS $grammarTable (
     $grammarColId INTEGER PRIMARY KEY,
     $grammarColGrammar TEXT NOT NULL
   )
   ''';
 
-  static const insertGrammar = '''
+  static const insertGrammar =
+      '''
   INSERT INTO $grammarTable
     ($grammarColId, $grammarColGrammar)
     VALUES (?, ?);
@@ -71,14 +85,16 @@ class HebrewGreekSchema {
   static const lemmaColId = '_id';
   static const lemmaColLemma = 'lemma';
 
-  static const createLemmaTable = '''
+  static const createLemmaTable =
+      '''
   CREATE TABLE IF NOT EXISTS $lemmaTable (
     $lemmaColId INTEGER PRIMARY KEY,
     $lemmaColLemma TEXT NOT NULL
   )
   ''';
 
-  static const insertLemma = '''
+  static const insertLemma =
+      '''
   INSERT INTO $lemmaTable
     ($lemmaColId, $lemmaColLemma)
     VALUES (?, ?);
