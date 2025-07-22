@@ -294,7 +294,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _showWordDetails(int wordId) async {
-    print('wordId: $wordId');
     showDialog(
       context: context,
       builder:

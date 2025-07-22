@@ -1,3 +1,9 @@
+## 0.7.0 - July 22, 2025
+
+- Improve presentation when word is long pressed.
+- Show grammar explanation when grammar type tapped.
+- Show all verses that use a Strongs' code.
+
 ## 0.6.0 - July 14, 2025
 
 - Show lemma (Strong's number) and grammar abbreviation when word is long pressed.

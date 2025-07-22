@@ -19,4 +19,18 @@ class Reference {
   String toString() {
     return '$bookId $chapter:$verse${endVerse == null ? '' : '–$endVerse'}';
   }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+
+    return other is Reference &&
+        other.bookId == bookId &&
+        other.chapter == chapter &&
+        other.verse == verse &&
+        other.endVerse == endVerse;
+  }
+
+  @override
+  int get hashCode => Object.hash(bookId, chapter, verse, endVerse);
 }

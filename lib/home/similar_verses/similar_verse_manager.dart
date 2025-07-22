@@ -12,12 +12,15 @@ class SimilarVerseManager {
   Future<void> init(String strongsCode) async {
     final verses = await _db.allWordsForStrongsCode(strongsCode);
     final references =
-        verses.map((wordId) {
-          final (bookId, chapter, verse, _) = extractReferenceFromWordId(
-            wordId,
-          );
-          return Reference(bookId: bookId, chapter: chapter, verse: verse);
-        }).toList();
+        verses
+            .map((wordId) {
+              final (bookId, chapter, verse, _) = extractReferenceFromWordId(
+                wordId,
+              );
+              return Reference(bookId: bookId, chapter: chapter, verse: verse);
+            })
+            .toSet() // Remove duplicates where a word occurs twice in a verse
+            .toList();
     similarVersesNotifier.value = references;
   }
 
