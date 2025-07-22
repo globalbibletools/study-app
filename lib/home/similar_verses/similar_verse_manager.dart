@@ -27,25 +27,30 @@ class SimilarVerseManager {
     Reference reference,
     String strongsCode,
     Color highlightColor,
+    double fontSize,
   ) async {
     final List<HebrewGreekWord> words = await _db.wordsForVerseWithStrongsCode(
       reference,
     );
-    return _formatVerse(words, strongsCode, highlightColor);
+    return _formatVerse(words, strongsCode, highlightColor, fontSize);
   }
+
+  static const maqaph = '־';
 
   TextSpan _formatVerse(
     List<HebrewGreekWord> words,
     String strongsCode,
     Color highlightColor,
+    double fontSize,
   ) {
     final spans = <TextSpan>[];
     for (final word in words) {
       final color = (word.strongsCode == strongsCode) ? highlightColor : null;
+      final text = word.text.endsWith(maqaph) ? word.text : '${word.text} ';
       spans.add(
         TextSpan(
-          text: '${word.text} ',
-          style: TextStyle(fontFamily: 'sbl', color: color),
+          text: text,
+          style: TextStyle(fontFamily: 'sbl', color: color, fontSize: fontSize),
         ),
       );
     }

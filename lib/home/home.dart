@@ -298,7 +298,11 @@ class _HomeScreenState extends State<HomeScreen> {
     showDialog(
       context: context,
       builder:
-          (context) => WordDetailsDialog(wordId: wordId, fontSize: _fontSize),
+          (context) => WordDetailsDialog(
+            wordId: wordId,
+            fontSize: _fontSize,
+            isRtl: manager.currentChapterIsRtl,
+          ),
     );
   }
 }

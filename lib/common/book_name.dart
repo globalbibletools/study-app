@@ -1,3 +1,147 @@
-import 'dart:ui';
+import 'package:flutter/material.dart';
+import 'package:studyapp/l10n/app_localizations.dart';
 
-String? bookNameForId(int bookId, Locale locale) {}
+String bookNameForId(BuildContext context, int bookId) {
+  final l10n = AppLocalizations.of(context)!;
+
+  switch (bookId) {
+    // Old Testament
+    case 1:
+      return l10n.bookGenesis;
+    case 2:
+      return l10n.bookExodus;
+    case 3:
+      return l10n.bookLeviticus;
+    case 4:
+      return l10n.bookNumbers;
+    case 5:
+      return l10n.bookDeuteronomy;
+    case 6:
+      return l10n.bookJoshua;
+    case 7:
+      return l10n.bookJudges;
+    case 8:
+      return l10n.bookRuth;
+    case 9:
+      return l10n.book1Samuel;
+    case 10:
+      return l10n.book2Samuel;
+    case 11:
+      return l10n.book1Kings;
+    case 12:
+      return l10n.book2Kings;
+    case 13:
+      return l10n.book1Chronicles;
+    case 14:
+      return l10n.book2Chronicles;
+    case 15:
+      return l10n.bookEzra;
+    case 16:
+      return l10n.bookNehemiah;
+    case 17:
+      return l10n.bookEsther;
+    case 18:
+      return l10n.bookJob;
+    case 19:
+      return l10n.bookPsalms;
+    case 20:
+      return l10n.bookProverbs;
+    case 21:
+      return l10n.bookEcclesiastes;
+    case 22:
+      return l10n.bookSongOfSolomon;
+    case 23:
+      return l10n.bookIsaiah;
+    case 24:
+      return l10n.bookJeremiah;
+    case 25:
+      return l10n.bookLamentations;
+    case 26:
+      return l10n.bookEzekiel;
+    case 27:
+      return l10n.bookDaniel;
+    case 28:
+      return l10n.bookHosea;
+    case 29:
+      return l10n.bookJoel;
+    case 30:
+      return l10n.bookAmos;
+    case 31:
+      return l10n.bookObadiah;
+    case 32:
+      return l10n.bookJonah;
+    case 33:
+      return l10n.bookMicah;
+    case 34:
+      return l10n.bookNahum;
+    case 35:
+      return l10n.bookHabakkuk;
+    case 36:
+      return l10n.bookZephaniah;
+    case 37:
+      return l10n.bookHaggai;
+    case 38:
+      return l10n.bookZechariah;
+    case 39:
+      return l10n.bookMalachi;
+
+    // New Testament
+    case 40:
+      return l10n.bookMatthew;
+    case 41:
+      return l10n.bookMark;
+    case 42:
+      return l10n.bookLuke;
+    case 43:
+      return l10n.bookJohn;
+    case 44:
+      return l10n.bookActs;
+    case 45:
+      return l10n.bookRomans;
+    case 46:
+      return l10n.book1Corinthians;
+    case 47:
+      return l10n.book2Corinthians;
+    case 48:
+      return l10n.bookGalatians;
+    case 49:
+      return l10n.bookEphesians;
+    case 50:
+      return l10n.bookPhilippians;
+    case 51:
+      return l10n.bookColossians;
+    case 52:
+      return l10n.book1Thessalonians;
+    case 53:
+      return l10n.book2Thessalonians;
+    case 54:
+      return l10n.book1Timothy;
+    case 55:
+      return l10n.book2Timothy;
+    case 56:
+      return l10n.bookTitus;
+    case 57:
+      return l10n.bookPhilemon;
+    case 58:
+      return l10n.bookHebrews;
+    case 59:
+      return l10n.bookJames;
+    case 60:
+      return l10n.book1Peter;
+    case 61:
+      return l10n.book2Peter;
+    case 62:
+      return l10n.book1John;
+    case 63:
+      return l10n.book2John;
+    case 64:
+      return l10n.book3John;
+    case 65:
+      return l10n.bookJude;
+    case 66:
+      return l10n.bookRevelation;
+
+    default:
+      throw ArgumentError('Invalid bookId: $bookId');
+  }
+}

@@ -7,14 +7,16 @@ import 'package:studyapp/home/word_details_dialog/dialog_manager.dart';
 
 /// A dialog that displays detailed information about a single word.
 class WordDetailsDialog extends StatefulWidget {
-  final int wordId;
-  final double fontSize;
-
   const WordDetailsDialog({
     super.key,
     required this.wordId,
     required this.fontSize,
+    required this.isRtl,
   });
+
+  final int wordId;
+  final double fontSize;
+  final bool isRtl;
 
   @override
   State<WordDetailsDialog> createState() => _WordDetailsDialogState();
@@ -98,6 +100,8 @@ class _WordDetailsDialogState extends State<WordDetailsDialog> {
                             builder:
                                 (context) => SimilarVersesPage(
                                   strongsCode: wordDetails.strongsCode,
+                                  fontSize: widget.fontSize,
+                                  isRtl: widget.isRtl,
                                 ),
                           ),
                         );
