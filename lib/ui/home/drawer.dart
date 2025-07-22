@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:studyapp/about/about.dart';
+import 'package:studyapp/ui/about/about.dart';
 import 'package:studyapp/l10n/app_localizations.dart';
-import 'package:studyapp/settings/settings_page.dart';
+import 'package:studyapp/ui/settings/settings_page.dart';
 
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});

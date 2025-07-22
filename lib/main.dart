@@ -6,7 +6,7 @@ import 'package:studyapp/services/service_locator.dart';
 import 'package:studyapp/services/user_settings.dart';
 
 import 'app_state.dart';
-import 'home/home.dart';
+import 'ui/home/home.dart';
 import 'theme.dart';
 
 Future<void> main() async {

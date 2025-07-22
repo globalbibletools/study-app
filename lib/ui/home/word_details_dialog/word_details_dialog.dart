@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:studyapp/home/similar_verses/similar_verses_page.dart';
-import 'package:studyapp/home/word_details_dialog/dialog_manager.dart';
+import 'package:studyapp/ui/home/similar_verses/similar_verses_page.dart';
+import 'package:studyapp/ui/home/word_details_dialog/dialog_manager.dart';
 
 /// A dialog that displays detailed information about a single word.
 class WordDetailsDialog extends StatefulWidget {

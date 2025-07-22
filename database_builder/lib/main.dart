@@ -1,3 +1,5 @@
+// ignore_for_file: unused_element
+
 import 'src/gloss/database.dart';
 import 'src/hebrew_greek/database.dart';
 

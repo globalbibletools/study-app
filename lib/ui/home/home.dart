@@ -2,9 +2,9 @@ import 'dart:async';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:studyapp/common/word.dart';
-import 'package:studyapp/home/drawer.dart';
-import 'package:studyapp/home/hebrew_greek_text.dart';
-import 'package:studyapp/home/word_details_dialog/word_details_dialog.dart';
+import 'package:studyapp/ui/home/drawer.dart';
+import 'package:studyapp/ui/home/hebrew_greek_text.dart';
+import 'package:studyapp/ui/home/word_details_dialog/word_details_dialog.dart';
 import 'package:studyapp/l10n/app_localizations.dart';
 
 import 'book_chooser.dart';
