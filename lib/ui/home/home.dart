@@ -251,7 +251,7 @@ class _HomeScreenState extends State<HomeScreen> {
           popupBackgroundColor: Theme.of(context).colorScheme.inverseSurface,
           popupTextStyle: TextStyle(
             fontFamily: 'sbl',
-            fontSize: _fontSize,
+            fontSize: _fontSize * 0.7,
             color: Theme.of(context).colorScheme.onInverseSurface,
           ),
           popupWordProvider: (wordId) {
