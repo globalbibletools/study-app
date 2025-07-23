@@ -106,7 +106,7 @@ class HebrewGreekDatabase {
     _database.execute('BEGIN TRANSACTION;');
     for (int i = 0; i < list.length; i++) {
       final text = list[i];
-      final normalized = filterAllButHebrewGreekNoDiacritics(text);
+      final normalized = normalizeHebrewGreek(text);
       final id = i + 1;
       map[text] = id;
       stmt.execute([id, text, normalized]);

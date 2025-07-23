@@ -10,7 +10,7 @@ import 'package:studyapp/common/word.dart';
 
 class HebrewGreekDatabase {
   static const _databaseName = 'hebrew_greek.db';
-  static const _databaseVersion = 2;
+  static const _databaseVersion = 3;
   late Database _database;
 
   Future<void> init() async {
@@ -138,44 +138,6 @@ class HebrewGreekDatabase {
     return [];
   }
 
-  // Future<List<HebrewGreekWord>> wordsForVerseWithStrongsCode(
-  //   Reference reference,
-  // ) async {
-  //   final int lowerBound =
-  //       reference.bookId * bookMultiplier +
-  //       reference.chapter * chapterMultiplier +
-  //       reference.verse * verseMultiplier;
-  //   final int upperBound =
-  //       reference.bookId * bookMultiplier +
-  //       reference.chapter * chapterMultiplier +
-  //       (reference.verse + 1) * verseMultiplier;
-
-  //   final List<Map<String, dynamic>> words = await _database.rawQuery(
-  //     'SELECT v.${HebrewGreekSchema.versesColId}, '
-  //     't.${HebrewGreekSchema.textColText}, '
-  //     'l.${HebrewGreekSchema.lemmaColLemma} '
-  //     'FROM ${HebrewGreekSchema.versesTable} v '
-  //     'JOIN ${HebrewGreekSchema.textTable} t '
-  //     'ON v.${HebrewGreekSchema.versesColText} = t.${HebrewGreekSchema.textColId} '
-  //     'JOIN ${HebrewGreekSchema.lemmaTable} l '
-  //     'ON v.${HebrewGreekSchema.versesColLemma} = l.${HebrewGreekSchema.lemmaColId} '
-  //     'WHERE v.${HebrewGreekSchema.versesColId} >= ? AND v.${HebrewGreekSchema.versesColId} < ? '
-  //     'ORDER BY v.${HebrewGreekSchema.versesColId} ASC',
-  //     [lowerBound, upperBound],
-  //   );
-
-  //   return words
-  //       .map(
-  //         (word) => HebrewGreekWord(
-  //           id: word[HebrewGreekSchema.versesColId],
-  //           text: word[HebrewGreekSchema.textColText],
-  //           strongsCode: word[HebrewGreekSchema.lemmaColLemma],
-  //         ),
-  //       )
-  //       .toList();
-  // }
-
-  /// Similar
   Future<List<HebrewGreekWord>> wordsForVerse(
     Reference reference, {
     bool includeStrongs = false,
@@ -244,7 +206,7 @@ class HebrewGreekDatabase {
       return [];
     }
 
-    final String normalizedPrefix = filterAllButHebrewGreekNoDiacritics(prefix);
+    final String normalizedPrefix = normalizeHebrewGreek(prefix);
 
     if (normalizedPrefix.isEmpty) {
       return [];
@@ -277,6 +239,9 @@ class HebrewGreekDatabase {
   }
 
   /// Returns a list of verse word IDs
+  ///
+  /// Normalized means that there is no punctuation, diacritics, or final
+  /// Hebrew letter forms.
   Future<List<int>> getVerseIdsForNormalizedWord(String normalizedWord) async {
     const sql = '''
       SELECT v.${HebrewGreekSchema.versesColId}

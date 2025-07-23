@@ -75,7 +75,7 @@ class _SearchPageState extends State<SearchPage> {
                             final word = w[index];
                             return ListTile(
                               title: Text(
-                                word,
+                                manager.fixHebrewFinalForms(word),
                                 style: TextStyle(fontFamily: 'sbl'),
                               ),
                               onTap: () {
@@ -86,52 +86,19 @@ class _SearchPageState extends State<SearchPage> {
                             searchWord: final word,
                             references: final r,
                           ):
-                            final fontSize = 30.0;
                             final reference = r[index];
                             final formattedReference = _formatReference(
                               reference,
                             );
-                            return FutureBuilder<TextSpan>(
-                              future: manager.getVerseContent(
-                                word,
+                            return VerseListItem(
+                              key: ValueKey(
                                 reference,
-                                Theme.of(context).colorScheme.primary,
-                                fontSize,
-                              ),
-                              builder: (context, snapshot) {
-                                if (snapshot.hasError) {
-                                  return ListTile(
-                                    title: Text(formattedReference),
-                                    subtitle: Text(
-                                      'Error loading verse: ${snapshot.error}',
-                                    ),
-                                  );
-                                }
-                                if (snapshot.connectionState ==
-                                    ConnectionState.done) {
-                                  final verse = snapshot.data!;
-                                  return ListTile(
-                                    title: Text(
-                                      formattedReference,
-                                      style: TextStyle(
-                                        fontFamily: 'sbl',
-                                        fontSize: fontSize,
-                                        color: Theme.of(context).disabledColor,
-                                      ),
-                                    ),
-                                    subtitle: Text.rich(
-                                      verse,
-                                      textDirection: _textDirection,
-                                    ),
-                                  );
-                                } else {
-                                  // Giving the widget a height ensures that the
-                                  // ListView.builder will not try to build the
-                                  // every item in the list just because they all
-                                  // theoretically fit with a zero height.
-                                  return const SizedBox(height: 50);
-                                }
-                              },
+                              ), // Add a key for better performance
+                              manager: manager,
+                              searchWord: word,
+                              reference: reference,
+                              formattedReference: formattedReference,
+                              textDirection: _textDirection,
                             );
                         }
                       },
@@ -150,6 +117,7 @@ class _SearchPageState extends State<SearchPage> {
                   _textDirection = textDirection;
                 });
               },
+              fixHebrewFinalForms: manager.fixHebrewFinalForms,
             ),
           ],
         ),
@@ -160,5 +128,74 @@ class _SearchPageState extends State<SearchPage> {
   String _formatReference(Reference reference) {
     final bookName = bookNameForId(context, reference.bookId);
     return '$bookName ${reference.chapter}:${reference.verse}';
+  }
+}
+
+class VerseListItem extends StatefulWidget {
+  const VerseListItem({
+    super.key,
+    required this.manager,
+    required this.searchWord,
+    required this.reference,
+    required this.formattedReference,
+    required this.textDirection,
+  });
+
+  final SearchPageManager manager;
+  final String searchWord;
+  final Reference reference;
+  final String formattedReference;
+  final TextDirection textDirection;
+
+  @override
+  State<VerseListItem> createState() => _VerseListItemState();
+}
+
+// AutomaticKeepAliveClientMixin prevents the scrollview not to stutter when
+// scrolling back. This is due to the future builder. If we can provide a non-
+// future builder solution later, that would be better.  Maybe by fetching in
+// batches or by sqlite3 synchronous fetches.
+class _VerseListItemState extends State<VerseListItem>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context); // Important: required by the mixin
+
+    final fontSize = 20.0;
+
+    return FutureBuilder<TextSpan>(
+      future: widget.manager.getVerseContent(
+        widget.searchWord,
+        widget.reference,
+        Theme.of(context).colorScheme.primary,
+        fontSize,
+      ),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return ListTile(
+            title: Text(widget.formattedReference),
+            subtitle: Text('Error loading verse: ${snapshot.error}'),
+          );
+        }
+        if (snapshot.connectionState == ConnectionState.done) {
+          final verse = snapshot.data!;
+          return ListTile(
+            title: Text(
+              widget.formattedReference,
+              style: TextStyle(
+                fontFamily: 'sbl',
+                color: Theme.of(context).disabledColor,
+              ),
+            ),
+            subtitle: Text.rich(verse, textDirection: widget.textDirection),
+          );
+        } else {
+          return const SizedBox(height: 75);
+        }
+      },
+    );
   }
 }

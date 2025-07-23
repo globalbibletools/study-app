@@ -8,6 +8,7 @@ class HebrewKeyboard extends StatefulWidget {
   final Color backgroundColor;
   final Color keyColor;
   final Color keyTextColor;
+  final String Function(String)? fixHebrewFinalForms;
 
   const HebrewKeyboard({
     super.key,
@@ -16,6 +17,7 @@ class HebrewKeyboard extends StatefulWidget {
     this.backgroundColor = const Color(0xFFD1D5DB),
     this.keyColor = Colors.white,
     this.keyTextColor = Colors.black,
+    required this.fixHebrewFinalForms,
   });
 
   @override
@@ -41,76 +43,13 @@ class _HebrewKeyboardState extends State<HebrewKeyboard> {
     );
     final newCursorOffset = selection.start + text.length;
 
-    final replacedText = _replaceWithFinalLetterForms(newText);
+    final replacedText = widget.fixHebrewFinalForms?.call(newText) ?? newText;
 
     controller.value = controller.value.copyWith(
       text: replacedText,
       selection: TextSelection.collapsed(offset: newCursorOffset),
       composing: TextRange.empty,
     );
-  }
-
-  /// Automatically replaces Hebrew letters with their final-form counterparts
-  /// (sofit) at the end of words, and corrects final-form letters that are
-  /// mistakenly used in the middle of a word. Letters in isolation stay in regular form.
-  String _replaceWithFinalLetterForms(String text) {
-    // Mapping of regular letters to their final forms.
-    const Map<String, String> finalLetterMap = {
-      'כ': 'ך', // Kaf -> Final Kaf
-      'מ': 'ם', // Mem -> Final Mem
-      'נ': 'ן', // Nun -> Final Nun
-      'פ': 'ף', // Pe -> Final Pe
-      'צ': 'ץ', // Tsadi -> Final Tsadi
-    };
-
-    // Mapping of final-form letters back to their regular forms.
-    const Map<String, String> regularLetterMap = {
-      'ך': 'כ', // Final Kaf -> Kaf
-      'ם': 'מ', // Final Mem -> Mem
-      'ן': 'נ', // Final Nun -> Nun
-      'ף': 'פ', // Final Pe -> Pe
-      'ץ': 'צ', // Final Tsadi -> Tsadi
-    };
-
-    // Regex to find a final-form letter that is followed by another Hebrew
-    // letter (i.e., in the middle of a word).
-    final RegExp regularFormRegex = RegExp(
-      r'[ךםןףץ](?=[\u0590-\u05FF])',
-      unicode: true,
-    );
-
-    // Split the text into words using space and punctuation boundaries.
-    final wordRegex = RegExp(r'\b([\u0590-\u05FF]+)\b', unicode: true);
-    String correctedText = text;
-
-    correctedText = correctedText.replaceAllMapped(wordRegex, (match) {
-      final word = match.group(1)!;
-
-      // Return early if the word is a single Hebrew letter: keep it in regular form
-      if (word.length == 1 && finalLetterMap.containsKey(word)) {
-        return word; // no change
-      }
-
-      String newWord = word;
-
-      // Step 1: Replace any incorrect final-forms used in the middle of the word
-      newWord = newWord.replaceAllMapped(regularFormRegex, (m) {
-        final ch = m.group(0)!;
-        return regularLetterMap[ch]!;
-      });
-
-      // Step 2: Replace regular-form letters at the end with their final form
-      final lastChar = newWord[newWord.length - 1];
-      if (finalLetterMap.containsKey(lastChar)) {
-        newWord =
-            newWord.substring(0, newWord.length - 1) +
-            finalLetterMap[lastChar]!;
-      }
-
-      return newWord;
-    });
-
-    return correctedText;
   }
 
   /// Handles a single backspace press, correctly managing cursor position
@@ -149,7 +88,6 @@ class _HebrewKeyboardState extends State<HebrewKeyboard> {
   @override
   Widget build(BuildContext context) {
     const List<String> row1 = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח'];
-    // const List<String> row2 = ['ט', 'י', 'כ', 'ך', 'ל', 'מ', 'ם', 'נ', 'ן'];
     const List<String> row2 = ['ט', 'י', 'כ', 'ל', 'מ', 'נ', 'ס'];
     const List<String> row3 = ['ע', 'פ', 'צ', 'ק', 'ר', 'ש', 'ת'];
 
@@ -226,7 +164,7 @@ class _HebrewKeyboardState extends State<HebrewKeyboard> {
           onKeyPressed: () => _onKeyPressed(' '),
           keyColor: widget.keyColor,
           textColor: widget.keyTextColor,
-          flex: 2, // Make spacebar wider
+          flex: 2,
         ),
         // Language Change Key
         Expanded(
@@ -257,7 +195,6 @@ class _HebrewKeyboardState extends State<HebrewKeyboard> {
   }
 }
 
-// A private class for the individual keys to reduce code duplication.
 class _KeyboardKey extends StatelessWidget {
   final String text;
   final VoidCallback onKeyPressed;
