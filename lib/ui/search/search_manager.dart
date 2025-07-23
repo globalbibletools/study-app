@@ -80,8 +80,7 @@ class SearchPageManager {
   /// (sofit) at the end of words, and corrects final-form letters that are
   /// mistakenly used in the middle of a word. Letters in isolation stay in regular form.
   String fixHebrewFinalForms(String text) {
-    // Mapping of regular letters to their final forms.
-    const Map<String, String> finalLetterMap = {
+    const finalLetterMap = {
       'כ': 'ך', // Kaf -> Final Kaf
       'מ': 'ם', // Mem -> Final Mem
       'נ': 'ן', // Nun -> Final Nun
@@ -89,8 +88,7 @@ class SearchPageManager {
       'צ': 'ץ', // Tsadi -> Final Tsadi
     };
 
-    // Mapping of final-form letters back to their regular forms.
-    const Map<String, String> regularLetterMap = {
+    const regularLetterMap = {
       'ך': 'כ', // Final Kaf -> Kaf
       'ם': 'מ', // Final Mem -> Mem
       'ן': 'נ', // Final Nun -> Nun

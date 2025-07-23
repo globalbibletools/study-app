@@ -17,12 +17,15 @@ class _SearchPageState extends State<SearchPage> {
   final manager = SearchPageManager();
   late final TextEditingController _controller;
   TextDirection _textDirection = TextDirection.rtl;
+  final _focusNode = FocusNode();
+  bool _isKeyboardVisible = true;
 
   @override
   void initState() {
     super.initState();
     _controller = TextEditingController();
     _controller.addListener(_onTextChanged);
+    _focusNode.addListener(_onFocusChange);
   }
 
   void _onTextChanged() {
@@ -30,10 +33,33 @@ class _SearchPageState extends State<SearchPage> {
     manager.searchWordPrefix(prefix);
   }
 
+  void _onFocusChange() {
+    // Update the state to show/hide the keyboard when focus changes
+    if (_focusNode.hasFocus != _isKeyboardVisible) {
+      setState(() {
+        _isKeyboardVisible = _focusNode.hasFocus;
+      });
+    }
+  }
+
+  void _updateControllerWithoutTriggeringSearch(String text) {
+    _controller.removeListener(_onTextChanged);
+
+    // Update the controller's text and move the cursor to the end.
+    _controller.text = text;
+    _controller.selection = TextSelection.fromPosition(
+      TextPosition(offset: _controller.text.length),
+    );
+
+    _controller.addListener(_onTextChanged);
+  }
+
   @override
   void dispose() {
     _controller.removeListener(_onTextChanged);
     _controller.dispose();
+    _focusNode.removeListener(_onFocusChange);
+    _focusNode.dispose();
     super.dispose();
   }
 
@@ -49,13 +75,30 @@ class _SearchPageState extends State<SearchPage> {
               child: TextField(
                 controller: _controller,
                 autofocus: true,
+                focusNode: _focusNode,
                 readOnly: true, // non-editable by the system keyboard
                 showCursor: true,
                 textDirection: _textDirection,
                 style: const TextStyle(fontSize: 24, fontFamily: 'sbl'),
-                decoration: const InputDecoration(border: OutlineInputBorder()),
+                decoration: InputDecoration(
+                  border: OutlineInputBorder(),
+                  suffixIcon: IconButton(
+                    onPressed: () {
+                      _controller.clear();
+                      // _focusNode.requestFocus();
+                    },
+                    icon: const Icon(Icons.clear),
+                  ),
+                ),
                 onTapOutside: (event) {
                   // empty to prevent losing focus
+                },
+                onTap: () {
+                  // If tapped while unfocused, request focus and show word results again
+                  if (!_focusNode.hasFocus) {
+                    _focusNode.requestFocus();
+                    manager.searchWordPrefix(_controller.text);
+                  }
                 },
               ),
             ),
@@ -79,7 +122,9 @@ class _SearchPageState extends State<SearchPage> {
                                 style: TextStyle(fontFamily: 'sbl'),
                               ),
                               onTap: () {
+                                _updateControllerWithoutTriggeringSearch(word);
                                 manager.searchVerses(word);
+                                _focusNode.unfocus();
                               },
                             );
                           case VerseSearchResults(
@@ -107,18 +152,19 @@ class _SearchPageState extends State<SearchPage> {
                 },
               ),
             ),
-            HebrewKeyboard(
-              controller: _controller,
-              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-              keyColor: Theme.of(context).colorScheme.surface,
-              keyTextColor: Theme.of(context).colorScheme.onSurface,
-              onLanguageChange: (textDirection) {
-                setState(() {
-                  _textDirection = textDirection;
-                });
-              },
-              fixHebrewFinalForms: manager.fixHebrewFinalForms,
-            ),
+            if (_isKeyboardVisible)
+              HebrewKeyboard(
+                controller: _controller,
+                backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+                keyColor: Theme.of(context).colorScheme.surface,
+                keyTextColor: Theme.of(context).colorScheme.onSurface,
+                onLanguageChange: (textDirection) {
+                  setState(() {
+                    _textDirection = textDirection;
+                  });
+                },
+                fixHebrewFinalForms: manager.fixHebrewFinalForms,
+              ),
           ],
         ),
       ),
