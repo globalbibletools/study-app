@@ -185,7 +185,7 @@ class HebrewGreekDatabase {
   ///
   /// Returns a `Future<List<String>>` containing the matching words with their
   /// original formatting.
-  Future<List<String>> getWordsStartingWith(String prefix) async {
+  Future<List<String>> getWordsStartingWith(String prefix, {int? limit}) async {
     if (prefix.isEmpty) {
       return [];
     }
@@ -198,18 +198,24 @@ class HebrewGreekDatabase {
 
     // Query the 'normalized' column, but SELECT the original 'text' column.
     // We no longer need 'COLLATE NOCASE' because we handle it in Dart.
-    final String sql =
-        'SELECT DISTINCT ${HebrewGreekSchema.textColText} '
+    String sql =
+        'SELECT DISTINCT ${HebrewGreekSchema.textColNormalized} '
         'FROM ${HebrewGreekSchema.textTable} '
         'WHERE ${HebrewGreekSchema.textColNormalized} LIKE ?';
 
     final pattern = '$normalizedPrefix%';
+    final List<Object> arguments = [pattern];
+    if (limit != null && limit > 0) {
+      sql += ' LIMIT ?';
+      arguments.add(limit);
+    }
 
-    final maps = await _database.rawQuery(sql, [pattern]);
+    // Execute the query with the dynamically built SQL and arguments.
+    final maps = await _database.rawQuery(sql, arguments);
 
     if (maps.isNotEmpty) {
       return maps
-          .map((map) => map[HebrewGreekSchema.textColText] as String)
+          .map((map) => map[HebrewGreekSchema.textColNormalized] as String)
           .toList();
     }
 

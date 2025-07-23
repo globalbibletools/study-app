@@ -14,7 +14,7 @@ class SearchPage extends StatefulWidget {
 class _SearchPageState extends State<SearchPage> {
   final manager = SearchPageManager();
   late final TextEditingController _controller;
-  final FocusNode _focusNode = FocusNode();
+  TextDirection _textDirection = TextDirection.rtl;
 
   @override
   void initState() {
@@ -32,7 +32,6 @@ class _SearchPageState extends State<SearchPage> {
   void dispose() {
     _controller.removeListener(_onTextChanged);
     _controller.dispose();
-    _focusNode.dispose();
     super.dispose();
   }
 
@@ -47,30 +46,35 @@ class _SearchPageState extends State<SearchPage> {
               padding: const EdgeInsets.only(left: 16, top: 8, right: 16),
               child: TextField(
                 controller: _controller,
-                focusNode: _focusNode,
+                autofocus: true,
                 readOnly: true, // non-editable by the system keyboard
                 showCursor: true,
-                textDirection: TextDirection.rtl,
+                textDirection: _textDirection,
                 style: const TextStyle(fontSize: 24, fontFamily: 'sbl'),
                 decoration: const InputDecoration(border: OutlineInputBorder()),
                 onTapOutside: (event) {
                   // empty to prevent losing focus
                 },
-                // onChanged: (value) {
-                //   manager.search(value);
-                // },
               ),
             ),
             Expanded(
               child: ValueListenableBuilder(
                 valueListenable: manager.resultsNotifier,
                 builder: (context, results, child) {
-                  return ListView.builder(
-                    itemCount: results.length,
-                    itemBuilder: (context, index) {
-                      final word = results[index];
-                      return ListTile(title: Text(word));
-                    },
+                  return Directionality(
+                    textDirection: _textDirection,
+                    child: ListView.builder(
+                      itemCount: results.length,
+                      itemBuilder: (context, index) {
+                        final word = results[index];
+                        return ListTile(
+                          title: Text(
+                            word,
+                            style: TextStyle(fontFamily: 'sbl'),
+                          ),
+                        );
+                      },
+                    ),
                   );
                 },
               ),
@@ -80,7 +84,11 @@ class _SearchPageState extends State<SearchPage> {
               backgroundColor: Theme.of(context).scaffoldBackgroundColor,
               keyColor: Theme.of(context).colorScheme.surface,
               keyTextColor: Theme.of(context).colorScheme.onSurface,
-              onLanguageChange: () {},
+              onLanguageChange: (textDirection) {
+                setState(() {
+                  _textDirection = textDirection;
+                });
+              },
             ),
           ],
         ),

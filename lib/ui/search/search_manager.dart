@@ -8,7 +8,10 @@ class SearchPageManager {
 
   Future<void> search(String prefix) async {
     print('searching for $prefix');
-    final results = await _hebrewGreekDb.getWordsStartingWith(prefix);
+    final results = await _hebrewGreekDb.getWordsStartingWith(
+      prefix,
+      limit: 100,
+    );
     print('results: $results');
     resultsNotifier.value = results;
   }

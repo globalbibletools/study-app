@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 /// A custom in-app keyboard for the Hebrew alphabet.
 class HebrewKeyboard extends StatefulWidget {
   final TextEditingController controller;
-  final VoidCallback? onLanguageChange;
+  final void Function(TextDirection)? onLanguageChange;
   final Color backgroundColor;
   final Color keyColor;
   final Color keyTextColor;
@@ -23,6 +23,8 @@ class HebrewKeyboard extends StatefulWidget {
 }
 
 class _HebrewKeyboardState extends State<HebrewKeyboard> {
+  bool _isHebrew = true;
+
   /// Handles the press of a standard letter or space key.
   /// This method atomically updates the controller's text and selection.
   void _onKeyPressed(String text) {
@@ -50,7 +52,7 @@ class _HebrewKeyboardState extends State<HebrewKeyboard> {
 
   /// Automatically replaces Hebrew letters with their final-form counterparts
   /// (sofit) at the end of words, and corrects final-form letters that are
-  /// mistakenly used in the middle of a word.
+  /// mistakenly used in the middle of a word. Letters in isolation stay in regular form.
   String _replaceWithFinalLetterForms(String text) {
     // Mapping of regular letters to their final forms.
     const Map<String, String> finalLetterMap = {
@@ -70,28 +72,42 @@ class _HebrewKeyboardState extends State<HebrewKeyboard> {
       'ץ': 'צ', // Final Tsadi -> Tsadi
     };
 
-    // Regex to find a final-form letter that is followed by another Hebrew letter.
+    // Regex to find a final-form letter that is followed by another Hebrew
+    // letter (i.e., in the middle of a word).
     final RegExp regularFormRegex = RegExp(
       r'[ךםןףץ](?=[\u0590-\u05FF])',
       unicode: true,
     );
 
-    // Regex to find a regular-form letter that should be a final form.
-    final RegExp finalFormRegex = RegExp(
-      r'[כמנפצ](?![\u0590-\u05FF])',
-      unicode: true,
-    );
+    // Split the text into words using space and punctuation boundaries.
+    final wordRegex = RegExp(r'\b([\u0590-\u05FF]+)\b', unicode: true);
+    String correctedText = text;
 
-    // --- Step 1: Correct any final letters that are now in the middle of a word.
-    String correctedText = text.replaceAllMapped(regularFormRegex, (match) {
-      final matchedChar = match.group(0)!;
-      return regularLetterMap[matchedChar]!;
-    });
+    correctedText = correctedText.replaceAllMapped(wordRegex, (match) {
+      final word = match.group(1)!;
 
-    // --- Step 2: Convert letters at the end of words to their final form.
-    correctedText = correctedText.replaceAllMapped(finalFormRegex, (match) {
-      final matchedChar = match.group(0)!;
-      return finalLetterMap[matchedChar]!;
+      // Return early if the word is a single Hebrew letter: keep it in regular form
+      if (word.length == 1 && finalLetterMap.containsKey(word)) {
+        return word; // no change
+      }
+
+      String newWord = word;
+
+      // Step 1: Replace any incorrect final-forms used in the middle of the word
+      newWord = newWord.replaceAllMapped(regularFormRegex, (m) {
+        final ch = m.group(0)!;
+        return regularLetterMap[ch]!;
+      });
+
+      // Step 2: Replace regular-form letters at the end with their final form
+      final lastChar = newWord[newWord.length - 1];
+      if (finalLetterMap.containsKey(lastChar)) {
+        newWord =
+            newWord.substring(0, newWord.length - 1) +
+            finalLetterMap[lastChar]!;
+      }
+
+      return newWord;
     });
 
     return correctedText;
@@ -227,7 +243,10 @@ class _HebrewKeyboardState extends State<HebrewKeyboard> {
               ),
               onPressed: () {
                 HapticFeedback.lightImpact();
-                widget.onLanguageChange?.call();
+                _isHebrew != _isHebrew;
+                final direction =
+                    _isHebrew ? TextDirection.rtl : TextDirection.ltr;
+                widget.onLanguageChange?.call(direction);
               },
               child: Icon(Icons.language, size: 24, color: widget.keyTextColor),
             ),
