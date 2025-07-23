@@ -1,3 +1,8 @@
+## 0.8.0
+
+- Fix text size and line wrapping problems on longpress dialog.
+- Fuzzy search (no diacritics) for Hebrew and Greek.
+
 ## 0.7.0 - July 22, 2025
 
 - Improve presentation when word is long pressed.

@@ -138,9 +138,48 @@ class HebrewGreekDatabase {
     return [];
   }
 
-  Future<List<HebrewGreekWord>> wordsForVerseWithStrongsCode(
-    Reference reference,
-  ) async {
+  // Future<List<HebrewGreekWord>> wordsForVerseWithStrongsCode(
+  //   Reference reference,
+  // ) async {
+  //   final int lowerBound =
+  //       reference.bookId * bookMultiplier +
+  //       reference.chapter * chapterMultiplier +
+  //       reference.verse * verseMultiplier;
+  //   final int upperBound =
+  //       reference.bookId * bookMultiplier +
+  //       reference.chapter * chapterMultiplier +
+  //       (reference.verse + 1) * verseMultiplier;
+
+  //   final List<Map<String, dynamic>> words = await _database.rawQuery(
+  //     'SELECT v.${HebrewGreekSchema.versesColId}, '
+  //     't.${HebrewGreekSchema.textColText}, '
+  //     'l.${HebrewGreekSchema.lemmaColLemma} '
+  //     'FROM ${HebrewGreekSchema.versesTable} v '
+  //     'JOIN ${HebrewGreekSchema.textTable} t '
+  //     'ON v.${HebrewGreekSchema.versesColText} = t.${HebrewGreekSchema.textColId} '
+  //     'JOIN ${HebrewGreekSchema.lemmaTable} l '
+  //     'ON v.${HebrewGreekSchema.versesColLemma} = l.${HebrewGreekSchema.lemmaColId} '
+  //     'WHERE v.${HebrewGreekSchema.versesColId} >= ? AND v.${HebrewGreekSchema.versesColId} < ? '
+  //     'ORDER BY v.${HebrewGreekSchema.versesColId} ASC',
+  //     [lowerBound, upperBound],
+  //   );
+
+  //   return words
+  //       .map(
+  //         (word) => HebrewGreekWord(
+  //           id: word[HebrewGreekSchema.versesColId],
+  //           text: word[HebrewGreekSchema.textColText],
+  //           strongsCode: word[HebrewGreekSchema.lemmaColLemma],
+  //         ),
+  //       )
+  //       .toList();
+  // }
+
+  /// Similar
+  Future<List<HebrewGreekWord>> wordsForVerse(
+    Reference reference, {
+    bool includeStrongs = false,
+  }) async {
     const int bookMultiplier = 100000000;
     const int chapterMultiplier = 100000;
     const int verseMultiplier = 100;
@@ -153,17 +192,32 @@ class HebrewGreekDatabase {
         reference.chapter * chapterMultiplier +
         (reference.verse + 1) * verseMultiplier;
 
-    final List<Map<String, dynamic>> words = await _database.rawQuery(
+    final sql = StringBuffer();
+    sql.write(
       'SELECT v.${HebrewGreekSchema.versesColId}, '
-      't.${HebrewGreekSchema.textColText}, '
-      'l.${HebrewGreekSchema.lemmaColLemma} '
+      't.${HebrewGreekSchema.textColText} ',
+    );
+    if (includeStrongs) {
+      sql.write(', l.${HebrewGreekSchema.lemmaColLemma} ');
+    }
+    sql.write(
       'FROM ${HebrewGreekSchema.versesTable} v '
       'JOIN ${HebrewGreekSchema.textTable} t '
-      'ON v.${HebrewGreekSchema.versesColText} = t.${HebrewGreekSchema.textColId} '
-      'JOIN ${HebrewGreekSchema.lemmaTable} l '
-      'ON v.${HebrewGreekSchema.versesColLemma} = l.${HebrewGreekSchema.lemmaColId} '
+      'ON v.${HebrewGreekSchema.versesColText} = t.${HebrewGreekSchema.textColId} ',
+    );
+    if (includeStrongs) {
+      sql.write(
+        'JOIN ${HebrewGreekSchema.lemmaTable} l '
+        'ON v.${HebrewGreekSchema.versesColLemma} = l.${HebrewGreekSchema.lemmaColId} ',
+      );
+    }
+    sql.write(
       'WHERE v.${HebrewGreekSchema.versesColId} >= ? AND v.${HebrewGreekSchema.versesColId} < ? '
       'ORDER BY v.${HebrewGreekSchema.versesColId} ASC',
+    );
+
+    final List<Map<String, dynamic>> words = await _database.rawQuery(
+      sql.toString(),
       [lowerBound, upperBound],
     );
 
@@ -220,5 +274,28 @@ class HebrewGreekDatabase {
     }
 
     return [];
+  }
+
+  /// Returns a list of verse word IDs
+  Future<List<int>> getVerseIdsForNormalizedWord(String normalizedWord) async {
+    const sql = '''
+      SELECT v.${HebrewGreekSchema.versesColId}
+      FROM ${HebrewGreekSchema.versesTable} v
+      INNER JOIN ${HebrewGreekSchema.textTable} t 
+      ON v.${HebrewGreekSchema.versesColText} = t.${HebrewGreekSchema.textColId}
+      WHERE t.${HebrewGreekSchema.textColNormalized} = ?
+    ''';
+
+    final List<Map<String, dynamic>> maps = await _database.rawQuery(sql, [
+      normalizedWord,
+    ]);
+
+    if (maps.isEmpty) {
+      return [];
+    }
+
+    return List.generate(maps.length, (i) {
+      return maps[i][HebrewGreekSchema.versesColId] as int;
+    });
   }
 }

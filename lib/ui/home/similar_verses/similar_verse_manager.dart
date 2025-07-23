@@ -10,17 +10,9 @@ class SimilarVerseManager {
   final similarVersesNotifier = ValueNotifier<List<Reference>>([]);
 
   Future<void> init(String strongsCode) async {
-    final verses = await _db.allWordsForStrongsCode(strongsCode);
+    final verseIds = await _db.allWordsForStrongsCode(strongsCode);
     final references =
-        verses
-            .map((wordId) {
-              final (bookId, chapter, verse, _) = extractReferenceFromWordId(
-                wordId,
-              );
-              return Reference(bookId: bookId, chapter: chapter, verse: verse);
-            })
-            .toSet() // Remove duplicates where a word occurs twice in a verse
-            .toList();
+        verseIds.map(extractReferenceFromWordId).toSet().toList();
     similarVersesNotifier.value = references;
   }
 
@@ -32,8 +24,9 @@ class SimilarVerseManager {
     Color highlightColor,
     double fontSize,
   ) async {
-    final List<HebrewGreekWord> words = await _db.wordsForVerseWithStrongsCode(
+    final List<HebrewGreekWord> words = await _db.wordsForVerse(
       reference,
+      includeStrongs: true,
     );
     return _formatVerse(words, strongsCode, highlightColor, fontSize);
   }
