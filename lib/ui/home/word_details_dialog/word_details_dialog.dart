@@ -30,6 +30,8 @@ class _WordDetailsDialogState extends State<WordDetailsDialog> {
   Rect? _grammarPanelRect;
   Timer? _grammarPopupTimer;
 
+  static const fontSize = 30.0;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -37,13 +39,10 @@ class _WordDetailsDialogState extends State<WordDetailsDialog> {
     manager.init(locale, widget.wordId);
     highlightStyle = TextStyle(
       fontFamily: 'sbl',
-      fontSize: widget.fontSize * 0.7,
+      fontSize: fontSize * 0.6,
       color: Theme.of(context).colorScheme.primary,
     );
-    defaultStyle = TextStyle(
-      fontFamily: 'sbl',
-      fontSize: widget.fontSize * 0.7,
-    );
+    defaultStyle = TextStyle(fontFamily: 'sbl', fontSize: fontSize * 0.6);
   }
 
   @override
@@ -73,26 +72,24 @@ class _WordDetailsDialogState extends State<WordDetailsDialog> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    SelectableText(
-                      wordDetails.word,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontFamily: 'sbl',
-                        fontSize: widget.fontSize * 2,
+                    FittedBox(
+                      child: SelectableText(
+                        wordDetails.word,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontFamily: 'sbl',
+                          fontSize: fontSize * 2,
+                        ),
                       ),
                     ),
-                    SelectableText.rich(
-                      _buildTappableGrammar(wordDetails.grammar),
+                    FittedBox(
+                      child: SelectableText.rich(
+                        _buildTappableGrammar(wordDetails.grammar),
+                      ),
                     ),
                     const SizedBox(height: 16),
-                    SelectableText(
-                      wordDetails.gloss,
-                      textAlign: TextAlign.center,
-                      style: defaultStyle,
-                    ),
-                    const SizedBox(height: 16),
-                    TextButton(
-                      child: Text(wordDetails.strongsCode, style: defaultStyle),
+                    OutlinedButton(
+                      child: Text('See other uses', style: defaultStyle),
                       onPressed: () {
                         Navigator.push(
                           context,
@@ -106,6 +103,14 @@ class _WordDetailsDialogState extends State<WordDetailsDialog> {
                           ),
                         );
                       },
+                    ),
+                    const SizedBox(height: 16),
+                    FittedBox(
+                      child: SelectableText(
+                        wordDetails.gloss,
+                        textAlign: TextAlign.center,
+                        style: defaultStyle,
+                      ),
                     ),
                   ],
                 ),
@@ -122,7 +127,7 @@ class _WordDetailsDialogState extends State<WordDetailsDialog> {
 
   Widget _buildGrammarExpansionPanel() {
     final screenSize = MediaQuery.sizeOf(context);
-    final bottomPosition = screenSize.height - _grammarPanelRect!.top + 32.0;
+    final bottomPosition = screenSize.height - _grammarPanelRect!.top + 26.0;
     final padding = 20.0;
     final maxWidth = _grammarPanelRect!.width + 2 * padding;
 
