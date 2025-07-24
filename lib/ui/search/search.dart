@@ -29,12 +29,10 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   void _onTextChanged() {
-    final prefix = _controller.text;
-    manager.searchWordPrefix(prefix);
+    manager.searchWordPrefix(_controller.value);
   }
 
   void _onFocusChange() {
-    // Update the state to show/hide the keyboard when focus changes
     if (_focusNode.hasFocus != _isKeyboardVisible) {
       setState(() {
         _isKeyboardVisible = _focusNode.hasFocus;
@@ -42,11 +40,12 @@ class _SearchPageState extends State<SearchPage> {
     }
   }
 
-  void _updateControllerWithoutTriggeringSearch(String text) {
+  void _updateControllerWithoutTriggeringSearch(String word) {
     _controller.removeListener(_onTextChanged);
 
     // Update the controller's text and move the cursor to the end.
-    _controller.text = text;
+    final replaced = manager.replaceWordAtCursor(_controller.value, word);
+    _controller.text = replaced;
     _controller.selection = TextSelection.fromPosition(
       TextPosition(offset: _controller.text.length),
     );
@@ -68,104 +67,105 @@ class _SearchPageState extends State<SearchPage> {
     return Scaffold(
       appBar: AppBar(title: Text(AppLocalizations.of(context)!.search)),
       body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(left: 16, top: 8, right: 16),
-              child: TextField(
-                controller: _controller,
-                autofocus: true,
-                focusNode: _focusNode,
-                readOnly: true, // non-editable by the system keyboard
-                showCursor: true,
-                textDirection: _textDirection,
-                style: const TextStyle(fontSize: 24, fontFamily: 'sbl'),
-                decoration: InputDecoration(
-                  border: OutlineInputBorder(),
-                  suffixIcon: IconButton(
-                    onPressed: () {
-                      _controller.clear();
-                      // _focusNode.requestFocus();
-                    },
-                    icon: const Icon(Icons.clear),
-                  ),
-                ),
-                onTapOutside: (event) {
-                  // empty to prevent losing focus
-                },
-                onTap: () {
-                  // If tapped while unfocused, request focus and show word results again
-                  if (!_focusNode.hasFocus) {
-                    _focusNode.requestFocus();
-                    manager.searchWordPrefix(_controller.text);
-                  }
-                },
-              ),
-            ),
-            Expanded(
-              child: ValueListenableBuilder<SearchResults>(
-                valueListenable: manager.resultsNotifier,
-                builder: (context, results, child) {
-                  return Directionality(
-                    textDirection: _textDirection,
-                    child: ListView.builder(
-                      itemCount: results.length,
-                      itemBuilder: (context, index) {
-                        switch (results) {
-                          case NoResults():
-                            return const SizedBox();
-                          case WordSearchResults(words: final w):
-                            final word = w[index];
-                            return ListTile(
-                              title: Text(
-                                manager.fixHebrewFinalForms(word),
-                                style: TextStyle(fontFamily: 'sbl'),
-                              ),
-                              onTap: () {
-                                _updateControllerWithoutTriggeringSearch(word);
-                                manager.searchVerses(word);
-                                _focusNode.unfocus();
-                              },
-                            );
-                          case VerseSearchResults(
-                            searchWord: final word,
-                            references: final r,
-                          ):
-                            final reference = r[index];
-                            final formattedReference = _formatReference(
-                              reference,
-                            );
-                            return VerseListItem(
-                              key: ValueKey(
-                                reference,
-                              ), // Add a key for better performance
-                              manager: manager,
-                              searchWord: word,
-                              reference: reference,
-                              formattedReference: formattedReference,
-                              textDirection: _textDirection,
-                            );
-                        }
+        child: Directionality(
+          textDirection: _textDirection,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(left: 16, top: 8, right: 16),
+                child: TextField(
+                  controller: _controller,
+                  autofocus: true,
+                  focusNode: _focusNode,
+                  readOnly: true, // non-editable by the system keyboard
+                  showCursor: true,
+                  style: const TextStyle(fontSize: 24, fontFamily: 'sbl'),
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(),
+                    suffixIcon: IconButton(
+                      onPressed: () {
+                        _controller.clear();
+                        manager.searchWordPrefix(_controller.value);
                       },
+                      icon: const Icon(Icons.clear),
                     ),
-                  );
-                },
+                  ),
+                  onTapOutside: (event) {
+                    // empty to prevent losing focus
+                  },
+                  onTap: () {
+                    if (!_focusNode.hasFocus) {
+                      _focusNode.requestFocus();
+                      manager.searchWordPrefix(_controller.value);
+                    }
+                  },
+                ),
               ),
-            ),
-            if (_isKeyboardVisible)
-              HebrewKeyboard(
-                controller: _controller,
-                backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-                keyColor: Theme.of(context).colorScheme.surface,
-                keyTextColor: Theme.of(context).colorScheme.onSurface,
-                onLanguageChange: (textDirection) {
-                  setState(() {
-                    _textDirection = textDirection;
-                  });
-                },
-                fixHebrewFinalForms: manager.fixHebrewFinalForms,
+              Expanded(
+                child: ValueListenableBuilder<SearchResults>(
+                  valueListenable: manager.resultsNotifier,
+                  builder: (context, results, child) {
+                    return Directionality(
+                      textDirection: _textDirection,
+                      child: ListView.builder(
+                        itemCount: results.length,
+                        itemBuilder: (context, index) {
+                          switch (results) {
+                            case NoResults():
+                              return const SizedBox();
+                            case WordSearchResults(words: final w):
+                              final word = w[index];
+                              return ListTile(
+                                title: Text(
+                                  manager.fixHebrewFinalForms(word),
+                                  style: TextStyle(fontFamily: 'sbl'),
+                                ),
+                                onTap: () {
+                                  _updateControllerWithoutTriggeringSearch(
+                                    word,
+                                  );
+                                  manager.searchVerses(_controller.text);
+                                  _focusNode.unfocus();
+                                },
+                              );
+                            case VerseSearchResults(
+                              searchWords: final words,
+                              references: final r,
+                            ):
+                              final reference = r[index];
+                              final formattedReference = _formatReference(
+                                reference,
+                              );
+                              return VerseListItem(
+                                key: ValueKey(reference),
+                                manager: manager,
+                                searchWords: words,
+                                reference: reference,
+                                formattedReference: formattedReference,
+                                textDirection: _textDirection,
+                              );
+                          }
+                        },
+                      ),
+                    );
+                  },
+                ),
               ),
-          ],
+              if (_isKeyboardVisible)
+                HebrewKeyboard(
+                  controller: _controller,
+                  backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+                  keyColor: Theme.of(context).colorScheme.surface,
+                  keyTextColor: Theme.of(context).colorScheme.onSurface,
+                  onLanguageChange: (textDirection) {
+                    setState(() {
+                      _textDirection = textDirection;
+                    });
+                  },
+                  fixHebrewFinalForms: manager.fixHebrewFinalForms,
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -181,14 +181,14 @@ class VerseListItem extends StatefulWidget {
   const VerseListItem({
     super.key,
     required this.manager,
-    required this.searchWord,
+    required this.searchWords,
     required this.reference,
     required this.formattedReference,
     required this.textDirection,
   });
 
   final SearchPageManager manager;
-  final String searchWord;
+  final List<String> searchWords;
   final Reference reference;
   final String formattedReference;
   final TextDirection textDirection;
@@ -214,7 +214,7 @@ class _VerseListItemState extends State<VerseListItem>
 
     return FutureBuilder<TextSpan>(
       future: widget.manager.getVerseContent(
-        widget.searchWord,
+        widget.searchWords,
         widget.reference,
         Theme.of(context).colorScheme.primary,
         fontSize,

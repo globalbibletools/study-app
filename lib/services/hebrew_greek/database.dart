@@ -238,29 +238,68 @@ class HebrewGreekDatabase {
     return [];
   }
 
-  /// Returns a list of verse word IDs
+  /// Searches for verses containing one or more normalized words.
   ///
-  /// Normalized means that there is no punctuation, diacritics, or final
-  /// Hebrew letter forms.
-  Future<List<int>> getVerseIdsForNormalizedWord(String normalizedWord) async {
-    const sql = '''
-      SELECT v.${HebrewGreekSchema.versesColId}
-      FROM ${HebrewGreekSchema.versesTable} v
-      INNER JOIN ${HebrewGreekSchema.textTable} t 
+  /// If more than one word is provided, it returns verses that contain ALL of them.
+  ///
+  /// Returns a list of `Reference` objects for each matching verse.
+  Future<List<Reference>> searchVersesByNormalizedWords(
+    List<String> normalizedWords,
+  ) async {
+    // Return early for an empty search to avoid an invalid SQL query.
+    if (normalizedWords.isEmpty) {
+      return [];
+    }
+
+    // Using a Set handles duplicate search terms automatically.
+    final uniqueWords = normalizedWords.toSet().toList();
+
+    final placeholders = List.filled(uniqueWords.length, '?').join(', ');
+
+    // This calculation creates a unique ID for each verse.
+    // e.g., Genesis 1:1 -> 1001001
+    final verseIdCalc = 'v.${HebrewGreekSchema.versesColId} / 100';
+
+    final sql = '''
+    SELECT
+      $verseIdCalc AS verse_id
+    FROM
+      ${HebrewGreekSchema.versesTable} v
+    INNER JOIN
+      ${HebrewGreekSchema.textTable} t 
       ON v.${HebrewGreekSchema.versesColText} = t.${HebrewGreekSchema.textColId}
-      WHERE t.${HebrewGreekSchema.textColNormalized} = ?
+    WHERE
+      t.${HebrewGreekSchema.textColNormalized} IN ($placeholders)
+    GROUP BY
+      verse_id
+    HAVING
+      COUNT(DISTINCT t.${HebrewGreekSchema.textColNormalized}) = ?
+    ORDER BY
+      verse_id ASC
     ''';
 
-    final List<Map<String, dynamic>> maps = await _database.rawQuery(sql, [
-      normalizedWord,
-    ]);
+    final List<dynamic> arguments = [...uniqueWords, uniqueWords.length];
+
+    final List<Map<String, dynamic>> maps = await _database.rawQuery(
+      sql,
+      arguments,
+    );
 
     if (maps.isEmpty) {
       return [];
     }
 
-    return List.generate(maps.length, (i) {
-      return maps[i][HebrewGreekSchema.versesColId] as int;
-    });
+    // Map the list of verse IDs to a list of Reference objects.
+    return maps.map((map) {
+      final int verseId = map['verse_id'] as int;
+
+      // Decode the verseId into its components.
+      final int bookId = verseId ~/ 1000000;
+      final int remainder = verseId % 1000000;
+      final int chapter = remainder ~/ 1000;
+      final int verse = remainder % 1000;
+
+      return Reference(bookId: bookId, chapter: chapter, verse: verse);
+    }).toList();
   }
 }

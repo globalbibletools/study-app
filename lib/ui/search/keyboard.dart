@@ -147,14 +147,14 @@ class _HebrewKeyboardState extends State<HebrewKeyboard> {
                 padding: const EdgeInsets.symmetric(vertical: 16.0),
               ),
               onPressed: _onBackspacePressed,
-              child: Transform.scale(
-                scaleX: -1,
-                child: Icon(
-                  Icons.backspace_outlined,
-                  size: 24,
-                  color: widget.keyTextColor,
-                ),
+              // child: Transform.scale(
+              //   scaleX: 1,
+              child: Icon(
+                Icons.backspace_outlined,
+                size: 24,
+                color: widget.keyTextColor,
               ),
+              // ),
             ),
           ),
         ),

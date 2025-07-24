@@ -1,6 +1,7 @@
 import 'package:database_builder/database_builder.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
+import 'package:flutter/services.dart';
 import 'package:studyapp/common/reference.dart';
 import 'package:studyapp/common/word.dart';
 import 'package:studyapp/services/hebrew_greek/database.dart';
@@ -8,11 +9,18 @@ import 'package:studyapp/services/service_locator.dart';
 
 class SearchPageManager {
   final resultsNotifier = ValueNotifier<SearchResults>(NoResults());
-  // final versesNotifier = ValueNotifier<List<Reference>>([]);
-
   final _hebrewGreekDb = getIt<HebrewGreekDatabase>();
 
-  Future<void> searchWordPrefix(String prefix) async {
+  /// Finds a list of words from the Hebrew/Greek database that start with
+  /// the given [prefix] at the cursor position.
+  Future<void> searchWordPrefix(TextEditingValue value) async {
+    final prefix = _getWordAtCursor(value);
+
+    if (prefix == null) {
+      resultsNotifier.value = NoResults();
+      return;
+    }
+
     if (prefix.length == 1) {
       resultsNotifier.value = WordSearchResults(words: [prefix]);
       return;
@@ -22,49 +30,99 @@ class SearchPageManager {
       prefix,
       limit: 1000,
     );
-    print('results: ${results.length}');
     results.sort((a, b) => a.length.compareTo(b.length));
     resultsNotifier.value = WordSearchResults(words: results);
   }
 
-  Future<void> searchVerses(String word) async {
-    final normalized = normalizeHebrewGreek(word);
-    final verseIds = await _hebrewGreekDb.getVerseIdsForNormalizedWord(
-      normalized,
-    );
-    final references =
-        verseIds.map(extractReferenceFromWordId).toSet().toList();
+  String? _getWordAtCursor(TextEditingValue value) {
+    final (wordStart, wordEnd) = _getWordRangeAtCursor(value);
+    String text = value.text;
+
+    if (wordStart < wordEnd) {
+      return text.substring(wordStart, wordEnd);
+    }
+
+    return null;
+  }
+
+  (int start, int end) _getWordRangeAtCursor(TextEditingValue value) {
+    int cursorPos = value.selection.baseOffset;
+
+    // If there is a selection, don't look for the word
+    if (!value.selection.isCollapsed) {
+      return (cursorPos, cursorPos);
+    }
+
+    const String space = ' ';
+    String text = value.text;
+
+    if (cursorPos < 0 || cursorPos > text.length || text.isEmpty) {
+      return (cursorPos, cursorPos);
+    }
+
+    int wordStart = cursorPos;
+    int wordEnd = cursorPos;
+
+    for (int i = wordEnd; i < text.length; i++) {
+      if (text[i] == space) break;
+      wordEnd = i + 1;
+    }
+
+    for (int i = wordStart - 1; i >= 0; i--) {
+      if (text[i] == space) break;
+      wordStart = i;
+    }
+
+    return (wordStart, wordEnd);
+  }
+
+  String replaceWordAtCursor(TextEditingValue value, String word) {
+    final (start, end) = _getWordRangeAtCursor(value);
+    final text = value.text;
+    final replaced = text.replaceRange(start, end, word);
+    return fixHebrewFinalForms(replaced);
+  }
+
+  /// Updates the [VerseSearchResults] with verses than contain an exact
+  /// match for all normalized words.
+  ///
+  /// If the [searchPhrase] contains spaces, then each word in the phrase must
+  /// be somewhere in the verse.
+  Future<void> searchVerses(String searchPhrase) async {
+    final String normalizedPhrase = normalizeHebrewGreek(searchPhrase);
+    final List<String> searchWords = normalizedPhrase.split(' ');
+    final List<Reference> results = await _hebrewGreekDb
+        .searchVersesByNormalizedWords(searchWords);
     resultsNotifier.value = VerseSearchResults(
-      searchWord: word,
-      references: references,
+      searchWords: searchWords,
+      references: results,
     );
   }
 
   /// Returns the the verse text with the words highlighted based on
   /// the Strong's number.
   Future<TextSpan> getVerseContent(
-    String searchWord,
+    List<String> searchWords,
     Reference reference,
     Color highlightColor,
     double fontSize,
   ) async {
     final words = await _hebrewGreekDb.wordsForVerse(reference);
-    return _formatVerse(words, searchWord, highlightColor, fontSize);
+    return _formatVerse(words, searchWords, highlightColor, fontSize);
   }
 
   static const maqaph = '־';
 
   TextSpan _formatVerse(
     List<HebrewGreekWord> words,
-    String searchWord,
+    List<String> searchWords,
     Color highlightColor,
     double fontSize,
   ) {
     final spans = <TextSpan>[];
-    final normalizedSearch = normalizeHebrewGreek(searchWord);
     for (final word in words) {
       final normalized = normalizeHebrewGreek(word.text);
-      final color = (normalized == normalizedSearch) ? highlightColor : null;
+      final color = (searchWords.contains(normalized)) ? highlightColor : null;
       final text = word.text.endsWith(maqaph) ? word.text : '${word.text} ';
       spans.add(
         TextSpan(
@@ -146,8 +204,8 @@ class WordSearchResults extends SearchResults {
 }
 
 class VerseSearchResults extends SearchResults {
-  VerseSearchResults({required this.searchWord, required this.references});
-  final String searchWord;
+  VerseSearchResults({required this.searchWords, required this.references});
+  final List<String> searchWords;
   final List<Reference> references;
   @override
   int get length => references.length;
