@@ -1,3 +1,4 @@
+import 'package:database_builder/database_builder.dart';
 import 'package:flutter/material.dart';
 import 'package:studyapp/common/book_name.dart';
 import 'package:studyapp/common/reference.dart';
@@ -117,7 +118,7 @@ class _SearchPageState extends State<SearchPage> {
                               final word = w[index];
                               return ListTile(
                                 title: Text(
-                                  manager.fixHebrewFinalForms(word),
+                                  fixFinalForms(word),
                                   style: TextStyle(fontFamily: 'sbl'),
                                 ),
                                 onTap: () {
@@ -162,7 +163,7 @@ class _SearchPageState extends State<SearchPage> {
                       _textDirection = textDirection;
                     });
                   },
-                  fixHebrewFinalForms: manager.fixHebrewFinalForms,
+                  fixFinalForms: fixFinalForms,
                 ),
             ],
           ),

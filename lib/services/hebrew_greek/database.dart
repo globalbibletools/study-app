@@ -10,7 +10,7 @@ import 'package:studyapp/common/word.dart';
 
 class HebrewGreekDatabase {
   static const _databaseName = 'hebrew_greek.db';
-  static const _databaseVersion = 3;
+  static const _databaseVersion = 4;
   late Database _database;
 
   Future<void> init() async {

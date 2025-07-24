@@ -8,7 +8,7 @@ class HebrewGreekKeyboard extends StatefulWidget {
   final Color backgroundColor;
   final Color keyColor;
   final Color keyTextColor;
-  final String Function(String)? fixHebrewFinalForms;
+  final String Function(String) fixFinalForms;
 
   const HebrewGreekKeyboard({
     super.key,
@@ -17,7 +17,7 @@ class HebrewGreekKeyboard extends StatefulWidget {
     this.backgroundColor = const Color(0xFFD1D5DB),
     this.keyColor = Colors.white,
     this.keyTextColor = Colors.black,
-    this.fixHebrewFinalForms,
+    required this.fixFinalForms,
   });
 
   @override
@@ -45,10 +45,7 @@ class _HebrewGreekKeyboardState extends State<HebrewGreekKeyboard> {
     final newCursorOffset = selection.start + text.length;
 
     // Conditionally apply Hebrew final form fixing only for Hebrew text.
-    String processedText = newText;
-    if (_isHebrew && widget.fixHebrewFinalForms != null) {
-      processedText = widget.fixHebrewFinalForms!(newText);
-    }
+    String processedText = widget.fixFinalForms(newText);
 
     controller.value = controller.value.copyWith(
       text: processedText,
