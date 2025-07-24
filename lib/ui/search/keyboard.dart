@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-/// A custom in-app keyboard for the Hebrew alphabet.
-class HebrewKeyboard extends StatefulWidget {
+/// A custom in-app keyboard for Biblical Hebrew and Greek alphabets.
+class HebrewGreekKeyboard extends StatefulWidget {
   final TextEditingController controller;
   final void Function(TextDirection)? onLanguageChange;
   final Color backgroundColor;
@@ -10,21 +10,21 @@ class HebrewKeyboard extends StatefulWidget {
   final Color keyTextColor;
   final String Function(String)? fixHebrewFinalForms;
 
-  const HebrewKeyboard({
+  const HebrewGreekKeyboard({
     super.key,
     required this.controller,
     this.onLanguageChange,
     this.backgroundColor = const Color(0xFFD1D5DB),
     this.keyColor = Colors.white,
     this.keyTextColor = Colors.black,
-    required this.fixHebrewFinalForms,
+    this.fixHebrewFinalForms,
   });
 
   @override
-  State<HebrewKeyboard> createState() => _HebrewKeyboardState();
+  State<HebrewGreekKeyboard> createState() => _HebrewGreekKeyboardState();
 }
 
-class _HebrewKeyboardState extends State<HebrewKeyboard> {
+class _HebrewGreekKeyboardState extends State<HebrewGreekKeyboard> {
   bool _isHebrew = true;
 
   /// Handles the press of a standard letter or space key.
@@ -41,12 +41,17 @@ class _HebrewKeyboardState extends State<HebrewKeyboard> {
       selection.end,
       text,
     );
+    // The new cursor position will be after the inserted text.
     final newCursorOffset = selection.start + text.length;
 
-    final replacedText = widget.fixHebrewFinalForms?.call(newText) ?? newText;
+    // Conditionally apply Hebrew final form fixing only for Hebrew text.
+    String processedText = newText;
+    if (_isHebrew && widget.fixHebrewFinalForms != null) {
+      processedText = widget.fixHebrewFinalForms!(newText);
+    }
 
     controller.value = controller.value.copyWith(
-      text: replacedText,
+      text: processedText,
       selection: TextSelection.collapsed(offset: newCursorOffset),
       composing: TextRange.empty,
     );
@@ -87,10 +92,6 @@ class _HebrewKeyboardState extends State<HebrewKeyboard> {
 
   @override
   Widget build(BuildContext context) {
-    const List<String> row1 = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח'];
-    const List<String> row2 = ['ט', 'י', 'כ', 'ל', 'מ', 'נ', 'ס'];
-    const List<String> row3 = ['ע', 'פ', 'צ', 'ק', 'ר', 'ש', 'ת'];
-
     return Container(
       width: double.infinity,
       color: widget.backgroundColor,
@@ -98,11 +99,7 @@ class _HebrewKeyboardState extends State<HebrewKeyboard> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _buildLetterRow(row1),
-          const SizedBox(height: 4),
-          _buildLetterRow(row2),
-          const SizedBox(height: 4),
-          _buildLetterRow(row3),
+          _buildKeyboardLayout(),
           const SizedBox(height: 4),
           _buildActionRow(),
         ],
@@ -110,9 +107,47 @@ class _HebrewKeyboardState extends State<HebrewKeyboard> {
     );
   }
 
-  Widget _buildLetterRow(List<String> letters) {
+  /// Builds the appropriate keyboard layout based on the current language.
+  Widget _buildKeyboardLayout() {
+    if (_isHebrew) {
+      const List<String> row1 = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח'];
+      const List<String> row2 = ['ט', 'י', 'כ', 'ל', 'מ', 'נ', 'ס'];
+      const List<String> row3 = ['ע', 'פ', 'צ', 'ק', 'ר', 'ש', 'ת'];
+
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildLetterRow(row1, TextDirection.rtl),
+          const SizedBox(height: 4),
+          _buildLetterRow(row2, TextDirection.rtl),
+          const SizedBox(height: 4),
+          _buildLetterRow(row3, TextDirection.rtl),
+        ],
+      );
+    } else {
+      // Greek Keyboard Layout
+      const List<String> row1 = ['α', 'β', 'γ', 'δ', 'ε', 'ζ', 'η', 'θ'];
+      const List<String> row2 = ['ι', 'κ', 'λ', 'μ', 'ν', 'ξ', 'ο', 'π'];
+      const List<String> row3 = ['ρ', 'σ', 'τ', 'υ', 'φ', 'χ', 'ψ', 'ω'];
+
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildLetterRow(row1, TextDirection.ltr),
+          const SizedBox(height: 4),
+          _buildLetterRow(row2, TextDirection.ltr),
+          const SizedBox(height: 4),
+          _buildLetterRow(row3, TextDirection.ltr),
+        ],
+      );
+    }
+  }
+
+  /// Builds a single row of letter keys.
+  /// The [direction] parameter ensures the keys are laid out correctly.
+  Widget _buildLetterRow(List<String> letters, TextDirection direction) {
     return Row(
-      textDirection: TextDirection.rtl,
+      textDirection: direction,
       mainAxisAlignment: MainAxisAlignment.center,
       children:
           letters
@@ -128,69 +163,84 @@ class _HebrewKeyboardState extends State<HebrewKeyboard> {
     );
   }
 
+  /// Builds the bottom action row (backspace, space, language switch).
   Widget _buildActionRow() {
-    return Row(
-      textDirection: TextDirection.rtl,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        // Backspace
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.all(4.0),
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: widget.keyColor,
-                foregroundColor: widget.keyTextColor,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8.0),
+    // The visual direction of the action row can be fixed (e.g., LTR)
+    // for consistent user experience, regardless of the text direction.
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // Language Change Key
+          Expanded(
+            flex: 2,
+            child: Padding(
+              padding: const EdgeInsets.all(4.0),
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: widget.keyColor,
+                  foregroundColor: widget.keyTextColor,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 16.0),
                 ),
-                padding: const EdgeInsets.symmetric(vertical: 16.0),
+                onPressed: () {
+                  HapticFeedback.lightImpact();
+                  // Toggle language and notify parent widget
+                  setState(() {
+                    _isHebrew = !_isHebrew;
+                  });
+                  final direction =
+                      _isHebrew ? TextDirection.rtl : TextDirection.ltr;
+                  widget.onLanguageChange?.call(direction);
+                },
+                child: Icon(
+                  Icons.language,
+                  size: 24,
+                  color: widget.keyTextColor,
+                ),
               ),
-              onPressed: _onBackspacePressed,
-              // child: Transform.scale(
-              //   scaleX: 1,
-              child: Icon(
-                Icons.backspace_outlined,
-                size: 24,
-                color: widget.keyTextColor,
-              ),
-              // ),
             ),
           ),
-        ),
-        // Space Key
-        _KeyboardKey(
-          text: ' ',
-          onKeyPressed: () => _onKeyPressed(' '),
-          keyColor: widget.keyColor,
-          textColor: widget.keyTextColor,
-          flex: 2,
-        ),
-        // Language Change Key
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.all(4.0),
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: widget.keyColor,
-                foregroundColor: widget.keyTextColor,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8.0),
+          // Space Key
+          _KeyboardKey(
+            text: ' ',
+            onKeyPressed: () => _onKeyPressed(' '),
+            keyColor: widget.keyColor,
+            textColor: widget.keyTextColor,
+            flex: 4,
+          ),
+          // Backspace
+          Expanded(
+            flex: 2,
+            child: Padding(
+              padding: const EdgeInsets.all(4.0),
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: widget.keyColor,
+                  foregroundColor: widget.keyTextColor,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 16.0),
                 ),
-                padding: const EdgeInsets.symmetric(vertical: 16.0),
+                onPressed: _onBackspacePressed,
+                child: Directionality(
+                  textDirection:
+                      _isHebrew ? TextDirection.rtl : TextDirection.ltr,
+                  child: Icon(
+                    Icons.backspace_outlined,
+                    size: 24,
+                    color: widget.keyTextColor,
+                  ),
+                ),
               ),
-              onPressed: () {
-                HapticFeedback.lightImpact();
-                _isHebrew != _isHebrew;
-                final direction =
-                    _isHebrew ? TextDirection.rtl : TextDirection.ltr;
-                widget.onLanguageChange?.call(direction);
-              },
-              child: Icon(Icons.language, size: 24, color: widget.keyTextColor),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

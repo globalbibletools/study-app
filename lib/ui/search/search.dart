@@ -152,7 +152,7 @@ class _SearchPageState extends State<SearchPage> {
                 ),
               ),
               if (_isKeyboardVisible)
-                HebrewKeyboard(
+                HebrewGreekKeyboard(
                   controller: _controller,
                   backgroundColor: Theme.of(context).scaffoldBackgroundColor,
                   keyColor: Theme.of(context).colorScheme.surface,
