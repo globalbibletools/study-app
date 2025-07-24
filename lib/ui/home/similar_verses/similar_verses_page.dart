@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:studyapp/common/book_name.dart';
 import 'package:studyapp/common/reference.dart';
+import 'package:studyapp/ui/shared/verse_list_item.dart';
 
 import 'similar_verse_manager.dart';
 
@@ -56,47 +57,17 @@ class _SimilarVersesPageState extends State<SimilarVersesPage> {
               final referenceIndex = index - 1;
               final reference = verseList[referenceIndex];
               final formattedReference = _formatReference(reference);
-              return FutureBuilder<TextSpan>(
-                future: manager.getVerseContent(
+              return VerseListItem(
+                key: ValueKey(reference),
+                verseContentFuture: manager.getVerseContent(
                   reference,
                   widget.strongsCode,
                   Theme.of(context).colorScheme.primary,
-                  widget.fontSize,
+                  20.0,
                 ),
-                builder: (context, snapshot) {
-                  if (snapshot.hasError) {
-                    return ListTile(
-                      title: Text(formattedReference),
-                      subtitle: Text('Error loading verse: ${snapshot.error}'),
-                    );
-                  }
-                  if (snapshot.connectionState == ConnectionState.done) {
-                    final verse = snapshot.data!;
-                    return ListTile(
-                      title: Text(
-                        formattedReference,
-                        style: TextStyle(
-                          fontFamily: 'sbl',
-                          fontSize: widget.fontSize,
-                          color: Theme.of(context).disabledColor,
-                        ),
-                      ),
-                      subtitle: Text.rich(
-                        verse,
-                        textDirection:
-                            widget.isRtl
-                                ? TextDirection.rtl
-                                : TextDirection.ltr,
-                      ),
-                    );
-                  } else {
-                    // Giving the widget a height ensures that the
-                    // ListView.builder will not try to build the
-                    // every item in the list just because they all
-                    // theoretically fit with a zero height.
-                    return const SizedBox(height: 50);
-                  }
-                },
+                formattedReference: formattedReference,
+                textDirection:
+                    widget.isRtl ? TextDirection.rtl : TextDirection.ltr,
               );
             },
           );

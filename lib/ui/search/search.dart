@@ -4,6 +4,7 @@ import 'package:studyapp/common/book_name.dart';
 import 'package:studyapp/common/reference.dart';
 import 'package:studyapp/l10n/app_localizations.dart';
 import 'package:studyapp/ui/search/keyboard.dart';
+import 'package:studyapp/ui/shared/verse_list_item.dart';
 
 import 'search_manager.dart';
 
@@ -142,9 +143,12 @@ class _SearchPageState extends State<SearchPage> {
                               );
                               return VerseListItem(
                                 key: ValueKey(reference),
-                                manager: manager,
-                                searchWords: words,
-                                reference: reference,
+                                verseContentFuture: manager.getVerseContent(
+                                  words,
+                                  reference,
+                                  Theme.of(context).colorScheme.primary,
+                                  20.0,
+                                ),
                                 formattedReference: formattedReference,
                                 textDirection: _textDirection,
                               );
@@ -181,74 +185,5 @@ class _SearchPageState extends State<SearchPage> {
   String _formatReference(Reference reference) {
     final bookName = bookNameForId(context, reference.bookId);
     return '$bookName ${reference.chapter}:${reference.verse}';
-  }
-}
-
-class VerseListItem extends StatefulWidget {
-  const VerseListItem({
-    super.key,
-    required this.manager,
-    required this.searchWords,
-    required this.reference,
-    required this.formattedReference,
-    required this.textDirection,
-  });
-
-  final SearchPageManager manager;
-  final List<String> searchWords;
-  final Reference reference;
-  final String formattedReference;
-  final TextDirection textDirection;
-
-  @override
-  State<VerseListItem> createState() => _VerseListItemState();
-}
-
-// AutomaticKeepAliveClientMixin prevents the scrollview not to stutter when
-// scrolling back. This is due to the future builder. If we can provide a non-
-// future builder solution later, that would be better.  Maybe by fetching in
-// batches or by sqlite3 synchronous fetches.
-class _VerseListItemState extends State<VerseListItem>
-    with AutomaticKeepAliveClientMixin {
-  @override
-  bool get wantKeepAlive => true;
-
-  @override
-  Widget build(BuildContext context) {
-    super.build(context); // Important: required by the mixin
-
-    final fontSize = 20.0;
-
-    return FutureBuilder<TextSpan>(
-      future: widget.manager.getVerseContent(
-        widget.searchWords,
-        widget.reference,
-        Theme.of(context).colorScheme.primary,
-        fontSize,
-      ),
-      builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          return ListTile(
-            title: Text(widget.formattedReference),
-            subtitle: Text('Error loading verse: ${snapshot.error}'),
-          );
-        }
-        if (snapshot.connectionState == ConnectionState.done) {
-          final verse = snapshot.data!;
-          return ListTile(
-            title: Text(
-              widget.formattedReference,
-              style: TextStyle(
-                fontFamily: 'sbl',
-                color: Theme.of(context).disabledColor,
-              ),
-            ),
-            subtitle: Text.rich(verse, textDirection: widget.textDirection),
-          );
-        } else {
-          return const SizedBox(height: 75);
-        }
-      },
-    );
   }
 }
