@@ -6,6 +6,7 @@ import 'package:studyapp/common/reference.dart';
 import 'package:studyapp/common/word.dart';
 import 'package:studyapp/services/hebrew_greek/database.dart';
 import 'package:studyapp/services/service_locator.dart';
+import 'package:studyapp/services/user_settings.dart';
 
 class SearchPageManager {
   final resultsNotifier = ValueNotifier<SearchResults>(NoResults());
@@ -134,57 +135,15 @@ class SearchPageManager {
     return TextSpan(children: spans);
   }
 
-  /// Automatically replaces Hebrew letters with their final-form counterparts
-  /// (sofit) at the end of words, and corrects final-form letters that are
-  /// mistakenly used in the middle of a word. Letters in isolation stay in regular form.
-  // String fixHebrewFinalForms(String text) {
-  //   const finalLetterMap = {
-  //     'כ': 'ך', // Kaf -> Final Kaf
-  //     'מ': 'ם', // Mem -> Final Mem
-  //     'נ': 'ן', // Nun -> Final Nun
-  //     'פ': 'ף', // Pe -> Final Pe
-  //     'צ': 'ץ', // Tsadi -> Final Tsadi
-  //   };
+  Future<void> saveDirection(TextDirection textDirection) async {
+    final isHebrew = textDirection == TextDirection.rtl;
+    await getIt<UserSettings>().setIsHebrewSearch(isHebrew);
+  }
 
-  //   const regularLetterMap = {
-  //     'ך': 'כ', // Final Kaf -> Kaf
-  //     'ם': 'מ', // Final Mem -> Mem
-  //     'ן': 'נ', // Final Nun -> Nun
-  //     'ף': 'פ', // Final Pe -> Pe
-  //     'ץ': 'צ', // Final Tsadi -> Tsadi
-  //   };
-
-  //   // Regex to find sequences of Hebrew letters.
-  //   final RegExp wordRegex = RegExp(r'([\u0590-\u05FF]+)', unicode: true);
-
-  //   return text.replaceAllMapped(wordRegex, (match) {
-  //     final word = match.group(1)!;
-
-  //     // Rule: Single-letter words should always be in regular form.
-  //     if (word.length == 1) {
-  //       // If it's a final-form letter, convert it back to regular.
-  //       return regularLetterMap[word] ?? word;
-  //     }
-
-  //     // For words with more than one letter:
-  //     String middle = word.substring(0, word.length - 1);
-  //     String lastChar = word[word.length - 1];
-
-  //     // Rule: All letters in the middle of a word must be in regular form.
-  //     // We replace any final-form letter found with its regular counterpart.
-  //     middle = middle.replaceAllMapped(RegExp('[ךםןףץ]'), (m) {
-  //       return regularLetterMap[m.group(0)!]!;
-  //     });
-
-  //     // Rule: The last letter of a word should be in final form if it has one.
-  //     // If the last character is a letter that has a final form, convert it.
-  //     if (finalLetterMap.containsKey(lastChar)) {
-  //       lastChar = finalLetterMap[lastChar]!;
-  //     }
-
-  //     return middle + lastChar;
-  //   });
-  // }
+  TextDirection savedTextDirection() {
+    final isHebrew = getIt<UserSettings>().isHebrewSearch;
+    return isHebrew ? TextDirection.rtl : TextDirection.ltr;
+  }
 }
 
 sealed class SearchResults {

@@ -13,6 +13,7 @@ class UserSettings {
   static const _currentBookIdKey = 'currentBookId';
   static const _fontScaleKey = 'fontScale';
   static const _localeKey = 'locale';
+  static const _isHebrewSearchKey = 'isHebrewSearch';
 
   (int, int) get currentBookChapter {
     final bookId = _prefs.getInt(_currentBookIdKey) ?? 1;
@@ -25,11 +26,11 @@ class UserSettings {
     await _prefs.setInt(_currentChapterKey, chapter);
   }
 
+  double get fontScale => _prefs.getDouble(_fontScaleKey) ?? 1.0;
+
   Future<void> setFontScale(double scale) async {
     await _prefs.setDouble(_fontScaleKey, scale);
   }
-
-  double get fontScale => _prefs.getDouble(_fontScaleKey) ?? 1.0;
 
   Locale get locale {
     final localeCode = _prefs.getString(_localeKey) ?? 'en';
@@ -42,5 +43,13 @@ class UserSettings {
     } else {
       await _prefs.setString(_localeKey, localeCode);
     }
+  }
+
+  bool get isHebrewSearch {
+    return _prefs.getBool(_isHebrewSearchKey) ?? true;
+  }
+
+  Future<void> setIsHebrewSearch(bool value) async {
+    await _prefs.setBool(_isHebrewSearchKey, value);
   }
 }

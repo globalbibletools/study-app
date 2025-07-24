@@ -27,6 +27,7 @@ class _SearchPageState extends State<SearchPage> {
     _controller = TextEditingController();
     _controller.addListener(_onTextChanged);
     _focusNode.addListener(_onFocusChange);
+    _textDirection = manager.savedTextDirection();
   }
 
   void _onTextChanged() {
@@ -52,6 +53,11 @@ class _SearchPageState extends State<SearchPage> {
     );
 
     _controller.addListener(_onTextChanged);
+  }
+
+  void _clearScreen() {
+    _controller.clear();
+    manager.searchWordPrefix(_controller.value);
   }
 
   @override
@@ -84,10 +90,7 @@ class _SearchPageState extends State<SearchPage> {
                   decoration: InputDecoration(
                     border: OutlineInputBorder(),
                     suffixIcon: IconButton(
-                      onPressed: () {
-                        _controller.clear();
-                        manager.searchWordPrefix(_controller.value);
-                      },
+                      onPressed: _clearScreen,
                       icon: const Icon(Icons.clear),
                     ),
                   ),
@@ -161,9 +164,12 @@ class _SearchPageState extends State<SearchPage> {
                   onLanguageChange: (textDirection) {
                     setState(() {
                       _textDirection = textDirection;
+                      manager.saveDirection(textDirection);
+                      _clearScreen();
                     });
                   },
                   fixFinalForms: fixFinalForms,
+                  isHebrew: _textDirection == TextDirection.rtl,
                 ),
             ],
           ),

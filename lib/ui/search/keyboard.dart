@@ -4,20 +4,22 @@ import 'package:flutter/services.dart';
 /// A custom in-app keyboard for Biblical Hebrew and Greek alphabets.
 class HebrewGreekKeyboard extends StatefulWidget {
   final TextEditingController controller;
-  final void Function(TextDirection)? onLanguageChange;
+  final void Function(TextDirection) onLanguageChange;
+  final String Function(String) fixFinalForms;
+  final bool isHebrew;
   final Color backgroundColor;
   final Color keyColor;
   final Color keyTextColor;
-  final String Function(String) fixFinalForms;
 
   const HebrewGreekKeyboard({
     super.key,
     required this.controller,
-    this.onLanguageChange,
+    required this.onLanguageChange,
+    required this.fixFinalForms,
+    required this.isHebrew,
     this.backgroundColor = const Color(0xFFD1D5DB),
     this.keyColor = Colors.white,
     this.keyTextColor = Colors.black,
-    required this.fixFinalForms,
   });
 
   @override
@@ -25,7 +27,7 @@ class HebrewGreekKeyboard extends StatefulWidget {
 }
 
 class _HebrewGreekKeyboardState extends State<HebrewGreekKeyboard> {
-  bool _isHebrew = true;
+  // bool _isHebrew = true;
 
   /// Handles the press of a standard letter or space key.
   /// This method atomically updates the controller's text and selection.
@@ -44,7 +46,6 @@ class _HebrewGreekKeyboardState extends State<HebrewGreekKeyboard> {
     // The new cursor position will be after the inserted text.
     final newCursorOffset = selection.start + text.length;
 
-    // Conditionally apply Hebrew final form fixing only for Hebrew text.
     String processedText = widget.fixFinalForms(newText);
 
     controller.value = controller.value.copyWith(
@@ -106,7 +107,7 @@ class _HebrewGreekKeyboardState extends State<HebrewGreekKeyboard> {
 
   /// Builds the appropriate keyboard layout based on the current language.
   Widget _buildKeyboardLayout() {
-    if (_isHebrew) {
+    if (widget.isHebrew) {
       const List<String> row1 = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח'];
       const List<String> row2 = ['ט', 'י', 'כ', 'ל', 'מ', 'נ', 'ס'];
       const List<String> row3 = ['ע', 'פ', 'צ', 'ק', 'ר', 'ש', 'ת'];
@@ -186,12 +187,13 @@ class _HebrewGreekKeyboardState extends State<HebrewGreekKeyboard> {
                 onPressed: () {
                   HapticFeedback.lightImpact();
                   // Toggle language and notify parent widget
-                  setState(() {
-                    _isHebrew = !_isHebrew;
-                  });
+                  // setState(() {
+                  //   _isHebrew = !_isHebrew;
+                  // });
+                  final isHebrew = !widget.isHebrew;
                   final direction =
-                      _isHebrew ? TextDirection.rtl : TextDirection.ltr;
-                  widget.onLanguageChange?.call(direction);
+                      isHebrew ? TextDirection.rtl : TextDirection.ltr;
+                  widget.onLanguageChange.call(direction);
                 },
                 child: Icon(
                   Icons.language,
@@ -226,7 +228,7 @@ class _HebrewGreekKeyboardState extends State<HebrewGreekKeyboard> {
                 onPressed: _onBackspacePressed,
                 child: Directionality(
                   textDirection:
-                      _isHebrew ? TextDirection.rtl : TextDirection.ltr,
+                      widget.isHebrew ? TextDirection.rtl : TextDirection.ltr,
                   child: Icon(
                     Icons.backspace_outlined,
                     size: 24,
