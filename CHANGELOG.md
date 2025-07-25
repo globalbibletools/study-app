@@ -1,7 +1,12 @@
-## 0.8.0
+## 0.8.0 - July 24, 2025
 
-- Fix text size and line wrapping problems on longpress dialog.
+- Fix text size and line wrapping problems on word longpress dialog.
+- Improve list view of Strong's code verses: better size and scrolling.
 - Fuzzy search (no diacritics) for Hebrew and Greek.
+- Multi-word search.
+- In-app Hebrew keyboard for search.
+- In-app Greek keyboard for search.
+- Auto handling of final Hebrew and Greek forms when typing.
 
 ## 0.7.0 - July 22, 2025
 
