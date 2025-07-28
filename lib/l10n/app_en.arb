@@ -56,6 +56,11 @@
     "description": "Message shown when glosses fail to download."
   },
 
+  "similarVerses": "See other uses",
+  "@similarVerses": {
+    "description": "Show list of other verses with the same Strong's number"
+  },
+
   "search": "Search",
   "@search": {
     "description": "The title of the Search screen"

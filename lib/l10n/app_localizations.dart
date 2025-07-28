@@ -176,6 +176,12 @@ abstract class AppLocalizations {
   /// **'Download failed. Please check your internet connection and try again.'**
   String get downloadFailed;
 
+  /// Show list of other verses with the same Strong's number
+  ///
+  /// In en, this message translates to:
+  /// **'See other uses'**
+  String get similarVerses;
+
   /// The title of the Search screen
   ///
   /// In en, this message translates to:
