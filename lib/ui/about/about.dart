@@ -77,7 +77,7 @@ class _AboutPageState extends State<AboutPage> {
                       launchUrl(url, mode: LaunchMode.externalApplication);
                     }
                   },
-                  child: const Text('GlobalBibleTools.com'),
+                  child: FittedBox(child: const Text('GlobalBibleTools.com')),
                 ),
               ),
               const SizedBox(height: 10),
@@ -92,7 +92,9 @@ class _AboutPageState extends State<AboutPage> {
                       launchUrl(url, mode: LaunchMode.externalApplication);
                     }
                   },
-                  child: Text(AppLocalizations.of(context)!.sourceCode),
+                  child: FittedBox(
+                    child: Text(AppLocalizations.of(context)!.sourceCode),
+                  ),
                 ),
               ),
               const SizedBox(height: 10),
@@ -112,7 +114,7 @@ class _AboutPageState extends State<AboutPage> {
                       ),
                     );
                   },
-                  child: const Text('contact@ethnos.dev'),
+                  child: FittedBox(child: const Text('contact@ethnos.dev')),
                 ),
               ),
             ],

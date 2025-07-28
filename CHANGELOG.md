@@ -1,3 +1,8 @@
+## 0.9.0 
+
+- Localize missing phrase into Spanish.
+- Ensure that button text doesn't line wrap on About page.
+
 ## 0.8.0 - July 24, 2025
 
 - Fix text size and line wrapping problems on word longpress dialog.
