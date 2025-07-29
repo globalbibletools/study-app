@@ -22,9 +22,6 @@ class HebrewGreekKeyboard extends StatefulWidget {
   /// A callback that is triggered when a candidate word is tapped.
   final void Function(String candidate)? onCandidateTapped;
 
-  /// The search button was pressed
-  final VoidCallback onSearch;
-
   const HebrewGreekKeyboard({
     super.key,
     required this.controller,
@@ -36,7 +33,6 @@ class HebrewGreekKeyboard extends StatefulWidget {
     this.keyTextColor = Colors.black,
     this.candidatesNotifier,
     this.onCandidateTapped,
-    required this.onSearch,
   });
 
   @override
@@ -149,6 +145,7 @@ class _HebrewGreekKeyboardState extends State<HebrewGreekKeyboard> {
             widget.isHebrew ? TextDirection.rtl : TextDirection.ltr;
 
         Widget buildCandidateButton(String candidate) {
+          final fixed = widget.fixFinalForms(candidate);
           return Expanded(
             child: TextButton(
               style: TextButton.styleFrom(
@@ -163,7 +160,7 @@ class _HebrewGreekKeyboardState extends State<HebrewGreekKeyboard> {
               },
               child: FittedBox(
                 child: Text(
-                  candidate,
+                  fixed,
                   style: TextStyle(
                     color: widget.keyTextColor,
                     fontSize: 18.0,
@@ -282,7 +279,7 @@ class _HebrewGreekKeyboardState extends State<HebrewGreekKeyboard> {
                     borderRadius: BorderRadius.circular(8.0),
                   ),
                   padding: const EdgeInsets.symmetric(
-                    vertical: _innerKeyVerticalPadding,
+                    vertical: _innerKeyVerticalPadding + 3,
                   ),
                 ),
                 onPressed: () {
@@ -323,7 +320,7 @@ class _HebrewGreekKeyboardState extends State<HebrewGreekKeyboard> {
                     borderRadius: BorderRadius.circular(8.0),
                   ),
                   padding: const EdgeInsets.symmetric(
-                    vertical: _innerKeyVerticalPadding,
+                    vertical: _innerKeyVerticalPadding + 3,
                   ),
                 ),
                 onPressed: _onBackspacePressed,
@@ -341,29 +338,29 @@ class _HebrewGreekKeyboardState extends State<HebrewGreekKeyboard> {
           ),
 
           // Search
-          Expanded(
-            flex: 2,
-            child: Padding(
-              padding: const EdgeInsets.all(_interkeySpace),
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: widget.keyColor,
-                  foregroundColor: widget.keyTextColor,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8.0),
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    vertical: _innerKeyVerticalPadding,
-                  ),
-                ),
-                onPressed: () {
-                  HapticFeedback.lightImpact();
-                  widget.onSearch();
-                },
-                child: Icon(Icons.search, size: 24, color: widget.keyTextColor),
-              ),
-            ),
-          ),
+          // Expanded(
+          //   flex: 2,
+          //   child: Padding(
+          //     padding: const EdgeInsets.all(_interkeySpace),
+          //     child: ElevatedButton(
+          //       style: ElevatedButton.styleFrom(
+          //         backgroundColor: widget.keyColor,
+          //         foregroundColor: widget.keyTextColor,
+          //         shape: RoundedRectangleBorder(
+          //           borderRadius: BorderRadius.circular(8.0),
+          //         ),
+          //         padding: const EdgeInsets.symmetric(
+          //           vertical: _innerKeyVerticalPadding,
+          //         ),
+          //       ),
+          //       onPressed: () {
+          //         HapticFeedback.lightImpact();
+          //         widget.onSearch();
+          //       },
+          //       child: Icon(Icons.search, size: 24, color: widget.keyTextColor),
+          //     ),
+          //   ),
+          // ),
         ],
       ),
     );

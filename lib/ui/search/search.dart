@@ -128,29 +128,44 @@ class _SearchPageState extends State<SearchPage> {
           child: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.only(left: 16, top: 8, right: 16),
-                child: TextField(
-                  controller: _controller,
-                  autofocus: true,
-                  focusNode: _focusNode,
-                  readOnly: !_useSystemKeyboard,
-                  showCursor: true,
-                  textInputAction: TextInputAction.search,
-                  style: const TextStyle(fontSize: 24, fontFamily: 'sbl'),
-                  decoration: InputDecoration(
-                    border: OutlineInputBorder(),
-                    suffixIcon: IconButton(
-                      onPressed: _clearScreen,
-                      icon: const Icon(Icons.clear),
+                padding: const EdgeInsets.only(left: 16, top: 8, right: 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _controller,
+                        autofocus: true,
+                        focusNode: _focusNode,
+                        readOnly: !_useSystemKeyboard,
+                        showCursor: true,
+                        textInputAction: TextInputAction.search,
+                        style: const TextStyle(fontSize: 24, fontFamily: 'sbl'),
+                        decoration: InputDecoration(
+                          border: OutlineInputBorder(),
+                          suffixIcon: IconButton(
+                            onPressed: _clearScreen,
+                            icon: const Icon(Icons.clear),
+                          ),
+                        ),
+                        onTapOutside: (event) {
+                          // prevent macOS from losing focus when keyboard keys tapped
+                        },
+                        onSubmitted: (value) {
+                          print("Search submitted from keyboard: $value");
+                          manager.searchVerses(value);
+                        },
+                      ),
                     ),
-                  ),
-                  onTapOutside: (event) {
-                    // prevent macOS from losing focus when keyboard keys tapped
-                  },
-                  onSubmitted: (value) {
-                    print("Search submitted from keyboard: $value");
-                    manager.searchVerses(value);
-                  },
+                    const SizedBox(width: 8),
+                    IconButton(
+                      onPressed: () {
+                        manager.clearCandidateList();
+                        manager.searchVerses(_controller.text);
+                        _focusNode.unfocus();
+                      },
+                      icon: Icon(Icons.search),
+                    ),
+                  ],
                 ),
               ),
               Expanded(
@@ -220,11 +235,11 @@ class _SearchPageState extends State<SearchPage> {
                     // manager.searchVerses(_controller.text);
                     // _focusNode.unfocus();
                   },
-                  onSearch: () {
-                    manager.clearCandidateList();
-                    manager.searchVerses(_controller.text);
-                    _focusNode.unfocus();
-                  },
+                  // onSearch: () {
+                  //   manager.clearCandidateList();
+                  //   manager.searchVerses(_controller.text);
+                  //   _focusNode.unfocus();
+                  // },
                 ),
             ],
           ),
