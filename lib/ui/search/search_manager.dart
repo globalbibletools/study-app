@@ -69,11 +69,15 @@ class SearchPageManager {
     return (wordStart, wordEnd);
   }
 
-  String replaceWordAtCursor(TextEditingValue value, String word) {
+  TextEditingValue replaceWordAtCursor(TextEditingValue value, String word) {
     final (start, end) = _getWordRangeAtCursor(value);
-    final text = value.text;
-    final replaced = text.replaceRange(start, end, word);
-    return fixFinalForms(replaced);
+    final newText = value.text.replaceRange(start, end, word);
+    final finalText = fixFinalForms(newText);
+    final newCursorOffset = start + word.length;
+    return TextEditingValue(
+      text: finalText,
+      selection: TextSelection.collapsed(offset: newCursorOffset),
+    );
   }
 
   /// Updates the [VerseSearchResults] with verses than contain an exact
@@ -86,10 +90,6 @@ class SearchPageManager {
     final List<String> searchWords = normalizedPhrase.split(' ');
     final List<Reference> results = await _hebrewGreekDb
         .searchVersesByNormalizedWords(searchWords);
-    if (results.isEmpty) {
-      verseResultsNotifier.value = null;
-      return;
-    }
     verseResultsNotifier.value = VerseSearchResults(
       searchWords: searchWords,
       references: results,
@@ -143,6 +143,10 @@ class SearchPageManager {
 
   void clearCandidateList() {
     candidatesNotifier.value = [];
+  }
+
+  void clearVerseResults() {
+    verseResultsNotifier.value = null;
   }
 }
 

@@ -1,6 +1,5 @@
 import 'package:database_builder/database_builder.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:studyapp/common/book_name.dart';
 import 'package:studyapp/common/reference.dart';
 import 'package:studyapp/l10n/app_localizations.dart';
@@ -38,9 +37,7 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   void _onFocusChange() {
-    setState(() {
-      // The state of `_focusNode.hasFocus` has changed. Rebuild to update UI.
-    });
+    setState(() {});
   }
 
   Future<void> _toggleKeyboardType() async {
@@ -75,22 +72,16 @@ class _SearchPageState extends State<SearchPage> {
 
   void _updateControllerWithoutTriggeringSearch(String word) {
     _controller.removeListener(_onTextChanged);
-
     manager.clearCandidateList();
-
-    // Update the controller's text and move the cursor to the end.
-    final replaced = manager.replaceWordAtCursor(_controller.value, word);
-    _controller.text = replaced;
-    _controller.selection = TextSelection.fromPosition(
-      TextPosition(offset: _controller.text.length),
-    );
-
+    _controller.value = manager.replaceWordAtCursor(_controller.value, word);
     _controller.addListener(_onTextChanged);
   }
 
   void _clearScreen() {
     _controller.clear();
     manager.searchWordPrefixAtCursor(_controller.value);
+    manager.clearCandidateList();
+    manager.clearVerseResults();
   }
 
   @override
@@ -175,6 +166,10 @@ class _SearchPageState extends State<SearchPage> {
                   valueListenable: manager.verseResultsNotifier,
                   builder: (context, results, child) {
                     if (results == null) {
+                      return const SizedBox();
+                    }
+
+                    if (results.length == 0) {
                       return Padding(
                         padding: const EdgeInsets.all(16.0),
                         child: Text(
@@ -221,7 +216,6 @@ class _SearchPageState extends State<SearchPage> {
                             formattedReference: formattedReference,
                             textDirection: _textDirection,
                           );
-                          // }
                         },
                       ),
                     );
@@ -254,14 +248,7 @@ class _SearchPageState extends State<SearchPage> {
                   onCandidateTapped: (candidate) {
                     print(candidate);
                     _updateControllerWithoutTriggeringSearch(candidate);
-                    // manager.searchVerses(_controller.text);
-                    // _focusNode.unfocus();
                   },
-                  // onSearch: () {
-                  //   manager.clearCandidateList();
-                  //   manager.searchVerses(_controller.text);
-                  //   _focusNode.unfocus();
-                  // },
                 ),
             ],
           ),
