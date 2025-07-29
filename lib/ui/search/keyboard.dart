@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+const _interkeySpace = 2.0;
+const _innerKeyVerticalPadding = 12.0;
+
 /// A custom in-app keyboard for Biblical Hebrew and Greek alphabets.
 class HebrewGreekKeyboard extends StatefulWidget {
   final TextEditingController controller;
@@ -41,8 +44,6 @@ class HebrewGreekKeyboard extends StatefulWidget {
 }
 
 class _HebrewGreekKeyboardState extends State<HebrewGreekKeyboard> {
-  // bool _isHebrew = true;
-
   /// Handles the press of a standard letter or space key.
   /// This method atomically updates the controller's text and selection.
   void _onKeyPressed(String text) {
@@ -107,13 +108,19 @@ class _HebrewGreekKeyboardState extends State<HebrewGreekKeyboard> {
     return Container(
       width: double.infinity,
       color: widget.backgroundColor,
-      padding: const EdgeInsets.all(8.0),
+      padding: const EdgeInsets.only(
+        left: 8,
+        top: _interkeySpace * 2,
+        right: 8,
+        bottom: 8,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           _buildCandidateList(),
+          const SizedBox(height: _interkeySpace),
           _buildKeyboardLayout(),
-          const SizedBox(height: 4),
+          const SizedBox(height: _interkeySpace),
           _buildActionRow(),
         ],
       ),
@@ -123,7 +130,7 @@ class _HebrewGreekKeyboardState extends State<HebrewGreekKeyboard> {
   /// Builds the top row for word candidates using a ValueListenableBuilder.
   /// This widget automatically rebuilds ONLY the candidate row when the notifier's value changes.
   Widget _buildCandidateList() {
-    const candidateRowHeight = 50.0;
+    const candidateRowHeight = 30.0;
 
     // If no notifier is provided, just return a fixed-size empty box
     // to prevent the keyboard from changing height.
@@ -143,30 +150,24 @@ class _HebrewGreekKeyboardState extends State<HebrewGreekKeyboard> {
 
         Widget buildCandidateButton(String candidate) {
           return Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 2.0),
-              child: TextButton(
-                style: TextButton.styleFrom(
-                  backgroundColor: widget.backgroundColor.withOpacity(0.5),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8.0),
-                  ),
+            child: TextButton(
+              style: TextButton.styleFrom(
+                backgroundColor: widget.backgroundColor,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.0),
                 ),
-                onPressed: () {
-                  HapticFeedback.lightImpact();
-                  widget.onCandidateTapped?.call(candidate);
-                },
-                child: FittedBox(
-                  child: Text(
-                    candidate,
-                    style: TextStyle(
-                      color: widget.keyTextColor,
-                      fontSize: 18.0,
-                      fontWeight: FontWeight.w600,
-                      fontFamily: 'sbl',
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
+              ),
+              onPressed: () {
+                HapticFeedback.lightImpact();
+                widget.onCandidateTapped?.call(candidate);
+              },
+              child: FittedBox(
+                child: Text(
+                  candidate,
+                  style: TextStyle(
+                    color: widget.keyTextColor,
+                    fontSize: 18.0,
+                    fontFamily: 'sbl',
                   ),
                 ),
               ),
@@ -198,7 +199,7 @@ class _HebrewGreekKeyboardState extends State<HebrewGreekKeyboard> {
           textDirection: direction,
           child: SizedBox(
             height: candidateRowHeight,
-            child: Row(children: slots),
+            child: Center(child: Row(children: slots)),
           ),
         );
       },
@@ -216,9 +217,9 @@ class _HebrewGreekKeyboardState extends State<HebrewGreekKeyboard> {
         mainAxisSize: MainAxisSize.min,
         children: [
           _buildLetterRow(row1, TextDirection.rtl),
-          const SizedBox(height: 4),
+          const SizedBox(height: _interkeySpace),
           _buildLetterRow(row2, TextDirection.rtl),
-          const SizedBox(height: 4),
+          const SizedBox(height: _interkeySpace),
           _buildLetterRow(row3, TextDirection.rtl),
         ],
       );
@@ -232,9 +233,9 @@ class _HebrewGreekKeyboardState extends State<HebrewGreekKeyboard> {
         mainAxisSize: MainAxisSize.min,
         children: [
           _buildLetterRow(row1, TextDirection.ltr),
-          const SizedBox(height: 4),
+          const SizedBox(height: _interkeySpace),
           _buildLetterRow(row2, TextDirection.ltr),
-          const SizedBox(height: 4),
+          const SizedBox(height: _interkeySpace),
           _buildLetterRow(row3, TextDirection.ltr),
         ],
       );
@@ -272,7 +273,7 @@ class _HebrewGreekKeyboardState extends State<HebrewGreekKeyboard> {
           Expanded(
             flex: 2,
             child: Padding(
-              padding: const EdgeInsets.all(4.0),
+              padding: const EdgeInsets.all(_interkeySpace),
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: widget.keyColor,
@@ -280,7 +281,9 @@ class _HebrewGreekKeyboardState extends State<HebrewGreekKeyboard> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8.0),
                   ),
-                  padding: const EdgeInsets.symmetric(vertical: 16.0),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: _innerKeyVerticalPadding,
+                  ),
                 ),
                 onPressed: () {
                   HapticFeedback.lightImpact();
@@ -297,6 +300,7 @@ class _HebrewGreekKeyboardState extends State<HebrewGreekKeyboard> {
               ),
             ),
           ),
+
           // Space Key
           _KeyboardKey(
             text: ' ',
@@ -305,11 +309,12 @@ class _HebrewGreekKeyboardState extends State<HebrewGreekKeyboard> {
             textColor: widget.keyTextColor,
             flex: 2,
           ),
+
           // Backspace
           Expanded(
             flex: 2,
             child: Padding(
-              padding: const EdgeInsets.all(4.0),
+              padding: const EdgeInsets.all(_interkeySpace),
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: widget.keyColor,
@@ -317,7 +322,9 @@ class _HebrewGreekKeyboardState extends State<HebrewGreekKeyboard> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8.0),
                   ),
-                  padding: const EdgeInsets.symmetric(vertical: 16.0),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: _innerKeyVerticalPadding,
+                  ),
                 ),
                 onPressed: _onBackspacePressed,
                 child: Directionality(
@@ -332,11 +339,12 @@ class _HebrewGreekKeyboardState extends State<HebrewGreekKeyboard> {
               ),
             ),
           ),
+
           // Search
           Expanded(
             flex: 2,
             child: Padding(
-              padding: const EdgeInsets.all(4.0),
+              padding: const EdgeInsets.all(_interkeySpace),
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: widget.keyColor,
@@ -344,7 +352,9 @@ class _HebrewGreekKeyboardState extends State<HebrewGreekKeyboard> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8.0),
                   ),
-                  padding: const EdgeInsets.symmetric(vertical: 16.0),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: _innerKeyVerticalPadding,
+                  ),
                 ),
                 onPressed: () {
                   HapticFeedback.lightImpact();
@@ -380,7 +390,7 @@ class _KeyboardKey extends StatelessWidget {
     return Expanded(
       flex: flex,
       child: Padding(
-        padding: const EdgeInsets.all(4.0),
+        padding: const EdgeInsets.all(_interkeySpace),
         child: ElevatedButton(
           style: ElevatedButton.styleFrom(
             backgroundColor: keyColor,
@@ -388,7 +398,9 @@ class _KeyboardKey extends StatelessWidget {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8.0),
             ),
-            padding: const EdgeInsets.symmetric(vertical: 16.0),
+            padding: const EdgeInsets.symmetric(
+              vertical: _innerKeyVerticalPadding,
+            ),
           ),
           onPressed: onKeyPressed,
           child: Text(

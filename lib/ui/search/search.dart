@@ -196,7 +196,12 @@ class _SearchPageState extends State<SearchPage> {
                   !_isSwitchingKeyboard)
                 HebrewGreekKeyboard(
                   controller: _controller,
-                  backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+                  backgroundColor:
+                      Color.lerp(
+                        Theme.of(context).scaffoldBackgroundColor,
+                        Theme.of(context).colorScheme.surface,
+                        0.5,
+                      )!,
                   keyColor: Theme.of(context).colorScheme.surface,
                   keyTextColor: Theme.of(context).colorScheme.onSurface,
                   onLanguageChange: (textDirection) {
