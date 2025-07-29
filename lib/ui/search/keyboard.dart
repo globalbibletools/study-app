@@ -163,8 +163,6 @@ class _HebrewGreekKeyboardState extends State<HebrewGreekKeyboard> {
 
   /// Builds the bottom action row (backspace, space, language switch).
   Widget _buildActionRow() {
-    // The visual direction of the action row can be fixed (e.g., LTR)
-    // for consistent user experience, regardless of the text direction.
     return Directionality(
       textDirection: TextDirection.ltr,
       child: Row(
@@ -186,10 +184,6 @@ class _HebrewGreekKeyboardState extends State<HebrewGreekKeyboard> {
                 ),
                 onPressed: () {
                   HapticFeedback.lightImpact();
-                  // Toggle language and notify parent widget
-                  // setState(() {
-                  //   _isHebrew = !_isHebrew;
-                  // });
                   final isHebrew = !widget.isHebrew;
                   final direction =
                       isHebrew ? TextDirection.rtl : TextDirection.ltr;
@@ -209,7 +203,7 @@ class _HebrewGreekKeyboardState extends State<HebrewGreekKeyboard> {
             onKeyPressed: () => _onKeyPressed(' '),
             keyColor: widget.keyColor,
             textColor: widget.keyTextColor,
-            flex: 4,
+            flex: 2,
           ),
           // Backspace
           Expanded(
@@ -235,6 +229,27 @@ class _HebrewGreekKeyboardState extends State<HebrewGreekKeyboard> {
                     color: widget.keyTextColor,
                   ),
                 ),
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Padding(
+              padding: const EdgeInsets.all(4.0),
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: widget.keyColor,
+                  foregroundColor: widget.keyTextColor,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 16.0),
+                ),
+                onPressed: () {
+                  HapticFeedback.lightImpact();
+                  // widget.onSearch.call();
+                },
+                child: Icon(Icons.search, size: 24, color: widget.keyTextColor),
               ),
             ),
           ),

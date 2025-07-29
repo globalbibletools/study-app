@@ -1,5 +1,6 @@
 import 'package:database_builder/database_builder.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:studyapp/common/book_name.dart';
 import 'package:studyapp/common/reference.dart';
 import 'package:studyapp/l10n/app_localizations.dart';
@@ -20,7 +21,8 @@ class _SearchPageState extends State<SearchPage> {
   late final TextEditingController _controller;
   TextDirection _textDirection = TextDirection.rtl;
   final _focusNode = FocusNode();
-  bool _isKeyboardVisible = true;
+  bool _useSystemKeyboard = false;
+  bool _isSwitchingKeyboard = false;
 
   @override
   void initState() {
@@ -36,9 +38,37 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   void _onFocusChange() {
-    if (_focusNode.hasFocus != _isKeyboardVisible) {
+    setState(() {
+      // The state of `_focusNode.hasFocus` has changed. Rebuild to update UI.
+    });
+  }
+
+  Future<void> _toggleKeyboardType() async {
+    // Switching FROM system keyboard TO in-app keyboard
+    if (_useSystemKeyboard) {
       setState(() {
-        _isKeyboardVisible = _focusNode.hasFocus;
+        // Step 1: Start the transition.
+        // This makes the TextField readOnly, which starts dismissing the system keyboard.
+        // The _isSwitchingKeyboard flag prevents the in-app keyboard from appearing immediately.
+        _isSwitchingKeyboard = true;
+        _useSystemKeyboard = false;
+      });
+
+      // Wait for the system keyboard's dismiss animation to finish.
+      await Future.delayed(const Duration(milliseconds: 200));
+      if (!mounted) return;
+
+      setState(() {
+        // Step 2: End the transition.
+        // The system keyboard is now gone, so show the in-app keyboard.
+        _isSwitchingKeyboard = false;
+      });
+    } else {
+      // Switching FROM in-app keyboard TO system keyboard is simple.
+      // The in-app keyboard will disappear instantly, and the
+      // system keyboard will be triggered by the TextField becoming editable.
+      setState(() {
+        _useSystemKeyboard = true;
       });
     }
   }
@@ -73,7 +103,23 @@ class _SearchPageState extends State<SearchPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(AppLocalizations.of(context)!.search)),
+      appBar: AppBar(
+        title: Text(AppLocalizations.of(context)!.search),
+        actions: [
+          IconButton(
+            icon: Icon(
+              _useSystemKeyboard
+                  ? Icons.keyboard_hide_outlined
+                  : Icons.keyboard_alt_outlined,
+            ),
+            tooltip:
+                _useSystemKeyboard
+                    ? 'Use In-App Keyboard' // TODO localize these
+                    : 'Use System Keyboard',
+            onPressed: _toggleKeyboardType,
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Directionality(
           textDirection: _textDirection,
@@ -85,8 +131,9 @@ class _SearchPageState extends State<SearchPage> {
                   controller: _controller,
                   autofocus: true,
                   focusNode: _focusNode,
-                  readOnly: true, // non-editable by the system keyboard
+                  readOnly: !_useSystemKeyboard,
                   showCursor: true,
+                  textInputAction: TextInputAction.search,
                   style: const TextStyle(fontSize: 24, fontFamily: 'sbl'),
                   decoration: InputDecoration(
                     border: OutlineInputBorder(),
@@ -95,14 +142,10 @@ class _SearchPageState extends State<SearchPage> {
                       icon: const Icon(Icons.clear),
                     ),
                   ),
-                  onTapOutside: (event) {
-                    // empty to prevent losing focus
-                  },
-                  onTap: () {
-                    if (!_focusNode.hasFocus) {
-                      _focusNode.requestFocus();
-                      manager.searchWordPrefix(_controller.value);
-                    }
+                  // onTapOutside: (event) {},
+                  onSubmitted: (value) {
+                    print("Search submitted from keyboard: $value");
+                    manager.searchVerses(value);
                   },
                 ),
               ),
@@ -159,7 +202,9 @@ class _SearchPageState extends State<SearchPage> {
                   },
                 ),
               ),
-              if (_isKeyboardVisible)
+              if (_focusNode.hasFocus &&
+                  !_useSystemKeyboard &&
+                  !_isSwitchingKeyboard)
                 HebrewGreekKeyboard(
                   controller: _controller,
                   backgroundColor: Theme.of(context).scaffoldBackgroundColor,
