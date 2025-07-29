@@ -11,6 +11,17 @@ class HebrewGreekKeyboard extends StatefulWidget {
   final Color keyColor;
   final Color keyTextColor;
 
+  /// A notifier that the keyboard listens to for candidate word updates.
+  /// The parent widget holds and updates this notifier. When the notifier's
+  /// value changes, the keyboard will update the candidate list internally.
+  final ValueNotifier<List<String>>? candidatesNotifier;
+
+  /// A callback that is triggered when a candidate word is tapped.
+  final void Function(String candidate)? onCandidateTapped;
+
+  /// The search button was pressed
+  final VoidCallback onSearch;
+
   const HebrewGreekKeyboard({
     super.key,
     required this.controller,
@@ -20,6 +31,9 @@ class HebrewGreekKeyboard extends StatefulWidget {
     this.backgroundColor = const Color(0xFFD1D5DB),
     this.keyColor = Colors.white,
     this.keyTextColor = Colors.black,
+    this.candidatesNotifier,
+    this.onCandidateTapped,
+    required this.onSearch,
   });
 
   @override
@@ -97,11 +111,97 @@ class _HebrewGreekKeyboardState extends State<HebrewGreekKeyboard> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          _buildCandidateList(),
           _buildKeyboardLayout(),
           const SizedBox(height: 4),
           _buildActionRow(),
         ],
       ),
+    );
+  }
+
+  /// Builds the top row for word candidates using a ValueListenableBuilder.
+  /// This widget automatically rebuilds ONLY the candidate row when the notifier's value changes.
+  Widget _buildCandidateList() {
+    const candidateRowHeight = 50.0;
+
+    // If no notifier is provided, just return a fixed-size empty box
+    // to prevent the keyboard from changing height.
+    if (widget.candidatesNotifier == null) {
+      return const SizedBox(height: candidateRowHeight);
+    }
+
+    return ValueListenableBuilder<List<String>>(
+      // The builder listens to this notifier.
+      valueListenable: widget.candidatesNotifier!,
+      // The builder function is called whenever the notifier's value changes.
+      builder: (context, candidates, child) {
+        // `candidates` is the latest List<String> from the notifier.
+
+        final direction =
+            widget.isHebrew ? TextDirection.rtl : TextDirection.ltr;
+
+        Widget buildCandidateButton(String candidate) {
+          return Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 2.0),
+              child: TextButton(
+                style: TextButton.styleFrom(
+                  backgroundColor: widget.backgroundColor.withOpacity(0.5),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                ),
+                onPressed: () {
+                  HapticFeedback.lightImpact();
+                  widget.onCandidateTapped?.call(candidate);
+                },
+                child: FittedBox(
+                  child: Text(
+                    candidate,
+                    style: TextStyle(
+                      color: widget.keyTextColor,
+                      fontSize: 18.0,
+                      fontWeight: FontWeight.w600,
+                      fontFamily: 'sbl',
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
+
+        List<Widget> slots = [
+          const Expanded(child: SizedBox()), // Slot 1 (Start)
+          const Expanded(child: SizedBox()), // Slot 2 (Middle)
+          const Expanded(child: SizedBox()), // Slot 3 (End)
+        ];
+
+        final displayCandidates = candidates.take(3).toList();
+
+        if (displayCandidates.length == 1) {
+          slots[1] = buildCandidateButton(displayCandidates[0]);
+        } else if (displayCandidates.length == 2) {
+          slots[0] = buildCandidateButton(displayCandidates[0]);
+          slots[1] = buildCandidateButton(displayCandidates[1]);
+        } else if (displayCandidates.length >= 3) {
+          slots[0] = buildCandidateButton(displayCandidates[0]);
+          slots[1] = buildCandidateButton(displayCandidates[1]);
+          slots[2] = buildCandidateButton(displayCandidates[2]);
+        }
+
+        // Return the row widget, which will be rebuilt on each update.
+        return Directionality(
+          textDirection: direction,
+          child: SizedBox(
+            height: candidateRowHeight,
+            child: Row(children: slots),
+          ),
+        );
+      },
     );
   }
 
@@ -232,6 +332,7 @@ class _HebrewGreekKeyboardState extends State<HebrewGreekKeyboard> {
               ),
             ),
           ),
+          // Search
           Expanded(
             flex: 2,
             child: Padding(
@@ -247,7 +348,7 @@ class _HebrewGreekKeyboardState extends State<HebrewGreekKeyboard> {
                 ),
                 onPressed: () {
                   HapticFeedback.lightImpact();
-                  // widget.onSearch.call();
+                  widget.onSearch();
                 },
                 child: Icon(Icons.search, size: 24, color: widget.keyTextColor),
               ),

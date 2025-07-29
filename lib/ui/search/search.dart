@@ -34,7 +34,7 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   void _onTextChanged() {
-    manager.searchWordPrefix(_controller.value);
+    manager.searchWordPrefixAtCursor(_controller.value);
   }
 
   void _onFocusChange() {
@@ -76,6 +76,8 @@ class _SearchPageState extends State<SearchPage> {
   void _updateControllerWithoutTriggeringSearch(String word) {
     _controller.removeListener(_onTextChanged);
 
+    manager.clearCandidateList();
+
     // Update the controller's text and move the cursor to the end.
     final replaced = manager.replaceWordAtCursor(_controller.value, word);
     _controller.text = replaced;
@@ -88,7 +90,7 @@ class _SearchPageState extends State<SearchPage> {
 
   void _clearScreen() {
     _controller.clear();
-    manager.searchWordPrefix(_controller.value);
+    manager.searchWordPrefixAtCursor(_controller.value);
   }
 
   @override
@@ -142,7 +144,9 @@ class _SearchPageState extends State<SearchPage> {
                       icon: const Icon(Icons.clear),
                     ),
                   ),
-                  // onTapOutside: (event) {},
+                  onTapOutside: (event) {
+                    // prevent macOS from losing focus when keyboard keys tapped
+                  },
                   onSubmitted: (value) {
                     print("Search submitted from keyboard: $value");
                     manager.searchVerses(value);
@@ -150,52 +154,37 @@ class _SearchPageState extends State<SearchPage> {
                 ),
               ),
               Expanded(
-                child: ValueListenableBuilder<SearchResults>(
-                  valueListenable: manager.resultsNotifier,
+                child: ValueListenableBuilder<VerseSearchResults?>(
+                  valueListenable: manager.verseResultsNotifier,
                   builder: (context, results, child) {
+                    if (results == null) {
+                      return Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Text('No matched verses'), // TODO: localize
+                      );
+                    }
+
                     return Directionality(
                       textDirection: _textDirection,
                       child: ListView.builder(
                         itemCount: results.length,
                         itemBuilder: (context, index) {
-                          switch (results) {
-                            case NoResults():
-                              return const SizedBox();
-                            case WordSearchResults(words: final w):
-                              final word = w[index];
-                              return ListTile(
-                                title: Text(
-                                  fixFinalForms(word),
-                                  style: TextStyle(fontFamily: 'sbl'),
-                                ),
-                                onTap: () {
-                                  _updateControllerWithoutTriggeringSearch(
-                                    word,
-                                  );
-                                  manager.searchVerses(_controller.text);
-                                  _focusNode.unfocus();
-                                },
-                              );
-                            case VerseSearchResults(
-                              searchWords: final words,
-                              references: final r,
-                            ):
-                              final reference = r[index];
-                              final formattedReference = _formatReference(
-                                reference,
-                              );
-                              return VerseListItem(
-                                key: ValueKey(reference),
-                                verseContentFuture: manager.getVerseContent(
-                                  words,
-                                  reference,
-                                  Theme.of(context).colorScheme.primary,
-                                  20.0,
-                                ),
-                                formattedReference: formattedReference,
-                                textDirection: _textDirection,
-                              );
-                          }
+                          final reference = results.references[index];
+                          final formattedReference = _formatReference(
+                            reference,
+                          );
+                          return VerseListItem(
+                            key: ValueKey(reference),
+                            verseContentFuture: manager.getVerseContent(
+                              results.searchWords,
+                              reference,
+                              Theme.of(context).colorScheme.primary,
+                              20.0,
+                            ),
+                            formattedReference: formattedReference,
+                            textDirection: _textDirection,
+                          );
+                          // }
                         },
                       ),
                     );
@@ -219,6 +208,18 @@ class _SearchPageState extends State<SearchPage> {
                   },
                   fixFinalForms: fixFinalForms,
                   isHebrew: _textDirection == TextDirection.rtl,
+                  candidatesNotifier: manager.candidatesNotifier,
+                  onCandidateTapped: (candidate) {
+                    print(candidate);
+                    _updateControllerWithoutTriggeringSearch(candidate);
+                    // manager.searchVerses(_controller.text);
+                    // _focusNode.unfocus();
+                  },
+                  onSearch: () {
+                    manager.clearCandidateList();
+                    manager.searchVerses(_controller.text);
+                    _focusNode.unfocus();
+                  },
                 ),
             ],
           ),

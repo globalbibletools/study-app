@@ -9,30 +9,22 @@ import 'package:studyapp/services/service_locator.dart';
 import 'package:studyapp/services/user_settings.dart';
 
 class SearchPageManager {
-  final resultsNotifier = ValueNotifier<SearchResults>(NoResults());
+  final candidatesNotifier = ValueNotifier<List<String>>([]);
+  final verseResultsNotifier = ValueNotifier<VerseSearchResults?>(null);
   final _hebrewGreekDb = getIt<HebrewGreekDatabase>();
 
   /// Finds a list of words from the Hebrew/Greek database that start with
   /// the given [prefix] at the cursor position.
-  Future<void> searchWordPrefix(TextEditingValue value) async {
+  Future<void> searchWordPrefixAtCursor(TextEditingValue value) async {
     final prefix = _getWordAtCursor(value);
 
     if (prefix == null) {
-      resultsNotifier.value = NoResults();
+      candidatesNotifier.value = [];
       return;
     }
 
-    if (prefix.length == 1) {
-      resultsNotifier.value = WordSearchResults(words: [prefix]);
-      return;
-    }
-
-    final results = await _hebrewGreekDb.getWordsStartingWith(
-      prefix,
-      limit: 1000,
-    );
-    results.sort((a, b) => a.length.compareTo(b.length));
-    resultsNotifier.value = WordSearchResults(words: results);
+    final results = await _hebrewGreekDb.getWordsStartingWith(prefix, limit: 3);
+    candidatesNotifier.value = results;
   }
 
   String? _getWordAtCursor(TextEditingValue value) {
@@ -94,7 +86,11 @@ class SearchPageManager {
     final List<String> searchWords = normalizedPhrase.split(' ');
     final List<Reference> results = await _hebrewGreekDb
         .searchVersesByNormalizedWords(searchWords);
-    resultsNotifier.value = VerseSearchResults(
+    if (results.isEmpty) {
+      verseResultsNotifier.value = null;
+      return;
+    }
+    verseResultsNotifier.value = VerseSearchResults(
       searchWords: searchWords,
       references: results,
     );
@@ -144,28 +140,16 @@ class SearchPageManager {
     final isHebrew = getIt<UserSettings>().isHebrewSearch;
     return isHebrew ? TextDirection.rtl : TextDirection.ltr;
   }
+
+  void clearCandidateList() {
+    candidatesNotifier.value = [];
+  }
 }
 
-sealed class SearchResults {
-  int get length;
-}
-
-class NoResults extends SearchResults {
-  @override
-  int get length => 0;
-}
-
-class WordSearchResults extends SearchResults {
-  WordSearchResults({required this.words});
-  final List<String> words;
-  @override
-  int get length => words.length;
-}
-
-class VerseSearchResults extends SearchResults {
+class VerseSearchResults {
   VerseSearchResults({required this.searchWords, required this.references});
   final List<String> searchWords;
   final List<Reference> references;
-  @override
+
   int get length => references.length;
 }
