@@ -2,6 +2,11 @@
 
 - Localize missing phrase into Spanish.
 - Ensure that button text doesn't line wrap on About page.
+- Add search button next to text input box.
+- Add system vs in-app keyboard switcher button to app bar on Search page.
+- System keyboard shows search button.
+- Move search candidate words to in-app keyboard candidate list (show max three).
+- 
 
 ## 0.8.0 - July 24, 2025
 
