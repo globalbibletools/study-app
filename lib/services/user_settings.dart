@@ -14,6 +14,7 @@ class UserSettings {
   static const _fontScaleKey = 'fontScale';
   static const _localeKey = 'locale';
   static const _isHebrewSearchKey = 'isHebrewSearch';
+  static const _useSystemKeyboardKey = 'useSystemKeyboard';
 
   (int, int) get currentBookChapter {
     final bookId = _prefs.getInt(_currentBookIdKey) ?? 1;
@@ -51,5 +52,13 @@ class UserSettings {
 
   Future<void> setIsHebrewSearch(bool value) async {
     await _prefs.setBool(_isHebrewSearchKey, value);
+  }
+
+  bool get shouldUseSystemKeyboard {
+    return _prefs.getBool(_useSystemKeyboardKey) ?? false;
+  }
+
+  Future<void> setUseSystemKeyboard(bool value) async {
+    await _prefs.setBool(_useSystemKeyboardKey, value);
   }
 }

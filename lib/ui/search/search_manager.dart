@@ -148,6 +148,14 @@ class SearchPageManager {
   void clearVerseResults() {
     verseResultsNotifier.value = null;
   }
+
+  bool shouldUseSystemKeyboard() {
+    return getIt<UserSettings>().shouldUseSystemKeyboard;
+  }
+
+  Future<void> setUseSystemKeyboard(bool value) async {
+    await getIt<UserSettings>().setUseSystemKeyboard(value);
+  }
 }
 
 class VerseSearchResults {

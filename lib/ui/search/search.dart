@@ -30,6 +30,7 @@ class _SearchPageState extends State<SearchPage> {
     _controller.addListener(_onTextChanged);
     _focusNode.addListener(_onFocusChange);
     _textDirection = manager.savedTextDirection();
+    _useSystemKeyboard = manager.shouldUseSystemKeyboard();
   }
 
   void _onTextChanged() {
@@ -110,7 +111,10 @@ class _SearchPageState extends State<SearchPage> {
                 _useSystemKeyboard
                     ? 'Use In-App Keyboard' // TODO localize these
                     : 'Use System Keyboard',
-            onPressed: _toggleKeyboardType,
+            onPressed: () {
+              _toggleKeyboardType();
+              manager.setUseSystemKeyboard(_useSystemKeyboard);
+            },
           ),
         ],
       ),
