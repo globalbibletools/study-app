@@ -104,6 +104,7 @@ class _SearchPageState extends State<SearchPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isRtl = _textDirection == TextDirection.rtl;
     return Scaffold(
       appBar: AppBar(
         title: Text(AppLocalizations.of(context)!.search),
@@ -128,7 +129,11 @@ class _SearchPageState extends State<SearchPage> {
           child: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.only(left: 16, top: 8, right: 8),
+                padding: EdgeInsets.only(
+                  left: isRtl ? 8 : 16,
+                  top: 8,
+                  right: isRtl ? 16 : 8,
+                ),
                 child: Row(
                   children: [
                     Expanded(
@@ -150,10 +155,7 @@ class _SearchPageState extends State<SearchPage> {
                         onTapOutside: (event) {
                           // prevent macOS from losing focus when keyboard keys tapped
                         },
-                        onSubmitted: (value) {
-                          print("Search submitted from keyboard: $value");
-                          manager.searchVerses(value);
-                        },
+                        onSubmitted: manager.searchVerses,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -174,17 +176,37 @@ class _SearchPageState extends State<SearchPage> {
                   builder: (context, results, child) {
                     if (results == null) {
                       return Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Text('No matched verses'), // TODO: localize
+                        padding: const EdgeInsets.all(16.0),
+                        child: Text(
+                          'No verses found',
+                          style: TextStyle(
+                            fontFamily: 'sbl',
+                            color: Theme.of(context).disabledColor,
+                          ),
+                        ), // TODO: localize
                       );
                     }
 
                     return Directionality(
                       textDirection: _textDirection,
                       child: ListView.builder(
-                        itemCount: results.length,
+                        itemCount: results.length + 1,
                         itemBuilder: (context, index) {
-                          final reference = results.references[index];
+                          if (index == 0) {
+                            return Center(
+                              child: Padding(
+                                padding: const EdgeInsets.only(top: 16.0),
+                                child: Text(
+                                  '${results.length}',
+                                  style: TextStyle(
+                                    fontFamily: 'sbl',
+                                    color: Theme.of(context).disabledColor,
+                                  ),
+                                ),
+                              ),
+                            );
+                          }
+                          final reference = results.references[index - 1];
                           final formattedReference = _formatReference(
                             reference,
                           );
