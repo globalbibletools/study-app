@@ -57,6 +57,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get search => 'Search';
 
   @override
+  String get useInAppKeyboard => 'Use In-App Keyboard';
+
+  @override
+  String get useSystemKeyboard => 'Use System Keyboard';
+
+  @override
+  String get noVersesFound => 'No verses found';
+
+  @override
   String get about => 'About';
 
   @override

@@ -188,6 +188,24 @@ abstract class AppLocalizations {
   /// **'Search'**
   String get search;
 
+  /// Tool tip for system vs in-app keyboard switcher button
+  ///
+  /// In en, this message translates to:
+  /// **'Use In-App Keyboard'**
+  String get useInAppKeyboard;
+
+  /// Tool tip for system vs in-app keyboard switcher button
+  ///
+  /// In en, this message translates to:
+  /// **'Use System Keyboard'**
+  String get useSystemKeyboard;
+
+  /// The message to display when search returns no Bible verse matches for the given words
+  ///
+  /// In en, this message translates to:
+  /// **'No verses found'**
+  String get noVersesFound;
+
   /// The title of the About screen
   ///
   /// In en, this message translates to:

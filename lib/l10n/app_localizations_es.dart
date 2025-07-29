@@ -57,6 +57,15 @@ class AppLocalizationsEs extends AppLocalizations {
   String get search => 'Buscar';
 
   @override
+  String get useInAppKeyboard => 'Usar teclado de la aplicación';
+
+  @override
+  String get useSystemKeyboard => 'Usar teclado del sistema';
+
+  @override
+  String get noVersesFound => 'No se encontraron versículos';
+
+  @override
   String get about => 'Acerca de';
 
   @override

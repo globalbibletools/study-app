@@ -65,6 +65,18 @@
   "@search": {
     "description": "The title of the Search screen"
   },
+  "useInAppKeyboard": "Use In-App Keyboard",
+  "@useInAppKeyboard": {
+    "description": "Tool tip for system vs in-app keyboard switcher button"
+  },
+  "useSystemKeyboard": "Use System Keyboard",
+  "@useSystemKeyboard": {
+    "description": "Tool tip for system vs in-app keyboard switcher button"
+  },
+  "noVersesFound": "No verses found",
+  "@noVersesFound": {
+    "description": "The message to display when search returns no Bible verse matches for the given words"
+  },
 
   "about": "About",
   "@about": {

@@ -109,8 +109,8 @@ class _SearchPageState extends State<SearchPage> {
             ),
             tooltip:
                 _useSystemKeyboard
-                    ? 'Use In-App Keyboard' // TODO localize these
-                    : 'Use System Keyboard',
+                    ? AppLocalizations.of(context)!.useInAppKeyboard
+                    : AppLocalizations.of(context)!.useSystemKeyboard,
             onPressed: () {
               _toggleKeyboardType();
               manager.setUseSystemKeyboard(_useSystemKeyboard);
@@ -177,7 +177,7 @@ class _SearchPageState extends State<SearchPage> {
                       return Padding(
                         padding: const EdgeInsets.all(16.0),
                         child: Text(
-                          'No verses found',
+                          AppLocalizations.of(context)!.noVersesFound,
                           style: TextStyle(
                             fontFamily: 'sbl',
                             color: Theme.of(context).disabledColor,
