@@ -1,4 +1,4 @@
-## 0.9.0 
+## 0.9.1 - July 30, 2025
 
 - Localize missing phrase into Spanish.
 - Ensure that button text doesn't line wrap on About page.

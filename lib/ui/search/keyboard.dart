@@ -135,42 +135,10 @@ class _HebrewGreekKeyboardState extends State<HebrewGreekKeyboard> {
     }
 
     return ValueListenableBuilder<List<String>>(
-      // The builder listens to this notifier.
       valueListenable: widget.candidatesNotifier!,
-      // The builder function is called whenever the notifier's value changes.
       builder: (context, candidates, child) {
-        // `candidates` is the latest List<String> from the notifier.
-
         final direction =
             widget.isHebrew ? TextDirection.rtl : TextDirection.ltr;
-
-        Widget buildCandidateButton(String candidate) {
-          final fixed = widget.fixFinalForms(candidate);
-          return Expanded(
-            child: TextButton(
-              style: TextButton.styleFrom(
-                backgroundColor: widget.backgroundColor,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8.0),
-                ),
-              ),
-              onPressed: () {
-                HapticFeedback.lightImpact();
-                widget.onCandidateTapped?.call(candidate);
-              },
-              child: FittedBox(
-                child: Text(
-                  fixed,
-                  style: TextStyle(
-                    color: widget.keyTextColor,
-                    fontSize: 18.0,
-                    fontFamily: 'sbl',
-                  ),
-                ),
-              ),
-            ),
-          );
-        }
 
         List<Widget> slots = [
           const Expanded(child: SizedBox()), // Slot 1 (Start)
@@ -181,14 +149,14 @@ class _HebrewGreekKeyboardState extends State<HebrewGreekKeyboard> {
         final displayCandidates = candidates.take(3).toList();
 
         if (displayCandidates.length == 1) {
-          slots[1] = buildCandidateButton(displayCandidates[0]);
+          slots[1] = _buildCandidateButton(displayCandidates[0]);
         } else if (displayCandidates.length == 2) {
-          slots[0] = buildCandidateButton(displayCandidates[0]);
-          slots[1] = buildCandidateButton(displayCandidates[1]);
+          slots[0] = _buildCandidateButton(displayCandidates[0]);
+          slots[1] = _buildCandidateButton(displayCandidates[1]);
         } else if (displayCandidates.length >= 3) {
-          slots[0] = buildCandidateButton(displayCandidates[0]);
-          slots[1] = buildCandidateButton(displayCandidates[1]);
-          slots[2] = buildCandidateButton(displayCandidates[2]);
+          slots[0] = _buildCandidateButton(displayCandidates[0]);
+          slots[1] = _buildCandidateButton(displayCandidates[1]);
+          slots[2] = _buildCandidateButton(displayCandidates[2]);
         }
 
         // Return the row widget, which will be rebuilt on each update.
@@ -200,6 +168,36 @@ class _HebrewGreekKeyboardState extends State<HebrewGreekKeyboard> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildCandidateButton(String candidate) {
+    final fixed = widget.fixFinalForms(candidate);
+    return Expanded(
+      child: TextButton(
+        style: TextButton.styleFrom(
+          backgroundColor: widget.backgroundColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8.0),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 4.0),
+        ),
+        onPressed: () {
+          HapticFeedback.lightImpact();
+          widget.onCandidateTapped?.call(candidate);
+        },
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            fixed,
+            style: TextStyle(
+              color: widget.keyTextColor,
+              fontSize: 18.0,
+              fontFamily: 'sbl',
+            ),
+          ),
+        ),
+      ),
     );
   }
 

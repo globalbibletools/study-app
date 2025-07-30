@@ -2,7 +2,7 @@ name: studyapp
 description: "Global Bible Tools Hebrew and Greek Study App"
 publish_to: 'none'
 
-version: 0.8.0+16
+version: 0.9.1+18
 
 environment:
   sdk: ^3.7.2
