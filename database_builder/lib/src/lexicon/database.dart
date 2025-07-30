@@ -28,8 +28,16 @@ class LexiconDatabase {
   }
 
   Future<void> populateTables() async {
-    final hebrewJson = jsonDecode(await File('lib/src/lexicon/data/hebrew/UBSHebrewDic-v0.9.1-en.JSON').readAsString());
-    final greekJson = jsonDecode(await File('lib/src/lexicon/data/greek/UBSGreekNTDic-v1.1-en.JSON').readAsString());
+    final hebrewJson = jsonDecode(
+      await File(
+        'lib/src/lexicon/data/hebrew/UBSHebrewDic-v0.9.1-en.JSON',
+      ).readAsString(),
+    );
+    final greekJson = jsonDecode(
+      await File(
+        'lib/src/lexicon/data/greek/UBSGreekNTDic-v1.1-en.JSON',
+      ).readAsString(),
+    );
 
     final allData = [...hebrewJson, ...greekJson];
 
@@ -37,19 +45,26 @@ class LexiconDatabase {
 
     _database.execute('BEGIN TRANSACTION');
 
-    final lemmasStmt = _database.prepare('INSERT INTO ${LexiconSchema.lemmasTable} (${LexiconSchema.lemmasColMainId}, ${LexiconSchema.lemmasColLemmaText}) VALUES (?, ?)');
-    final strongsStmt = _database.prepare('INSERT INTO ${LexiconSchema.strongsMappingTable} (${LexiconSchema.strongsMappingColStrongCode}, ${LexiconSchema.strongsMappingColLemmaId}) VALUES (?, ?)');
+    final lemmasStmt = _database.prepare(
+      'INSERT INTO ${LexiconSchema.lemmasTable} (${LexiconSchema.lemmasColMainId}, ${LexiconSchema.lemmasColLemmaText}) VALUES (?, ?)',
+    );
+    final strongsStmt = _database.prepare(
+      'INSERT INTO ${LexiconSchema.strongsMappingTable} (${LexiconSchema.strongsMappingColStrongCode}, ${LexiconSchema.strongsMappingColLemmaId}) VALUES (?, ?)',
+    );
     final meaningsStmt = _database.prepare('''
-      INSERT INTO ${LexiconSchema.meaningsTable} 
-      (${LexiconSchema.meaningsColLexId}, ${LexiconSchema.meaningsColLemmaId}, ${LexiconSchema.meaningsColGrammarId}, ${LexiconSchema.meaningsColLexEntryCode}, ${LexiconSchema.meaningsColDefinitionShort}, ${LexiconSchema.meaningsColComments}, ${LexiconSchema.meaningsColGlosses})
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    ''');
+    INSERT INTO ${LexiconSchema.meaningsTable} 
+    (${LexiconSchema.meaningsColLexId}, ${LexiconSchema.meaningsColLemmaId}, ${LexiconSchema.meaningsColGrammarId}, ${LexiconSchema.meaningsColLexEntryCode}, ${LexiconSchema.meaningsColDefinitionShort}, ${LexiconSchema.meaningsColComments}, ${LexiconSchema.meaningsColGlosses})
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  ''');
 
     for (final lemmaObject in allData) {
       final mainId = int.tryParse(lemmaObject['MainId'] ?? '0') ?? 0;
       if (mainId == 0) continue;
 
-      final existing = _database.select('SELECT 1 FROM ${LexiconSchema.lemmasTable} WHERE ${LexiconSchema.lemmasColMainId} = ?', [mainId]);
+      final existing = _database.select(
+        'SELECT 1 FROM ${LexiconSchema.lemmasTable} WHERE ${LexiconSchema.lemmasColMainId} = ?',
+        [mainId],
+      );
       if (existing.isEmpty) {
         lemmasStmt.execute([mainId, lemmaObject['Lemma']]);
       }
@@ -63,17 +78,22 @@ class LexiconDatabase {
       if (lemmaObject['BaseForms'] != null) {
         for (final baseForm in lemmaObject['BaseForms']) {
           if (baseForm['PartsOfSpeech'] == null) continue;
-          final grammarText = (baseForm['PartsOfSpeech'] as List).first ?? 'unknown';
+          final grammarText =
+              (baseForm['PartsOfSpeech'] as List).first ?? 'unknown';
           final grammarId = grammarMap[grammarText];
           if (grammarId == null) continue;
 
           if (baseForm['LEXMeanings'] != null) {
             for (final meaning in baseForm['LEXMeanings']) {
-              if (meaning['LEXSenses'] != null && (meaning['LEXSenses'] as List).isNotEmpty) {
+              if (meaning['LEXSenses'] != null &&
+                  (meaning['LEXSenses'] as List).isNotEmpty) {
                 final sense = (meaning['LEXSenses'] as List).first;
                 final glosses = jsonEncode(sense['Glosses']);
 
-                final existingMeaning = _database.select('SELECT 1 FROM ${LexiconSchema.meaningsTable} WHERE ${LexiconSchema.meaningsColLexId} = ?', [int.parse(meaning['LEXID'])]);
+                final existingMeaning = _database.select(
+                  'SELECT 1 FROM ${LexiconSchema.meaningsTable} WHERE ${LexiconSchema.meaningsColLexId} = ?',
+                  [int.parse(meaning['LEXID'])],
+                );
                 if (existingMeaning.isEmpty) {
                   meaningsStmt.execute([
                     int.parse(meaning['LEXID']),
@@ -97,7 +117,7 @@ class LexiconDatabase {
     meaningsStmt.dispose();
 
     _database.execute('COMMIT');
-    
+
     _createIndexes();
   }
 
@@ -106,7 +126,8 @@ class LexiconDatabase {
     for (final lemma in jsonData) {
       if (lemma['BaseForms'] != null) {
         for (final baseForm in lemma['BaseForms']) {
-          if (baseForm['PartsOfSpeech'] != null && (baseForm['PartsOfSpeech'] as List).isNotEmpty) {
+          if (baseForm['PartsOfSpeech'] != null &&
+              (baseForm['PartsOfSpeech'] as List).isNotEmpty) {
             final grammar = (baseForm['PartsOfSpeech'] as List).first;
             if (grammar != null) {
               grammarSet.add(grammar);
@@ -117,7 +138,9 @@ class LexiconDatabase {
     }
 
     final grammarMap = <String, int>{};
-    final stmt = _database.prepare('INSERT INTO ${LexiconSchema.grammarTypesTable} (${LexiconSchema.grammarTypesColGrammarText}) VALUES (?)');
+    final stmt = _database.prepare(
+      'INSERT INTO ${LexiconSchema.grammarTypesTable} (${LexiconSchema.grammarTypesColGrammarText}) VALUES (?)',
+    );
     for (final grammarText in grammarSet) {
       stmt.execute([grammarText]);
       grammarMap[grammarText] = _database.lastInsertRowId;
@@ -127,8 +150,12 @@ class LexiconDatabase {
   }
 
   void _createIndexes() {
-    _database.execute('CREATE INDEX idx_strongs_mapping_strong_code ON ${LexiconSchema.strongsMappingTable}(${LexiconSchema.strongsMappingColStrongCode});');
-    _database.execute('CREATE INDEX idx_meanings_lemma_id ON ${LexiconSchema.meaningsTable}(${LexiconSchema.meaningsColLemmaId});');
+    _database.execute(
+      'CREATE INDEX idx_strongs_mapping_strong_code ON ${LexiconSchema.strongsMappingTable}(${LexiconSchema.strongsMappingColStrongCode});',
+    );
+    _database.execute(
+      'CREATE INDEX idx_meanings_lemma_id ON ${LexiconSchema.meaningsTable}(${LexiconSchema.meaningsColLemmaId});',
+    );
   }
 
   void dispose() {
