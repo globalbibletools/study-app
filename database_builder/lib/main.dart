@@ -2,10 +2,28 @@
 
 import 'src/gloss/database.dart';
 import 'src/hebrew_greek/database.dart';
+import 'src/lexicon/database.dart';
 
 Future<void> main(List<String> arguments) async {
-  await _createHebrewGreekDatabase();
+  // await _createHebrewGreekDatabase();
+  await _createLexiconDatabase();
   // await _createGlossDatabase('spa');
+}
+
+Future<void> _createLexiconDatabase() async {
+  final dbHelper = LexiconDatabase();
+
+  print('Deleting existing Lexicon database');
+  dbHelper.deleteDatabase();
+
+  print('Creating new Lexicon database');
+  dbHelper.init();
+
+  print('Populate Lexicon Tables');
+  await dbHelper.populateTables();
+
+  print('Dispose Lexicon database resources');
+  dbHelper.dispose();
 }
 
 Future<void> _createHebrewGreekDatabase() async {
