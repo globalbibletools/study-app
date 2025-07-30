@@ -68,26 +68,38 @@ class HebrewGreekDatabase {
   }
 
   Future<ForeignTableMaps> _populateForeignTables() async {
-    final Set<String> uniqueText = {};
+    final Map<String, int> textFrequencies = {};
     final Set<String> uniqueGrammar = {};
     final Set<String> uniqueLemma = {};
 
     for (final fileName in bookFileNames) {
       final file = File('../../data/hbo+grc/$fileName');
       final jsonData = await file.readAsString();
-      print('Finding unique words in $fileName');
+      print('Counting word frequencies in $fileName');
       final words = _extractWords(jsonData);
       for (final word in words) {
-        uniqueText.add(word.text.trim());
+        final text = word.text.trim();
+        textFrequencies.update(text, (count) => count + 1, ifAbsent: () => 1);
         uniqueGrammar.add(word.grammar.trim());
         uniqueLemma.add(word.lemma.trim());
       }
     }
 
+    final sortedTextList = textFrequencies.keys.toList()
+      ..sort((a, b) => textFrequencies[b]!.compareTo(textFrequencies[a]!));
+    print('Total unique words: ${sortedTextList.length}');
+    print(
+      'Top 10 most frequent words: ${sortedTextList.take(10).map((w) => '"$w": ${textFrequencies[w]}').join(', ')}',
+    );
+
     final Map<String, int> textMap = _createTableWithNormalization(
-      uniqueText,
+      sortedTextList, // Pass the sorted list
       _insertText,
     );
+    // final Map<String, int> textMap = _createTableWithNormalization(
+    //   uniqueText,
+    //   _insertText,
+    // );
     final Map<String, int> grammarMap = _createTable(
       uniqueGrammar,
       _insertGrammar,
@@ -98,14 +110,14 @@ class HebrewGreekDatabase {
   }
 
   Map<String, int> _createTableWithNormalization(
-    Set<String> unique,
+    List<String> sortedUnique,
     PreparedStatement stmt,
   ) {
-    final list = unique.toList()..sort();
+    // final list = unique.toList()..sort();
     final Map<String, int> map = {};
     _database.execute('BEGIN TRANSACTION;');
-    for (int i = 0; i < list.length; i++) {
-      final text = list[i];
+    for (int i = 0; i < sortedUnique.length; i++) {
+      final text = sortedUnique[i];
       final normalized = normalizeHebrewGreek(text);
       final id = i + 1;
       map[text] = id;

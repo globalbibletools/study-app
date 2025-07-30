@@ -10,7 +10,7 @@ import 'package:studyapp/common/word.dart';
 
 class HebrewGreekDatabase {
   static const _databaseName = 'hebrew_greek.db';
-  static const _databaseVersion = 4;
+  static const _databaseVersion = 5;
   late Database _database;
 
   Future<void> init() async {
@@ -194,13 +194,10 @@ class HebrewGreekDatabase {
         .toList();
   }
 
-  /// Queries the database for all unique words starting with a given prefix,
-  /// using a robust "whitelist" normalization for fuzzy matching.
+  /// Queries the database for unique normalized words starting with a given prefix,
+  /// ordered by frequency (most frequent first).
   ///
   /// - [prefix]: The search prefix. Diacritics, punctuation, and case will be ignored.
-  ///
-  /// Returns a `Future<List<String>>` containing the matching words with their
-  /// original formatting.
   Future<List<String>> getWordsStartingWith(String prefix, {int? limit}) async {
     if (prefix.isEmpty) {
       return [];
@@ -212,12 +209,11 @@ class HebrewGreekDatabase {
       return [];
     }
 
-    // Query the 'normalized' column, but SELECT the original 'text' column.
-    // We no longer need 'COLLATE NOCASE' because we handle it in Dart.
     String sql =
         'SELECT DISTINCT ${HebrewGreekSchema.textColNormalized} '
         'FROM ${HebrewGreekSchema.textTable} '
-        'WHERE ${HebrewGreekSchema.textColNormalized} LIKE ?';
+        'WHERE ${HebrewGreekSchema.textColNormalized} LIKE ? '
+        'ORDER BY ${HebrewGreekSchema.textColId} ASC';
 
     final pattern = '$normalizedPrefix%';
     final List<Object> arguments = [pattern];
@@ -226,7 +222,6 @@ class HebrewGreekDatabase {
       arguments.add(limit);
     }
 
-    // Execute the query with the dynamically built SQL and arguments.
     final maps = await _database.rawQuery(sql, arguments);
 
     if (maps.isNotEmpty) {

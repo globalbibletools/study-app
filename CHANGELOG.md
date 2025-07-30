@@ -5,8 +5,8 @@
 - Add search button next to text input box.
 - Add system vs in-app keyboard switcher button to app bar on Search page.
 - System keyboard shows search button.
-- Move search candidate words to in-app keyboard candidate list (show max three).
-- 
+- Move search candidate words (auto-complete suggestions) to in-app keyboard candidate list (show max three).
+- Candidate words are based on word frequency in the text. Higher frequency words are returned first. No suggestions means the current input does not exist in the text.
 
 ## 0.8.0 - July 24, 2025
 
