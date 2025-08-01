@@ -1,35 +1,29 @@
 class LexiconSchema {
-  static const lemmasTable = "lemmas";
-  static const lemmasColMainId = "main_id";
-  static const lemmasColLemmaText = "lemma_text";
+  /// Table to map Strong's code to the main IDs for the lemma
+  /// 
+  /// The idea is that you can look up a Strong's code and get back a list 
+  /// of lemma IDs.
+  static const strongsTable = "strongs";
 
-  static const createLemmasTable = '''
-  CREATE TABLE $lemmasTable (
-    $lemmasColMainId INTEGER PRIMARY KEY,
-    $lemmasColLemmaText TEXT NOT NULL
-  )
-  ''';
-
-  static const strongsMappingTable = "strongs_mapping";
-  static const strongsMappingColStrongCode = "strong_code";
-  static const strongsMappingColLemmaId = "lemma_id";
+  static const strongsColStrongs = "strongs_code";
+  static const strongsColLemmaId = "lemma_id";
 
   static const createStrongsMappingTable = '''
-  CREATE TABLE $strongsMappingTable (
-    $strongsMappingColStrongCode TEXT NOT NULL,
-    $strongsMappingColLemmaId INTEGER NOT NULL,
-    PRIMARY KEY ($strongsMappingColStrongCode, $strongsMappingColLemmaId)
+  CREATE TABLE $strongsTable (
+    $strongsColStrongs TEXT NOT NULL,
+    $strongsColLemmaId INTEGER NOT NULL,
+    PRIMARY KEY ($strongsColStrongs, $strongsColLemmaId)
   )
   ''';
 
-  static const grammarTypesTable = "grammar_types";
-  static const grammarTypesColId = "id";
-  static const grammarTypesColGrammarText = "grammar_text";
+  static const grammarTable = "grammar";
+  static const grammarColId = "_id";
+  static const grammarColText = "text";
 
   static const createGrammarTypesTable = '''
-  CREATE TABLE $grammarTypesTable (
-    $grammarTypesColId INTEGER PRIMARY KEY,
-    $grammarTypesColGrammarText TEXT NOT NULL UNIQUE
+  CREATE TABLE $grammarTable (
+    $grammarColId INTEGER PRIMARY KEY,
+    $grammarColText TEXT NOT NULL UNIQUE
   )
   ''';
 
@@ -51,8 +45,7 @@ class LexiconSchema {
     $meaningsColDefinitionShort TEXT,
     $meaningsColComments TEXT,
     $meaningsColGlosses TEXT NOT NULL,
-    FOREIGN KEY($meaningsColLemmaId) REFERENCES $lemmasTable($lemmasColMainId),
-    FOREIGN KEY($meaningsColGrammarId) REFERENCES $grammarTypesTable($grammarTypesColId)
+    FOREIGN KEY($meaningsColGrammarId) REFERENCES $grammarTable($grammarColId)
   )
   ''';
 }

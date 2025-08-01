@@ -1,4 +1,4 @@
-package com.globalbibletools.studyapp
+package com.globalbibletools.gbt
 
 import io.flutter.embedding.android.FlutterActivity
 
