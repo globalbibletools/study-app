@@ -8,7 +8,7 @@ class LexiconSchema {
   static const strongsColStrongs = "strongs_code";
   static const strongsColLemmaId = "lemma_id";
 
-  static const createStrongsMappingTable = '''
+  static const createStrongsTable = '''
   CREATE TABLE $strongsTable (
     $strongsColStrongs TEXT NOT NULL,
     $strongsColLemmaId INTEGER NOT NULL,

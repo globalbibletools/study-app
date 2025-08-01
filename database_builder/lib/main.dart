@@ -6,23 +6,48 @@ import 'src/lexicon/database.dart';
 
 Future<void> main(List<String> arguments) async {
   // await _createHebrewGreekDatabase();
-  await _createLexiconDatabase();
+  await _createLexiconDatabases();
   // await _createGlossDatabase('spa');
 }
 
-Future<void> _createLexiconDatabase() async {
-  final dbHelper = LexiconDatabase();
+Future<void> _createLexiconDatabases() async {
+  await _createHebrewLexicon();
+  await _createGreekLexicon();
+}
 
-  print('Deleting existing Lexicon database');
+Future<void> _createHebrewLexicon() async {
+  final dbHelper = LexiconDatabase(
+    input: 'lib/src/lexicon/data/hebrew/UBSHebrewDic-v0.9.1-en.JSON',
+    output: 'sdbh.db',
+  );
+  print('Deleting existing Semantic Dictionary of Biblical Hebrew database');
   dbHelper.deleteDatabase();
 
-  print('Creating new Lexicon database');
+  print('Creating new Semantic Dictionary of Biblical Hebrew database');
   dbHelper.init();
 
-  print('Populate Lexicon Tables');
+  print('Populate Semantic Dictionary of Biblical Hebrew Tables');
   await dbHelper.populateTables();
 
-  print('Dispose Lexicon database resources');
+  print('Dispose Semantic Dictionary of Biblical Hebrew database resources');
+  dbHelper.dispose();
+}
+
+Future<void> _createGreekLexicon() async {
+  final dbHelper = LexiconDatabase(
+    input: 'lib/src/lexicon/data/greek/UBSGreekNTDic-v1.1-en.JSON',
+    output: 'sdbg.db',
+  );
+  print('Deleting existing Semantic Dictionary of Biblical Greek database');
+  dbHelper.deleteDatabase();
+
+  print('Creating new Semantic Dictionary of Biblical Greek database');
+  dbHelper.init();
+
+  print('Populate Semantic Dictionary of Biblical Greek Tables');
+  await dbHelper.populateTables();
+
+  print('Dispose Semantic Dictionary of Biblical Greek database resources');
   dbHelper.dispose();
 }
 
