@@ -20,18 +20,18 @@ class LexiconDatabase {
     _createTables();
   }
 
+  void _createTables() {
+    _database.execute(LexiconSchema.createStrongsTable);
+    _database.execute(LexiconSchema.createGrammarTypesTable);
+    _database.execute(LexiconSchema.createMeaningsTable);
+  }
+
   void deleteDatabase() {
     final file = File(output);
     if (file.existsSync()) {
       print('Deleting database file: $output');
       file.deleteSync();
     }
-  }
-
-  void _createTables() {
-    _database.execute(LexiconSchema.createStrongsTable);
-    _database.execute(LexiconSchema.createGrammarTypesTable);
-    _database.execute(LexiconSchema.createMeaningsTable);
   }
 
   Future<void> populateTables() async {
