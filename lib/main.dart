@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:studyapp/l10n/app_localizations.dart';
 import 'package:studyapp/services/gloss/gloss_service.dart';
 import 'package:studyapp/services/hebrew_greek/database.dart';
+import 'package:studyapp/services/lexicon/database.dart';
 import 'package:studyapp/services/service_locator.dart';
 import 'package:studyapp/services/user_settings.dart';
 
@@ -15,6 +16,8 @@ Future<void> main() async {
   await getIt<UserSettings>().init();
   await getIt<HebrewGreekDatabase>().init();
   await getIt<GlossService>().init();
+  // TODO: Maybe we should delay loading the lexicon until it is needed.
+  await getIt<LexiconsDatabase>().init();
   runApp(const GbtStudyApp());
 }
 

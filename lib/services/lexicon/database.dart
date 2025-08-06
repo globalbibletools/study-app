@@ -5,10 +5,8 @@ import 'package:database_builder/database_builder.dart';
 import 'package:flutter/services.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
-import 'package:studyapp/common/reference.dart';
-import 'package:studyapp/common/word.dart';
 
-class SemanticLexiconsDatabase {
+class LexiconsDatabase {
   static const _hebrewDatabaseName = 'sdbh.db';
   static const _greekDatabaseName = 'sdbg.db';
   static const _hebrewDbVersion = 1;
@@ -73,11 +71,6 @@ class SemanticLexiconsDatabase {
     );
     await File(path).writeAsBytes(bytes, flush: true);
   }
-
-  // Database _getDatabaseForBookId(int bookId) {
-  //   const malachi = 39;
-  //   return (bookId <= malachi) ? _hebrewDatabase : _greekDatabase;
-  // }
 
   /// Retrieves all the meanings for a given Strong's code.
   ///
