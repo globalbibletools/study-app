@@ -12,7 +12,6 @@ class LexiconDatabase {
   /// filename of the output database
   final String output;
 
-  // final String _databaseName = "lexicon.db";
   late Database _database;
 
   void init() {
@@ -36,113 +35,26 @@ class LexiconDatabase {
 
   Future<void> populateTables() async {
     final lemmaList = jsonDecode(await File(input).readAsString());
-    // final greekJson = jsonDecode(
-    //   await File(
-    //     'lib/src/lexicon/data/greek/UBSGreekNTDic-v1.1-en.JSON',
-    //   ).readAsString(),
-    // );
-
-    //   final allData = [...hebrewJson, ...greekJson];
-
-    final grammarMap = _populateGrammarTypes(lemmaList);
-
-    //   _database.execute('BEGIN TRANSACTION');
-
-    //   final lemmasStmt = _database.prepare(
-    //     'INSERT INTO ${LexiconSchema.lemmasTable} (${LexiconSchema.lemmasColMainId}, ${LexiconSchema.lemmasColLemmaText}) VALUES (?, ?)',
-    //   );
-    //   final strongsStmt = _database.prepare(
-    //     'INSERT INTO ${LexiconSchema.strongsMappingTable} (${LexiconSchema.strongsMappingColStrongCode}, ${LexiconSchema.strongsMappingColLemmaId}) VALUES (?, ?)',
-    //   );
-    //   final meaningsStmt = _database.prepare('''
-    //   INSERT INTO ${LexiconSchema.meaningsTable}
-    //   (${LexiconSchema.meaningsColLexId}, ${LexiconSchema.meaningsColLemmaId}, ${LexiconSchema.meaningsColGrammarId}, ${LexiconSchema.meaningsColLexEntryCode}, ${LexiconSchema.meaningsColDefinitionShort}, ${LexiconSchema.meaningsColComments}, ${LexiconSchema.meaningsColGlosses})
-    //   VALUES (?, ?, ?, ?, ?, ?, ?)
-    // ''');
-
-    //   for (final lemmaObject in allData) {
-    //     final mainId = int.tryParse(lemmaObject['MainId'] ?? '0') ?? 0;
-    //     if (mainId == 0) continue;
-
-    //     final existing = _database.select(
-    //       'SELECT 1 FROM ${LexiconSchema.lemmasTable} WHERE ${LexiconSchema.lemmasColMainId} = ?',
-    //       [mainId],
-    //     );
-    //     if (existing.isEmpty) {
-    //       lemmasStmt.execute([mainId, lemmaObject['Lemma']]);
-    //     }
-
-    //     if (lemmaObject['StrongCodes'] != null) {
-    //       for (final strongCode in lemmaObject['StrongCodes']) {
-    //         strongsStmt.execute([strongCode, mainId]);
-    //       }
-    //     }
-
-    //     if (lemmaObject['BaseForms'] != null) {
-    //       for (final baseForm in lemmaObject['BaseForms']) {
-    //         if (baseForm['PartsOfSpeech'] == null) continue;
-    //         final grammarText =
-    //             (baseForm['PartsOfSpeech'] as List).first ?? 'unknown';
-    //         final grammarId = grammarMap[grammarText];
-    //         if (grammarId == null) continue;
-
-    //         if (baseForm['LEXMeanings'] != null) {
-    //           for (final meaning in baseForm['LEXMeanings']) {
-    //             if (meaning['LEXSenses'] != null &&
-    //                 (meaning['LEXSenses'] as List).isNotEmpty) {
-    //               final sense = (meaning['LEXSenses'] as List).first;
-    //               final glosses = jsonEncode(sense['Glosses']);
-
-    //               final existingMeaning = _database.select(
-    //                 'SELECT 1 FROM ${LexiconSchema.meaningsTable} WHERE ${LexiconSchema.meaningsColLexId} = ?',
-    //                 [int.parse(meaning['LEXID'])],
-    //               );
-    //               if (existingMeaning.isEmpty) {
-    //                 meaningsStmt.execute([
-    //                   int.parse(meaning['LEXID']),
-    //                   mainId,
-    //                   grammarId,
-    //                   meaning['LEXEntryCode'],
-    //                   sense['DefinitionShort'],
-    //                   sense['Comments'],
-    //                   glosses,
-    //                 ]);
-    //               }
-    //             }
-    //           }
-    //         }
-    //       }
-    //     }
-    //   }
-
-    //   lemmasStmt.dispose();
-    //   strongsStmt.dispose();
-    //   meaningsStmt.dispose();
-
-    //   _database.execute('COMMIT');
-
-    //   _createIndexes();
+    final grammarMap = _populateGrammarTable(lemmaList);
+    _populateStrongsTable(lemmaList);
+    _populateMeaningTable(lemmaList, grammarMap);
+    _createIndexes();
   }
 
-  Map<String, int> _populateGrammarTypes(List<dynamic> jsonData) {
+  Map<String, int> _populateGrammarTable(List<dynamic> jsonData) {
     final grammarSet = <String>{};
     int missingGrammarCount = 0;
     int totalBaseForms = 0;
     for (final lemma in jsonData) {
       for (final baseForm in lemma['BaseForms']) {
         totalBaseForms++;
-        final pos = baseForm['PartsOfSpeech'];
-        if (pos == null) {
+        final pos = baseForm['PartsOfSpeech'] as List?;
+        final grammar = _joinList(pos);
+        if (grammar == null || grammar.isEmpty) {
           missingGrammarCount++;
           continue;
         }
-        for (final grammar in pos) {
-          if (grammar.isEmpty) {
-            missingGrammarCount++;
-            continue;
-          }
-          grammarSet.add(grammar);
-        }
+        grammarSet.add(grammar);
       }
     }
 
@@ -152,7 +64,9 @@ class LexiconDatabase {
 
     final grammarMap = <String, int>{};
     final stmt = _database.prepare(
-      'INSERT INTO ${LexiconSchema.grammarTable} (${LexiconSchema.grammarColText}) VALUES (?)',
+      'INSERT INTO ${LexiconSchema.grammarTable} '
+      '(${LexiconSchema.grammarColText}) '
+      'VALUES (?)',
     );
     for (final grammarText in grammarSet) {
       stmt.execute([grammarText]);
@@ -162,14 +76,100 @@ class LexiconDatabase {
     return grammarMap;
   }
 
-  // void _createIndexes() {
-  //   _database.execute(
-  //     'CREATE INDEX idx_strongs_mapping_strong_code ON ${LexiconSchema.strongsMappingTable}(${LexiconSchema.strongsMappingColStrongCode});',
-  //   );
-  //   _database.execute(
-  //     'CREATE INDEX idx_meanings_lemma_id ON ${LexiconSchema.meaningsTable}(${LexiconSchema.meaningsColLemmaId});',
-  //   );
-  // }
+  String? _joinList(List<dynamic>? pos) {
+    if (pos == null) return null;
+    final filteredList = pos.where((element) => element.isNotEmpty).toList();
+    return filteredList.join(', ');
+  }
+
+  // Any Strong's code that is associated with a lemma should be mapped here.
+  void _populateStrongsTable(List<dynamic> jsonData) {
+    print('Populating Strong\'s table');
+
+    final stmt = _database.prepare(
+      'INSERT INTO ${LexiconSchema.strongsTable} '
+      '(${LexiconSchema.strongsColStrongs}, '
+      '${LexiconSchema.strongsColLemmaId}) '
+      'VALUES (?, ?)',
+    );
+
+    for (final lemma in jsonData) {
+      final lemmaId = int.parse(lemma['MainId']) ~/ LexiconSchema.lemmaIdOffset;
+      final strongCodes = lemma['StrongCodes'] as List;
+      for (final code in strongCodes) {
+        if (code.isEmpty) continue;
+        stmt.execute([code, lemmaId]);
+      }
+    }
+
+    stmt.dispose();
+  }
+
+  void _populateMeaningTable(
+    List<dynamic> jsonData,
+    Map<String, int> grammarMap,
+  ) {
+    print('Populating Meaning table');
+
+    final stmt = _database.prepare('''
+    INSERT INTO ${LexiconSchema.meaningsTable} (
+      ${LexiconSchema.meaningsColLexId},
+      ${LexiconSchema.meaningsColGrammarId},
+      ${LexiconSchema.meaningsColLemma},
+      ${LexiconSchema.meaningsColLexEntryCode},
+      ${LexiconSchema.meaningsColDefinitionShort},
+      ${LexiconSchema.meaningsColComments},
+      ${LexiconSchema.meaningsColGlosses}
+    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+    ''');
+
+    Map<String, dynamic>? _debugLemma;
+    try {
+      _database.execute('BEGIN TRANSACTION');
+
+      for (final lemmaData in jsonData) {
+        final lemma = lemmaData['Lemma'] as String;
+        _debugLemma = lemmaData;
+        for (final baseForm in lemmaData['BaseForms']) {
+          final pos = baseForm['PartsOfSpeech'];
+          final grammar = _joinList(pos);
+          final grammarId = grammarMap[grammar];
+          final lexMeanings = baseForm['LEXMeanings'] as List;
+          for (final meaning in lexMeanings) {
+            final lexId = int.parse(meaning['LEXID']);
+            final lexEntryCode = meaning['LEXEntryCode'] as String?;
+            final senses = meaning['LEXSenses'] as List;
+            for (final sense in senses) {
+              final definitionShort = sense['DefinitionShort'] as String?;
+              final comment = sense['Comments'] as String?;
+              final glosses = _joinList(sense['Glosses'] as List);
+              stmt.execute([
+                lexId,
+                grammarId,
+                lemma,
+                lexEntryCode,
+                definitionShort,
+                comment,
+                glosses,
+              ]);
+            }
+          }
+        }
+      }
+      _database.execute('COMMIT');
+    } catch (e) {
+      print(e);
+      print('lemmaData: $_debugLemma');
+      _database.execute('ROLLBACK');
+    } finally {
+      stmt.dispose();
+    }
+  }
+
+  void _createIndexes() {
+    _database.execute(LexiconSchema.createStrongsCodeIndex);
+    _database.execute(LexiconSchema.createMeaningsLemmaIdIndex);
+  }
 
   void dispose() {
     _database.dispose();
@@ -278,6 +278,211 @@ class LexiconDatabase {
 //           "LEXVideos":[],
 //           "LEXCoordinates":null,
 //           "LEXCoreDomains":null,
+//           "CONMeanings":null
+//         }
+//       ]
+//     }
+//   ]
+// }
+
+// Hebrew example
+// {
+//   "MainId":000001000000000,
+//   "Lemma":"אֵב",
+//   "Version":5,
+//   "HasAramaic":true,
+//   "InLXX":false,
+//   "AlphaPos":"א",
+//   "StrongCodes":[
+//     H0003,
+//     A0004
+//   ],
+//   "Authors":[
+//     "Reinier de Blois"
+//   ],
+//   "Contributors":[],
+//   "AlternateLemmas":[],
+//   "MainLinks":[],
+//   "Notes":[],
+//   "Localizations":null,
+//   "Dates":null,
+//   "ContributorNote":,
+//   "BaseForms":[
+//     {
+//       "BaseFormID":000001001000000,
+//       "PartsOfSpeech":[
+//         "nsm"
+//       ],
+//       "Inflections":null,
+//       "Constructs":null,
+//       "Etymologies":null,
+//       "RelatedLemmas":[
+//         {
+//           "Word":,
+//           "Meanings":[]
+//         }
+//       ],
+//       "RelatedNames":null,
+//       "MeaningsOfName":null,
+//       "CrossReferences":null,
+//       "BaseFormLinks":[],
+//       "LEXMeanings":[
+//         {
+//           "LEXID":000001001001000,
+//           "LEXIsBiblicalTerm":"M",
+//           "LEXEntryCode":,
+//           "LEXIndent":0,
+//           "LEXDomains":[
+//             {
+//               "DomainCode":001003,
+//               "DomainSource":null,
+//               "DomainSourceCode":null,
+//               "Domain":"Vegetation"
+//             }
+//           ],
+//           "LEXSubDomains":null,
+//           "LEXForms":null,
+//           "LEXValencies":null,
+//           "LEXCollocations":null,
+//           "LEXSynonyms":null,
+//           "LEXAntonyms":null,
+//           "LEXCrossReferences":null,
+//           "LEXSenses":[
+//             {
+//               "LanguageCode":"en",
+//               "LastEdited":"2020-05-18 16":"00":24,
+//               "LastEditedBy":,
+//               "DefinitionLong":,
+//               "DefinitionShort":"= part of a plant or tree that is typically surrounded by brightly colored petals and will eventually develop into a fruit",
+//               "Glosses":[
+//                 "blossom",
+//                 "flower"
+//               ],
+//               "Comments":
+//             }
+//           ],
+//           "LEXIllustrations":null,
+//           "LEXReferences":[
+//             02200601100016
+//           ],
+//           "LEXLinks":null,
+//           "LEXImages":null,
+//           "LEXVideos":[],
+//           "LEXCoordinates":null,
+//           "LEXCoreDomains":[
+//             {
+//               "DomainCode":125,
+//               "DomainSource":null,
+//               "DomainSourceCode":null,
+//               "Domain":"Plant"
+//             }
+//           ],
+//           "CONMeanings":null
+//         },
+//         {
+//           "LEXID":000001001002000,
+//           "LEXIsBiblicalTerm":"M",
+//           "LEXEntryCode":,
+//           "LEXIndent":0,
+//           "LEXDomains":[
+//             {
+//               "DomainCode":002001001057,
+//               "DomainSource":"Vegetation",
+//               "DomainSourceCode":001003,
+//               "Domain":"Stage"
+//             }
+//           ],
+//           "LEXSubDomains":null,
+//           "LEXForms":null,
+//           "LEXValencies":null,
+//           "LEXCollocations":[
+//             "בְּאֵב"
+//           ],
+//           "LEXSynonyms":null,
+//           "LEXAntonyms":null,
+//           "LEXCrossReferences":null,
+//           "LEXSenses":[
+//             {
+//               "LanguageCode":"en",
+//               "LastEdited":"2017-03-19 12":"46":16,
+//               "LastEditedBy":,
+//               "DefinitionLong":,
+//               "DefinitionShort":"= state in which a plant or tree has developed blossoms",
+//               "Glosses":[
+//                 "blossom"
+//               ],
+//               "Comments":
+//             }
+//           ],
+//           "LEXIllustrations":null,
+//           "LEXReferences":[
+//             01800801200006
+//           ],
+//           "LEXLinks":null,
+//           "LEXImages":null,
+//           "LEXVideos":[],
+//           "LEXCoordinates":null,
+//           "LEXCoreDomains":[
+//             {
+//               "DomainCode":125,
+//               "DomainSource":null,
+//               "DomainSourceCode":null,
+//               "Domain":"Plant"
+//             }
+//           ],
+//           "CONMeanings":null
+//         },
+//         {
+//           "LEXID":000001001003000,
+//           "LEXIsBiblicalTerm":"M",
+//           "LEXEntryCode":,
+//           "LEXIndent":0,
+//           "LEXDomains":[
+//             {
+//               "DomainCode":001004003004,
+//               "DomainSource":"Vegetation",
+//               "DomainSourceCode":001003,
+//               "Domain":"Fruits"
+//             }
+//           ],
+//           "LEXSubDomains":null,
+//           "LEXForms":null,
+//           "LEXValencies":null,
+//           "LEXCollocations":null,
+//           "LEXSynonyms":null,
+//           "LEXAntonyms":null,
+//           "LEXCrossReferences":null,
+//           "LEXSenses":[
+//             {
+//               "LanguageCode":"en",
+//               "LastEdited":"2020-05-18 16":"00":24,
+//               "LastEditedBy":,
+//               "DefinitionLong":,
+//               "DefinitionShort":"= part of a plant or tree that carries the seed and is often edible",
+//               "Glosses":[
+//                 "fruit"
+//               ],
+//               "Comments":
+//             }
+//           ],
+//           "LEXIllustrations":null,
+//           "LEXReferences":[
+//             02700400900008,
+//             02700401100032,
+//             02700401800010
+//           ],
+//           "LEXLinks":null,
+//           "LEXImages":null,
+//           "LEXVideos":[],
+//           "LEXCoordinates":null,
+//           "LEXCoreDomains":[
+//             {
+//               "DomainCode":125,
+//               "DomainSource":null,
+//               "DomainSourceCode":null,
+//               "Domain":"Plant"
+//             }
+//           ],
 //           "CONMeanings":null
 //         }
 //       ]

@@ -7,8 +7,10 @@ class LexiconSchema {
 
   static const strongsColStrongs = "strongs_code";
 
+  static const lemmaIdOffset = 1000000000;
+
   /// This should be stored by dividing the original lemma id from the JSON
-  /// by 1000000000 to remove the trailing 0s. [createMeaningsLemmaIdIndex]
+  /// by [lemmaIdOffset] to remove the trailing 0s. [createMeaningsLemmaIdIndex]
   /// below assumes such an approach.
   static const strongsColLemmaId = "lemma_id";
 
@@ -47,7 +49,7 @@ class LexiconSchema {
       '''
   CREATE TABLE $meaningsTable (
     $meaningsColLexId INTEGER PRIMARY KEY,
-    $meaningsColGrammarId INTEGER NOT NULL,
+    $meaningsColGrammarId INTEGER,
     $meaningsColLemma TEXT NOT NULL,
     $meaningsColLexEntryCode TEXT,
     $meaningsColDefinitionShort TEXT,
@@ -60,9 +62,9 @@ class LexiconSchema {
   static const createStrongsCodeIndex =
       'CREATE INDEX idx_strongs_code ON $strongsTable ($strongsColStrongs)';
 
-  /// Assumes that lemma ID in grammar table start with 1, not 1000000000.
+  /// Assumes that lemma ID in grammar table start with 1, not [lemmaIdOffset].
   static const createMeaningsLemmaIdIndex =
-      'CREATE INDEX idx_meanings_derived_lemma_id ON $meaningsTable ($meaningsColLexId / 1000000000)';
+      'CREATE INDEX idx_meanings_derived_lemma_id ON $meaningsTable ($meaningsColLexId / $lemmaIdOffset)';
 
   // --- Query Strings ---
 
@@ -73,10 +75,19 @@ class LexiconSchema {
   /// specific Strong's code argument.
   static const getMeaningsForStrongsQuery =
       '''
-    SELECT m.*
+    SELECT
+      m.$meaningsColLexId,
+      m.$meaningsColLemma,
+      m.$meaningsColLexEntryCode,
+      m.$meaningsColDefinitionShort,
+      m.$meaningsColComments,
+      m.$meaningsColGlosses,
+      g.$grammarColText
     FROM $meaningsTable AS m
-    JOIN $strongsTable AS s 
-      ON (m.$meaningsColLexId / 1000000000) = s.$strongsColLemmaId
+    JOIN $strongsTable AS s
+      ON (m.$meaningsColLexId / $lemmaIdOffset) = s.$strongsColLemmaId
+    LEFT JOIN $grammarTable AS g
+      ON m.$meaningsColGrammarId = g.$grammarColId
     WHERE s.$strongsColStrongs = ?
   ''';
 }
