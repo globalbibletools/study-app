@@ -1,8 +1,11 @@
 ## 0.10.0
 
-- Add semantic dictionaries for Hebrew and Greek (visible on word long press)
-- Change style of part of speech popup (in front of content instead of over it)
-- Add a second way to change the text size (in settings)
+- Add semantic dictionaries for Hebrew and Greek (visible on word long press).
+- Change style of part of speech popup (in front of content instead of over it).
+- Add a second way to change the text size (in settings).
+- Improve font size in language change settings.
+- Fix text directionality for similar verses page.
+- Show root word on similar verses page.
 
 ## 0.9.1 - July 30, 2025
 

@@ -305,7 +305,6 @@ class _HomeScreenState extends State<HomeScreen> {
       builder:
           (context) => WordDetailsDialog(
             wordId: wordId,
-            fontSize: _fontSize,
             isRtl: manager.currentChapterIsRtl,
           ),
     );

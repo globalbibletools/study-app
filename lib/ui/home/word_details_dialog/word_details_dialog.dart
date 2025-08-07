@@ -9,12 +9,12 @@ class WordDetailsDialog extends StatefulWidget {
   const WordDetailsDialog({
     super.key,
     required this.wordId,
-    required this.fontSize,
+    // required this.fontSize,
     required this.isRtl,
   });
 
   final int wordId;
-  final double fontSize;
+  // final double fontSize;
   final bool isRtl;
 
   @override
@@ -76,8 +76,8 @@ class _WordDetailsDialogState extends State<WordDetailsDialog> {
                       MaterialPageRoute(
                         builder:
                             (context) => SimilarVersesPage(
+                              root: root,
                               strongsCode: wordDetails.strongsCode,
-                              fontSize: widget.fontSize,
                               isRtl: widget.isRtl,
                             ),
                       ),
@@ -99,6 +99,12 @@ class _WordDetailsDialogState extends State<WordDetailsDialog> {
         );
       },
     );
+  }
+
+  String? get root {
+    final meanings = manager.lexiconMeanings;
+    if (meanings.isEmpty) return null;
+    return meanings.first.lemma;
   }
 
   List<Widget> _buildLexicon() {
