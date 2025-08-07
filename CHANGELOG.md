@@ -1,4 +1,4 @@
-## 0.10.0
+## 0.10.0 - August 7, 2025
 
 - Add semantic dictionaries for Hebrew and Greek (visible on word long press).
 - Change style of part of speech popup (in front of content instead of over it).
@@ -6,6 +6,7 @@
 - Improve font size in language change settings.
 - Fix text directionality for similar verses page.
 - Show root word on similar verses page.
+- Fix iOS launcher icon title (GBT, not Studyapp)
 
 ## 0.9.1 - July 30, 2025
 
