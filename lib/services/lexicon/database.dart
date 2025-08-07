@@ -150,6 +150,10 @@ class LexiconMeaning {
       return '$book $chapter:$verse';
     });
 
+    // remove {N:001}
+    regex = RegExp(r'\{N:\d+\}');
+    modifiedString = modifiedString.replaceAll(regex, '');
+
     return modifiedString;
   }
 
