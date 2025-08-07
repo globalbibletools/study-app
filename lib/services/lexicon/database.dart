@@ -97,7 +97,6 @@ class LexiconMeaning {
   final int lexId;
   final String? grammar;
   final String lemma;
-  final String? lexEntryCode;
   final String? definitionShort;
   final String? comments;
   final String glosses;
@@ -108,7 +107,6 @@ class LexiconMeaning {
     required this.lexId,
     this.grammar,
     required this.lemma,
-    this.lexEntryCode,
     this.definitionShort,
     this.comments,
     required this.glosses,
@@ -121,7 +119,6 @@ class LexiconMeaning {
       lexId: map[LexiconSchema.meaningsColLexId],
       grammar: map[LexiconSchema.grammarColText],
       lemma: map[LexiconSchema.meaningsColLemma],
-      lexEntryCode: map[LexiconSchema.meaningsColLexEntryCode],
       definitionShort: map[LexiconSchema.meaningsColDefinitionShort],
       comments: map[LexiconSchema.meaningsColComments],
       glosses: map[LexiconSchema.meaningsColGlosses],

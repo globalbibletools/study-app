@@ -116,11 +116,10 @@ class LexiconDatabase {
       ${LexiconSchema.meaningsColLexId},
       ${LexiconSchema.meaningsColGrammarId},
       ${LexiconSchema.meaningsColLemma},
-      ${LexiconSchema.meaningsColLexEntryCode},
       ${LexiconSchema.meaningsColDefinitionShort},
       ${LexiconSchema.meaningsColComments},
       ${LexiconSchema.meaningsColGlosses}
-    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?)
     ''');
 
     Map<String, dynamic>? _debugLemma;
@@ -137,19 +136,20 @@ class LexiconDatabase {
           final lexMeanings = baseForm['LEXMeanings'] as List;
           for (final meaning in lexMeanings) {
             final lexId = int.parse(meaning['LEXID']);
-            final lexEntryCode = meaning['LEXEntryCode'] as String?;
             final senses = meaning['LEXSenses'] as List;
             for (final sense in senses) {
-              final definitionShort = sense['DefinitionShort'] as String?;
-              final comment = sense['Comments'] as String?;
-              final glosses = _joinList(sense['Glosses'] as List);
+              final definitionShort = _clean(sense['DefinitionShort']);
+              final comment = _clean(sense['Comments']);
+              final glosses = _clean(_joinList(sense['Glosses']));
+              if (glosses == null || glosses.isEmpty) continue;
               stmt.execute([
                 lexId,
                 grammarId,
                 lemma,
-                lexEntryCode,
-                definitionShort,
-                comment,
+                (definitionShort == null || definitionShort.isEmpty)
+                    ? null
+                    : definitionShort,
+                (comment == null || comment.isEmpty) ? null : comment,
                 glosses,
               ]);
             }
@@ -164,6 +164,21 @@ class LexiconDatabase {
     } finally {
       stmt.dispose();
     }
+  }
+
+  String? _clean(String? input) {
+    if (input == null) return null;
+    if (input == 'NO DATA YET') return null;
+    String output = input.replaceAll('= ', '');
+    output = output.replaceAll('≈ ', '');
+    // Reformat place names: {L:Bashan<SDBH:בָּשָׁן>} -> Bashan (בָּשָׁן)
+    final regex = RegExp(r'\{L:(.*?)<SDBH:(.*?)>\}');
+    output = output.replaceAllMapped(regex, (match) {
+      final placeName = match.group(1);
+      final hebrewGreek = match.group(2);
+      return '$placeName ($hebrewGreek)';
+    });
+    return output;
   }
 
   void _createIndexes() {

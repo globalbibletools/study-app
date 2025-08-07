@@ -137,13 +137,16 @@ class _WordDetailsDialogState extends State<WordDetailsDialog> {
       if (meaning.lemmaId != oldLemmaId) {
         rows.add(
           Row(
+            // crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(meaning.lemma),
+              SelectableText(meaning.lemma, style: TextStyle(fontSize: 20)),
               SizedBox(width: 8),
-              if (meaning.grammar != null) Text('(${meaning.grammar})'),
+              if (meaning.grammar != null)
+                SelectableText('(${meaning.grammar})'),
             ],
           ),
         );
+        rows.add(const SizedBox(height: 8));
         oldLemmaId = meaning.lemmaId;
         meaningNumber = 0;
       }
@@ -152,15 +155,20 @@ class _WordDetailsDialogState extends State<WordDetailsDialog> {
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('$meaningNumber. '),
+            SelectableText('$meaningNumber. '),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(meaning.glosses),
+                  SelectableText(meaning.glosses),
+                  const SizedBox(height: 8),
                   if (meaning.definitionShort != null)
-                    Text(meaning.definitionShort!),
-                  if (meaning.comments != null) Text(meaning.comments!),
+                    SelectableText(meaning.definitionShort!),
+                  if (meaning.definitionShort != null)
+                    const SizedBox(height: 8),
+                  if (meaning.comments != null)
+                    SelectableText(meaning.comments!),
+                  if (meaning.comments != null) const SizedBox(height: 8),
                 ],
               ),
             ),

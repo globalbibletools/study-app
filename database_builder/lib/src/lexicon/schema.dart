@@ -40,7 +40,6 @@ class LexiconSchema {
   static const meaningsColLexId = "lex_id";
   static const meaningsColGrammarId = "grammar_id";
   static const meaningsColLemma = 'Lemma';
-  static const meaningsColLexEntryCode = "lex_entry_code";
   static const meaningsColDefinitionShort = "definition_short";
   static const meaningsColComments = "comments";
   static const meaningsColGlosses = "glosses";
@@ -51,7 +50,6 @@ class LexiconSchema {
     $meaningsColLexId INTEGER PRIMARY KEY,
     $meaningsColGrammarId INTEGER,
     $meaningsColLemma TEXT NOT NULL,
-    $meaningsColLexEntryCode TEXT,
     $meaningsColDefinitionShort TEXT,
     $meaningsColComments TEXT,
     $meaningsColGlosses TEXT NOT NULL,
@@ -78,7 +76,6 @@ class LexiconSchema {
     SELECT
       m.$meaningsColLexId,
       m.$meaningsColLemma,
-      m.$meaningsColLexEntryCode,
       m.$meaningsColDefinitionShort,
       m.$meaningsColComments,
       m.$meaningsColGlosses,
