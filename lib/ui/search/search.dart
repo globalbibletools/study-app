@@ -179,10 +179,9 @@ class _SearchPageState extends State<SearchPage> {
                         child: Text(
                           AppLocalizations.of(context)!.noVersesFound,
                           style: TextStyle(
-                            fontFamily: 'sbl',
                             color: Theme.of(context).disabledColor,
                           ),
-                        ), // TODO: localize
+                        ),
                       );
                     }
 
@@ -198,7 +197,6 @@ class _SearchPageState extends State<SearchPage> {
                                 child: Text(
                                   '${results.length}',
                                   style: TextStyle(
-                                    fontFamily: 'sbl',
                                     color: Theme.of(context).disabledColor,
                                   ),
                                 ),

@@ -4,17 +4,24 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
 import 'package:studyapp/services/gloss/gloss_service.dart';
 import 'package:studyapp/services/hebrew_greek/database.dart';
+import 'package:studyapp/services/lexicon/database.dart';
 import 'package:studyapp/services/service_locator.dart';
 
 class WordDetailsDialogManager extends ChangeNotifier {
   final _hebrewGreekDb = getIt<HebrewGreekDatabase>();
   final _glossService = getIt<GlossService>();
+  final _lexiconDb = getIt<LexiconsDatabase>();
 
   WordDetails? wordDetails;
   String? grammarExpansion;
+  List<LexiconMeaning> lexiconMeanings = [];
 
   Future<void> init(Locale locale, int wordId) async {
     wordDetails = await _getWordDetails(locale, wordId);
+    lexiconMeanings = await _lexiconDb.getMeaningsForStrongs(
+      wordDetails!.strongsCode,
+    );
+    print(lexiconMeanings);
     notifyListeners();
   }
 

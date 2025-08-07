@@ -43,10 +43,7 @@ class _VerseListItemState extends State<VerseListItem>
           return ListTile(
             title: Text(
               widget.formattedReference,
-              style: TextStyle(
-                fontFamily: 'sbl',
-                color: Theme.of(context).disabledColor,
-              ),
+              style: TextStyle(color: Theme.of(context).disabledColor),
             ),
             subtitle: Text.rich(verse, textDirection: widget.textDirection),
           );

@@ -242,9 +242,8 @@ class _HomeScreenState extends State<HomeScreen> {
               manager.currentChapterIsRtl
                   ? TextDirection.rtl
                   : TextDirection.ltr,
-          textStyle: TextStyle(fontFamily: 'sbl', fontSize: _fontSize),
+          textStyle: TextStyle(fontSize: _fontSize),
           verseNumberStyle: TextStyle(
-            fontFamily: 'sbl',
             color: Theme.of(context).colorScheme.primary,
             fontSize: _fontSize * 0.7,
           ),

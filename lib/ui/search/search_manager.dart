@@ -124,7 +124,7 @@ class SearchPageManager {
       spans.add(
         TextSpan(
           text: text,
-          style: TextStyle(fontFamily: 'sbl', color: color, fontSize: fontSize),
+          style: TextStyle(color: color, fontSize: fontSize),
         ),
       );
     }

@@ -102,6 +102,8 @@ class LexiconMeaning {
   final String? comments;
   final String glosses;
 
+  int get lemmaId => lexId ~/ LexiconSchema.lemmaIdOffset;
+
   LexiconMeaning({
     required this.lexId,
     this.grammar,

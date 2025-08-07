@@ -33,9 +33,7 @@ class _SimilarVersesPageState extends State<SimilarVersesPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.strongsCode, style: TextStyle(fontFamily: 'sbl')),
-      ),
+      appBar: AppBar(title: Text(widget.strongsCode)),
       body: ValueListenableBuilder<List<Reference>>(
         valueListenable: manager.similarVersesNotifier,
         builder: (context, verseList, child) {

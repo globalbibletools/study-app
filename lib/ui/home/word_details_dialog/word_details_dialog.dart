@@ -39,11 +39,10 @@ class _WordDetailsDialogState extends State<WordDetailsDialog> {
     final locale = Localizations.localeOf(context);
     manager.init(locale, widget.wordId);
     highlightStyle = TextStyle(
-      fontFamily: 'sbl',
       fontSize: fontSize * 0.6,
       color: Theme.of(context).colorScheme.primary,
     );
-    defaultStyle = TextStyle(fontFamily: 'sbl', fontSize: fontSize * 0.6);
+    defaultStyle = TextStyle(fontSize: fontSize * 0.6);
   }
 
   @override
@@ -77,10 +76,7 @@ class _WordDetailsDialogState extends State<WordDetailsDialog> {
                       child: SelectableText(
                         wordDetails.word,
                         textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontFamily: 'sbl',
-                          fontSize: fontSize * 2,
-                        ),
+                        style: TextStyle(fontSize: fontSize * 2),
                       ),
                     ),
                     FittedBox(
@@ -95,6 +91,8 @@ class _WordDetailsDialogState extends State<WordDetailsDialog> {
                         style: defaultStyle,
                       ),
                       onPressed: () {
+                        // print('Hello');
+                        // manager.lookupMeanings(wordDetails.strongsCode);
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -116,6 +114,7 @@ class _WordDetailsDialogState extends State<WordDetailsDialog> {
                         style: defaultStyle,
                       ),
                     ),
+                    ..._buildLexicon(),
                   ],
                 ),
               ),
@@ -127,6 +126,50 @@ class _WordDetailsDialogState extends State<WordDetailsDialog> {
         );
       },
     );
+  }
+
+  List<Widget> _buildLexicon() {
+    final rows = <Widget>[];
+    final meanings = manager.lexiconMeanings;
+    int oldLemmaId = 0;
+    int meaningNumber = 0;
+    for (final meaning in meanings) {
+      if (meaning.lemmaId != oldLemmaId) {
+        rows.add(
+          Row(
+            children: [
+              Text(meaning.lemma),
+              SizedBox(width: 8),
+              if (meaning.grammar != null) Text('(${meaning.grammar})'),
+            ],
+          ),
+        );
+        oldLemmaId = meaning.lemmaId;
+        meaningNumber = 0;
+      }
+      meaningNumber++;
+      rows.add(
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('$meaningNumber. '),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(meaning.glosses),
+                  if (meaning.definitionShort != null)
+                    Text(meaning.definitionShort!),
+                  if (meaning.comments != null) Text(meaning.comments!),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return rows;
   }
 
   Widget _buildGrammarExpansionPanel() {

@@ -84,10 +84,9 @@ class HebrewGreekText extends LeafRenderObjectWidget {
     if (verseNumberStyle == null || verseNumberStyle!.inherit) {
       effectiveVerseNumberStyle = effectiveTextStyle!.merge(verseNumberStyle);
     }
-    final effectivePopupTextStyle = const TextStyle(
-      fontSize: 14,
-      color: Color(0xFFFFFFFF),
-    ).merge(popupTextStyle);
+    final effectivePopupTextStyle = defaultTextStyle.style.merge(
+      popupTextStyle,
+    );
 
     return RenderHebrewGreekText(
       words: words,

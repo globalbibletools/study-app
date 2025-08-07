@@ -4,6 +4,7 @@ final appTheme = ThemeData(
   brightness: Brightness.dark,
   scaffoldBackgroundColor: Colors.black,
   primaryColor: const Color(0xFF00BFB2),
+  fontFamily: 'sbl',
   textTheme: const TextTheme(
     bodyLarge: TextStyle(color: Colors.white, fontSize: 18),
     bodyMedium: TextStyle(color: Colors.white),
@@ -20,6 +21,7 @@ final appTheme = ThemeData(
       color: Colors.white,
       fontSize: 20,
       fontWeight: FontWeight.bold,
+      fontFamily: 'sbl',
     ),
   ),
   iconTheme: const IconThemeData(
@@ -29,7 +31,16 @@ final appTheme = ThemeData(
     style: ElevatedButton.styleFrom(
       backgroundColor: Colors.black,
       foregroundColor: Colors.white,
+      textStyle: const TextStyle(fontFamily: 'sbl'),
     ),
+  ),
+  outlinedButtonTheme: OutlinedButtonThemeData(
+    style: OutlinedButton.styleFrom(
+      textStyle: const TextStyle(fontFamily: 'sbl'),
+    ),
+  ),
+  textButtonTheme: TextButtonThemeData(
+    style: TextButton.styleFrom(textStyle: const TextStyle(fontFamily: 'sbl')),
   ),
   colorScheme: const ColorScheme.dark(
     primary: Color(0xFF00BFB2),
