@@ -9,8 +9,8 @@ import 'package:path/path.dart';
 class LexiconsDatabase {
   static const _hebrewDatabaseName = 'sdbh.db';
   static const _greekDatabaseName = 'sdbg.db';
-  static const _hebrewDbVersion = 1;
-  static const _greekDbVersion = 1;
+  static const _hebrewDbVersion = 2;
+  static const _greekDbVersion = 2;
   late Database _hebrewDatabase;
   late Database _greekDatabase;
 
@@ -112,17 +112,45 @@ class LexiconMeaning {
     required this.glosses,
   });
 
-  /// A factory constructor for creating a new `LexiconMeaning` instance
-  /// from a map returned by the database query.
   factory LexiconMeaning.fromMap(Map<String, dynamic> map) {
+    final definition = map[LexiconSchema.meaningsColDefinitionShort];
+    final comments = map[LexiconSchema.meaningsColComments];
     return LexiconMeaning(
       lexId: map[LexiconSchema.meaningsColLexId],
       grammar: map[LexiconSchema.grammarColText],
       lemma: map[LexiconSchema.meaningsColLemma],
-      definitionShort: map[LexiconSchema.meaningsColDefinitionShort],
-      comments: map[LexiconSchema.meaningsColComments],
+      definitionShort: _replaceReferences(definition),
+      comments: _replaceReferences(comments),
       glosses: map[LexiconSchema.meaningsColGlosses],
     );
+  }
+
+  static String? _replaceReferences(String? text) {
+    if (text == null) return null;
+
+    // replace {L:ἄρχω<SDBG:ἄρχω:000000>} -> ἄρχω
+    // replace {L:Bashan<SDBH:בָּשָׁן>} -> Bashan (בָּשָׁן)
+    var regex = RegExp(r'\{L:(.*?)<SDB[GH]:([^:]*)(:.*?)?>\}');
+    String modifiedString = text.replaceAllMapped(regex, (match) {
+      final part1 = match.group(1);
+      final part2 = match.group(2);
+      if (part1 == part2) {
+        return part1.toString();
+      }
+      return '$part1 ($part2)';
+    });
+
+    // replace {S:06600301400040} -> Revelation 3:14
+    regex = RegExp(r'\{S:(\d{3})(\d{3})(\d{3})\d{5}\}');
+    modifiedString = modifiedString.replaceAllMapped(regex, (match) {
+      int bookId = int.parse(match.group(1)!);
+      final book = _bookIdToFullNameMap[bookId];
+      int chapter = int.parse(match.group(2)!);
+      int verse = int.parse(match.group(3)!);
+      return '$book $chapter:$verse';
+    });
+
+    return modifiedString;
   }
 
   @override
@@ -130,3 +158,72 @@ class LexiconMeaning {
     return 'LexiconMeaning{lexId: $lexId, lemma: $lemma, grammar: $grammar, definition: $definitionShort}';
   }
 }
+
+const _bookIdToFullNameMap = {
+  1: 'Genesis',
+  2: 'Exodus',
+  3: 'Leviticus',
+  4: 'Numbers',
+  5: 'Deuteronomy',
+  6: 'Joshua',
+  7: 'Judges',
+  8: 'Ruth',
+  9: '1 Samuel',
+  10: '2 Samuel',
+  11: '1 Kings',
+  12: '2 Kings',
+  13: '1 Chronicles',
+  14: '2 Chronicles',
+  15: 'Ezra',
+  16: 'Nehemiah',
+  17: 'Esther',
+  18: 'Job',
+  19: 'Psalm',
+  20: 'Proverbs',
+  21: 'Ecclesiastes',
+  22: 'Song of Solomon',
+  23: 'Isaiah',
+  24: 'Jeremiah',
+  25: 'Lamentations',
+  26: 'Ezekiel',
+  27: 'Daniel',
+  28: 'Hosea',
+  29: 'Joel',
+  30: 'Amos',
+  31: 'Obadiah',
+  32: 'Jonah',
+  33: 'Micah',
+  34: 'Nahum',
+  35: 'Habakkuk',
+  36: 'Zephaniah',
+  37: 'Haggai',
+  38: 'Zechariah',
+  39: 'Malachi',
+  40: 'Matthew',
+  41: 'Mark',
+  42: 'Luke',
+  43: 'John',
+  44: 'Acts',
+  45: 'Romans',
+  46: '1 Corinthians',
+  47: '2 Corinthians',
+  48: 'Galatians',
+  49: 'Ephesians',
+  50: 'Philippians',
+  51: 'Colossians',
+  52: '1 Thessalonians',
+  53: '2 Thessalonians',
+  54: '1 Timothy',
+  55: '2 Timothy',
+  56: 'Titus',
+  57: 'Philemon',
+  58: 'Hebrews',
+  59: 'James',
+  60: '1 Peter',
+  61: '2 Peter',
+  62: '1 John',
+  63: '2 John',
+  64: '3 John',
+  65: 'Jude',
+  66: 'Revelation',
+};

@@ -20,7 +20,6 @@ class WordDetailsDialogManager extends ChangeNotifier {
     lexiconMeanings = await _lexiconDb.getMeaningsForStrongs(
       wordDetails!.strongsCode,
     );
-    print(lexiconMeanings);
     notifyListeners();
   }
 
@@ -42,7 +41,6 @@ class WordDetailsDialogManager extends ChangeNotifier {
 
   String expandGrammar(String grammar) {
     return _parsePart(grammar);
-    // notifyListeners();
   }
 
   /// Parses a single morphological part (e.g., "Prep-l" or "Art").

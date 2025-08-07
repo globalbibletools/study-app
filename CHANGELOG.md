@@ -1,3 +1,8 @@
+## 0.10.0
+
+- Add semantic dictionaries for Hebrew and Greek (visible on word long press)
+- Change style of part of speech popup (in front of content instead of over it)
+
 ## 0.9.1 - July 30, 2025
 
 - Localize missing phrase into Spanish.
