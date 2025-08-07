@@ -2,6 +2,7 @@
 
 - Add semantic dictionaries for Hebrew and Greek (visible on word long press)
 - Change style of part of speech popup (in front of content instead of over it)
+- Add a second way to change the text size (in settings)
 
 ## 0.9.1 - July 30, 2025
 

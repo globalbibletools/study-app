@@ -1,6 +1,5 @@
 {
   "@@locale": "en",
-
   "appName": "Global Bible Tools",
   "@appName": {
     "description": "Displayed on the About page"
@@ -13,7 +12,6 @@
   "@emailCopied": {
     "description": "Message shown after email button clicked"
   },
-
   "settings": "Settings",
   "@settings": {
     "description": "The title of the Settings screen"
@@ -26,10 +24,13 @@
   "@currentLanguage": {
     "description": "The name of the language for this locale"
   },
-
+  "hebrewGreekTextSize": "Hebrew/Greek text size",
+  "@hebrewGreekTextSize": {
+    "description": "Settings option to change the display size of the Hebrew or Greek font"
+  },
   "downloadGlossesMessage": "To show word meanings in English, the data needs to be downloaded. Would you like to download it now?",
   "@downloadGlossesMessage": {
-      "description": "Message asking user to download glosses for a specific language."
+    "description": "Message asking user to download glosses for a specific language."
   },
   "useEnglish": "Use English",
   "@useEnglish": {
@@ -45,7 +46,7 @@
   },
   "downloadingGlossesMessage": "Downloading word meanings in English...",
   "@downloadingGlossesMessage": {
-      "description": "Message shown while glosses are downloading."
+    "description": "Message shown while glosses are downloading."
   },
   "downloadComplete": "Download complete.",
   "@downloadComplete": {
@@ -55,12 +56,10 @@
   "@downloadFailed": {
     "description": "Message shown when glosses fail to download."
   },
-
   "similarVerses": "See other uses",
   "@similarVerses": {
     "description": "Show list of other verses with the same Strong's number"
   },
-
   "search": "Search",
   "@search": {
     "description": "The title of the Search screen"
@@ -77,12 +76,10 @@
   "@noVersesFound": {
     "description": "The message to display when search returns no Bible verse matches for the given words"
   },
-
   "about": "About",
   "@about": {
     "description": "The title of the About screen"
   },
-
   "bookGenesis": "Genesis",
   "@bookGenesis": {
     "description": "The name of the first book of the Bible"

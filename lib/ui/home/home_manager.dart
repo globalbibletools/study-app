@@ -24,6 +24,8 @@ class HomeManager {
   static const _lastOldTestamentBookId = 39;
   bool get currentChapterIsRtl => _currentBookId <= _lastOldTestamentBookId;
 
+  double get baseFontSize => _settings.baseFontSize;
+
   Future<void> init(BuildContext context) async {
     final (bookId, chapter) = _settings.currentBookChapter;
     _updateCurrentBookName(context, bookId);

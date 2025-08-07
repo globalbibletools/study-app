@@ -27,6 +27,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get currentLanguage => 'Español';
 
   @override
+  String get hebrewGreekTextSize => 'Tamaño del texto en hebreo/griego';
+
+  @override
   String get downloadGlossesMessage =>
       'Para mostrar los significados en Español (glosas) de las palabras hebreas, es necesario descargar los datos. ¿Desea descargarlos ahora?';
 

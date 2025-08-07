@@ -25,7 +25,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final _scrollController = ScrollController();
 
   // Pinch to zoom font scaling
-  static const double _baseFontSize = 20.0;
+  late final double _baseFontSize;
   double _baseScale = 1.0;
   double _gestureScale = 1.0;
   bool get _isScaling => _gestureScale != 1.0;
@@ -35,6 +35,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    _baseFontSize = manager.baseFontSize;
     manager.onGlossDownloadNeeded = _showDownloadDialog;
   }
 
@@ -175,7 +176,13 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
-      drawer: const AppDrawer(),
+      drawer: AppDrawer(
+        onSettingsClosed: () {
+          setState(() {
+            _baseScale = manager.getFontScale();
+          });
+        },
+      ),
       body: Stack(
         children: [
           RawGestureDetector(

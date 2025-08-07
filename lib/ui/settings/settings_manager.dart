@@ -31,4 +31,19 @@ class SettingsManager extends ChangeNotifier {
       rethrow;
     }
   }
+
+  double get textSize =>
+      (_settings.baseFontSize * _settings.fontScale).roundToDouble();
+
+  double get minFontSize => 10;
+
+  double get maxFontSize => 60;
+
+  int get fontSizeDivisions => 50;
+
+  Future<void> setTextSize(double fontSize) async {
+    final scale = fontSize / _settings.baseFontSize;
+    await _settings.setFontScale(scale);
+    notifyListeners();
+  }
 }

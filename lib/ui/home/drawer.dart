@@ -5,7 +5,9 @@ import 'package:studyapp/ui/search/search.dart';
 import 'package:studyapp/ui/settings/settings_page.dart';
 
 class AppDrawer extends StatelessWidget {
-  const AppDrawer({super.key});
+  const AppDrawer({super.key, required this.onSettingsClosed});
+
+  final VoidCallback onSettingsClosed;
 
   @override
   Widget build(BuildContext context) {
@@ -31,12 +33,13 @@ class AppDrawer extends StatelessWidget {
             ListTile(
               title: Text(AppLocalizations.of(context)!.settings),
               leading: Icon(Icons.settings_outlined),
-              onTap: () {
+              onTap: () async {
                 Navigator.pop(context);
-                Navigator.push(
+                await Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const SettingsPage()),
                 );
+                onSettingsClosed();
               },
             ),
             ListTile(

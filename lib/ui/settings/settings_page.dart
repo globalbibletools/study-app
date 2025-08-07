@@ -113,10 +113,57 @@ class _SettingsPageState extends State<SettingsPage> {
                   });
                 },
               ),
+              ListTile(
+                title: Text(AppLocalizations.of(context)!.hebrewGreekTextSize),
+                trailing: Text(
+                  '${manager.textSize}',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                onTap: () {
+                  _showFontSizeDialog(context);
+                },
+              ),
             ],
           );
         },
       ),
+    );
+  }
+
+  Future<dynamic> _showFontSizeDialog(BuildContext context) {
+    return showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            content: SizedBox(
+              height: 150,
+              child: StatefulBuilder(
+                builder:
+                    (context, setState) => Column(
+                      children: [
+                        const Spacer(),
+                        Text(
+                          'א α',
+                          style: TextStyle(fontSize: manager.textSize),
+                        ),
+                        const Spacer(),
+                        Slider(
+                          value: manager.textSize,
+                          min: manager.minFontSize,
+                          max: manager.maxFontSize,
+                          divisions: manager.fontSizeDivisions,
+                          label: manager.textSize.toStringAsFixed(1),
+                          onChanged: (value) {
+                            setState(() {
+                              manager.setTextSize(value);
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+              ),
+            ),
+          ),
     );
   }
 }

@@ -134,6 +134,12 @@ abstract class AppLocalizations {
   /// **'English'**
   String get currentLanguage;
 
+  /// Settings option to change the display size of the Hebrew or Greek font
+  ///
+  /// In en, this message translates to:
+  /// **'Hebrew/Greek text size'**
+  String get hebrewGreekTextSize;
+
   /// Message asking user to download glosses for a specific language.
   ///
   /// In en, this message translates to:

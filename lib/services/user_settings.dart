@@ -27,6 +27,8 @@ class UserSettings {
     await _prefs.setInt(_currentChapterKey, chapter);
   }
 
+  double get baseFontSize => 20.0;
+
   double get fontScale => _prefs.getDouble(_fontScaleKey) ?? 1.0;
 
   Future<void> setFontScale(double scale) async {

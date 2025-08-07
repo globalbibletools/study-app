@@ -27,6 +27,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get currentLanguage => 'English';
 
   @override
+  String get hebrewGreekTextSize => 'Hebrew/Greek text size';
+
+  @override
   String get downloadGlossesMessage =>
       'To show word meanings in English, the data needs to be downloaded. Would you like to download it now?';
 
