@@ -17,15 +17,16 @@ class _SettingsPageState extends State<SettingsPage> {
     return await showDialog<Locale>(
       context: context,
       builder: (BuildContext context) {
+        final textStyle = Theme.of(context).textTheme.bodyLarge;
         return SimpleDialog(
           children: <Widget>[
             SimpleDialogOption(
               onPressed: () => Navigator.pop(context, const Locale('en')),
-              child: const Text('English'),
+              child: Text('English', style: textStyle),
             ),
             SimpleDialogOption(
               onPressed: () => Navigator.pop(context, const Locale('es')),
-              child: const Text('Español'),
+              child: Text('Español', style: textStyle),
             ),
           ],
         );
