@@ -13,7 +13,6 @@ class WordDetailsDialogManager extends ChangeNotifier {
   final _lexiconDb = getIt<LexiconsDatabase>();
 
   WordDetails? wordDetails;
-  String? grammarExpansion;
   List<LexiconMeaning> lexiconMeanings = [];
 
   Future<void> init(Locale locale, int wordId) async {
@@ -41,9 +40,9 @@ class WordDetailsDialogManager extends ChangeNotifier {
     );
   }
 
-  void showGrammar(String grammar) {
-    grammarExpansion = _parsePart(grammar);
-    notifyListeners();
+  String expandGrammar(String grammar) {
+    return _parsePart(grammar);
+    // notifyListeners();
   }
 
   /// Parses a single morphological part (e.g., "Prep-l" or "Art").
@@ -70,11 +69,6 @@ class WordDetailsDialogManager extends ChangeNotifier {
     }
 
     return output.toString();
-  }
-
-  void hideGrammar() {
-    grammarExpansion = null;
-    notifyListeners();
   }
 }
 

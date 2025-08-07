@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:studyapp/l10n/app_localizations.dart';
@@ -27,9 +25,6 @@ class _WordDetailsDialogState extends State<WordDetailsDialog> {
   final manager = WordDetailsDialogManager();
   TextStyle? highlightStyle;
   TextStyle? defaultStyle;
-  final _dialogKey = GlobalKey();
-  Rect? _grammarPanelRect;
-  Timer? _grammarPopupTimer;
 
   static const fontSize = 30.0;
 
@@ -46,83 +41,61 @@ class _WordDetailsDialogState extends State<WordDetailsDialog> {
   }
 
   @override
-  void dispose() {
-    _grammarPopupTimer?.cancel();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: manager,
       builder: (context, child) {
         final wordDetails = manager.wordDetails;
         if (wordDetails == null) return const SizedBox();
-        final renderBox =
-            _dialogKey.currentContext?.findRenderObject() as RenderBox?;
-        if (renderBox != null) {
-          _grammarPanelRect =
-              renderBox.localToGlobal(Offset.zero) & renderBox.size;
-        }
-        return Stack(
-          children: [
-            AlertDialog(
-              content: SingleChildScrollView(
-                key: _dialogKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    FittedBox(
-                      child: SelectableText(
-                        wordDetails.word,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: fontSize * 2),
-                      ),
-                    ),
-                    FittedBox(
-                      child: SelectableText.rich(
-                        _buildTappableGrammar(wordDetails.grammar),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    OutlinedButton(
-                      child: Text(
-                        AppLocalizations.of(context)!.similarVerses,
-                        style: defaultStyle,
-                      ),
-                      onPressed: () {
-                        // print('Hello');
-                        // manager.lookupMeanings(wordDetails.strongsCode);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder:
-                                (context) => SimilarVersesPage(
-                                  strongsCode: wordDetails.strongsCode,
-                                  fontSize: widget.fontSize,
-                                  isRtl: widget.isRtl,
-                                ),
-                          ),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    FittedBox(
-                      child: SelectableText(
-                        wordDetails.gloss,
-                        textAlign: TextAlign.center,
-                        style: defaultStyle,
-                      ),
-                    ),
-                    ..._buildLexicon(),
-                  ],
+        return AlertDialog(
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                FittedBox(
+                  child: SelectableText(
+                    wordDetails.word,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: fontSize * 2),
+                  ),
                 ),
-              ),
+                FittedBox(
+                  child: SelectableText.rich(
+                    _buildTappableGrammar(wordDetails.grammar),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                OutlinedButton(
+                  child: Text(
+                    AppLocalizations.of(context)!.similarVerses,
+                    style: defaultStyle,
+                  ),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder:
+                            (context) => SimilarVersesPage(
+                              strongsCode: wordDetails.strongsCode,
+                              fontSize: widget.fontSize,
+                              isRtl: widget.isRtl,
+                            ),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 16),
+                FittedBox(
+                  child: SelectableText(
+                    wordDetails.gloss,
+                    textAlign: TextAlign.center,
+                    style: defaultStyle,
+                  ),
+                ),
+                ..._buildLexicon(),
+              ],
             ),
-
-            if (_grammarPanelRect != null && manager.grammarExpansion != null)
-              _buildGrammarExpansionPanel(),
-          ],
+          ),
         );
       },
     );
@@ -137,7 +110,6 @@ class _WordDetailsDialogState extends State<WordDetailsDialog> {
       if (meaning.lemmaId != oldLemmaId) {
         rows.add(
           Row(
-            // crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               SelectableText(meaning.lemma, style: TextStyle(fontSize: 20)),
               SizedBox(width: 8),
@@ -180,49 +152,6 @@ class _WordDetailsDialogState extends State<WordDetailsDialog> {
     return rows;
   }
 
-  Widget _buildGrammarExpansionPanel() {
-    final screenSize = MediaQuery.sizeOf(context);
-    final bottomPosition = screenSize.height - _grammarPanelRect!.top + 26.0;
-    final padding = 20.0;
-    final maxWidth = _grammarPanelRect!.width + 2 * padding;
-
-    return Positioned(
-      // Define a horizontal area centered over the dialog content.
-      left: _grammarPanelRect!.left - padding,
-      right: screenSize.width - (_grammarPanelRect!.right + padding),
-      bottom: bottomPosition,
-      // Use a Row to center the actual popup within the defined area.
-      // The Row itself will expand to fill the horizontal space.
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Material(
-            elevation: 4.0,
-            borderRadius: BorderRadius.circular(8.0),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(8.0),
-              child: Container(
-                constraints: BoxConstraints(maxWidth: maxWidth),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8.0,
-                  vertical: 4.0,
-                ),
-                color: Theme.of(context).colorScheme.inverseSurface,
-                child: Text(
-                  manager.grammarExpansion ?? '',
-                  textAlign: TextAlign.center,
-                  style: defaultStyle!.copyWith(
-                    color: Theme.of(context).colorScheme.onInverseSurface,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   TextSpan _buildTappableGrammar(String grammar) {
     final List<TextSpan> spans = [];
     final separatorPattern = RegExp(r'[|,]');
@@ -243,12 +172,9 @@ class _WordDetailsDialogState extends State<WordDetailsDialog> {
             recognizer:
                 TapGestureRecognizer()
                   ..onTap = () {
-                    _grammarPopupTimer?.cancel();
                     final grammar = nonMatch.trim();
-                    manager.showGrammar(grammar);
-                    _grammarPopupTimer = Timer(const Duration(seconds: 3), () {
-                      manager.hideGrammar();
-                    });
+                    final expansion = manager.expandGrammar(grammar);
+                    _showGrammarExpansionDialog(expansion);
                   },
           ),
         );
@@ -257,5 +183,19 @@ class _WordDetailsDialogState extends State<WordDetailsDialog> {
     );
 
     return TextSpan(children: spans);
+  }
+
+  void _showGrammarExpansionDialog(String grammarExpansion) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Text(grammarExpansion, style: defaultStyle),
+          ),
+        );
+      },
+    );
   }
 }
