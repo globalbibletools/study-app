@@ -9,4 +9,4 @@ The source code for this app is in the [public domain (CC0)](https://creativecom
 However, the app also makes use of other resources that are not in the public domain:
 
 - SBL Hebrew/Greek font. Non-commercial use allowed. See the license in the [assets/fonts](https://github.com/globalbibletools/study-app/tree/main/assets/fonts) folder.
-- TODO: Semantic Dictionary for Greek and Hebrew
+- [UBS Dictionary of Biblical Hebrew/Greek](https://github.com/ubsicap/ubs-open-license/tree/main/dictionaries): [Creative Commons Attribution-ShareAlike 4.0 International License](https://creativecommons.org/licenses/by-sa/4.0/).

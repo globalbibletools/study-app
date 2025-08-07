@@ -1,4 +1,4 @@
-Download hebrew and greek dictionaries from here:
+Data was extracted from here:
 
 https://github.com/ubsicap/ubs-open-license/tree/main/dictionaries
 

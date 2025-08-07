@@ -170,15 +170,7 @@ class LexiconDatabase {
     if (input == null) return null;
     if (input == 'NO DATA YET') return null;
     String output = input.replaceAll('= ', '');
-    output = output.replaceAll('≈ ', '');
-    // Reformat place names: {L:Bashan<SDBH:בָּשָׁן>} -> Bashan (בָּשָׁן)
-    // final regex = RegExp(r'\{L:(.*?)<SDBH:(.*?)>\}');
-    // output = output.replaceAllMapped(regex, (match) {
-    //   final placeName = match.group(1);
-    //   final hebrewGreek = match.group(2);
-    //   return '$placeName ($hebrewGreek)';
-    // });
-    return output;
+    return output.replaceAll('≈ ', '');
   }
 
   void _createIndexes() {
