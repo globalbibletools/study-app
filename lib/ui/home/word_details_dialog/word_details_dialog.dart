@@ -179,10 +179,13 @@ class _WordDetailsDialogState extends State<WordDetailsDialog> {
         rows.add(
           Row(
             children: [
-              SelectableText(meaning.lemma, style: TextStyle(fontSize: 20)),
+              SelectableText(
+                meaning.lemma,
+                style: TextStyle(fontSize: fontSize),
+              ),
               SizedBox(width: 8),
               if (meaning.grammar != null)
-                SelectableText('(${meaning.grammar})'),
+                SelectableText('(${meaning.grammar})', style: defaultStyle),
             ],
           ),
         );
@@ -195,19 +198,22 @@ class _WordDetailsDialogState extends State<WordDetailsDialog> {
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SelectableText('$meaningNumber. '),
+            SelectableText('$meaningNumber. ', style: defaultStyle),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SelectableText(meaning.glosses),
+                  SelectableText(meaning.glosses, style: defaultStyle),
                   const SizedBox(height: 8),
                   if (meaning.definitionShort != null)
-                    SelectableText(meaning.definitionShort!),
+                    SelectableText(
+                      meaning.definitionShort!,
+                      style: defaultStyle,
+                    ),
                   if (meaning.definitionShort != null)
                     const SizedBox(height: 8),
                   if (meaning.comments != null)
-                    SelectableText(meaning.comments!),
+                    SelectableText(meaning.comments!, style: defaultStyle),
                   if (meaning.comments != null) const SizedBox(height: 8),
                 ],
               ),
