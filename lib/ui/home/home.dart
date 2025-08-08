@@ -23,6 +23,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final manager = HomeManager();
   late final PageController _pageController;
   double _fontScale = 1.0;
+  int _currentPageIndex = 0;
 
   @override
   void initState() {
@@ -34,16 +35,22 @@ class _HomeScreenState extends State<HomeScreen> {
       initialBook,
       initialChapter,
     );
+    _currentPageIndex = initialPageIndex;
     _pageController = PageController(initialPage: initialPageIndex);
 
     _pageController.addListener(() {
-      final currentPage = _pageController.page?.round() ?? initialPageIndex;
-      final currentBookChapter = manager.bookAndChapterForPageIndex(
-        currentPage,
-      );
-      if (currentBookChapter.$2 != manager.currentChapterNotifier.value) {
-        manager.onPageChanged(context, currentPage);
+      final newPage = _pageController.page?.round() ?? _currentPageIndex;
+      // final currentPage = _pageController.page?.round() ?? initialPageIndex;
+      if (newPage != _currentPageIndex) {
+        _currentPageIndex = newPage;
+        manager.onPageChanged(context, newPage);
       }
+      // final currentBookChapter = manager.bookAndChapterForPageIndex(
+      //   currentPage,
+      // );
+      // if (currentBookChapter.$2 != manager.currentChapterNotifier.value) {
+      //   manager.onPageChanged(context, currentPage);
+      // }
     });
 
     manager.pageJumpNotifier.addListener(() {
@@ -104,26 +111,34 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildPageView() {
-    return PageView.builder(
-      controller: _pageController,
-      itemCount: HomeManager.totalChapters,
-      itemBuilder: (context, index) {
-        final (bookId, chapter) = manager.bookAndChapterForPageIndex(index);
-        return ChapterPage(
-          key: ValueKey(
-            '$bookId-$chapter',
-          ), // Ensures correct state is maintained
-          bookId: bookId,
-          chapter: chapter,
-          manager: manager,
-          fontScale: _fontScale,
-          onScaleChanged: (newScale) {
-            setState(() {
-              _fontScale = newScale;
-              manager.saveFontScale(newScale);
-            });
-          },
-          showWordDetails: _showWordDetails,
+    return ValueListenableBuilder<TextDirection>(
+      valueListenable: manager.pageDirectionNotifier,
+      builder: (context, direction, child) {
+        return Directionality(
+          textDirection: direction,
+          child: PageView.builder(
+            controller: _pageController,
+            itemCount: HomeManager.totalChapters,
+            itemBuilder: (context, index) {
+              final (bookId, chapter) = manager.bookAndChapterForPageIndex(
+                index,
+              );
+              return ChapterPage(
+                key: ValueKey('$bookId-$chapter'),
+                bookId: bookId,
+                chapter: chapter,
+                manager: manager,
+                fontScale: _fontScale,
+                onScaleChanged: (newScale) {
+                  setState(() {
+                    _fontScale = newScale;
+                    manager.saveFontScale(newScale);
+                  });
+                },
+                showWordDetails: _showWordDetails,
+              );
+            },
+          ),
         );
       },
     );

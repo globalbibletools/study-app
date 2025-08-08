@@ -1,6 +1,7 @@
 ## 0.11.0
 
 - Increase font size for lexicon.
+- Swipe right/left to navigate between chapters.
 
 ## 0.10.0 - August 7, 2025
 

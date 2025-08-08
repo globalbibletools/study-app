@@ -10,6 +10,7 @@ class HomeManager {
   final currentChapterNotifier = ValueNotifier<int>(1);
   final chapterCountNotifier = ValueNotifier<int?>(null);
   final pageJumpNotifier = ValueNotifier<int?>(null);
+  final pageDirectionNotifier = ValueNotifier<TextDirection>(TextDirection.rtl);
 
   final _glossService = getIt<GlossService>();
   final _settings = getIt<UserSettings>();
@@ -27,20 +28,21 @@ class HomeManager {
 
   Future<void> init(BuildContext context) async {
     final (bookId, chapter) = _settings.currentBookChapter;
-    _updateCurrentBookName(context, bookId);
-    currentChapterNotifier.value = chapter;
+    _updateUiForBook(context, bookId, chapter);
   }
 
-  void _updateCurrentBookName(BuildContext context, int? bookId) {
-    _currentBookId = bookId ?? 1;
-    currentBookNotifier.value = _bookNameFromId(context, _currentBookId);
+  void _updateUiForBook(BuildContext context, int bookId, int chapter) {
+    _currentBookId = bookId;
+    currentBookNotifier.value = _bookNameFromId(context, bookId);
+    currentChapterNotifier.value = chapter;
+    pageDirectionNotifier.value =
+        isRtl(bookId) ? TextDirection.rtl : TextDirection.ltr;
   }
 
   // Called from the UI when a page is swiped to
   void onPageChanged(BuildContext context, int pageIndex) {
     final (bookId, chapter) = bookAndChapterForPageIndex(pageIndex);
-    _updateCurrentBookName(context, bookId);
-    currentChapterNotifier.value = chapter;
+    _updateUiForBook(context, bookId, chapter);
     _settings.setCurrentBookChapter(bookId, chapter);
   }
 
@@ -51,9 +53,8 @@ class HomeManager {
 
   Future<void> onBookSelected(BuildContext context, int? bookId) async {
     if (bookId == null) return;
-    _updateCurrentBookName(context, bookId);
     const currentChapter = 1;
-    currentChapterNotifier.value = currentChapter;
+    _updateUiForBook(context, bookId, currentChapter);
     await _settings.setCurrentBookChapter(bookId, currentChapter);
     pageJumpNotifier.value = pageIndexForBookAndChapter(bookId, currentChapter);
   }
