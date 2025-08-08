@@ -9,12 +9,10 @@ class WordDetailsDialog extends StatefulWidget {
   const WordDetailsDialog({
     super.key,
     required this.wordId,
-    // required this.fontSize,
     required this.isRtl,
   });
 
   final int wordId;
-  // final double fontSize;
   final bool isRtl;
 
   @override
@@ -52,49 +50,103 @@ class _WordDetailsDialogState extends State<WordDetailsDialog> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                FittedBox(
-                  child: SelectableText(
-                    wordDetails.word,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: fontSize * 2),
-                  ),
-                ),
-                FittedBox(
-                  child: SelectableText.rich(
-                    _buildTappableGrammar(wordDetails.grammar),
-                  ),
-                ),
+                _buildHebrewGreekWord(wordDetails),
+                _buildGrammar(wordDetails),
                 const SizedBox(height: 16),
-                OutlinedButton(
-                  child: Text(
-                    AppLocalizations.of(context)!.similarVerses,
-                    style: defaultStyle,
-                  ),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder:
-                            (context) => SimilarVersesPage(
-                              root: root,
-                              strongsCode: wordDetails.strongsCode,
-                              isRtl: widget.isRtl,
-                            ),
-                      ),
-                    );
-                  },
-                ),
+                _buildSimilarVersesButton(context, wordDetails),
                 const SizedBox(height: 16),
-                FittedBox(
-                  child: SelectableText(
-                    wordDetails.gloss,
-                    textAlign: TextAlign.center,
-                    style: defaultStyle,
-                  ),
-                ),
+                _buildGloss(wordDetails),
                 ..._buildLexicon(),
               ],
             ),
+          ),
+        );
+      },
+    );
+  }
+
+  FittedBox _buildHebrewGreekWord(WordDetails wordDetails) {
+    return FittedBox(
+      child: SelectableText(
+        wordDetails.word,
+        textAlign: TextAlign.center,
+        style: TextStyle(fontSize: fontSize * 2),
+      ),
+    );
+  }
+
+  FittedBox _buildGrammar(WordDetails wordDetails) {
+    return FittedBox(
+      child: SelectableText.rich(_buildTappableGrammar(wordDetails.grammar)),
+    );
+  }
+
+  TextSpan _buildTappableGrammar(String grammar) {
+    final List<TextSpan> spans = [];
+    final separatorPattern = RegExp(r'[|,]');
+
+    grammar.splitMapJoin(
+      separatorPattern,
+      onMatch: (Match match) {
+        final separator = match.group(0)!; // "," or "|"
+        spans.add(TextSpan(text: separator, style: defaultStyle));
+        return ''; // unused
+      },
+      onNonMatch: (String nonMatch) {
+        if (nonMatch.isEmpty) return '';
+        spans.add(
+          TextSpan(
+            text: nonMatch,
+            style: highlightStyle,
+            recognizer:
+                TapGestureRecognizer()
+                  ..onTap = () {
+                    final grammar = nonMatch.trim();
+                    final expansion = manager.expandGrammar(grammar);
+                    _showGrammarExpansionDialog(expansion);
+                  },
+          ),
+        );
+        return ''; // unused
+      },
+    );
+
+    return TextSpan(children: spans);
+  }
+
+  void _showGrammarExpansionDialog(String grammarExpansion) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Text(grammarExpansion, style: defaultStyle),
+          ),
+        );
+      },
+    );
+  }
+
+  OutlinedButton _buildSimilarVersesButton(
+    BuildContext context,
+    WordDetails wordDetails,
+  ) {
+    return OutlinedButton(
+      child: Text(
+        AppLocalizations.of(context)!.similarVerses,
+        style: defaultStyle,
+      ),
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder:
+                (context) => SimilarVersesPage(
+                  root: root,
+                  strongsCode: wordDetails.strongsCode,
+                  isRtl: widget.isRtl,
+                ),
           ),
         );
       },
@@ -105,6 +157,16 @@ class _WordDetailsDialogState extends State<WordDetailsDialog> {
     final meanings = manager.lexiconMeanings;
     if (meanings.isEmpty) return null;
     return meanings.first.lemma;
+  }
+
+  FittedBox _buildGloss(WordDetails wordDetails) {
+    return FittedBox(
+      child: SelectableText(
+        wordDetails.gloss,
+        textAlign: TextAlign.center,
+        style: defaultStyle,
+      ),
+    );
   }
 
   List<Widget> _buildLexicon() {
@@ -156,52 +218,5 @@ class _WordDetailsDialogState extends State<WordDetailsDialog> {
     }
 
     return rows;
-  }
-
-  TextSpan _buildTappableGrammar(String grammar) {
-    final List<TextSpan> spans = [];
-    final separatorPattern = RegExp(r'[|,]');
-
-    grammar.splitMapJoin(
-      separatorPattern,
-      onMatch: (Match match) {
-        final separator = match.group(0)!; // "," or "|"
-        spans.add(TextSpan(text: separator, style: defaultStyle));
-        return ''; // unused
-      },
-      onNonMatch: (String nonMatch) {
-        if (nonMatch.isEmpty) return '';
-        spans.add(
-          TextSpan(
-            text: nonMatch,
-            style: highlightStyle,
-            recognizer:
-                TapGestureRecognizer()
-                  ..onTap = () {
-                    final grammar = nonMatch.trim();
-                    final expansion = manager.expandGrammar(grammar);
-                    _showGrammarExpansionDialog(expansion);
-                  },
-          ),
-        );
-        return ''; // unused
-      },
-    );
-
-    return TextSpan(children: spans);
-  }
-
-  void _showGrammarExpansionDialog(String grammarExpansion) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return Dialog(
-          child: Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Text(grammarExpansion, style: defaultStyle),
-          ),
-        );
-      },
-    );
   }
 }
