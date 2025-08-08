@@ -1,9 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:studyapp/app_state.dart';
-import 'package:studyapp/common/word.dart';
 import 'package:studyapp/l10n/app_localizations.dart';
 import 'package:studyapp/services/gloss/gloss_service.dart';
-import 'package:studyapp/services/hebrew_greek/database.dart';
 import 'package:studyapp/services/service_locator.dart';
 import 'package:studyapp/services/user_settings.dart';
 
@@ -11,26 +9,26 @@ class HomeManager {
   final currentBookNotifier = ValueNotifier<String>('');
   final currentChapterNotifier = ValueNotifier<int>(1);
   final chapterCountNotifier = ValueNotifier<int?>(null);
-  final textNotifier = ValueNotifier<List<HebrewGreekWord>>([]);
+  final pageJumpNotifier = ValueNotifier<int?>(null);
 
-  final _hebrewGreekDb = getIt<HebrewGreekDatabase>();
   final _glossService = getIt<GlossService>();
   final _settings = getIt<UserSettings>();
   int _currentBookId = 1;
 
-  void Function()? onTextUpdated;
   void Function(Locale)? onGlossDownloadNeeded;
 
   static const _lastOldTestamentBookId = 39;
-  bool get currentChapterIsRtl => _currentBookId <= _lastOldTestamentBookId;
+  bool isRtl(int bookId) => bookId <= _lastOldTestamentBookId;
 
   double get baseFontSize => _settings.baseFontSize;
+
+  // The total number of chapters in the Bible
+  static const int totalChapters = 1189;
 
   Future<void> init(BuildContext context) async {
     final (bookId, chapter) = _settings.currentBookChapter;
     _updateCurrentBookName(context, bookId);
     currentChapterNotifier.value = chapter;
-    await _updateText();
   }
 
   void _updateCurrentBookName(BuildContext context, int? bookId) {
@@ -38,13 +36,12 @@ class HomeManager {
     currentBookNotifier.value = _bookNameFromId(context, _currentBookId);
   }
 
-  Future<void> _updateText() async {
-    final chapter = currentChapterNotifier.value;
-    textNotifier.value = await _hebrewGreekDb.getChapter(
-      _currentBookId,
-      chapter,
-    );
-    onTextUpdated?.call();
+  // Called from the UI when a page is swiped to
+  void onPageChanged(BuildContext context, int pageIndex) {
+    final (bookId, chapter) = bookAndChapterForPageIndex(pageIndex);
+    _updateCurrentBookName(context, bookId);
+    currentChapterNotifier.value = chapter;
+    _settings.setCurrentBookChapter(bookId, chapter);
   }
 
   void showChapterChooser() {
@@ -53,24 +50,54 @@ class HomeManager {
   }
 
   Future<void> onBookSelected(BuildContext context, int? bookId) async {
-    if (bookId == null) {
-      return;
-    }
+    if (bookId == null) return;
     _updateCurrentBookName(context, bookId);
-    final currentChapter = 1;
+    const currentChapter = 1;
     currentChapterNotifier.value = currentChapter;
-    await _updateText();
     await _settings.setCurrentBookChapter(bookId, currentChapter);
+    pageJumpNotifier.value = pageIndexForBookAndChapter(bookId, currentChapter);
   }
 
   Future<void> onChapterSelected(int? chapter) async {
     chapterCountNotifier.value = null;
-    if (chapter == null) {
-      return;
-    }
+    if (chapter == null) return;
     currentChapterNotifier.value = chapter;
-    await _updateText();
     await _settings.setCurrentBookChapter(_currentBookId, chapter);
+    pageJumpNotifier.value = pageIndexForBookAndChapter(
+      _currentBookId,
+      chapter,
+    );
+  }
+
+  int pageIndexForBookAndChapter(int bookId, int chapter) {
+    int index = 0;
+    // Sum chapters of all preceding books
+    for (int i = 1; i < bookId; i++) {
+      index += _bookIdToChapterCountMap[i]!;
+    }
+    index += chapter - 1;
+    return index;
+  }
+
+  (int bookId, int chapter) bookAndChapterForPageIndex(int index) {
+    int pageIndex = index % totalChapters;
+    int currentBookId = 1;
+    int currentChapter = 1;
+    int remainingIndex = pageIndex;
+
+    for (final entry in _bookIdToChapterCountMap.entries) {
+      if (remainingIndex < entry.value) {
+        currentBookId = entry.key;
+        currentChapter = remainingIndex + 1;
+        break;
+      }
+      remainingIndex -= entry.value;
+    }
+    return (currentBookId, currentChapter);
+  }
+
+  (int, int) getInitialBookAndChapter() {
+    return _settings.currentBookChapter;
   }
 
   Future<void> saveFontScale(double scale) async {
@@ -79,13 +106,6 @@ class HomeManager {
 
   double getFontScale() {
     return _settings.fontScale;
-  }
-
-  bool isDownloadableLanguage(Locale locale) {
-    if (locale.languageCode == 'en') return false;
-    return AppLocalizations.supportedLocales.any(
-      (l) => l.languageCode == locale.languageCode,
-    );
   }
 
   Future<String?> getPopupTextForId(Locale uiLocale, int wordId) async {

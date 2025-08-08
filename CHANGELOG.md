@@ -1,3 +1,7 @@
+## 0.11.0
+
+- Increase font size for lexicon.
+
 ## 0.10.0 - August 7, 2025
 
 - Add semantic dictionaries for Hebrew and Greek (visible on word long press).

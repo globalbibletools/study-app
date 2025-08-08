@@ -1,11 +1,10 @@
 import 'dart:async';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:studyapp/common/word.dart';
-import 'package:studyapp/ui/home/drawer.dart';
-import 'package:studyapp/ui/home/hebrew_greek_text.dart';
-import 'package:studyapp/ui/home/word_details_dialog/word_details_dialog.dart';
 import 'package:studyapp/l10n/app_localizations.dart';
+import 'package:studyapp/ui/home/chapter_page.dart';
+import 'package:studyapp/ui/home/drawer.dart';
+import 'package:studyapp/ui/home/word_details_dialog/word_details_dialog.dart';
 
 import 'book_chooser.dart';
 import 'chapter_chooser.dart';
@@ -22,26 +21,117 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final manager = HomeManager();
-  final _scrollController = ScrollController();
-
-  // Pinch to zoom font scaling
-  late final double _baseFontSize;
-  double _baseScale = 1.0;
-  double _gestureScale = 1.0;
-  bool get _isScaling => _gestureScale != 1.0;
-
-  double get _fontSize => _baseFontSize * _baseScale;
+  late final PageController _pageController;
+  double _fontScale = 1.0;
 
   @override
   void initState() {
     super.initState();
-    _baseFontSize = manager.baseFontSize;
     manager.onGlossDownloadNeeded = _showDownloadDialog;
+
+    final (initialBook, initialChapter) = manager.getInitialBookAndChapter();
+    final initialPageIndex = manager.pageIndexForBookAndChapter(
+      initialBook,
+      initialChapter,
+    );
+    _pageController = PageController(initialPage: initialPageIndex);
+
+    _pageController.addListener(() {
+      final currentPage = _pageController.page?.round() ?? initialPageIndex;
+      final currentBookChapter = manager.bookAndChapterForPageIndex(
+        currentPage,
+      );
+      if (currentBookChapter.$2 != manager.currentChapterNotifier.value) {
+        manager.onPageChanged(context, currentPage);
+      }
+    });
+
+    manager.pageJumpNotifier.addListener(() {
+      final page = manager.pageJumpNotifier.value;
+      if (page != null && page != _pageController.page?.round()) {
+        _pageController.jumpToPage(page);
+      }
+    });
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    manager.init(context);
+    _fontScale = manager.getFontScale();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    manager.pageJumpNotifier.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Row(
+          children: [
+            OutlinedButton(
+              onPressed: _showBookChooserDialog,
+              child: ValueListenableBuilder<String>(
+                valueListenable: manager.currentBookNotifier,
+                builder: (context, value, child) => Text(value),
+              ),
+            ),
+            const SizedBox(width: 10),
+            OutlinedButton(
+              onPressed: manager.showChapterChooser,
+              child: ValueListenableBuilder(
+                valueListenable: manager.currentChapterNotifier,
+                builder: (context, value, child) => Text('$value'),
+              ),
+            ),
+          ],
+        ),
+      ),
+      drawer: AppDrawer(
+        onSettingsClosed: () {
+          setState(() {
+            _fontScale = manager.getFontScale();
+          });
+        },
+      ),
+      body: Stack(children: [_buildPageView(), _buildChapterChooser()]),
+    );
+  }
+
+  Widget _buildPageView() {
+    return PageView.builder(
+      controller: _pageController,
+      itemCount: HomeManager.totalChapters,
+      itemBuilder: (context, index) {
+        final (bookId, chapter) = manager.bookAndChapterForPageIndex(index);
+        return ChapterPage(
+          key: ValueKey(
+            '$bookId-$chapter',
+          ), // Ensures correct state is maintained
+          bookId: bookId,
+          chapter: chapter,
+          manager: manager,
+          fontScale: _fontScale,
+          onScaleChanged: (newScale) {
+            setState(() {
+              _fontScale = newScale;
+              manager.saveFontScale(newScale);
+            });
+          },
+          showWordDetails: _showWordDetails,
+        );
+      },
+    );
+  }
+
+  // The rest of the methods from the original HomeScreen remain below
   Future<void> _showDownloadDialog(Locale locale) async {
     final l10n = AppLocalizations.of(context)!;
-
     final choice =
         await showDialog<DownloadDialogChoice>(
           context: context,
@@ -82,7 +172,6 @@ class _HomeScreenState extends State<HomeScreen> {
           duration: const Duration(seconds: 30),
         ),
       );
-
       try {
         await manager.downloadGlosses(locale);
         messenger.hideCurrentSnackBar();
@@ -94,190 +183,11 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    manager.init(context);
-    manager.onTextUpdated = _scrollToTop;
-    _baseScale = manager.getFontScale();
-  }
-
-  void _scrollToTop() {
-    if (_scrollController.hasClients) {
-      _scrollController.jumpTo(_estimatedPopupHeight());
-    }
-  }
-
-  double _estimatedPopupHeight() {
-    return _fontSize * 2;
-  }
-
-  void _ensurePopupIsVisible(Rect popupRect) {
-    if (!mounted || !_scrollController.hasClients) return;
-
-    final topSafeArea = MediaQuery.of(context).padding.top;
-    final appBarHeight = AppBar().preferredSize.height;
-    final topBarHeight = topSafeArea + appBarHeight;
-
-    if (popupRect.top < topBarHeight) {
-      // Amount the popup is obscured by the app bar and safe area.
-      final scrollAmount = topBarHeight - popupRect.top;
-      // We scroll down, which means decreasing the scroll offset.
-      final newOffset = (_scrollController.offset - scrollAmount).clamp(
-        _scrollController.position.minScrollExtent,
-        _scrollController.position.maxScrollExtent,
-      );
-
-      // Scroll a little bit more to have some padding.
-      final finalOffset = (newOffset - 10.0).clamp(
-        _scrollController.position.minScrollExtent,
-        _scrollController.position.maxScrollExtent,
-      );
-
-      _scrollController.animateTo(
-        finalOffset,
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeOut,
-      );
-    }
-  }
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Row(
-          children: [
-            OutlinedButton(
-              onPressed: _showBookChooserDialog,
-              child: ValueListenableBuilder<String>(
-                valueListenable: manager.currentBookNotifier,
-                builder: (context, value, child) {
-                  return Text(value);
-                },
-              ),
-            ),
-            const SizedBox(width: 10),
-            OutlinedButton(
-              onPressed: manager.showChapterChooser,
-              child: ValueListenableBuilder(
-                valueListenable: manager.currentChapterNotifier,
-                builder: (context, value, child) {
-                  return Text('$value');
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-      drawer: AppDrawer(
-        onSettingsClosed: () {
-          setState(() {
-            _baseScale = manager.getFontScale();
-          });
-        },
-      ),
-      body: Stack(
-        children: [
-          RawGestureDetector(
-            gestures: _zoomGesture,
-            behavior: HitTestBehavior.translucent,
-            child: SingleChildScrollView(
-              controller: _scrollController,
-              child: Padding(
-                padding: const EdgeInsets.only(left: 16.0, right: 16.0),
-                child: Transform.scale(
-                  scale: _isScaling ? _gestureScale : 1.0,
-                  alignment: Alignment.topCenter,
-                  child: Column(
-                    children: [
-                      SizedBox(height: _estimatedPopupHeight()),
-                      _buildText(),
-                      const SizedBox(height: 300.0),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-          _buildChapterChooser(),
-        ],
-      ),
-    );
-  }
-
-  Map<Type, GestureRecognizerFactory<GestureRecognizer>> get _zoomGesture {
-    return {
-      CustomScaleGestureRecognizer:
-          GestureRecognizerFactoryWithHandlers<CustomScaleGestureRecognizer>(
-            () => CustomScaleGestureRecognizer(),
-            (CustomScaleGestureRecognizer instance) {
-              instance
-                ..onStart = (details) {
-                  _gestureScale = 1.0;
-                }
-                ..onUpdate = (details) {
-                  setState(() {
-                    _gestureScale = details.scale.clamp(0.5, 3.0);
-                  });
-                }
-                ..onEnd = (details) {
-                  setState(() {
-                    _baseScale = (_baseScale * _gestureScale).clamp(0.5, 3.0);
-                    _gestureScale = 1.0;
-                    manager.saveFontScale(_baseScale);
-                  });
-                };
-            },
-          ),
-    };
-  }
-
-  ValueListenableBuilder<List<HebrewGreekWord>> _buildText() {
-    return ValueListenableBuilder(
-      valueListenable: manager.textNotifier,
-      builder: (context, words, child) {
-        return HebrewGreekText(
-          words: words,
-          textDirection:
-              manager.currentChapterIsRtl
-                  ? TextDirection.rtl
-                  : TextDirection.ltr,
-          textStyle: TextStyle(fontSize: _fontSize),
-          verseNumberStyle: TextStyle(
-            color: Theme.of(context).colorScheme.primary,
-            fontSize: _fontSize * 0.7,
-          ),
-          popupBackgroundColor: Theme.of(context).colorScheme.inverseSurface,
-          popupTextStyle: TextStyle(
-            fontFamily: 'sbl',
-            fontSize: _fontSize * 0.7,
-            color: Theme.of(context).colorScheme.onInverseSurface,
-          ),
-          popupWordProvider: (wordId) {
-            final locale = Localizations.localeOf(context);
-            return manager.getPopupTextForId(locale, wordId);
-          },
-          onPopupShown: _ensurePopupIsVisible,
-          onWordLongPress: _showWordDetails,
-        );
-      },
-    );
-  }
-
   ValueListenableBuilder<int?> _buildChapterChooser() {
     return ValueListenableBuilder<int?>(
       valueListenable: manager.chapterCountNotifier,
       builder: (context, chapterCount, child) {
-        if (chapterCount == null) {
-          return const SizedBox();
-        }
+        if (chapterCount == null) return const SizedBox();
         return ChapterChooser(
           chapterCount: chapterCount,
           onChapterSelected: manager.onChapterSelected,
@@ -290,9 +200,7 @@ class _HomeScreenState extends State<HomeScreen> {
     manager.chapterCountNotifier.value = null;
     final selectedIndex = await showDialog<int>(
       context: context,
-      builder: (BuildContext context) {
-        return const BookChooser();
-      },
+      builder: (BuildContext context) => const BookChooser(),
     );
     if (mounted) {
       manager.onBookSelected(context, selectedIndex);
@@ -300,13 +208,13 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _showWordDetails(int wordId) async {
+    final pageIndex = _pageController.page!.round();
+    final (bookId, _) = manager.bookAndChapterForPageIndex(pageIndex);
     showDialog(
       context: context,
       builder:
-          (context) => WordDetailsDialog(
-            wordId: wordId,
-            isRtl: manager.currentChapterIsRtl,
-          ),
+          (context) =>
+              WordDetailsDialog(wordId: wordId, isRtl: manager.isRtl(bookId)),
     );
   }
 }
