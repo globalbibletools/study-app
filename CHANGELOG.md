@@ -2,6 +2,7 @@
 
 - Increase font size for lexicon.
 - Swipe right/left to navigate between chapters.
+- Add a navigation button below the text to advance to the next chapter (for those who don't know you can swipe)
 
 ## 0.10.0 - August 7, 2025
 

@@ -110,6 +110,13 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _goToNextPage() {
+    _pageController.nextPage(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+  }
+
   Widget _buildPageView() {
     return ValueListenableBuilder<TextDirection>(
       valueListenable: manager.pageDirectionNotifier,
@@ -136,6 +143,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   });
                 },
                 showWordDetails: _showWordDetails,
+                onAdvancePage: _goToNextPage,
               );
             },
           ),

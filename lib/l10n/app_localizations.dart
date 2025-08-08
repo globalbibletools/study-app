@@ -98,6 +98,12 @@ abstract class AppLocalizations {
     Locale('es'),
   ];
 
+  /// The title of the About screen
+  ///
+  /// In en, this message translates to:
+  /// **'About'**
+  String get about;
+
   /// Displayed on the About page
   ///
   /// In en, this message translates to:
@@ -182,6 +188,12 @@ abstract class AppLocalizations {
   /// **'Download failed. Please check your internet connection and try again.'**
   String get downloadFailed;
 
+  /// Tool tip for button that advances to the next chapter in the Bible
+  ///
+  /// In en, this message translates to:
+  /// **'Next chapter'**
+  String get nextChapter;
+
   /// Show list of other verses with the same Strong's number
   ///
   /// In en, this message translates to:
@@ -211,12 +223,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No verses found'**
   String get noVersesFound;
-
-  /// The title of the About screen
-  ///
-  /// In en, this message translates to:
-  /// **'About'**
-  String get about;
 
   /// The name of the first book of the Bible
   ///

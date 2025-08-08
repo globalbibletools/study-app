@@ -9,6 +9,9 @@ class AppLocalizationsEs extends AppLocalizations {
   AppLocalizationsEs([String locale = 'es']) : super(locale);
 
   @override
+  String get about => 'Acerca de';
+
+  @override
   String get appName => 'Herramientas Bíblicas Globales';
 
   @override
@@ -54,6 +57,9 @@ class AppLocalizationsEs extends AppLocalizations {
       'La descarga falló. Por favor, revise su conexión al internet e inténtelo de nuevo.';
 
   @override
+  String get nextChapter => 'Siguiente capítulo';
+
+  @override
   String get similarVerses => 'Ver otros usos';
 
   @override
@@ -67,9 +73,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get noVersesFound => 'No se encontraron versículos';
-
-  @override
-  String get about => 'Acerca de';
 
   @override
   String get bookGenesis => 'Génesis';

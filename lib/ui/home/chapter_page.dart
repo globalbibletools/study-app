@@ -3,6 +3,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:studyapp/common/word.dart';
+import 'package:studyapp/l10n/app_localizations.dart';
 import 'package:studyapp/services/hebrew_greek/database.dart';
 import 'package:studyapp/services/service_locator.dart';
 import 'package:studyapp/ui/home/hebrew_greek_text.dart';
@@ -32,6 +33,7 @@ class ChapterPage extends StatefulWidget {
     required this.fontScale,
     required this.onScaleChanged,
     required this.showWordDetails,
+    required this.onAdvancePage,
   });
 
   final int bookId;
@@ -40,6 +42,7 @@ class ChapterPage extends StatefulWidget {
   final double fontScale;
   final void Function(double) onScaleChanged;
   final void Function(int wordId) showWordDetails;
+  final VoidCallback onAdvancePage;
 
   @override
   State<ChapterPage> createState() => _ChapterPageState();
@@ -164,6 +167,7 @@ class _ChapterPageState extends State<ChapterPage> {
                     );
                   },
                 ),
+                _buildNextChapterButton(),
                 const SizedBox(height: 300.0),
               ],
             ),
@@ -195,5 +199,24 @@ class _ChapterPageState extends State<ChapterPage> {
         curve: Curves.easeOut,
       );
     }
+  }
+
+  Widget _buildNextChapterButton() {
+    final bool isRtl = widget.manager.isRtl(widget.bookId);
+    final alignment = isRtl ? Alignment.centerLeft : Alignment.centerRight;
+    final tooltip = AppLocalizations.of(context)!.nextChapter;
+
+    return Align(
+      alignment: alignment,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 24.0),
+        child: IconButton(
+          iconSize: 48,
+          tooltip: tooltip,
+          icon: Icon(Icons.arrow_forward),
+          onPressed: widget.onAdvancePage,
+        ),
+      ),
+    );
   }
 }

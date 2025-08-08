@@ -1,5 +1,9 @@
 {
   "@@locale": "en",
+  "about": "About",
+  "@about": {
+    "description": "The title of the About screen"
+  },
   "appName": "Global Bible Tools",
   "@appName": {
     "description": "Displayed on the About page"
@@ -56,6 +60,10 @@
   "@downloadFailed": {
     "description": "Message shown when glosses fail to download."
   },
+  "nextChapter": "Next chapter",
+  "@nextChapter": {
+    "description": "Tool tip for button that advances to the next chapter in the Bible"
+  },
   "similarVerses": "See other uses",
   "@similarVerses": {
     "description": "Show list of other verses with the same Strong's number"
@@ -75,10 +83,6 @@
   "noVersesFound": "No verses found",
   "@noVersesFound": {
     "description": "The message to display when search returns no Bible verse matches for the given words"
-  },
-  "about": "About",
-  "@about": {
-    "description": "The title of the About screen"
   },
   "bookGenesis": "Genesis",
   "@bookGenesis": {
