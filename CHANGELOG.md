@@ -8,6 +8,7 @@
 - Highlight the long-pressed word for a little while after the dialog closes so that users don't lose their place.
 - Fix lexicon bug where entries with multiple names were incorrectly parsed.
 - Remove arrows (► and ◄) from lexicon entries.
+- Fix pinch-to-zoom focal point.
 
 ## 0.10.0 - August 7, 2025
 

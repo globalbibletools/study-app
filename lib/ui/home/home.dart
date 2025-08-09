@@ -24,6 +24,9 @@ class _HomeScreenState extends State<HomeScreen> {
   late final PageController _pageController;
   double _fontScale = 1.0;
   int _currentPageIndex = 0;
+  final _pageViewScrollPhysics = ValueNotifier<ScrollPhysics>(
+    const SnappyScrollPhysics(),
+  );
 
   @override
   void initState() {
@@ -69,7 +72,17 @@ class _HomeScreenState extends State<HomeScreen> {
   void dispose() {
     _pageController.dispose();
     manager.pageJumpNotifier.dispose();
+    _pageViewScrollPhysics.dispose();
     super.dispose();
+  }
+
+  /// This callback will be passed to ChapterPage to enable/disable
+  /// the PageView's scrolling.
+  void _setPageViewScrollingEnabled(bool enabled) {
+    _pageViewScrollPhysics.value =
+        enabled
+            ? const SnappyScrollPhysics()
+            : const NeverScrollableScrollPhysics();
   }
 
   @override
@@ -120,28 +133,34 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (context, direction, child) {
         return Directionality(
           textDirection: direction,
-          child: PageView.builder(
-            physics: const SnappyScrollPhysics(),
-            controller: _pageController,
-            itemCount: HomeManager.totalChapters,
-            itemBuilder: (context, index) {
-              final (bookId, chapter) = manager.bookAndChapterForPageIndex(
-                index,
-              );
-              return ChapterPage(
-                key: ValueKey('$bookId-$chapter'),
-                bookId: bookId,
-                chapter: chapter,
-                manager: manager,
-                fontScale: _fontScale,
-                onScaleChanged: (newScale) {
-                  setState(() {
-                    _fontScale = newScale;
-                    manager.saveFontScale(newScale);
-                  });
+          child: ValueListenableBuilder<ScrollPhysics>(
+            valueListenable: _pageViewScrollPhysics,
+            builder: (context, physics, child) {
+              return PageView.builder(
+                physics: physics,
+                controller: _pageController,
+                itemCount: HomeManager.totalChapters,
+                itemBuilder: (context, index) {
+                  final (bookId, chapter) = manager.bookAndChapterForPageIndex(
+                    index,
+                  );
+                  return ChapterPage(
+                    key: ValueKey('$bookId-$chapter'),
+                    bookId: bookId,
+                    chapter: chapter,
+                    manager: manager,
+                    fontScale: _fontScale,
+                    onScaleChanged: (newScale) {
+                      setState(() {
+                        _fontScale = newScale;
+                        manager.saveFontScale(newScale);
+                      });
+                    },
+                    showWordDetails: _showWordDetails,
+                    onAdvancePage: _goToNextPage,
+                    onScaleInteraction: _setPageViewScrollingEnabled,
+                  );
                 },
-                showWordDetails: _showWordDetails,
-                onAdvancePage: _goToNextPage,
               );
             },
           ),

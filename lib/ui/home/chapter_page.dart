@@ -35,6 +35,7 @@ class ChapterPage extends StatefulWidget {
     required this.onScaleChanged,
     required this.showWordDetails,
     required this.onAdvancePage,
+    required this.onScaleInteraction,
   });
 
   final int bookId;
@@ -44,6 +45,7 @@ class ChapterPage extends StatefulWidget {
   final void Function(double) onScaleChanged;
   final Future<void> Function(int wordId) showWordDetails;
   final VoidCallback onAdvancePage;
+  final void Function(bool isEnabled) onScaleInteraction;
 
   @override
   State<ChapterPage> createState() => _ChapterPageState();
@@ -59,6 +61,7 @@ class _ChapterPageState extends State<ChapterPage> {
   double _gestureStartScale = 1.0;
   bool _isScalingInProgress = false;
   Alignment _transformAlignment = Alignment.center;
+  bool _didDisablePageViewScroll = false;
 
   double get _fontSize => _baseFontSize * _baseScale;
 
@@ -117,9 +120,14 @@ class _ChapterPageState extends State<ChapterPage> {
                   _isScalingInProgress = true;
                   _gestureStartScale = _baseScale;
                   _updateTransformAlignment(details.localFocalPoint);
+                  _didDisablePageViewScroll = false;
                 }
                 ..onUpdate = (details) {
-                  _updateTransformAlignment(details.localFocalPoint);
+                  if (details.scale != 1.0 && !_didDisablePageViewScroll) {
+                    widget.onScaleInteraction(false);
+                    _didDisablePageViewScroll = true;
+                  }
+                  // _updateTransformAlignment(details.localFocalPoint);
                   setState(() {
                     _currentScale = (_gestureStartScale * details.scale).clamp(
                       0.5,
@@ -128,11 +136,15 @@ class _ChapterPageState extends State<ChapterPage> {
                   });
                 }
                 ..onEnd = (details) {
+                  if (_didDisablePageViewScroll) {
+                    widget.onScaleInteraction(true);
+                  }
                   setState(() {
                     _baseScale = _currentScale;
                   });
                   _isScalingInProgress = false;
                   widget.onScaleChanged(_baseScale);
+                  widget.onScaleInteraction(true);
                 };
             },
           ),
