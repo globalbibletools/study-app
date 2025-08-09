@@ -130,7 +130,7 @@ class LexiconMeaning {
 
     // replace {L:ἄρχω<SDBG:ἄρχω:000000>} -> ἄρχω
     // replace {L:Bashan<SDBH:בָּשָׁן>} -> Bashan (בָּשָׁן)
-    var regex = RegExp(r'\{L:(.*?)<SDB[GH]:([^:]*)(:.*?)?>\}');
+    var regex = RegExp(r'\{L:([^{]*?)<SDB[GH]:([^:]*?)(:.*?)?>\}');
     String modifiedString = text.replaceAllMapped(regex, (match) {
       final part1 = match.group(1);
       final part2 = match.group(2);
