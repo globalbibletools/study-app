@@ -2,7 +2,9 @@
 
 - Increase font size for lexicon.
 - Swipe right/left to navigate between chapters.
-- Add a navigation button below the text to advance to the next chapter (for those who don't know you can swipe)
+- Add a navigation button below the text to advance to the next chapter (for those who don't know you can swipe).
+- Set max width for word details dialog (helpful for large screens).
+- Add a close button to the word details dialog (helpful when dialog fills screen on small devices).
 
 ## 0.10.0 - August 7, 2025
 

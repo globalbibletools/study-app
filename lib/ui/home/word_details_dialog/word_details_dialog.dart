@@ -46,21 +46,29 @@ class _WordDetailsDialogState extends State<WordDetailsDialog> {
         final wordDetails = manager.wordDetails;
         if (wordDetails == null) return const SizedBox();
         return AlertDialog(
+          contentPadding: const EdgeInsets.fromLTRB(0, 0, 0, 24.0),
           content: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 600),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _buildHebrewGreekWord(wordDetails),
-                  _buildGrammar(wordDetails),
-                  const SizedBox(height: 16),
-                  _buildSimilarVersesButton(context, wordDetails),
-                  const SizedBox(height: 16),
-                  _buildGloss(wordDetails),
-                  ..._buildLexicon(),
-                ],
-              ),
+            child: Stack(
+              alignment: AlignmentDirectional.topCenter,
+              children: [
+                SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(24.0, 24.0, 24.0, 0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildHebrewGreekWord(wordDetails),
+                      _buildGrammar(wordDetails),
+                      const SizedBox(height: 16),
+                      _buildSimilarVersesButton(context, wordDetails),
+                      const SizedBox(height: 16),
+                      _buildGloss(wordDetails),
+                      ..._buildLexicon(),
+                    ],
+                  ),
+                ),
+                _buildCloseButton(context),
+              ],
             ),
           ),
         );
@@ -153,6 +161,21 @@ class _WordDetailsDialogState extends State<WordDetailsDialog> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildCloseButton(BuildContext context) {
+    return Positioned(
+      top: 0,
+      right: 0,
+      child: SizedBox(
+        width: 48,
+        height: 48,
+        child: IconButton(
+          onPressed: () => Navigator.of(context).pop(),
+          icon: const Icon(Icons.close),
+        ),
+      ),
     );
   }
 
