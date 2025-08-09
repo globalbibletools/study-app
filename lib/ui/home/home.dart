@@ -36,21 +36,18 @@ class _HomeScreenState extends State<HomeScreen> {
       initialChapter,
     );
     _currentPageIndex = initialPageIndex;
-    _pageController = PageController(initialPage: initialPageIndex);
+    _pageController = PageController(
+      initialPage: initialPageIndex,
+      // trick to get the page view to preload adjacent pages
+      viewportFraction: 0.99,
+    );
 
     _pageController.addListener(() {
       final newPage = _pageController.page?.round() ?? _currentPageIndex;
-      // final currentPage = _pageController.page?.round() ?? initialPageIndex;
       if (newPage != _currentPageIndex) {
         _currentPageIndex = newPage;
         manager.onPageChanged(context, newPage);
       }
-      // final currentBookChapter = manager.bookAndChapterForPageIndex(
-      //   currentPage,
-      // );
-      // if (currentBookChapter.$2 != manager.currentChapterNotifier.value) {
-      //   manager.onPageChanged(context, currentPage);
-      // }
     });
 
     manager.pageJumpNotifier.addListener(() {
@@ -124,6 +121,7 @@ class _HomeScreenState extends State<HomeScreen> {
         return Directionality(
           textDirection: direction,
           child: PageView.builder(
+            physics: const SnappyScrollPhysics(),
             controller: _pageController,
             itemCount: HomeManager.totalChapters,
             itemBuilder: (context, index) {
@@ -250,5 +248,21 @@ class CustomScaleGestureRecognizer extends ScaleGestureRecognizer {
   void rejectGesture(int pointer) {
     // Don't reject just because another gesture (e.g., scroll) won
     acceptGesture(pointer);
+  }
+}
+
+class SnappyScrollPhysics extends ScrollPhysics {
+  const SnappyScrollPhysics({super.parent});
+
+  @override
+  SnappyScrollPhysics applyTo(ScrollPhysics? ancestor) {
+    return SnappyScrollPhysics(parent: buildParent(ancestor)!);
+  }
+
+  @override
+  SpringDescription get spring {
+    return SpringDescription.withDurationAndBounce(
+      duration: Duration(milliseconds: 300),
+    );
   }
 }

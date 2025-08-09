@@ -16,6 +16,7 @@ class ChapterPageManager {
   final textNotifier = ValueNotifier<List<HebrewGreekWord>>([]);
 
   Future<void> loadChapter(int bookId, int chapter) async {
+    if (textNotifier.value.isNotEmpty) return;
     textNotifier.value = await _hebrewGreekDb.getChapter(bookId, chapter);
   }
 
