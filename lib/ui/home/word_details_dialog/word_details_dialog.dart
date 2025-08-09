@@ -46,18 +46,21 @@ class _WordDetailsDialogState extends State<WordDetailsDialog> {
         final wordDetails = manager.wordDetails;
         if (wordDetails == null) return const SizedBox();
         return AlertDialog(
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildHebrewGreekWord(wordDetails),
-                _buildGrammar(wordDetails),
-                const SizedBox(height: 16),
-                _buildSimilarVersesButton(context, wordDetails),
-                const SizedBox(height: 16),
-                _buildGloss(wordDetails),
-                ..._buildLexicon(),
-              ],
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 600),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildHebrewGreekWord(wordDetails),
+                  _buildGrammar(wordDetails),
+                  const SizedBox(height: 16),
+                  _buildSimilarVersesButton(context, wordDetails),
+                  const SizedBox(height: 16),
+                  _buildGloss(wordDetails),
+                  ..._buildLexicon(),
+                ],
+              ),
             ),
           ),
         );
