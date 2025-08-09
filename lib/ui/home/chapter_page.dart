@@ -139,16 +139,16 @@ class _ChapterPageState extends State<ChapterPage> {
           child: Transform.scale(
             scale: _isScaling ? _gestureScale / _baseScale : 1.0,
             alignment: Alignment.topCenter,
-            child: Column(
-              children: [
-                SizedBox(height: _estimatedPopupHeight()),
-                ValueListenableBuilder<List<HebrewGreekWord>>(
-                  valueListenable: _pageManager.textNotifier,
-                  builder: (context, words, child) {
-                    if (words.isEmpty) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-                    return HebrewGreekText(
+            child: ValueListenableBuilder<List<HebrewGreekWord>>(
+              valueListenable: _pageManager.textNotifier,
+              builder: (context, words, child) {
+                if (words.isEmpty) {
+                  return const SizedBox();
+                }
+                return Column(
+                  children: [
+                    SizedBox(height: _estimatedPopupHeight()),
+                    HebrewGreekText(
                       words: words,
                       textDirection:
                           widget.manager.isRtl(widget.bookId)
@@ -172,42 +172,18 @@ class _ChapterPageState extends State<ChapterPage> {
                       },
                       onPopupShown: _ensurePopupIsVisible,
                       onWordLongPress: widget.showWordDetails,
-                    );
-                  },
-                ),
-                _buildNextChapterButton(),
-                const SizedBox(height: 300.0),
-              ],
+                    ),
+                    _buildNextChapterButton(),
+                    const SizedBox(height: 300.0),
+                  ],
+                );
+              },
             ),
           ),
         ),
       ),
     );
   }
-
-  // void _ensurePopupIsVisible(Rect popupRect) {
-  //   if (!mounted || !_scrollController.hasClients) return;
-  //   final topSafeArea = MediaQuery.of(context).padding.top;
-  //   final appBarHeight = AppBar().preferredSize.height;
-  //   final topBarHeight = topSafeArea + appBarHeight;
-
-  //   if (popupRect.top < topBarHeight) {
-  //     final scrollAmount = topBarHeight - popupRect.top;
-  //     final newOffset = (_scrollController.offset - scrollAmount).clamp(
-  //       _scrollController.position.minScrollExtent,
-  //       _scrollController.position.maxScrollExtent,
-  //     );
-  //     final finalOffset = (newOffset - 10.0).clamp(
-  //       _scrollController.position.minScrollExtent,
-  //       _scrollController.position.maxScrollExtent,
-  //     );
-  //     _scrollController.animateTo(
-  //       finalOffset,
-  //       duration: const Duration(milliseconds: 200),
-  //       curve: Curves.easeOut,
-  //     );
-  //   }
-  // }
 
   void _ensurePopupIsVisible(Rect popupRect) {
     if (!mounted || !_scrollController.hasClients) return;
@@ -242,11 +218,14 @@ class _ChapterPageState extends State<ChapterPage> {
       alignment: alignment,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 24.0),
-        child: IconButton(
-          iconSize: 48,
-          tooltip: tooltip,
-          icon: Icon(Icons.arrow_forward),
-          onPressed: widget.onAdvancePage,
+        child: SizedBox(
+          width: 48,
+          height: 48,
+          child: IconButton(
+            tooltip: tooltip,
+            icon: Icon(Icons.arrow_forward),
+            onPressed: widget.onAdvancePage,
+          ),
         ),
       ),
     );
