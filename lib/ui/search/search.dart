@@ -248,7 +248,6 @@ class _SearchPageState extends State<SearchPage> {
                   isHebrew: _textDirection == TextDirection.rtl,
                   candidatesNotifier: manager.candidatesNotifier,
                   onCandidateTapped: (candidate) {
-                    print(candidate);
                     _updateControllerWithoutTriggeringSearch(candidate);
                   },
                 ),

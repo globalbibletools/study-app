@@ -41,7 +41,7 @@ class ChapterPage extends StatefulWidget {
   final HomeManager manager;
   final double fontScale;
   final void Function(double) onScaleChanged;
-  final void Function(int wordId) showWordDetails;
+  final Future<void> Function(int wordId) showWordDetails;
   final VoidCallback onAdvancePage;
 
   @override

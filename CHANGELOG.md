@@ -5,6 +5,7 @@
 - Add a navigation button below the text to advance to the next chapter (for those who don't know you can swipe).
 - Set max width for word details dialog (helpful for large screens).
 - Add a close button to the word details dialog (helpful when dialog fills screen on small devices).
+- Highlight the long-pressed word for a little while after the dialog closes so that users don't lose their place.
 
 ## 0.10.0 - August 7, 2025
 

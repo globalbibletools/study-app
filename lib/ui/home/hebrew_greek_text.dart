@@ -7,7 +7,10 @@ import 'package:flutter/widgets.dart';
 import 'package:studyapp/common/word.dart';
 
 /// A function that is called when a word is long-pressed.
-typedef WordActionCallback = void Function(int wordId);
+///
+/// The function can be asynchronous to allow waiting for user
+/// interaction (e.g., closing a dialog).
+typedef AsyncWordActionCallback = Future<void> Function(int wordId);
 
 /// A function that returns a string to be displayed in a popup for a given word ID.
 ///
@@ -42,6 +45,7 @@ class HebrewGreekText extends LeafRenderObjectWidget {
     this.popupTextStyle,
     this.onPopupShown,
     this.onWordLongPress,
+    this.flashColor,
   });
 
   /// The words that will rendered in the text layout
@@ -71,7 +75,12 @@ class HebrewGreekText extends LeafRenderObjectWidget {
   final ValueChanged<Rect>? onPopupShown;
 
   /// A callback that is invoked when a word is long-pressed.
-  final WordActionCallback? onWordLongPress;
+  final AsyncWordActionCallback? onWordLongPress;
+
+  /// The color of the flash effect.
+  ///
+  /// Defaults to the same color as [verseNumberStyle].
+  final Color? flashColor;
 
   @override
   RenderHebrewGreekText createRenderObject(BuildContext context) {
@@ -98,6 +107,10 @@ class HebrewGreekText extends LeafRenderObjectWidget {
       popupTextStyle: effectivePopupTextStyle,
       onPopupShown: onPopupShown,
       onWordLongPress: onWordLongPress,
+      flashColor:
+          flashColor ??
+          effectiveVerseNumberStyle?.color?.withValues(alpha: 0.4) ??
+          const Color(0xFFFFFFFF),
     );
   }
 
@@ -129,7 +142,11 @@ class HebrewGreekText extends LeafRenderObjectWidget {
       ..popupBackgroundColor = popupBackgroundColor ?? Color(0xFF000000)
       ..popupTextStyle = effectivePopupTextStyle
       ..onPopupShown = onPopupShown
-      ..onWordLongPress = onWordLongPress;
+      ..onWordLongPress = onWordLongPress
+      ..flashColor =
+          flashColor ??
+          effectiveVerseNumberStyle?.color?.withValues(alpha: 0.4) ??
+          const Color(0xFFFFFFFF);
   }
 
   @override
@@ -155,11 +172,12 @@ class HebrewGreekText extends LeafRenderObjectWidget {
       ObjectFlagProperty<ValueChanged<Rect>>.has('onPopupShown', onPopupShown),
     );
     properties.add(
-      ObjectFlagProperty<WordActionCallback>.has(
+      ObjectFlagProperty<AsyncWordActionCallback>.has(
         'onWordLongPress',
         onWordLongPress,
       ),
     );
+    properties.add(ColorProperty('flashColor', flashColor));
   }
 }
 
@@ -175,7 +193,8 @@ class RenderHebrewGreekText extends RenderBox {
     required Color popupBackgroundColor,
     required TextStyle popupTextStyle,
     ValueChanged<Rect>? onPopupShown,
-    WordActionCallback? onWordLongPress,
+    AsyncWordActionCallback? onWordLongPress,
+    required Color flashColor,
   }) : _words = words,
        _textDirection = textDirection,
        _textStyle = style,
@@ -183,7 +202,9 @@ class RenderHebrewGreekText extends RenderBox {
        _popupWordProvider = popupWordProvider,
        _popupBackgroundColor = popupBackgroundColor,
        _popupTextStyle = popupTextStyle,
-       _onPopupShown = onPopupShown {
+       _onPopupShown = onPopupShown,
+       _onWordLongPress = onWordLongPress,
+       _flashColor = flashColor {
     _updatePainters();
     _tapRecognizer = TapGestureRecognizer()..onTapUp = _handleTapUp;
     _longPressRecognizer =
@@ -196,6 +217,8 @@ class RenderHebrewGreekText extends RenderBox {
   Timer? _popupDismissTimer;
   late final TapGestureRecognizer _tapRecognizer;
   late final LongPressGestureRecognizer _longPressRecognizer;
+  int? _flashedWordId;
+  Timer? _flashTimer;
 
   List<HebrewGreekWord> _words;
   List<HebrewGreekWord> get words => _words;
@@ -282,11 +305,21 @@ class RenderHebrewGreekText extends RenderBox {
     _onPopupShown = value;
   }
 
-  WordActionCallback? _onWordLongPress;
-  WordActionCallback? get onWordLongPress => _onWordLongPress;
-  set onWordLongPress(WordActionCallback? value) {
+  AsyncWordActionCallback? _onWordLongPress;
+  AsyncWordActionCallback? get onWordLongPress => _onWordLongPress;
+  set onWordLongPress(AsyncWordActionCallback? value) {
     if (_onWordLongPress == value) return;
     _onWordLongPress = value;
+  }
+
+  Color _flashColor;
+  Color get flashColor => _flashColor;
+  set flashColor(Color value) {
+    if (_flashColor == value) return;
+    _flashColor = value;
+    if (_flashedWordId != null) {
+      markNeedsPaint();
+    }
   }
 
   /// Clears all popup state and requests a repaint to make it disappear.
@@ -667,13 +700,25 @@ class RenderHebrewGreekText extends RenderBox {
   }
 
   /// This method is called by the [LongPressGestureRecognizer].
-  void _handleLongPressStart(LongPressStartDetails details) {
+  Future<void> _handleLongPressStart(LongPressStartDetails details) async {
     // Find out what was under the user's finger.
     final entry = _getHitTestEntryForOffset(details.localPosition);
     if (onWordLongPress == null) return;
     if (entry is HebrewGreekWordHitTestEntry) {
       _dismissPopup();
-      onWordLongPress!(entry.wordId);
+      // Await the parent's action (e.g., for the dialog to be closed)
+      await onWordLongPress!(entry.wordId);
+
+      // After the action is complete, trigger the flash internally.
+      _flashedWordId = entry.wordId;
+      markNeedsPaint();
+
+      // Clear the flash after a short duration.
+      _flashTimer?.cancel();
+      _flashTimer = Timer(const Duration(milliseconds: 750), () {
+        _flashedWordId = null;
+        markNeedsPaint();
+      });
     }
   }
 
@@ -684,6 +729,19 @@ class RenderHebrewGreekText extends RenderBox {
     final canvas = context.canvas;
     canvas.save();
     canvas.translate(offset.dx, offset.dy);
+
+    // 0. Paint the flash effect if a word is being flashed
+    if (_flashedWordId != null) {
+      final rect = _wordRects[_flashedWordId];
+      if (rect != null) {
+        final flashPaint = Paint()..color = _flashColor;
+        final rrect = RRect.fromRectAndRadius(
+          rect.inflate(2.0),
+          const Radius.circular(4.0),
+        );
+        canvas.drawRRect(rrect, flashPaint);
+      }
+    }
 
     // 1. Paint all the words
     for (int i = 0; i < _wordPainters.length; i++) {
@@ -743,6 +801,7 @@ class RenderHebrewGreekText extends RenderBox {
     _tapRecognizer.dispose();
     _longPressRecognizer.dispose();
     _popupDismissTimer?.cancel();
+    _flashTimer?.cancel();
     super.detach();
   }
 }

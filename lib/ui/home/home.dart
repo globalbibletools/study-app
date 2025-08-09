@@ -233,7 +233,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _showWordDetails(int wordId) async {
     final pageIndex = _pageController.page!.round();
     final (bookId, _) = manager.bookAndChapterForPageIndex(pageIndex);
-    showDialog(
+    await showDialog(
       context: context,
       builder:
           (context) =>

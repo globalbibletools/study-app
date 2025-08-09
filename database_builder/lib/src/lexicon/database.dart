@@ -122,13 +122,13 @@ class LexiconDatabase {
     ) VALUES (?, ?, ?, ?, ?, ?)
     ''');
 
-    Map<String, dynamic>? _debugLemma;
+    Map<String, dynamic>? debugLemma;
     try {
       _database.execute('BEGIN TRANSACTION');
 
       for (final lemmaData in jsonData) {
         final lemma = lemmaData['Lemma'] as String;
-        _debugLemma = lemmaData;
+        debugLemma = lemmaData;
         for (final baseForm in lemmaData['BaseForms']) {
           final pos = baseForm['PartsOfSpeech'];
           final grammar = _joinList(pos);
@@ -159,7 +159,7 @@ class LexiconDatabase {
       _database.execute('COMMIT');
     } catch (e) {
       print(e);
-      print('lemmaData: $_debugLemma');
+      print('lemmaData: $debugLemma');
       _database.execute('ROLLBACK');
     } finally {
       stmt.dispose();
