@@ -62,15 +62,21 @@ class _ChapterPageState extends State<ChapterPage> {
   @override
   void initState() {
     super.initState();
+    _pageManager.textNotifier.addListener(_onTextLoaded);
     _pageManager.loadChapter(widget.bookId, widget.chapter);
     _baseFontSize = widget.manager.baseFontSize;
     _baseScale = widget.fontScale;
+  }
 
-    SchedulerBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        _scrollController.jumpTo(_estimatedPopupHeight());
-      }
-    });
+  void _onTextLoaded() {
+    if (_pageManager.textNotifier.value.isNotEmpty) {
+      _pageManager.textNotifier.removeListener(_onTextLoaded);
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _scrollController.hasClients) {
+          _scrollController.jumpTo(_estimatedPopupHeight());
+        }
+      });
+    }
   }
 
   @override
@@ -84,6 +90,7 @@ class _ChapterPageState extends State<ChapterPage> {
   @override
   void dispose() {
     _pageManager.dispose();
+    _pageManager.textNotifier.removeListener(_onTextLoaded);
     _scrollController.dispose();
     super.dispose();
   }
@@ -178,24 +185,48 @@ class _ChapterPageState extends State<ChapterPage> {
     );
   }
 
+  // void _ensurePopupIsVisible(Rect popupRect) {
+  //   if (!mounted || !_scrollController.hasClients) return;
+  //   final topSafeArea = MediaQuery.of(context).padding.top;
+  //   final appBarHeight = AppBar().preferredSize.height;
+  //   final topBarHeight = topSafeArea + appBarHeight;
+
+  //   if (popupRect.top < topBarHeight) {
+  //     final scrollAmount = topBarHeight - popupRect.top;
+  //     final newOffset = (_scrollController.offset - scrollAmount).clamp(
+  //       _scrollController.position.minScrollExtent,
+  //       _scrollController.position.maxScrollExtent,
+  //     );
+  //     final finalOffset = (newOffset - 10.0).clamp(
+  //       _scrollController.position.minScrollExtent,
+  //       _scrollController.position.maxScrollExtent,
+  //     );
+  //     _scrollController.animateTo(
+  //       finalOffset,
+  //       duration: const Duration(milliseconds: 200),
+  //       curve: Curves.easeOut,
+  //     );
+  //   }
+  // }
+
   void _ensurePopupIsVisible(Rect popupRect) {
     if (!mounted || !_scrollController.hasClients) return;
-    final topSafeArea = MediaQuery.of(context).padding.top;
-    final appBarHeight = AppBar().preferredSize.height;
-    final topBarHeight = topSafeArea + appBarHeight;
 
-    if (popupRect.top < topBarHeight) {
-      final scrollAmount = topBarHeight - popupRect.top;
+    final RenderBox? scrollBox = context.findRenderObject() as RenderBox?;
+    if (scrollBox == null) return;
+    final contentTopGlobal = scrollBox.localToGlobal(Offset.zero).dy;
+    const topPadding = 10.0;
+
+    if (popupRect.top < contentTopGlobal) {
+      final scrollAmount = contentTopGlobal - popupRect.top + topPadding;
+
       final newOffset = (_scrollController.offset - scrollAmount).clamp(
         _scrollController.position.minScrollExtent,
         _scrollController.position.maxScrollExtent,
       );
-      final finalOffset = (newOffset - 10.0).clamp(
-        _scrollController.position.minScrollExtent,
-        _scrollController.position.maxScrollExtent,
-      );
+
       _scrollController.animateTo(
-        finalOffset,
+        newOffset,
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeOut,
       );
