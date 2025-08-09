@@ -1,4 +1,4 @@
-## 0.11.0
+## 0.11.0 - August 9, 2025
 
 - Increase font size for lexicon.
 - Swipe right/left to navigate between chapters.
@@ -16,6 +16,7 @@
 - Fix text directionality for similar verses page.
 - Show root word on similar verses page.
 - Fix iOS launcher icon title (GBT, not Studyapp)
+- Update the app namespace to com.globalbibletools.gbt.
 
 ## 0.9.1 - July 30, 2025
 
