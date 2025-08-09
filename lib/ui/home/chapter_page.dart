@@ -54,16 +54,12 @@ class _ChapterPageState extends State<ChapterPage> {
   final _scrollController = ScrollController();
 
   late final double _baseFontSize;
-  // The "committed" scale factor, used to build the text widget.
   late double _baseScale;
-  // The "transient" scale factor, updated live during a gesture for the Transform.
   late double _currentScale;
-  // The scale at the beginning of a gesture.
   double _gestureStartScale = 1.0;
-  // An explicit flag is more reliable for tracking the gesture state.
   bool _isScalingInProgress = false;
+  Alignment _transformAlignment = Alignment.center;
 
-  // The final font size is always derived from the committed _baseScale.
   double get _fontSize => _baseFontSize * _baseScale;
 
   @override
@@ -90,8 +86,6 @@ class _ChapterPageState extends State<ChapterPage> {
   @override
   void didUpdateWidget(covariant ChapterPage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // If the font scale from the parent has changed and we are not
-    // in the middle of a scaling gesture on *this* page, update the scales.
     if (widget.fontScale != oldWidget.fontScale && !_isScalingInProgress) {
       setState(() {
         _baseScale = widget.fontScale;
@@ -121,13 +115,12 @@ class _ChapterPageState extends State<ChapterPage> {
               instance
                 ..onStart = (details) {
                   _isScalingInProgress = true;
-                  // Store the scale at the moment the gesture begins.
                   _gestureStartScale = _baseScale;
+                  _updateTransformAlignment(details.localFocalPoint);
                 }
                 ..onUpdate = (details) {
+                  _updateTransformAlignment(details.localFocalPoint);
                   setState(() {
-                    // Update the transient _currentScale based on the gesture's
-                    // relative scale.
                     _currentScale = (_gestureStartScale * details.scale).clamp(
                       0.5,
                       3.0,
@@ -136,9 +129,6 @@ class _ChapterPageState extends State<ChapterPage> {
                 }
                 ..onEnd = (details) {
                   setState(() {
-                    // The gesture is over, so commit the transient scale
-                    // to the base scale. This will trigger one final rebuild
-                    // of the expensive text widget at the new size.
                     _baseScale = _currentScale;
                   });
                   _isScalingInProgress = false;
@@ -147,6 +137,42 @@ class _ChapterPageState extends State<ChapterPage> {
             },
           ),
     };
+  }
+
+  void _updateTransformAlignment(Offset localFocalPoint) {
+    final renderBox = context.findRenderObject() as RenderBox?;
+    if (renderBox == null || !_scrollController.hasClients) return;
+
+    final viewportSize = renderBox.size;
+    final scrollPosition = _scrollController.position;
+
+    // This is the total height of the content inside the scroll view.
+    final totalContentHeight =
+        scrollPosition.maxScrollExtent + viewportSize.height;
+    final totalContentSize = Size(viewportSize.width, totalContentHeight);
+
+    // This adjusts the focal point by the current scroll offset to get its
+    // position within the entire scrollable content, not just the visible part.
+    final adjustedFocalPoint = Offset(
+      localFocalPoint.dx,
+      localFocalPoint.dy + scrollPosition.pixels,
+    );
+
+    setState(() {
+      _transformAlignment = _calculateAlignment(
+        totalContentSize,
+        adjustedFocalPoint,
+      );
+    });
+  }
+
+  Alignment _calculateAlignment(Size widgetSize, Offset focalPoint) {
+    final dx = focalPoint.dx.clamp(0.0, widgetSize.width);
+    final dy = focalPoint.dy.clamp(0.0, widgetSize.height);
+    return Alignment(
+      (dx / widgetSize.width) * 2 - 1,
+      (dy / widgetSize.height) * 2 - 1,
+    );
   }
 
   @override
@@ -158,12 +184,9 @@ class _ChapterPageState extends State<ChapterPage> {
         controller: _scrollController,
         child: Padding(
           padding: const EdgeInsets.only(left: 16.0, right: 16.0),
-          // The Transform.scale is now driven by the ratio of the live
-          // _currentScale to the committed _baseScale. When not scaling,
-          // this ratio is 1.0.
           child: Transform.scale(
             scale: _baseScale > 0 ? _currentScale / _baseScale : 1.0,
-            alignment: Alignment.topCenter,
+            alignment: _transformAlignment,
             child: ValueListenableBuilder<List<HebrewGreekWord>>(
               valueListenable: _pageManager.textNotifier,
               builder: (context, words, child) {
