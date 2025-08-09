@@ -54,9 +54,16 @@ class _ChapterPageState extends State<ChapterPage> {
   final _scrollController = ScrollController();
 
   late final double _baseFontSize;
-  double _baseScale = 1.0;
-  double _gestureScale = 1.0;
-  bool get _isScaling => _gestureScale != 1.0;
+  // The "committed" scale factor, used to build the text widget.
+  late double _baseScale;
+  // The "transient" scale factor, updated live during a gesture for the Transform.
+  late double _currentScale;
+  // The scale at the beginning of a gesture.
+  double _gestureStartScale = 1.0;
+  // An explicit flag is more reliable for tracking the gesture state.
+  bool _isScalingInProgress = false;
+
+  // The final font size is always derived from the committed _baseScale.
   double get _fontSize => _baseFontSize * _baseScale;
 
   @override
@@ -66,6 +73,7 @@ class _ChapterPageState extends State<ChapterPage> {
     _pageManager.loadChapter(widget.bookId, widget.chapter);
     _baseFontSize = widget.manager.baseFontSize;
     _baseScale = widget.fontScale;
+    _currentScale = widget.fontScale;
   }
 
   void _onTextLoaded() {
@@ -82,8 +90,13 @@ class _ChapterPageState extends State<ChapterPage> {
   @override
   void didUpdateWidget(covariant ChapterPage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.fontScale != oldWidget.fontScale && !_isScaling) {
-      _baseScale = widget.fontScale;
+    // If the font scale from the parent has changed and we are not
+    // in the middle of a scaling gesture on *this* page, update the scales.
+    if (widget.fontScale != oldWidget.fontScale && !_isScalingInProgress) {
+      setState(() {
+        _baseScale = widget.fontScale;
+        _currentScale = widget.fontScale;
+      });
     }
   }
 
@@ -107,19 +120,28 @@ class _ChapterPageState extends State<ChapterPage> {
             (CustomScaleGestureRecognizer instance) {
               instance
                 ..onStart = (details) {
-                  setState(() => _gestureScale = _baseScale);
+                  _isScalingInProgress = true;
+                  // Store the scale at the moment the gesture begins.
+                  _gestureStartScale = _baseScale;
                 }
                 ..onUpdate = (details) {
-                  setState(
-                    () =>
-                        _gestureScale = (details.scale * _baseScale).clamp(
-                          0.5,
-                          3.0,
-                        ),
-                  );
+                  setState(() {
+                    // Update the transient _currentScale based on the gesture's
+                    // relative scale.
+                    _currentScale = (_gestureStartScale * details.scale).clamp(
+                      0.5,
+                      3.0,
+                    );
+                  });
                 }
                 ..onEnd = (details) {
-                  setState(() => _baseScale = _gestureScale);
+                  setState(() {
+                    // The gesture is over, so commit the transient scale
+                    // to the base scale. This will trigger one final rebuild
+                    // of the expensive text widget at the new size.
+                    _baseScale = _currentScale;
+                  });
+                  _isScalingInProgress = false;
                   widget.onScaleChanged(_baseScale);
                 };
             },
@@ -136,8 +158,11 @@ class _ChapterPageState extends State<ChapterPage> {
         controller: _scrollController,
         child: Padding(
           padding: const EdgeInsets.only(left: 16.0, right: 16.0),
+          // The Transform.scale is now driven by the ratio of the live
+          // _currentScale to the committed _baseScale. When not scaling,
+          // this ratio is 1.0.
           child: Transform.scale(
-            scale: _isScaling ? _gestureScale / _baseScale : 1.0,
+            scale: _baseScale > 0 ? _currentScale / _baseScale : 1.0,
             alignment: Alignment.topCenter,
             child: ValueListenableBuilder<List<HebrewGreekWord>>(
               valueListenable: _pageManager.textNotifier,
