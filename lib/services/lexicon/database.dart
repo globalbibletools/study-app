@@ -154,6 +154,10 @@ class LexiconMeaning {
     regex = RegExp(r'\{N:\d+\}');
     modifiedString = modifiedString.replaceAll(regex, '');
 
+    // remove arrows
+    modifiedString = modifiedString.replaceAll('◄ ', '');
+    modifiedString = modifiedString.replaceAll('► ', '');
+
     return modifiedString;
   }
 

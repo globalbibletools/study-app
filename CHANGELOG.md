@@ -6,6 +6,8 @@
 - Set max width for word details dialog (helpful for large screens).
 - Add a close button to the word details dialog (helpful when dialog fills screen on small devices).
 - Highlight the long-pressed word for a little while after the dialog closes so that users don't lose their place.
+- Fix lexicon bug where entries with multiple names were incorrectly parsed.
+- Remove arrows (► and ◄) from lexicon entries.
 
 ## 0.10.0 - August 7, 2025
 
