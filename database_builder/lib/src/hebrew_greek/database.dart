@@ -39,7 +39,6 @@ class HebrewGreekDatabase {
   void _createTables() {
     _database.execute(HebrewGreekSchema.createVersesTable);
     _database.execute(HebrewGreekSchema.createTextTable);
-    _database.execute(HebrewGreekSchema.createTextNormalizedIndex);
     _database.execute(HebrewGreekSchema.createGrammarTable);
     _database.execute(HebrewGreekSchema.createLemmaTable);
   }
@@ -65,6 +64,10 @@ class HebrewGreekDatabase {
       _addHebrewGreekWords(words, text, grammar, lemmas);
     }
     print('Total Hebrew/Greek words: $wordCount');
+
+    // add indexes
+    _database.execute(HebrewGreekSchema.createTextNormalizedIndex);
+    _database.execute(HebrewGreekSchema.createTextNoPunctuationIndex);
   }
 
   Future<ForeignTableMaps> _populateForeignTables() async {
@@ -92,19 +95,9 @@ class HebrewGreekDatabase {
       'Top 10 most frequent words: ${sortedTextList.take(10).map((w) => '"$w": ${textFrequencies[w]}').join(', ')}',
     );
 
-    final Map<String, int> textMap = _createTableWithNormalization(
-      sortedTextList, // Pass the sorted list
-      _insertText,
-    );
-    // final Map<String, int> textMap = _createTableWithNormalization(
-    //   uniqueText,
-    //   _insertText,
-    // );
-    final Map<String, int> grammarMap = _createTable(
-      uniqueGrammar,
-      _insertGrammar,
-    );
-    final Map<String, int> lemmaMap = _createTable(uniqueLemma, _insertLemma);
+    final textMap = _createTableWithNormalization(sortedTextList, _insertText);
+    final grammarMap = _createTable(uniqueGrammar, _insertGrammar);
+    final lemmaMap = _createTable(uniqueLemma, _insertLemma);
 
     return (textMap, grammarMap, lemmaMap);
   }
@@ -113,15 +106,15 @@ class HebrewGreekDatabase {
     List<String> sortedUnique,
     PreparedStatement stmt,
   ) {
-    // final list = unique.toList()..sort();
     final Map<String, int> map = {};
     _database.execute('BEGIN TRANSACTION;');
     for (int i = 0; i < sortedUnique.length; i++) {
       final text = sortedUnique[i];
+      final noPunctuation = removePunctuation(text);
       final normalized = normalizeHebrewGreek(text);
       final id = i + 1;
       map[text] = id;
-      stmt.execute([id, text, normalized]);
+      stmt.execute([id, text, noPunctuation, normalized]);
     }
     _database.execute('COMMIT;');
     return map;

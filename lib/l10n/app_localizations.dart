@@ -200,6 +200,18 @@ abstract class AppLocalizations {
   /// **'See uses'**
   String get similarVerses;
 
+  /// The root grammatical form (lemma) of a Hebrew or Greek word
+  ///
+  /// In en, this message translates to:
+  /// **'Root'**
+  String get root;
+
+  /// The exact grammatical form of a Hebrew or Greek word
+  ///
+  /// In en, this message translates to:
+  /// **'Exact'**
+  String get exact;
+
   /// The title of the Search screen
   ///
   /// In en, this message translates to:

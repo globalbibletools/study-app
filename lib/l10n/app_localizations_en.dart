@@ -63,6 +63,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get similarVerses => 'See uses';
 
   @override
+  String get root => 'Root';
+
+  @override
+  String get exact => 'Exact';
+
+  @override
   String get search => 'Search';
 
   @override

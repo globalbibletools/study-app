@@ -17,6 +17,8 @@
     "downloadFailed": "La descarga falló. Por favor, revise su conexión al internet e inténtelo de nuevo.",
     "nextChapter": "Siguiente capítulo",
     "similarVerses": "Ver usos",
+    "root": "Raíz",
+    "exact": "Exacto",
     "search": "Buscar",
     "useInAppKeyboard": "Usar teclado de la aplicación",
     "useSystemKeyboard": "Usar teclado del sistema",

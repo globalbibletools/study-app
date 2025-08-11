@@ -68,6 +68,14 @@
   "@similarVerses": {
     "description": "Show list of verses with the same Strong's number"
   },
+  "root": "Root",
+  "@root": {
+    "description": "The root grammatical form (lemma) of a Hebrew or Greek word"
+  },
+  "exact": "Exact",
+  "@exact": {
+    "description": "The exact grammatical form of a Hebrew or Greek word"
+  },
   "search": "Search",
   "@search": {
     "description": "The title of the Search screen"

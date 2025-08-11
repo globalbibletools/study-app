@@ -10,7 +10,7 @@ import 'package:studyapp/common/word.dart';
 
 class HebrewGreekDatabase {
   static const _databaseName = 'hebrew_greek.db';
-  static const _databaseVersion = 5;
+  static const _databaseVersion = 6;
   late Database _database;
 
   Future<void> init() async {
@@ -296,5 +296,37 @@ class HebrewGreekDatabase {
 
       return Reference(bookId: bookId, chapter: chapter, verse: verse);
     }).toList();
+  }
+
+  /// Searches for all instances of a word, ignoring punctuation and capitalization.
+  ///
+  /// Returns a list of unique word IDs from the verses table.
+  Future<List<int>> searchExactMatchNoPunctuation(String query) async {
+    query = removePunctuation(query);
+
+    if (query.isEmpty) {
+      return [];
+    }
+
+    // The SQL query now joins the verses and text tables, but filters the
+    // WHERE clause on the 'no_punctuation' column for a flexible match.
+    const String sql = '''
+      SELECT v.${HebrewGreekSchema.versesColId}
+      FROM ${HebrewGreekSchema.versesTable} AS v
+      INNER JOIN ${HebrewGreekSchema.textTable} AS t 
+      ON v.${HebrewGreekSchema.versesColText} = t.${HebrewGreekSchema.textColId}
+      WHERE t.${HebrewGreekSchema.textColNoPunctuation} = ?
+    ''';
+
+    // Execute the query with the cleaned search term.
+    final maps = await _database.rawQuery(sql, [query]);
+
+    if (maps.isNotEmpty) {
+      return maps
+          .map((map) => map[HebrewGreekSchema.versesColId] as int)
+          .toList();
+    }
+
+    return [];
   }
 }

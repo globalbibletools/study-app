@@ -1,22 +1,19 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:studyapp/common/book_name.dart';
 import 'package:studyapp/common/reference.dart';
 import 'package:studyapp/l10n/app_localizations.dart';
+import 'package:studyapp/ui/home/word_details_dialog/dialog_manager.dart';
 import 'package:studyapp/ui/shared/verse_list_item.dart';
 
 import 'similar_verse_manager.dart';
 
-class SimilarVersesPage extends StatefulWidget {
-  const SimilarVersesPage({
-    super.key,
-    required this.root,
-    required this.strongsCode,
-    required this.isRtl,
-  });
+enum SearchType { root, exact }
 
-  final String? root;
-  final String strongsCode;
-  final bool isRtl;
+class SimilarVersesPage extends StatefulWidget {
+  const SimilarVersesPage({super.key, required this.word});
+
+  final WordDetails word;
 
   @override
   State<SimilarVersesPage> createState() => _SimilarVersesPageState();
@@ -24,66 +21,96 @@ class SimilarVersesPage extends StatefulWidget {
 
 class _SimilarVersesPageState extends State<SimilarVersesPage> {
   final manager = SimilarVerseManager();
+  SearchType _searchType = SearchType.root;
 
   TextDirection get _textDirection =>
-      widget.isRtl ? TextDirection.rtl : TextDirection.ltr;
+      widget.word.isRtl ? TextDirection.rtl : TextDirection.ltr;
 
   @override
   void initState() {
     super.initState();
-    manager.init(widget.strongsCode);
+    manager.search(widget.word, _searchType);
   }
 
   String get title {
-    return (widget.root == null) ? '' : widget.root!;
+    return 'Word';
+    // return (widget.root == null) ? '' : widget.root!;
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(title: Text(title)),
       body: Directionality(
         textDirection: _textDirection,
-        child: ValueListenableBuilder<List<Reference>>(
-          valueListenable: manager.similarVersesNotifier,
-          builder: (context, verseList, child) {
-            return ListView.builder(
-              itemCount: verseList.length + 1,
-              itemBuilder: (context, index) {
-                if (index == 0) {
-                  return Center(
-                    child: Text(
-                      AppLocalizations.of(
-                        context,
-                      )!.resultsCount(verseList.length),
-                      style: TextStyle(
-                        color: Theme.of(
-                          context,
-                        ).textTheme.bodyLarge?.color?.withValues(alpha: 0.7),
-                        fontSize: 20,
-                      ),
-                      // TODO: Support app language text direction after adding Arabic
-                      textDirection: TextDirection.ltr,
-                    ),
-                  );
-                }
-                final referenceIndex = index - 1;
-                final reference = verseList[referenceIndex];
-                final formattedReference = _formatReference(reference);
-                return VerseListItem(
-                  key: ValueKey(reference),
-                  verseContentFuture: manager.getVerseContent(
-                    reference,
-                    widget.strongsCode,
-                    Theme.of(context).colorScheme.primary,
-                    20.0,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8.0),
+              child: CupertinoSegmentedControl<SearchType>(
+                children: {
+                  SearchType.root: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                    child: Text(l10n.root),
                   ),
-                  formattedReference: formattedReference,
-                  textDirection: _textDirection,
-                );
-              },
-            );
-          },
+                  SearchType.exact: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                    child: Text(l10n.exact),
+                  ),
+                },
+                onValueChanged: (SearchType value) {
+                  setState(() {
+                    _searchType = value;
+                  });
+                  manager.search(widget.word, value);
+                },
+                groupValue: _searchType,
+              ),
+            ),
+            Expanded(
+              child: ValueListenableBuilder<List<Reference>>(
+                valueListenable: manager.similarVersesNotifier,
+                builder: (context, verseList, child) {
+                  return ListView.builder(
+                    itemCount: verseList.length + 1,
+                    itemBuilder: (context, index) {
+                      if (index == 0) {
+                        return Center(
+                          child: Text(
+                            l10n.resultsCount(verseList.length),
+                            style: TextStyle(
+                              color: Theme.of(
+                                context,
+                              ).textTheme.bodyLarge?.color?.withAlpha(178),
+                              fontSize: 20,
+                            ),
+                            // TODO: Support app language text direction after adding Arabic
+                            textDirection: TextDirection.ltr,
+                          ),
+                        );
+                      }
+                      final referenceIndex = index - 1;
+                      final reference = verseList[referenceIndex];
+                      final formattedReference = _formatReference(reference);
+                      return VerseListItem(
+                        key: ValueKey(reference),
+                        verseContentFuture: manager.getVerseContent(
+                          reference,
+                          widget.word,
+                          _searchType,
+                          Theme.of(context).colorScheme.primary,
+                          20.0,
+                        ),
+                        formattedReference: formattedReference,
+                        textDirection: _textDirection,
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
         ),
       ),
     );

@@ -160,12 +160,7 @@ class _WordDetailsDialogState extends State<WordDetailsDialog> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder:
-                (context) => SimilarVersesPage(
-                  root: root,
-                  strongsCode: wordDetails.strongsCode,
-                  isRtl: widget.isRtl,
-                ),
+            builder: (context) => SimilarVersesPage(word: wordDetails),
           ),
         );
       },

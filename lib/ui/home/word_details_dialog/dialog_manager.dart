@@ -82,6 +82,8 @@ class WordDetails {
   final String gloss;
   final String strongsCode;
   final String grammar;
+
+  bool get isRtl => strongsCode.startsWith('H');
 }
 
 /// A map of morphology codes and their corresponding descriptions.

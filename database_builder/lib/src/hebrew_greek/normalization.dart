@@ -63,6 +63,49 @@ String normalizeHebrewGreek(String text) {
   return normalizedFinalForms;
 }
 
+/// Removes any character that is NOT a Hebrew or Greek letter, a combining
+/// diacritical mark, or a space.
+///
+/// Note: This function also converts the remaining text to lowercase.
+String removePunctuation(String input) {
+  // Step 1: Broadly filter to keep only Hebrew/Greek characters, their
+  // combining diacritics, and spaces. This removes all Latin characters,
+  // numbers, and common Western punctuation.
+  // The ranges are:
+  // \u0590-\u05FF: Hebrew
+  // \uFB1D-\uFB4F: Hebrew Presentation Forms
+  // \u0370-\u03FF: Greek and Coptic
+  // \u1F00-\u1FFF: Greek Extended
+  // \u0300-\u036F: Combining Diacritical Marks
+  // ' ': Space character
+  final initialFilterRegex = RegExp(
+    r'[^\u0590-\u05FF\uFB1D-\uFB4F\u0370-\u03FF\u1F00-\u1FFF\u0300-\u036F ]+',
+  );
+  String filtered = input.replaceAll(initialFilterRegex, '');
+
+  // Step 2: Specifically remove Hebrew and Greek punctuation marks that
+  // exist within the main Unicode blocks and survived the first filter.
+  //
+  // Hebrew Punctuation:
+  // \u05BE: Maqaf (Hyphen)
+  // \u05C0: Paseq (Vertical bar)
+  // \u05C3: Sof Pasuk (End of Verse mark)
+  // \u05F3: Geresh (Like an apostrophe)
+  // \u05F4: Gershayim (Like a double quote)
+  //
+  // Greek Punctuation:
+  // \u037E: Greek Question Mark (looks like a semicolon)
+  // \u00B7: Ano Teleia (Middle dot, acts as a Greek semicolon/colon)
+  final punctuationRegex = RegExp(
+    r'[\u05BE\u05C0\u05C3\u05F3\u05F4\u037E\u00B7]+',
+  );
+
+  String cleaned = filtered.replaceAll(punctuationRegex, '');
+
+  // Step 3: Trim whitespace and convert to lowercase.
+  return cleaned.trim().toLowerCase();
+}
+
 /// Automatically corrects the use of final-form letters for both Hebrew and
 /// Greek within a string.
 ///

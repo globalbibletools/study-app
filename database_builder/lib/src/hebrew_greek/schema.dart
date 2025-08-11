@@ -34,6 +34,7 @@ class HebrewGreekSchema {
 
   static const textColId = '_id';
   static const textColText = 'text';
+  static const textColNoPunctuation = 'no_punctuation';
   static const textColNormalized = 'normalized'; // no diacritics
 
   static const createTextTable =
@@ -41,6 +42,7 @@ class HebrewGreekSchema {
   CREATE TABLE IF NOT EXISTS $textTable (
     $textColId INTEGER PRIMARY KEY,
     $textColText TEXT NOT NULL,
+    $textColNoPunctuation TEXT NOT NULL,
     $textColNormalized TEXT NOT NULL
   )
   ''';
@@ -51,11 +53,17 @@ class HebrewGreekSchema {
   ON $textTable ($textColNormalized);
   ''';
 
+  static const createTextNoPunctuationIndex =
+      '''
+  CREATE INDEX IF NOT EXISTS idx_no_punctuation
+  ON $textTable ($textColNoPunctuation);
+  ''';
+
   static const insertText =
       '''
   INSERT INTO $textTable
-    ($textColId, $textColText, $textColNormalized)
-    VALUES (?, ?, ?);
+    ($textColId, $textColText, $textColNoPunctuation, $textColNormalized)
+    VALUES (?, ?, ?, ?);
   ''';
 
   // Part of speech table

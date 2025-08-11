@@ -5,8 +5,8 @@ import 'src/hebrew_greek/database.dart';
 import 'src/lexicon/database.dart';
 
 Future<void> main(List<String> arguments) async {
-  // await _createHebrewGreekDatabase();
-  await _createLexiconDatabases();
+  await _createHebrewGreekDatabase();
+  // await _createLexiconDatabases();
   // await _createGlossDatabase('spa');
 }
 
