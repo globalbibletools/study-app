@@ -6,6 +6,7 @@
 - Remove Strong's code from similar verses list.
 - Increased the font size of the lexical entry.
 - Make the lexical gloss bold (and slightly dim the extended definition).
+- Move chapter chooser dialog closer to the top.
 
 ## 0.11.0 - August 9, 2025
 

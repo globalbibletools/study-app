@@ -33,7 +33,10 @@ class ChapterChooser extends LeafRenderObjectWidget {
   }
 
   @override
-  void updateRenderObject(BuildContext context, covariant RenderObject renderObject) {
+  void updateRenderObject(
+    BuildContext context,
+    covariant RenderObject renderObject,
+  ) {
     final theme = Theme.of(context);
     (renderObject as _RenderChapterChooser)
       ..chapterCount = chapterCount
@@ -61,13 +64,13 @@ class _RenderChapterChooser extends RenderBox {
     required Color gridHighlightColor,
     required Color textColor,
     required Color highlightTextColor,
-  })  : _chapterCount = chapterCount,
-        _onChapterSelected = onChapterSelected,
-        _textStyle = textStyle,
-        _gridColor = gridColor,
-        _gridHighlightColor = gridHighlightColor,
-        _textColor = textColor,
-        _highlightTextColor = highlightTextColor {
+  }) : _chapterCount = chapterCount,
+       _onChapterSelected = onChapterSelected,
+       _textStyle = textStyle,
+       _gridColor = gridColor,
+       _gridHighlightColor = gridHighlightColor,
+       _textColor = textColor,
+       _highlightTextColor = highlightTextColor {
     _gridPaint.color = gridColor;
     _highlightPaint.color = gridHighlightColor;
   }
@@ -77,7 +80,8 @@ class _RenderChapterChooser extends RenderBox {
   final _highlightPaint = Paint();
 
   int? _highlightedChapter;
-  bool _showOffsetTile = false;
+
+  static const double _topPadding = 8.0;
 
   int get chapterCount => _chapterCount;
   int _chapterCount;
@@ -151,58 +155,42 @@ class _RenderChapterChooser extends RenderBox {
   Size computeDryLayout(BoxConstraints constraints) {
     _rows = (chapterCount / 10).ceil();
     _columns = chapterCount < 10 ? chapterCount : 10;
+
     const desiredTileWidth = 40.0;
-    final desireTileHeight = (chapterCount > 100) ? 30 : 40;
+    final desireTileHeight = (chapterCount > 100) ? 30.0 : 40.0;
+
     final maxGridWidth = constraints.maxWidth * 0.9;
     final gridWidth = min(maxGridWidth, _columns * desiredTileWidth);
     final tileWidth = gridWidth / _columns;
-    final maxGridHeight = constraints.maxHeight * 0.9;
-    final gridHeight = min(maxGridHeight, _rows * desireTileHeight);
+
+    // Calculate height based on available vertical space to ensure it fits.
+    final maxGridHeight = constraints.maxHeight - _topPadding * 2;
+    final desiredGridHeight = _rows * desireTileHeight;
+    final gridHeight = min(maxGridHeight, desiredGridHeight);
     final tileHeight = gridHeight / _rows;
-    _gridSize = Size(tileWidth * _columns, tileHeight * _rows);
+
+    _gridSize = Size(gridWidth, gridHeight);
     _tileSize = Size(tileWidth, tileHeight);
 
-    _scaledFontSize = _calculateOptimalFontSize("150");
+    _scaledFontSize = _calculateOptimalFontSize();
 
     final parentSize = Size(constraints.maxWidth, constraints.maxHeight);
     return constraints.constrain(parentSize);
   }
 
-  double _calculateOptimalFontSize(String sampleText) {
-    double scaleFactor = 1.0;
-    final initialFontSize = textStyle.fontSize!;
-
-    TextPainter textPainter;
-    do {
-      textPainter = TextPainter(
-        text: TextSpan(
-          text: sampleText,
-          style: textStyle.copyWith(fontSize: initialFontSize * scaleFactor),
-        ),
-        textDirection: TextDirection.ltr,
-      );
-      textPainter.layout();
-
-      if (textPainter.width <= _tileSize.width && textPainter.height <= _tileSize.height) {
-        break;
-      }
-
-      scaleFactor *= 0.9;
-    } while (scaleFactor > 0.3);
-
-    return initialFontSize * scaleFactor;
+  double _calculateOptimalFontSize() {
+    // Tie font size to the tile height for better scaling.
+    return _tileSize.height * 0.55;
   }
+
+  Offset get _gridOffset =>
+      Offset((size.width - _gridSize.width) / 2, _topPadding);
 
   @override
   bool hitTestSelf(Offset position) => true;
 
   int? _getChapterAtPosition(Offset position) {
-    final gridOffset = Offset(
-      (size.width - _gridSize.width) / 2,
-      (size.height - _gridSize.height) / 2,
-    );
-
-    final localPosition = position - gridOffset;
+    final localPosition = position - _gridOffset;
     if (!(Offset.zero & _gridSize).contains(localPosition)) {
       return null;
     }
@@ -217,26 +205,24 @@ class _RenderChapterChooser extends RenderBox {
     return null;
   }
 
-  void _updateHighlightedChapter(Offset position, bool isMove) {
+  void _updateHighlightedChapter(Offset position) {
     final newHighlight = _getChapterAtPosition(position);
-    if (newHighlight != _highlightedChapter || _showOffsetTile != isMove) {
+    if (newHighlight != _highlightedChapter) {
       _highlightedChapter = newHighlight;
-      _showOffsetTile = isMove;
       markNeedsPaint();
     }
   }
 
   @override
   void handleEvent(PointerEvent event, BoxHitTestEntry entry) {
-    if (event is PointerDownEvent || event is PointerHoverEvent) {
-      _updateHighlightedChapter(event.localPosition, false);
-    } else if (event is PointerMoveEvent) {
-      _updateHighlightedChapter(event.localPosition, true);
+    if (event is PointerDownEvent ||
+        event is PointerHoverEvent ||
+        event is PointerMoveEvent) {
+      _updateHighlightedChapter(event.localPosition);
     } else if (event is PointerUpEvent) {
       final chapter = _getChapterAtPosition(event.localPosition);
       onChapterSelected?.call(chapter);
       _highlightedChapter = null;
-      _showOffsetTile = false;
       markNeedsPaint();
     }
   }
@@ -271,12 +257,8 @@ class _RenderChapterChooser extends RenderBox {
   }
 
   void _paintGrid(Canvas canvas) {
-    final gridOffset = Offset(
-      (size.width - _gridSize.width) / 2,
-      (size.height - _gridSize.height) / 2,
-    );
     canvas.save();
-    canvas.translate(gridOffset.dx, gridOffset.dy);
+    canvas.translate(_gridOffset.dx, _gridOffset.dy);
 
     final gridRect = Offset.zero & _gridSize;
     canvas.drawRRect(
@@ -288,12 +270,8 @@ class _RenderChapterChooser extends RenderBox {
 
   void _paintChapters(PaintingContext context) {
     final canvas = context.canvas;
-    final gridOffset = Offset(
-      (size.width - _gridSize.width) / 2,
-      (size.height - _gridSize.height) / 2,
-    );
     canvas.save();
-    canvas.translate(gridOffset.dx, gridOffset.dy);
+    canvas.translate(_gridOffset.dx, _gridOffset.dy);
 
     for (var row = 0; row < _rows; row++) {
       for (var col = 0; col < _columns; col++) {
@@ -309,60 +287,23 @@ class _RenderChapterChooser extends RenderBox {
   void _paintChapter(PaintingContext context, int row, int col, int index) {
     final canvas = context.canvas;
     canvas.save();
-    canvas.translate(
-      col * _tileSize.width,
-      row * _tileSize.height,
-    );
+    canvas.translate(col * _tileSize.width, row * _tileSize.height);
 
     if (_highlightedChapter == index) {
-      _paintHighlight(context, index);
+      _paintHighlight(canvas);
     }
 
     _paintChapterNumber(context, index);
     canvas.restore();
   }
 
-  void _paintHighlight(PaintingContext context, int index) {
-    final canvas = context.canvas;
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(Offset.zero & _tileSize, const Radius.circular(4)),
-      _highlightPaint,
-    );
-
-    if (_showOffsetTile) {
-      _paintOffsetTile(context, index);
-    }
-  }
-
-  void _paintOffsetTile(PaintingContext context, int index) {
-    const verticalOffset = 70.0;
-    final canvas = context.canvas;
-    final offsetTileSize = Size(_tileSize.width * 2, _tileSize.height * 2);
-    final offsetPosition = Offset(
-      -_tileSize.width / 2,
-      -verticalOffset - _tileSize.height / 2,
-    );
-
+  void _paintHighlight(Canvas canvas) {
     canvas.drawRRect(
       RRect.fromRectAndRadius(
-        offsetPosition & offsetTileSize,
-        const Radius.circular(8),
+        Offset.zero & _tileSize,
+        const Radius.circular(4),
       ),
       _highlightPaint,
-    );
-
-    final textPainter = _createTextPainter(
-      index.toString(),
-      fontSize: textStyle.fontSize! * 2,
-      color: highlightTextColor,
-    );
-
-    textPainter.paint(
-      context.canvas,
-      Offset(
-        (-_tileSize.width / 2) + (offsetTileSize.width - textPainter.width) / 2,
-        -verticalOffset - _tileSize.height / 2 + (offsetTileSize.height - textPainter.height) / 2,
-      ),
     );
   }
 
@@ -381,7 +322,11 @@ class _RenderChapterChooser extends RenderBox {
     );
   }
 
-  TextPainter _createTextPainter(String text, {Color? color, double? fontSize}) {
+  TextPainter _createTextPainter(
+    String text, {
+    Color? color,
+    double? fontSize,
+  }) {
     final textPainter = TextPainter(
       text: TextSpan(
         text: text,
