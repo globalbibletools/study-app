@@ -173,17 +173,17 @@ class _SearchPageState extends State<SearchPage> {
                       return const SizedBox();
                     }
 
-                    if (results.length == 0) {
-                      return Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Text(
-                          AppLocalizations.of(context)!.noVersesFound,
-                          style: TextStyle(
-                            color: Theme.of(context).disabledColor,
-                          ),
-                        ),
-                      );
-                    }
+                    // if (results.length == 0) {
+                    //   return Padding(
+                    //     padding: const EdgeInsets.all(16.0),
+                    //     child: Text(
+                    //       AppLocalizations.of(context)!.resultsCount(0),
+                    //       style: TextStyle(
+                    //         color: Theme.of(context).disabledColor,
+                    //       ),
+                    //     ),
+                    //   );
+                    // }
 
                     return Directionality(
                       textDirection: _textDirection,
@@ -195,10 +195,21 @@ class _SearchPageState extends State<SearchPage> {
                               child: Padding(
                                 padding: const EdgeInsets.only(top: 16.0),
                                 child: Text(
-                                  '${results.length}',
+                                  AppLocalizations.of(
+                                    context,
+                                  )!.resultsCount(results.length),
                                   style: TextStyle(
-                                    color: Theme.of(context).disabledColor,
+                                    color: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium!
+                                        .color
+                                        ?.withValues(alpha: 0.7),
+                                    fontSize: 20,
                                   ),
+                                  // TODO: We will need to handle the app language directionality
+                                  // when we support RTL languages like Arabic. This ensures the
+                                  // number is on the correct side: 57 results vs results 57.
+                                  textDirection: TextDirection.ltr,
                                 ),
                               ),
                             );

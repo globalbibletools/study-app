@@ -20,7 +20,7 @@
     "search": "Buscar",
     "useInAppKeyboard": "Usar teclado de la aplicación",
     "useSystemKeyboard": "Usar teclado del sistema",
-    "noVersesFound": "No se encontraron versículos",
+    "resultsCount": "{count, plural, =0{No hay resultados} =1{1 resultado} other{{count} resultados}}",
     "bookGenesis": "Génesis",
     "bookExodus": "Éxodo",
     "bookLeviticus": "Levítico",

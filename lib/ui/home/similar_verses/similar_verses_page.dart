@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:studyapp/common/book_name.dart';
 import 'package:studyapp/common/reference.dart';
+import 'package:studyapp/l10n/app_localizations.dart';
 import 'package:studyapp/ui/shared/verse_list_item.dart';
 
 import 'similar_verse_manager.dart';
@@ -55,12 +56,17 @@ class _SimilarVersesPageState extends State<SimilarVersesPage> {
                 if (index == 0) {
                   return Center(
                     child: Text(
-                      '${verseList.length}',
+                      AppLocalizations.of(
+                        context,
+                      )!.resultsCount(verseList.length),
                       style: TextStyle(
                         color: Theme.of(
                           context,
-                        ).textTheme.bodyLarge?.color?.withAlpha(100),
+                        ).textTheme.bodyLarge?.color?.withValues(alpha: 0.7),
+                        fontSize: 20,
                       ),
+                      // TODO: Support app language text direction after adding Arabic
+                      textDirection: TextDirection.ltr,
                     ),
                   );
                 }

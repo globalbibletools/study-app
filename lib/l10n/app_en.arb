@@ -80,9 +80,14 @@
   "@useSystemKeyboard": {
     "description": "Tool tip for system vs in-app keyboard switcher button"
   },
-  "noVersesFound": "No verses found",
-  "@noVersesFound": {
-    "description": "The message to display when search returns no Bible verse matches for the given words"
+  "resultsCount": "{count, plural, =0{No results} =1{1 result} other{{count} results}}",
+  "@resultsCount": {
+    "description": "The message to display when returning the number of results for a search. This should properly handle any possible number for a given language: 'No results', '1 result', '27 results'",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "bookGenesis": "Genesis",
   "@bookGenesis": {

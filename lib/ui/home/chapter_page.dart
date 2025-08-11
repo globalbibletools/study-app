@@ -127,7 +127,6 @@ class _ChapterPageState extends State<ChapterPage> {
                     widget.onScaleInteraction(false);
                     _didDisablePageViewScroll = true;
                   }
-                  // _updateTransformAlignment(details.localFocalPoint);
                   setState(() {
                     _currentScale = (_gestureStartScale * details.scale).clamp(
                       0.5,

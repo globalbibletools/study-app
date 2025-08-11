@@ -218,11 +218,11 @@ abstract class AppLocalizations {
   /// **'Use System Keyboard'**
   String get useSystemKeyboard;
 
-  /// The message to display when search returns no Bible verse matches for the given words
+  /// The message to display when returning the number of results for a search. This should properly handle any possible number for a given language: 'No results', '1 result', '27 results'
   ///
   /// In en, this message translates to:
-  /// **'No verses found'**
-  String get noVersesFound;
+  /// **'{count, plural, =0{No results} =1{1 result} other{{count} results}}'**
+  String resultsCount(int count);
 
   /// The name of the first book of the Bible
   ///

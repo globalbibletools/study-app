@@ -72,7 +72,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get useSystemKeyboard => 'Use System Keyboard';
 
   @override
-  String get noVersesFound => 'No verses found';
+  String resultsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count results',
+      one: '1 result',
+      zero: 'No results',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get bookGenesis => 'Genesis';
