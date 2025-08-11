@@ -3,6 +3,7 @@
 - Add "results" word to search results: No results, 1 result, 2 results (with localization support).
 - Make search results count easier to see: Increase font size and brightness.
 - Change button label from "See other uses" to "See uses".
+- Remove Strong's code from similar verses list.
 
 ## 0.11.0 - August 9, 2025
 

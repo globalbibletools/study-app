@@ -35,10 +35,7 @@ class _SimilarVersesPageState extends State<SimilarVersesPage> {
   }
 
   String get title {
-    if (widget.root == null) {
-      return widget.strongsCode;
-    }
-    return '${widget.root} (${widget.strongsCode})';
+    return (widget.root == null) ? '' : widget.root!;
   }
 
   @override
