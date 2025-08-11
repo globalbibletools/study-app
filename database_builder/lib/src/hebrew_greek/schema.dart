@@ -10,7 +10,7 @@ class HebrewGreekSchema {
   static const versesColId = '_id';
   static const versesColText = 'text'; // foreign key to text table
   static const versesColGrammar = 'grammar'; // foreign key to grammar table
-  static const versesColLemma = 'lemma'; // foreign key to lemma table
+  static const versesColStrongs = 'strongs'; // foreign key to strongs table
 
   static const createVersesTable =
       '''
@@ -18,14 +18,14 @@ class HebrewGreekSchema {
     $versesColId INTEGER PRIMARY KEY,
     $versesColText INTEGER NOT NULL,
     $versesColGrammar INTEGER NOT NULL,
-    $versesColLemma INTEGER NOT NULL
+    $versesColStrongs INTEGER NOT NULL
   )
   ''';
 
   static const insertVerseWord =
       '''
   INSERT INTO $versesTable 
-    ($versesColId, $versesColText, $versesColGrammar, $versesColLemma) 
+    ($versesColId, $versesColText, $versesColGrammar, $versesColStrongs) 
     VALUES (?, ?, ?, ?);
   ''';
 
@@ -87,24 +87,26 @@ class HebrewGreekSchema {
     VALUES (?, ?);
   ''';
 
-  // Lemma table
-  static const lemmaTable = 'lemma';
+  // Strongs table
+  static const strongsTable = 'strongs';
 
-  static const lemmaColId = '_id';
-  static const lemmaColLemma = 'lemma';
+  static const strongsColId = '_id';
+  static const strongsColCode = 'code';
+  static const strongsColRoot = 'root';
 
-  static const createLemmaTable =
+  static const createStrongsTable =
       '''
-  CREATE TABLE IF NOT EXISTS $lemmaTable (
-    $lemmaColId INTEGER PRIMARY KEY,
-    $lemmaColLemma TEXT NOT NULL
+  CREATE TABLE IF NOT EXISTS $strongsTable (
+    $strongsColId INTEGER PRIMARY KEY,
+    $strongsColCode TEXT NOT NULL,
+    $strongsColRoot TEXT
   )
   ''';
 
-  static const insertLemma =
+  static const insertStrongs =
       '''
-  INSERT INTO $lemmaTable
-    ($lemmaColId, $lemmaColLemma)
-    VALUES (?, ?);
+  INSERT INTO $strongsTable
+    ($strongsColId, $strongsColCode, $strongsColRoot)
+    VALUES (?, ?, ?);
   ''';
 }

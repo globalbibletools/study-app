@@ -20,7 +20,7 @@ class HebrewGreekDatabase {
   late PreparedStatement _insertVerseWord;
   late PreparedStatement _insertText;
   late PreparedStatement _insertGrammar;
-  late PreparedStatement _insertLemma;
+  late PreparedStatement _insertStrongs;
 
   void init() {
     _database = sqlite3.open(_databaseName);
@@ -40,14 +40,14 @@ class HebrewGreekDatabase {
     _database.execute(HebrewGreekSchema.createVersesTable);
     _database.execute(HebrewGreekSchema.createTextTable);
     _database.execute(HebrewGreekSchema.createGrammarTable);
-    _database.execute(HebrewGreekSchema.createLemmaTable);
+    _database.execute(HebrewGreekSchema.createStrongsTable);
   }
 
   void _initPreparedStatements() {
     _insertVerseWord = _database.prepare(HebrewGreekSchema.insertVerseWord);
     _insertText = _database.prepare(HebrewGreekSchema.insertText);
     _insertGrammar = _database.prepare(HebrewGreekSchema.insertGrammar);
-    _insertLemma = _database.prepare(HebrewGreekSchema.insertLemma);
+    _insertStrongs = _database.prepare(HebrewGreekSchema.insertStrongs);
   }
 
   Future<void> populateHebrewGreekTables() async {
@@ -73,7 +73,7 @@ class HebrewGreekDatabase {
   Future<ForeignTableMaps> _populateForeignTables() async {
     final Map<String, int> textFrequencies = {};
     final Set<String> uniqueGrammar = {};
-    final Set<String> uniqueLemma = {};
+    final Set<String> uniqueStrongs = {};
 
     for (final fileName in bookFileNames) {
       final file = File('../../data/hbo+grc/$fileName');
@@ -84,7 +84,7 @@ class HebrewGreekDatabase {
         final text = word.text.trim();
         textFrequencies.update(text, (count) => count + 1, ifAbsent: () => 1);
         uniqueGrammar.add(word.grammar.trim());
-        uniqueLemma.add(word.lemma.trim());
+        uniqueStrongs.add(word.lemma.trim());
       }
     }
 
@@ -96,10 +96,10 @@ class HebrewGreekDatabase {
     );
 
     final textMap = _createTableWithNormalization(sortedTextList, _insertText);
-    final grammarMap = _createTable(uniqueGrammar, _insertGrammar);
-    final lemmaMap = _createTable(uniqueLemma, _insertLemma);
+    final grammarMap = _createGrammarTable(uniqueGrammar, _insertGrammar);
+    final strongsMap = await _createStrongsTable(uniqueStrongs, _insertStrongs);
 
-    return (textMap, grammarMap, lemmaMap);
+    return (textMap, grammarMap, strongsMap);
   }
 
   Map<String, int> _createTableWithNormalization(
@@ -120,7 +120,10 @@ class HebrewGreekDatabase {
     return map;
   }
 
-  Map<String, int> _createTable(Set<String> unique, PreparedStatement stmt) {
+  Map<String, int> _createGrammarTable(
+    Set<String> unique,
+    PreparedStatement stmt,
+  ) {
     final list = unique.toList()..sort();
     final Map<String, int> map = {};
     _database.execute('BEGIN TRANSACTION;');
@@ -132,6 +135,58 @@ class HebrewGreekDatabase {
     }
     _database.execute('COMMIT;');
     return map;
+  }
+
+  Future<Map<String, int>> _createStrongsTable(
+    Set<String> unique,
+    PreparedStatement stmt,
+  ) async {
+    final list = unique.toList()..sort();
+
+    final Map<String, String> strongsMap = {};
+    await _populateStrongsMap(
+      'lib/src/hebrew_greek/strongs_data/strongs-greek.txt',
+      'G',
+      strongsMap,
+    );
+    await _populateStrongsMap(
+      'lib/src/hebrew_greek/strongs_data/strongs-hebrew.txt',
+      'H',
+      strongsMap,
+    );
+
+    final Map<String, int> output = {};
+    _database.execute('BEGIN TRANSACTION;');
+    for (int i = 0; i < list.length; i++) {
+      final text = list[i];
+      final id = i + 1;
+      var root = strongsMap[text.substring(0, 5)];
+      if (root == null || root == 'NONE') {
+        print('No Strong\'s root found: text: $text, id: $id');
+        root = null;
+      }
+      output[text] = id;
+      stmt.execute([id, text, root]);
+    }
+    _database.execute('COMMIT;');
+    return output;
+  }
+
+  Future<void> _populateStrongsMap(
+    String filePath,
+    String prefix,
+    Map<String, String> map,
+  ) async {
+    final file = File(filePath);
+    final lines = await file.readAsLines();
+    for (var line in lines) {
+      final parts = line.split('|');
+      final numberStr = parts[0].trim();
+      final word = parts[1].trim();
+      final formattedNumber = numberStr.padLeft(4, '0');
+      final key = '$prefix$formattedNumber';
+      map[key] = word;
+    }
   }
 
   List<_HebrewGreekWord> _extractWords(String jsonString) {
@@ -178,7 +233,7 @@ class HebrewGreekDatabase {
     _insertVerseWord.dispose();
     _insertText.dispose();
     _insertGrammar.dispose();
-    _insertLemma.dispose();
+    _insertStrongs.dispose();
     _database.dispose();
   }
 }

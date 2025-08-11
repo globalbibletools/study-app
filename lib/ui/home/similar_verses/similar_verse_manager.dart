@@ -10,7 +10,13 @@ import 'package:studyapp/ui/home/word_details_dialog/dialog_manager.dart';
 
 class SimilarVerseManager {
   final _db = getIt<HebrewGreekDatabase>();
+  final rootNotifier = ValueNotifier<String?>(null);
   final similarVersesNotifier = ValueNotifier<List<Reference>>([]);
+
+  Future<void> init(WordDetails word) async {
+    rootNotifier.value = await _db.strongsCodeRoot(word.strongsCode);
+    await search(word, SearchType.root);
+  }
 
   Future<void> search(WordDetails word, SearchType searchType) async {
     List<int> verseIds;

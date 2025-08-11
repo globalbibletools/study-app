@@ -29,19 +29,22 @@ class _SimilarVersesPageState extends State<SimilarVersesPage> {
   @override
   void initState() {
     super.initState();
-    manager.search(widget.word, _searchType);
-  }
-
-  String get title {
-    return 'Word';
-    // return (widget.root == null) ? '' : widget.root!;
+    manager.init(widget.word);
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: Text(title)),
+      appBar: AppBar(
+        title: ValueListenableBuilder(
+          valueListenable: manager.rootNotifier,
+          builder: (context, root, child) {
+            if (root == null) return const SizedBox();
+            return Text(root);
+          },
+        ),
+      ),
       body: Directionality(
         textDirection: _textDirection,
         child: Column(

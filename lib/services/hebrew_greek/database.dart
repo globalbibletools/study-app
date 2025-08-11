@@ -10,7 +10,7 @@ import 'package:studyapp/common/word.dart';
 
 class HebrewGreekDatabase {
   static const _databaseName = 'hebrew_greek.db';
-  static const _databaseVersion = 6;
+  static const _databaseVersion = 8;
   late Database _database;
 
   Future<void> init() async {
@@ -98,10 +98,10 @@ class HebrewGreekDatabase {
 
   Future<(String, String)?> getStrongsAndGrammar(int wordId) async {
     final List<Map<String, dynamic>> result = await _database.rawQuery(
-      '''SELECT l.${HebrewGreekSchema.lemmaColLemma}, g.${HebrewGreekSchema.grammarColGrammar}
+      '''SELECT l.${HebrewGreekSchema.strongsColCode}, g.${HebrewGreekSchema.grammarColGrammar}
       FROM ${HebrewGreekSchema.versesTable} v
-      JOIN ${HebrewGreekSchema.lemmaTable} l 
-      ON v.${HebrewGreekSchema.versesColLemma} = l.${HebrewGreekSchema.lemmaColId}
+      JOIN ${HebrewGreekSchema.strongsTable} l 
+      ON v.${HebrewGreekSchema.versesColStrongs} = l.${HebrewGreekSchema.strongsColId}
       JOIN ${HebrewGreekSchema.grammarTable} g 
       ON v.${HebrewGreekSchema.versesColGrammar} = g.${HebrewGreekSchema.grammarColId}
       WHERE v.${HebrewGreekSchema.versesColId} = ?''',
@@ -113,7 +113,7 @@ class HebrewGreekDatabase {
     }
 
     final row = result.first;
-    final lemma = row[HebrewGreekSchema.lemmaColLemma] as String;
+    final lemma = row[HebrewGreekSchema.strongsColCode] as String;
     final grammar = row[HebrewGreekSchema.grammarColGrammar] as String;
     return (lemma, grammar);
   }
@@ -122,9 +122,9 @@ class HebrewGreekDatabase {
     final List<Map<String, dynamic>> maps = await _database.rawQuery(
       '''SELECT v.${HebrewGreekSchema.versesColId}
       FROM ${HebrewGreekSchema.versesTable} AS v
-      INNER JOIN ${HebrewGreekSchema.lemmaTable} AS l 
-      ON v.${HebrewGreekSchema.versesColLemma} = l.${HebrewGreekSchema.lemmaColId}
-      WHERE l.${HebrewGreekSchema.lemmaColLemma} = ?
+      INNER JOIN ${HebrewGreekSchema.strongsTable} AS l 
+      ON v.${HebrewGreekSchema.versesColStrongs} = l.${HebrewGreekSchema.strongsColId}
+      WHERE l.${HebrewGreekSchema.strongsColCode} = ?
       ''',
       [strongsCode],
     );
@@ -136,6 +136,23 @@ class HebrewGreekDatabase {
     }
 
     return [];
+  }
+
+  Future<String?> strongsCodeRoot(String strongsCode) async {
+    final String sql = '''
+    SELECT ${HebrewGreekSchema.strongsColRoot}
+    FROM ${HebrewGreekSchema.strongsTable}
+    WHERE ${HebrewGreekSchema.strongsColCode} = ?
+    LIMIT 1
+    ''';
+
+    final result = await _database.rawQuery(sql, [strongsCode]);
+
+    if (result.isNotEmpty) {
+      return result.first[HebrewGreekSchema.strongsColRoot] as String?;
+    }
+
+    return null;
   }
 
   Future<List<HebrewGreekWord>> wordsForVerse(
@@ -160,7 +177,7 @@ class HebrewGreekDatabase {
       't.${HebrewGreekSchema.textColText} ',
     );
     if (includeStrongs) {
-      sql.write(', l.${HebrewGreekSchema.lemmaColLemma} ');
+      sql.write(', l.${HebrewGreekSchema.strongsColCode} ');
     }
     sql.write(
       'FROM ${HebrewGreekSchema.versesTable} v '
@@ -169,8 +186,8 @@ class HebrewGreekDatabase {
     );
     if (includeStrongs) {
       sql.write(
-        'JOIN ${HebrewGreekSchema.lemmaTable} l '
-        'ON v.${HebrewGreekSchema.versesColLemma} = l.${HebrewGreekSchema.lemmaColId} ',
+        'JOIN ${HebrewGreekSchema.strongsTable} l '
+        'ON v.${HebrewGreekSchema.versesColStrongs} = l.${HebrewGreekSchema.strongsColId} ',
       );
     }
     sql.write(
@@ -188,7 +205,7 @@ class HebrewGreekDatabase {
           (word) => HebrewGreekWord(
             id: word[HebrewGreekSchema.versesColId],
             text: word[HebrewGreekSchema.textColText],
-            strongsCode: word[HebrewGreekSchema.lemmaColLemma],
+            strongsCode: word[HebrewGreekSchema.strongsColCode],
           ),
         )
         .toList();

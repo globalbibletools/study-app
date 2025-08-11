@@ -1,0 +1,1 @@
+Data modified from: https://github.com/openscriptures/strongs
