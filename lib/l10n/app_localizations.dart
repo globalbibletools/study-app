@@ -194,10 +194,10 @@ abstract class AppLocalizations {
   /// **'Next chapter'**
   String get nextChapter;
 
-  /// Show list of other verses with the same Strong's number
+  /// Show list of verses with the same Strong's number
   ///
   /// In en, this message translates to:
-  /// **'See other uses'**
+  /// **'See uses'**
   String get similarVerses;
 
   /// The title of the Search screen

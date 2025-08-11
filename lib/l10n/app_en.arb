@@ -64,9 +64,9 @@
   "@nextChapter": {
     "description": "Tool tip for button that advances to the next chapter in the Bible"
   },
-  "similarVerses": "See other uses",
+  "similarVerses": "See uses",
   "@similarVerses": {
-    "description": "Show list of other verses with the same Strong's number"
+    "description": "Show list of verses with the same Strong's number"
   },
   "search": "Search",
   "@search": {

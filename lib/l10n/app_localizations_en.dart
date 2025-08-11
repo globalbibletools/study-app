@@ -60,7 +60,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get nextChapter => 'Next chapter';
 
   @override
-  String get similarVerses => 'See other uses';
+  String get similarVerses => 'See uses';
 
   @override
   String get search => 'Search';
