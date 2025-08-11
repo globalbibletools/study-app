@@ -4,6 +4,8 @@
 - Make search results count easier to see: Increase font size and brightness.
 - Change button label from "See other uses" to "See uses".
 - Remove Strong's code from similar verses list.
+- Increased the font size of the lexical entry.
+- Make the lexical gloss bold (and slightly dim the extended definition).
 
 ## 0.11.0 - August 9, 2025
 

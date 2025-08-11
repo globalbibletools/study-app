@@ -23,6 +23,8 @@ class _WordDetailsDialogState extends State<WordDetailsDialog> {
   final manager = WordDetailsDialogManager();
   TextStyle? highlightStyle;
   TextStyle? defaultStyle;
+  TextStyle? defaultBold;
+  TextStyle? lexiconStyle;
 
   static const fontSize = 30.0;
 
@@ -32,10 +34,16 @@ class _WordDetailsDialogState extends State<WordDetailsDialog> {
     final locale = Localizations.localeOf(context);
     manager.init(locale, widget.wordId);
     highlightStyle = TextStyle(
-      fontSize: fontSize * 0.6,
+      fontSize: fontSize * 0.8,
       color: Theme.of(context).colorScheme.primary,
     );
-    defaultStyle = TextStyle(fontSize: fontSize * 0.6);
+    defaultStyle = TextStyle(fontSize: fontSize * 0.8);
+    defaultBold = defaultStyle?.copyWith(fontWeight: FontWeight.bold);
+    lexiconStyle = defaultStyle?.copyWith(
+      color: Theme.of(
+        context,
+      ).textTheme.bodyMedium?.color?.withValues(alpha: 0.9),
+    );
   }
 
   @override
@@ -207,11 +215,11 @@ class _WordDetailsDialogState extends State<WordDetailsDialog> {
             children: [
               SelectableText(
                 meaning.lemma,
-                style: TextStyle(fontSize: fontSize),
+                style: TextStyle(fontSize: fontSize * 1.2),
               ),
               SizedBox(width: 8),
               if (meaning.grammar != null)
-                SelectableText('(${meaning.grammar})', style: defaultStyle),
+                SelectableText('(${meaning.grammar})', style: lexiconStyle),
             ],
           ),
         );
@@ -229,17 +237,17 @@ class _WordDetailsDialogState extends State<WordDetailsDialog> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SelectableText(meaning.glosses, style: defaultStyle),
+                  SelectableText(meaning.glosses, style: defaultBold),
                   const SizedBox(height: 8),
                   if (meaning.definitionShort != null)
                     SelectableText(
                       meaning.definitionShort!,
-                      style: defaultStyle,
+                      style: lexiconStyle,
                     ),
                   if (meaning.definitionShort != null)
                     const SizedBox(height: 8),
                   if (meaning.comments != null)
-                    SelectableText(meaning.comments!, style: defaultStyle),
+                    SelectableText(meaning.comments!, style: lexiconStyle),
                   if (meaning.comments != null) const SizedBox(height: 8),
                 ],
               ),
