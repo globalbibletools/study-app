@@ -163,7 +163,7 @@ class BibleDatabase {
           return;
         }
 
-        final verseId = _getVerseId(bookId!, chapter!, verse!);
+        final verseId = _getVerseId(bookId!, chapter!, verse ?? 0);
 
         _insertVerseLine.execute([
           verseId,
@@ -202,8 +202,8 @@ class BibleDatabase {
   }
 
   int _getVerseId(int book, int chapter, int verse) {
-    // verseId is in the form of BBCCCVV
-    return book * 100000 + chapter * 100 + verse;
+    // verseId is in the form of BBCCCVVV
+    return book * 1000000 + chapter * 1000 + verse;
   }
 
   /// Extracts the footnote from the text.
