@@ -11,6 +11,7 @@ class HomeManager {
   final chapterCountNotifier = ValueNotifier<int?>(null);
   final pageJumpNotifier = ValueNotifier<int?>(null);
   final pageDirectionNotifier = ValueNotifier<TextDirection>(TextDirection.rtl);
+  final isSinglePanelNotifier = ValueNotifier(true);
 
   final _glossService = getIt<GlossService>();
   final _settings = getIt<UserSettings>();
@@ -126,6 +127,10 @@ class HomeManager {
   Future<void> setLanguageToEnglish(Locale originalLocale) async {
     await _settings.setLocale('en');
     getIt<AppState>().init();
+  }
+
+  void swapPanelState() {
+    isSinglePanelNotifier.value = !isSinglePanelNotifier.value;
   }
 }
 

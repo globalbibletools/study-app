@@ -108,6 +108,14 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
+        actions: [
+          IconButton(
+            onPressed: () {
+              manager.swapPanelState();
+            },
+            icon: Icon(Icons.splitscreen),
+          ),
+        ],
       ),
       drawer: AppDrawer(
         onSettingsClosed: () {
@@ -116,7 +124,45 @@ class _HomeScreenState extends State<HomeScreen> {
           });
         },
       ),
-      body: Stack(children: [_buildPageView(), _buildChapterChooser()]),
+      body: Stack(
+        children: [
+          _buildPageView(),
+          ValueListenableBuilder<bool>(
+            valueListenable: manager.isSinglePanelNotifier,
+            builder: (context, isSinglePanel, child) {
+              return Visibility(
+                visible: !isSinglePanel,
+                child: Column(
+                  children: [
+                    Spacer(),
+                    Container(
+                      height: 48,
+                      width: double.infinity,
+                      color: Theme.of(context).scaffoldBackgroundColor,
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Divider(),
+                      ),
+                    ),
+                    Expanded(
+                      child: Container(
+                        color: Theme.of(context).scaffoldBackgroundColor,
+                        child: Center(
+                          child: OutlinedButton(
+                            onPressed: () {},
+                            child: Text('Download Bible'),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+          _buildChapterChooser(),
+        ],
+      ),
     );
   }
 

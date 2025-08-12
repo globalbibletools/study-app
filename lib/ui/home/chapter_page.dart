@@ -188,6 +188,7 @@ class _ChapterPageState extends State<ChapterPage> {
 
   @override
   Widget build(BuildContext context) {
+    final bottomPadding = MediaQuery.sizeOf(context).height - 200;
     return RawGestureDetector(
       gestures: _zoomGesture,
       behavior: HitTestBehavior.translucent,
@@ -233,7 +234,7 @@ class _ChapterPageState extends State<ChapterPage> {
                       onWordLongPress: widget.showWordDetails,
                     ),
                     _buildNextChapterButton(),
-                    const SizedBox(height: 300.0),
+                    SizedBox(height: bottomPadding),
                   ],
                 );
               },

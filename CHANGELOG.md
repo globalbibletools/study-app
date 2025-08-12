@@ -7,6 +7,8 @@
 - Increased the font size of the lexical entry.
 - Make the lexical gloss bold (and slightly dim the extended definition).
 - Move chapter chooser dialog closer to the top.
+- Allow both root search and exact search in similar verses screen.
+- Add data to query Strong's code root directly rather than using lexicon estimate.
 
 ## 0.11.0 - August 9, 2025
 
