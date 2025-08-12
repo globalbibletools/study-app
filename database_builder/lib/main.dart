@@ -1,13 +1,16 @@
 // ignore_for_file: unused_element
 
+import 'package:database_builder/src/bible/database.dart';
+
 import 'src/gloss/database.dart';
 import 'src/hebrew_greek/database.dart';
 import 'src/lexicon/database.dart';
 
 Future<void> main(List<String> arguments) async {
-  await _createHebrewGreekDatabase();
+  // await _createHebrewGreekDatabase();
   // await _createLexiconDatabases();
   // await _createGlossDatabase('spa');
+  await _createBibileDatabase('eng_bsb');
 }
 
 Future<void> _createLexiconDatabases() async {
@@ -80,5 +83,18 @@ Future<void> _createGlossDatabase(String languageIsoCode) async {
   await dbHelper.populateGlossTable();
 
   print('Dispose Gloss database resources');
+  dbHelper.dispose();
+}
+
+Future<void> _createBibileDatabase(String name) async {
+  final dbHelper = BibleDatabase(databaseName: name);
+
+  print('Creating new Bible database');
+  dbHelper.init();
+
+  print('Populate table');
+  await dbHelper.populateTable();
+
+  print('Dispose database resources');
   dbHelper.dispose();
 }
