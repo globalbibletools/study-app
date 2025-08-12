@@ -18,6 +18,7 @@ class DownloadService {
 
       // Create the destination directory if it doesn't exist
       final destinationDir = Directory('${appDocumentsDir.path}/$downloadTo');
+      print(destinationDir.path);
       if (!await destinationDir.exists()) {
         await destinationDir.create(recursive: true);
       }

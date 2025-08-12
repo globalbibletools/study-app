@@ -111,7 +111,7 @@ class _HomeScreenState extends State<HomeScreen> {
         actions: [
           IconButton(
             onPressed: () {
-              manager.swapPanelState();
+              manager.togglePanelState();
             },
             icon: Icon(Icons.splitscreen),
           ),
@@ -149,7 +149,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         color: Theme.of(context).scaffoldBackgroundColor,
                         child: Center(
                           child: OutlinedButton(
-                            onPressed: () {},
+                            onPressed: () {
+                              manager.downloadBible();
+                            },
                             child: Text('Download Bible'),
                           ),
                         ),

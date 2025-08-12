@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:studyapp/app_state.dart';
 import 'package:studyapp/l10n/app_localizations.dart';
+import 'package:studyapp/services/download/download.dart';
 import 'package:studyapp/services/gloss/gloss_service.dart';
 import 'package:studyapp/services/service_locator.dart';
 import 'package:studyapp/services/user_settings.dart';
@@ -129,8 +130,20 @@ class HomeManager {
     getIt<AppState>().init();
   }
 
-  void swapPanelState() {
+  void togglePanelState() {
     isSinglePanelNotifier.value = !isSinglePanelNotifier.value;
+  }
+
+  Future<void> downloadBible() async {
+    final downloadService = getIt<DownloadService>();
+    await downloadService.download(
+      url: 'https://assets.globalbibletools.com/bibles/eng_bsb/eng_bsb.db.zip',
+      downloadTo: 'bibles',
+      onProgress: (progress) {
+        print('progress: ${progress.toStringAsFixed(2)}');
+      },
+    );
+    print('Download is done');
   }
 }
 
