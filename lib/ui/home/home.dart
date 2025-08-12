@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:studyapp/l10n/app_localizations.dart';
@@ -8,6 +9,7 @@ import 'package:studyapp/ui/home/word_details_dialog/word_details_dialog.dart';
 
 import 'book_chooser.dart';
 import 'chapter_chooser.dart';
+import 'bible_panel/bible_text.dart';
 import 'home_manager.dart';
 
 enum DownloadDialogChoice { useEnglish, download }
@@ -50,6 +52,7 @@ class _HomeScreenState extends State<HomeScreen> {
       if (newPage != _currentPageIndex) {
         _currentPageIndex = newPage;
         manager.onPageChanged(context, newPage);
+        _requestText();
       }
     });
 
@@ -112,6 +115,7 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             onPressed: () {
               manager.togglePanelState();
+              _requestText();
             },
             icon: Icon(Icons.splitscreen),
           ),
@@ -144,19 +148,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: Divider(),
                       ),
                     ),
-                    Expanded(
-                      child: Container(
-                        color: Theme.of(context).scaffoldBackgroundColor,
-                        child: Center(
-                          child: OutlinedButton(
-                            onPressed: () {
-                              manager.downloadBible();
-                            },
-                            child: Text('Download Bible'),
-                          ),
-                        ),
-                      ),
-                    ),
+                    _buildBibleView(),
                   ],
                 ),
               );
@@ -172,6 +164,20 @@ class _HomeScreenState extends State<HomeScreen> {
     _pageController.nextPage(
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
+    );
+  }
+
+  void _requestText() {
+    if (manager.isSinglePanelNotifier.value) return;
+    manager.requestText(
+      textColor: Theme.of(context).textTheme.bodyMedium!.color!,
+      footnoteColor: Theme.of(context).primaryColor,
+      onVerseLongPress: (verse) {
+        log('verse: $verse');
+      },
+      onFootnoteTap: (footnote) {
+        log(footnote);
+      },
     );
   }
 
@@ -304,6 +310,45 @@ class _HomeScreenState extends State<HomeScreen> {
           (context) =>
               WordDetailsDialog(wordId: wordId, isRtl: manager.isRtl(bookId)),
     );
+  }
+
+  Widget _buildBibleView() {
+    if (manager.bibleExists) {
+      return Expanded(
+        child: ValueListenableBuilder<TextParagraph>(
+          valueListenable: manager.textParagraphNotifier,
+          builder: (context, paragraph, child) {
+            return Container(
+              width: double.infinity,
+              color: Theme.of(context).scaffoldBackgroundColor,
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: BibleText(
+                    paragraphs: paragraph,
+                    paragraphSpacing: 10.0,
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      );
+    } else {
+      return Expanded(
+        child: Container(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          child: Center(
+            child: OutlinedButton(
+              onPressed: () {
+                manager.downloadBible();
+              },
+              child: Text('Download Bible'),
+            ),
+          ),
+        ),
+      );
+    }
   }
 }
 

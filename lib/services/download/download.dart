@@ -69,4 +69,11 @@ class DownloadService {
       rethrow;
     }
   }
+
+  Future<bool> fileExists(String path) async {
+    final appDocumentsDir = await getApplicationDocumentsDirectory();
+    final file = File('${appDocumentsDir.path}/$path');
+    print(file.path);
+    return await file.exists();
+  }
 }

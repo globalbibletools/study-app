@@ -1,10 +1,16 @@
+import 'package:database_builder/database_builder.dart';
 import 'package:flutter/widgets.dart';
 import 'package:studyapp/app_state.dart';
 import 'package:studyapp/l10n/app_localizations.dart';
+import 'package:studyapp/services/bible/bible_database.dart';
 import 'package:studyapp/services/download/download.dart';
 import 'package:studyapp/services/gloss/gloss_service.dart';
 import 'package:studyapp/services/service_locator.dart';
 import 'package:studyapp/services/user_settings.dart';
+
+import 'bible_panel/format_verses.dart';
+
+typedef TextParagraph = List<(TextSpan, TextType, Format?)>;
 
 class HomeManager {
   final currentBookNotifier = ValueNotifier<String>('');
@@ -13,8 +19,11 @@ class HomeManager {
   final pageJumpNotifier = ValueNotifier<int?>(null);
   final pageDirectionNotifier = ValueNotifier<TextDirection>(TextDirection.rtl);
   final isSinglePanelNotifier = ValueNotifier(true);
+  final textParagraphNotifier = ValueNotifier<TextParagraph>([]);
 
   final _glossService = getIt<GlossService>();
+  final _downloadService = getIt<DownloadService>();
+  final _bibleDb = getIt<BibleDatabase>();
   final _settings = getIt<UserSettings>();
   int _currentBookId = 1;
 
@@ -28,9 +37,12 @@ class HomeManager {
   // The total number of chapters in the Bible
   static const int totalChapters = 1189;
 
+  bool bibleExists = false;
+
   Future<void> init(BuildContext context) async {
     final (bookId, chapter) = _settings.currentBookChapter;
     _updateUiForBook(context, bookId, chapter);
+    bibleExists = await _downloadService.fileExists('bibles/eng_bsb.db');
   }
 
   void _updateUiForBook(BuildContext context, int bookId, int chapter) {
@@ -135,8 +147,7 @@ class HomeManager {
   }
 
   Future<void> downloadBible() async {
-    final downloadService = getIt<DownloadService>();
-    await downloadService.download(
+    await _downloadService.download(
       url: 'https://assets.globalbibletools.com/bibles/eng_bsb/eng_bsb.db.zip',
       downloadTo: 'bibles',
       onProgress: (progress) {
@@ -144,6 +155,30 @@ class HomeManager {
       },
     );
     print('Download is done');
+    bibleExists = true;
+    isSinglePanelNotifier.value = true;
+    isSinglePanelNotifier.value = false;
+  }
+
+  Future<void> requestText({
+    required Color textColor,
+    required Color footnoteColor,
+    required void Function(int) onVerseLongPress,
+    required void Function(String) onFootnoteTap,
+  }) async {
+    final content = await _bibleDb.getChapter(
+      _currentBookId,
+      currentChapterNotifier.value,
+    );
+    final formattedContent = formatVerses(
+      verseLines: content,
+      baseFontSize: 20,
+      textColor: textColor,
+      footnoteColor: footnoteColor,
+      onVerseLongPress: onVerseLongPress,
+      onFootnoteTap: onFootnoteTap,
+    );
+    textParagraphNotifier.value = formattedContent;
   }
 }
 
