@@ -144,8 +144,19 @@ class _HomeScreenState extends State<HomeScreen> {
                       width: double.infinity,
                       color: Theme.of(context).scaffoldBackgroundColor,
                       child: Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Divider(),
+                        padding: const EdgeInsets.only(left: 16),
+                        child: Row(
+                          children: [
+                            OutlinedButton(
+                              child: Text('BSB'),
+                              onPressed: () {
+                                _shownDialog(
+                                  'More translations comming soon...',
+                                );
+                              },
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                     _buildBibleView(),
@@ -169,6 +180,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _requestText() {
     if (manager.isSinglePanelNotifier.value) return;
+    print('requesting text');
     manager.requestText(
       textColor: Theme.of(context).textTheme.bodyMedium!.color!,
       footnoteColor: Theme.of(context).primaryColor,
@@ -313,42 +325,37 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildBibleView() {
-    if (manager.bibleExists) {
-      return Expanded(
-        child: ValueListenableBuilder<TextParagraph>(
-          valueListenable: manager.textParagraphNotifier,
-          builder: (context, paragraph, child) {
-            return Container(
-              width: double.infinity,
-              color: Theme.of(context).scaffoldBackgroundColor,
-              child: SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: BibleText(
-                    paragraphs: paragraph,
-                    paragraphSpacing: 10.0,
-                  ),
-                ),
+    return Expanded(
+      child: ValueListenableBuilder<TextParagraph>(
+        valueListenable: manager.textParagraphNotifier,
+        builder: (context, paragraph, child) {
+          return Container(
+            width: double.infinity,
+            color: Theme.of(context).scaffoldBackgroundColor,
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: BibleText(paragraphs: paragraph, paragraphSpacing: 10.0),
               ),
-            );
-          },
-        ),
-      );
-    } else {
-      return Expanded(
-        child: Container(
-          color: Theme.of(context).scaffoldBackgroundColor,
-          child: Center(
-            child: OutlinedButton(
-              onPressed: () {
-                manager.downloadBible();
-              },
-              child: Text('Download Bible'),
             ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _shownDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Text(message),
           ),
-        ),
-      );
-    }
+        );
+      },
+    );
   }
 }
 

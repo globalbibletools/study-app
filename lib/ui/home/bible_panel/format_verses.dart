@@ -2,7 +2,7 @@ import 'package:database_builder/database_builder.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
 
-import 'verse_line.dart';
+import '../../../common/verse_line.dart';
 
 List<(TextSpan, TextType, Format?)> formatVerses({
   required List<VerseLine> verseLines,

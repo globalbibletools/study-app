@@ -19,7 +19,7 @@ Future<void> main() async {
   await getIt<GlossService>().init();
   // TODO: Maybe we should delay loading the lexicon until it is needed.
   await getIt<LexiconsDatabase>().init();
-  // await getIt<BibleDatabase>().init();
+  await getIt<BibleDatabase>().init();
   runApp(const GbtStudyApp());
 }
 

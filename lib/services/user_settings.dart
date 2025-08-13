@@ -15,6 +15,7 @@ class UserSettings {
   static const _localeKey = 'locale';
   static const _isHebrewSearchKey = 'isHebrewSearch';
   static const _useSystemKeyboardKey = 'useSystemKeyboard';
+  static const _currentBible = 'currentBible';
 
   (int, int) get currentBookChapter {
     final bookId = _prefs.getInt(_currentBookIdKey) ?? 1;
@@ -62,5 +63,21 @@ class UserSettings {
 
   Future<void> setUseSystemKeyboard(bool value) async {
     await _prefs.setBool(_useSystemKeyboardKey, value);
+  }
+
+  String? get currentBible {
+    return _prefs.getString(_currentBible);
+  }
+
+  /// Set language and version of the currently selected Bible
+  ///
+  /// Example: eng_bsb (English - Berean Standard Bible)
+  /// null means the user has not downloaded a Bible or non is selected.
+  Future<void> setCurrentBible(String? bibleCode) async {
+    if (bibleCode == null) {
+      _prefs.remove(_currentBible);
+    } else {
+      await _prefs.setString((_currentBible), bibleCode);
+    }
   }
 }

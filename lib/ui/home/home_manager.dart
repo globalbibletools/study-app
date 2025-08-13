@@ -3,7 +3,6 @@ import 'package:flutter/widgets.dart';
 import 'package:studyapp/app_state.dart';
 import 'package:studyapp/l10n/app_localizations.dart';
 import 'package:studyapp/services/bible/bible_database.dart';
-import 'package:studyapp/services/download/download.dart';
 import 'package:studyapp/services/gloss/gloss_service.dart';
 import 'package:studyapp/services/service_locator.dart';
 import 'package:studyapp/services/user_settings.dart';
@@ -20,9 +19,10 @@ class HomeManager {
   final pageDirectionNotifier = ValueNotifier<TextDirection>(TextDirection.rtl);
   final isSinglePanelNotifier = ValueNotifier(true);
   final textParagraphNotifier = ValueNotifier<TextParagraph>([]);
+  final downloadProgressNotifier = ValueNotifier<double?>(null);
 
   final _glossService = getIt<GlossService>();
-  final _downloadService = getIt<DownloadService>();
+  // final _downloadService = getIt<DownloadService>();
   final _bibleDb = getIt<BibleDatabase>();
   final _settings = getIt<UserSettings>();
   int _currentBookId = 1;
@@ -37,12 +37,13 @@ class HomeManager {
   // The total number of chapters in the Bible
   static const int totalChapters = 1189;
 
-  bool bibleExists = false;
+  // bool bibleExists = false;
 
   Future<void> init(BuildContext context) async {
     final (bookId, chapter) = _settings.currentBookChapter;
     _updateUiForBook(context, bookId, chapter);
-    bibleExists = await _downloadService.fileExists('bibles/eng_bsb.db');
+    // bibleExists = await _bibleDb.bibleExists();
+    // print('bible exists: $bibleExists');
   }
 
   void _updateUiForBook(BuildContext context, int bookId, int chapter) {
@@ -146,19 +147,20 @@ class HomeManager {
     isSinglePanelNotifier.value = !isSinglePanelNotifier.value;
   }
 
-  Future<void> downloadBible() async {
-    await _downloadService.download(
-      url: 'https://assets.globalbibletools.com/bibles/eng_bsb/eng_bsb.db.zip',
-      downloadTo: 'bibles',
-      onProgress: (progress) {
-        print('progress: ${progress.toStringAsFixed(2)}');
-      },
-    );
-    print('Download is done');
-    bibleExists = true;
-    isSinglePanelNotifier.value = true;
-    isSinglePanelNotifier.value = false;
-  }
+  // Future<void> downloadBible() async {
+  //   await _downloadService.download(
+  //     url: 'https://assets.globalbibletools.com/bibles/eng_bsb/eng_bsb.db.zip',
+  //     downloadTo: 'bibles',
+  //     onProgress: (progress) {
+  //       print('progress: ${progress.toStringAsFixed(2)}');
+  //       // goes from 0 to 1
+  //       downloadProgressNotifier.value = progress;
+  //     },
+  //   );
+  //   print('Download is done');
+  //   bibleExists = true;
+  //   downloadProgressNotifier.value = null;
+  // }
 
   Future<void> requestText({
     required Color textColor,
