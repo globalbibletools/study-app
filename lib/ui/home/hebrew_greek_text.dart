@@ -715,7 +715,7 @@ class RenderHebrewGreekText extends RenderBox {
 
       // Clear the flash after a short duration.
       _flashTimer?.cancel();
-      _flashTimer = Timer(const Duration(milliseconds: 750), () {
+      _flashTimer = Timer(const Duration(milliseconds: 1500), () {
         _flashedWordId = null;
         markNeedsPaint();
       });

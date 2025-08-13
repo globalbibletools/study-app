@@ -9,6 +9,7 @@
 - Move chapter chooser dialog closer to the top.
 - Allow both root search and exact search in similar verses screen.
 - Add data to query Strong's code root directly rather than using lexicon estimate.
+- MVP for splitscreen Bible translation. (BSB default)
 
 ## 0.11.0 - August 9, 2025
 
