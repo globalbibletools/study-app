@@ -1,4 +1,8 @@
-## 0.12.0
+## 0.13.0
+
+- Make longpress highlight time lengh a little longer.
+
+## 0.12.0 - August 13, 2025
 
 - Add "results" word to search results: No results, 1 result, 2 results (with localization support).
 - Make search results count easier to see: Increase font size and brightness.

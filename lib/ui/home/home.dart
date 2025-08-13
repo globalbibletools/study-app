@@ -184,12 +184,6 @@ class _HomeScreenState extends State<HomeScreen> {
     manager.requestText(
       textColor: Theme.of(context).textTheme.bodyMedium!.color!,
       footnoteColor: Theme.of(context).primaryColor,
-      onVerseLongPress: (verse) {
-        log('verse: $verse');
-      },
-      onFootnoteTap: (footnote) {
-        log(footnote);
-      },
     );
   }
 

@@ -165,8 +165,6 @@ class HomeManager {
   Future<void> requestText({
     required Color textColor,
     required Color footnoteColor,
-    required void Function(int) onVerseLongPress,
-    required void Function(String) onFootnoteTap,
   }) async {
     final content = await _bibleDb.getChapter(
       _currentBookId,
@@ -176,9 +174,8 @@ class HomeManager {
       verseLines: content,
       baseFontSize: 20,
       textColor: textColor,
-      footnoteColor: footnoteColor,
-      onVerseLongPress: onVerseLongPress,
-      onFootnoteTap: onFootnoteTap,
+      verseNumberColor: footnoteColor,
+      showSectionTitles: false,
     );
     textParagraphNotifier.value = formattedContent;
   }
