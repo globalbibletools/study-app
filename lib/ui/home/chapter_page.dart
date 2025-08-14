@@ -3,7 +3,6 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:studyapp/common/word.dart';
-import 'package:studyapp/l10n/app_localizations.dart';
 import 'package:studyapp/services/hebrew_greek/database.dart';
 import 'package:studyapp/services/service_locator.dart';
 import 'package:studyapp/ui/home/hebrew_greek_text.dart';
@@ -34,8 +33,6 @@ class ChapterPage extends StatefulWidget {
     required this.fontScale,
     required this.onScaleChanged,
     required this.showWordDetails,
-    required this.onAdvancePage,
-    required this.onScaleInteraction,
   });
 
   final int bookId;
@@ -44,8 +41,6 @@ class ChapterPage extends StatefulWidget {
   final double fontScale;
   final void Function(double) onScaleChanged;
   final Future<void> Function(int wordId) showWordDetails;
-  final VoidCallback onAdvancePage;
-  final void Function(bool isEnabled) onScaleInteraction;
 
   @override
   State<ChapterPage> createState() => _ChapterPageState();
@@ -61,7 +56,7 @@ class _ChapterPageState extends State<ChapterPage> {
   double _gestureStartScale = 1.0;
   bool _isScalingInProgress = false;
   Alignment _transformAlignment = Alignment.center;
-  bool _didDisablePageViewScroll = false;
+  // bool _didDisablePageViewScroll = false;
 
   double get _fontSize => _baseFontSize * _baseScale;
 
@@ -120,13 +115,13 @@ class _ChapterPageState extends State<ChapterPage> {
                   _isScalingInProgress = true;
                   _gestureStartScale = _baseScale;
                   _updateTransformAlignment(details.localFocalPoint);
-                  _didDisablePageViewScroll = false;
+                  // _didDisablePageViewScroll = false;
                 }
                 ..onUpdate = (details) {
-                  if (details.scale != 1.0 && !_didDisablePageViewScroll) {
-                    widget.onScaleInteraction(false);
-                    _didDisablePageViewScroll = true;
-                  }
+                  // if (details.scale != 1.0 && !_didDisablePageViewScroll) {
+                  //   widget.onScaleInteraction(false);
+                  //   _didDisablePageViewScroll = true;
+                  // }
                   setState(() {
                     _currentScale = (_gestureStartScale * details.scale).clamp(
                       0.5,
@@ -135,15 +130,15 @@ class _ChapterPageState extends State<ChapterPage> {
                   });
                 }
                 ..onEnd = (details) {
-                  if (_didDisablePageViewScroll) {
-                    widget.onScaleInteraction(true);
-                  }
+                  // if (_didDisablePageViewScroll) {
+                  //   widget.onScaleInteraction(true);
+                  // }
                   setState(() {
                     _baseScale = _currentScale;
                   });
                   _isScalingInProgress = false;
                   widget.onScaleChanged(_baseScale);
-                  widget.onScaleInteraction(true);
+                  // widget.onScaleInteraction(true);
                 };
             },
           ),
@@ -233,7 +228,6 @@ class _ChapterPageState extends State<ChapterPage> {
                       onPopupShown: _ensurePopupIsVisible,
                       onWordLongPress: widget.showWordDetails,
                     ),
-                    _buildNextChapterButton(),
                     SizedBox(height: bottomPadding),
                   ],
                 );
@@ -267,27 +261,5 @@ class _ChapterPageState extends State<ChapterPage> {
         curve: Curves.easeOut,
       );
     }
-  }
-
-  Widget _buildNextChapterButton() {
-    final bool isRtl = widget.manager.isRtl(widget.bookId);
-    final alignment = isRtl ? Alignment.centerLeft : Alignment.centerRight;
-    final tooltip = AppLocalizations.of(context)!.nextChapter;
-
-    return Align(
-      alignment: alignment,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 24.0),
-        child: SizedBox(
-          width: 48,
-          height: 48,
-          child: IconButton(
-            tooltip: tooltip,
-            icon: Icon(Icons.arrow_forward),
-            onPressed: widget.onAdvancePage,
-          ),
-        ),
-      ),
-    );
   }
 }

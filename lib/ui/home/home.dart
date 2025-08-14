@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:developer';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:studyapp/l10n/app_localizations.dart';
@@ -8,7 +7,6 @@ import 'package:studyapp/ui/home/drawer.dart';
 import 'package:studyapp/ui/home/word_details_dialog/word_details_dialog.dart';
 
 import 'book_chooser.dart';
-import 'chapter_chooser.dart';
 import 'bible_panel/bible_text.dart';
 import 'home_manager.dart';
 
@@ -23,12 +21,10 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final manager = HomeManager();
-  late final PageController _pageController;
   double _fontScale = 1.0;
-  int _currentPageIndex = 0;
-  final _pageViewScrollPhysics = ValueNotifier<ScrollPhysics>(
-    const SnappyScrollPhysics(),
-  );
+
+  late int bookId;
+  late int chapter;
 
   @override
   void initState() {
@@ -36,32 +32,8 @@ class _HomeScreenState extends State<HomeScreen> {
     manager.onGlossDownloadNeeded = _showDownloadDialog;
 
     final (initialBook, initialChapter) = manager.getInitialBookAndChapter();
-    final initialPageIndex = manager.pageIndexForBookAndChapter(
-      initialBook,
-      initialChapter,
-    );
-    _currentPageIndex = initialPageIndex;
-    _pageController = PageController(
-      initialPage: initialPageIndex,
-      // trick to get the page view to preload adjacent pages
-      viewportFraction: 0.99,
-    );
-
-    _pageController.addListener(() {
-      final newPage = _pageController.page?.round() ?? _currentPageIndex;
-      if (newPage != _currentPageIndex) {
-        _currentPageIndex = newPage;
-        manager.onPageChanged(context, newPage);
-        _requestText();
-      }
-    });
-
-    manager.pageJumpNotifier.addListener(() {
-      final page = manager.pageJumpNotifier.value;
-      if (page != null && page != _pageController.page?.round()) {
-        _pageController.jumpToPage(page);
-      }
-    });
+    bookId = initialBook;
+    chapter = initialChapter;
   }
 
   @override
@@ -73,19 +45,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
-    _pageController.dispose();
-    manager.pageJumpNotifier.dispose();
-    _pageViewScrollPhysics.dispose();
     super.dispose();
-  }
-
-  /// This callback will be passed to ChapterPage to enable/disable
-  /// the PageView's scrolling.
-  void _setPageViewScrollingEnabled(bool enabled) {
-    _pageViewScrollPhysics.value =
-        enabled
-            ? const SnappyScrollPhysics()
-            : const NeverScrollableScrollPhysics();
   }
 
   @override
@@ -128,53 +88,35 @@ class _HomeScreenState extends State<HomeScreen> {
           });
         },
       ),
-      body: Stack(
+      body: Column(
         children: [
-          _buildPageView(),
+          Expanded(child: _buildHebrewGreekView()),
           ValueListenableBuilder<bool>(
             valueListenable: manager.isSinglePanelNotifier,
             builder: (context, isSinglePanel, child) {
-              return Visibility(
-                visible: !isSinglePanel,
-                child: Column(
-                  children: [
-                    Spacer(),
-                    Container(
-                      height: 48,
-                      width: double.infinity,
-                      color: Theme.of(context).scaffoldBackgroundColor,
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: 16),
-                        child: Row(
-                          children: [
-                            OutlinedButton(
-                              child: Text('BSB'),
-                              onPressed: () {
-                                _shownDialog(
-                                  'More translations comming soon...',
-                                );
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    _buildBibleView(),
-                  ],
-                ),
-              );
+              if (isSinglePanel) return const SizedBox();
+              return Expanded(child: _buildBibleView());
             },
           ),
-          _buildChapterChooser(),
         ],
       ),
     );
   }
 
-  void _goToNextPage() {
-    _pageController.nextPage(
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
+  Widget _buildHebrewGreekView() {
+    return ChapterPage(
+      key: ValueKey('$bookId-$chapter'),
+      bookId: bookId,
+      chapter: chapter,
+      manager: manager,
+      fontScale: _fontScale,
+      onScaleChanged: (newScale) {
+        setState(() {
+          _fontScale = newScale;
+          manager.saveFontScale(newScale);
+        });
+      },
+      showWordDetails: _showWordDetails,
     );
   }
 
@@ -187,49 +129,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildPageView() {
-    return ValueListenableBuilder<TextDirection>(
-      valueListenable: manager.pageDirectionNotifier,
-      builder: (context, direction, child) {
-        return Directionality(
-          textDirection: direction,
-          child: ValueListenableBuilder<ScrollPhysics>(
-            valueListenable: _pageViewScrollPhysics,
-            builder: (context, physics, child) {
-              return PageView.builder(
-                physics: physics,
-                controller: _pageController,
-                itemCount: HomeManager.totalChapters,
-                itemBuilder: (context, index) {
-                  final (bookId, chapter) = manager.bookAndChapterForPageIndex(
-                    index,
-                  );
-                  return ChapterPage(
-                    key: ValueKey('$bookId-$chapter'),
-                    bookId: bookId,
-                    chapter: chapter,
-                    manager: manager,
-                    fontScale: _fontScale,
-                    onScaleChanged: (newScale) {
-                      setState(() {
-                        _fontScale = newScale;
-                        manager.saveFontScale(newScale);
-                      });
-                    },
-                    showWordDetails: _showWordDetails,
-                    onAdvancePage: _goToNextPage,
-                    onScaleInteraction: _setPageViewScrollingEnabled,
-                  );
-                },
-              );
-            },
-          ),
-        );
-      },
-    );
-  }
-
-  // The rest of the methods from the original HomeScreen remain below
   Future<void> _showDownloadDialog(Locale locale) async {
     final l10n = AppLocalizations.of(context)!;
     final choice =
@@ -283,19 +182,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  ValueListenableBuilder<int?> _buildChapterChooser() {
-    return ValueListenableBuilder<int?>(
-      valueListenable: manager.chapterCountNotifier,
-      builder: (context, chapterCount, child) {
-        if (chapterCount == null) return const SizedBox();
-        return ChapterChooser(
-          chapterCount: chapterCount,
-          onChapterSelected: manager.onChapterSelected,
-        );
-      },
-    );
-  }
-
   Future<void> _showBookChooserDialog() async {
     manager.chapterCountNotifier.value = null;
     final selectedIndex = await showDialog<int>(
@@ -308,8 +194,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _showWordDetails(int wordId) async {
-    final pageIndex = _pageController.page!.round();
-    final (bookId, _) = manager.bookAndChapterForPageIndex(pageIndex);
     await showDialog(
       context: context,
       builder:
@@ -337,20 +221,6 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-
-  void _shownDialog(String message) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return Dialog(
-          child: Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Text(message),
-          ),
-        );
-      },
-    );
-  }
 }
 
 /// Custom recognizer that listens only for scaling (pinch) gestures
@@ -361,21 +231,5 @@ class CustomScaleGestureRecognizer extends ScaleGestureRecognizer {
   void rejectGesture(int pointer) {
     // Don't reject just because another gesture (e.g., scroll) won
     acceptGesture(pointer);
-  }
-}
-
-class SnappyScrollPhysics extends ScrollPhysics {
-  const SnappyScrollPhysics({super.parent});
-
-  @override
-  SnappyScrollPhysics applyTo(ScrollPhysics? ancestor) {
-    return SnappyScrollPhysics(parent: buildParent(ancestor)!);
-  }
-
-  @override
-  SpringDescription get spring {
-    return SpringDescription.withDurationAndBounce(
-      duration: Duration(milliseconds: 300),
-    );
   }
 }

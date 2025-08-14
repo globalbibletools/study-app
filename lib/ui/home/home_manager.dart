@@ -15,7 +15,7 @@ class HomeManager {
   final currentBookNotifier = ValueNotifier<String>('');
   final currentChapterNotifier = ValueNotifier<int>(1);
   final chapterCountNotifier = ValueNotifier<int?>(null);
-  final pageJumpNotifier = ValueNotifier<int?>(null);
+  // final pageJumpNotifier = ValueNotifier<int?>(null);
   final pageDirectionNotifier = ValueNotifier<TextDirection>(TextDirection.rtl);
   final isSinglePanelNotifier = ValueNotifier(true);
   final textParagraphNotifier = ValueNotifier<TextParagraph>([]);
@@ -71,7 +71,7 @@ class HomeManager {
     const currentChapter = 1;
     _updateUiForBook(context, bookId, currentChapter);
     await _settings.setCurrentBookChapter(bookId, currentChapter);
-    pageJumpNotifier.value = pageIndexForBookAndChapter(bookId, currentChapter);
+    // pageJumpNotifier.value = pageIndexForBookAndChapter(bookId, currentChapter);
   }
 
   Future<void> onChapterSelected(int? chapter) async {
@@ -79,21 +79,21 @@ class HomeManager {
     if (chapter == null) return;
     currentChapterNotifier.value = chapter;
     await _settings.setCurrentBookChapter(_currentBookId, chapter);
-    pageJumpNotifier.value = pageIndexForBookAndChapter(
-      _currentBookId,
-      chapter,
-    );
+    // pageJumpNotifier.value = pageIndexForBookAndChapter(
+    //   _currentBookId,
+    //   chapter,
+    // );
   }
 
-  int pageIndexForBookAndChapter(int bookId, int chapter) {
-    int index = 0;
-    // Sum chapters of all preceding books
-    for (int i = 1; i < bookId; i++) {
-      index += _bookIdToChapterCountMap[i]!;
-    }
-    index += chapter - 1;
-    return index;
-  }
+  // int pageIndexForBookAndChapter(int bookId, int chapter) {
+  //   int index = 0;
+  //   // Sum chapters of all preceding books
+  //   for (int i = 1; i < bookId; i++) {
+  //     index += _bookIdToChapterCountMap[i]!;
+  //   }
+  //   index += chapter - 1;
+  //   return index;
+  // }
 
   (int bookId, int chapter) bookAndChapterForPageIndex(int index) {
     int pageIndex = index % totalChapters;
