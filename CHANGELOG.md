@@ -1,6 +1,7 @@
 ## 0.13.0
 
 - Make longpress highlight time lengh a little longer.
+- Modify Bible translation formatting (no headers, footnotes)
 
 ## 0.12.0 - August 13, 2025
 
