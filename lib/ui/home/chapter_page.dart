@@ -115,13 +115,8 @@ class _ChapterPageState extends State<ChapterPage> {
                   _isScalingInProgress = true;
                   _gestureStartScale = _baseScale;
                   _updateTransformAlignment(details.localFocalPoint);
-                  // _didDisablePageViewScroll = false;
                 }
                 ..onUpdate = (details) {
-                  // if (details.scale != 1.0 && !_didDisablePageViewScroll) {
-                  //   widget.onScaleInteraction(false);
-                  //   _didDisablePageViewScroll = true;
-                  // }
                   setState(() {
                     _currentScale = (_gestureStartScale * details.scale).clamp(
                       0.5,
@@ -130,15 +125,11 @@ class _ChapterPageState extends State<ChapterPage> {
                   });
                 }
                 ..onEnd = (details) {
-                  // if (_didDisablePageViewScroll) {
-                  //   widget.onScaleInteraction(true);
-                  // }
                   setState(() {
                     _baseScale = _currentScale;
                   });
                   _isScalingInProgress = false;
                   widget.onScaleChanged(_baseScale);
-                  // widget.onScaleInteraction(true);
                 };
             },
           ),
@@ -183,7 +174,7 @@ class _ChapterPageState extends State<ChapterPage> {
 
   @override
   Widget build(BuildContext context) {
-    final bottomPadding = MediaQuery.sizeOf(context).height - 200;
+    // final bottomPadding = MediaQuery.sizeOf(context).height - 200;
     return RawGestureDetector(
       gestures: _zoomGesture,
       behavior: HitTestBehavior.translucent,
@@ -202,7 +193,9 @@ class _ChapterPageState extends State<ChapterPage> {
                 }
                 return Column(
                   children: [
-                    SizedBox(height: _estimatedPopupHeight()),
+                    const SizedBox(height: 10),
+                    Text('John 1', style: TextStyle(fontSize: 30)),
+                    const SizedBox(height: 10),
                     HebrewGreekText(
                       words: words,
                       textDirection:
@@ -228,7 +221,7 @@ class _ChapterPageState extends State<ChapterPage> {
                       onPopupShown: _ensurePopupIsVisible,
                       onWordLongPress: widget.showWordDetails,
                     ),
-                    SizedBox(height: bottomPadding),
+                    // SizedBox(height: bottomPadding),
                   ],
                 );
               },

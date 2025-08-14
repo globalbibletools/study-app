@@ -63,7 +63,12 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(width: 10),
             OutlinedButton(
-              onPressed: manager.showChapterChooser,
+              onPressed: () {
+                setState(() {
+                  top.add(-top.length - 1);
+                  bottom.add(bottom.length);
+                });
+              },
               child: ValueListenableBuilder(
                 valueListenable: manager.currentChapterNotifier,
                 builder: (context, value, child) => Text('$value'),
@@ -103,20 +108,58 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  List<int> top = <int>[];
+  List<int> bottom = <int>[0];
+
   Widget _buildHebrewGreekView() {
-    return ChapterPage(
-      key: ValueKey('$bookId-$chapter'),
-      bookId: bookId,
-      chapter: chapter,
-      manager: manager,
-      fontScale: _fontScale,
-      onScaleChanged: (newScale) {
-        setState(() {
-          _fontScale = newScale;
-          manager.saveFontScale(newScale);
-        });
-      },
-      showWordDetails: _showWordDetails,
+    const centerKey = ValueKey<String>('bottom-sliver-list');
+    return CustomScrollView(
+      center: centerKey,
+      slivers: [
+        SliverList(
+          delegate: SliverChildBuilderDelegate((
+            BuildContext context,
+            int index,
+          ) {
+            return ChapterPage(
+              key: ValueKey('$bookId-$chapter'),
+              bookId: bookId,
+              chapter: chapter,
+              manager: manager,
+              fontScale: _fontScale,
+              onScaleChanged: (newScale) {
+                setState(() {
+                  _fontScale = newScale;
+                  manager.saveFontScale(newScale);
+                });
+              },
+              showWordDetails: _showWordDetails,
+            );
+          }, childCount: 1),
+        ),
+        SliverList(
+          key: centerKey,
+          delegate: SliverChildBuilderDelegate((
+            BuildContext context,
+            int index,
+          ) {
+            return ChapterPage(
+              key: ValueKey('$bookId-$chapter'),
+              bookId: bookId,
+              chapter: chapter,
+              manager: manager,
+              fontScale: _fontScale,
+              onScaleChanged: (newScale) {
+                setState(() {
+                  _fontScale = newScale;
+                  manager.saveFontScale(newScale);
+                });
+              },
+              showWordDetails: _showWordDetails,
+            );
+          }, childCount: 1),
+        ),
+      ],
     );
   }
 
