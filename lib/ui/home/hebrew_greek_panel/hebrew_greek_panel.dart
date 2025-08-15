@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:studyapp/ui/home/hebrew_greek_panel/chapter_page.dart';
 import 'package:studyapp/ui/home/hebrew_greek_panel/panel_manager.dart';
@@ -24,22 +25,44 @@ class _HebrewGreekPanelState extends State<HebrewGreekPanel> {
   bool _isLoadingNextChapter = false;
   bool _isLoadingPreviousChapter = false;
 
+  late final double _baseFontSize;
+
+  // The scale at the end of the last zoom gesture.
+  late double _baseScale;
+
+  // The current scale during a zoom gesture.
+  late double _currentScale;
+
+  // The scale at the beginning of the current zoom gesture.
+  double _gestureStartScale = 1.0;
+
+  // The alignment for the Transform.scale, calculated from the gesture's focal point.
+  Alignment _transformAlignment = Alignment.center;
+
+  // Computed font size based on the last committed scale.
+  double get _fontSize => _baseFontSize * _baseScale;
+
   @override
   void initState() {
     super.initState();
     _scrollController = ScrollController()..addListener(_scrollListener);
 
-    // Set the initial state when the widget is first created.
+    _baseFontSize = _manager.baseFontSize;
+    _baseScale = _manager.fontScaleNotifier.value;
+    _currentScale = _manager.fontScaleNotifier.value;
+
+    _manager.fontScaleNotifier.addListener(_onFontScaleChanged);
+
     _resetChapters();
   }
 
-  @override
-  void didUpdateWidget(covariant HebrewGreekPanel oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    // If the parent widget rebuilds with a new book/chapter, reset the view.
-    if (widget.bookId != oldWidget.bookId ||
-        widget.chapter != oldWidget.chapter) {
-      _resetChapters();
+  void _onFontScaleChanged() {
+    if (mounted) {
+      final newScale = _manager.fontScaleNotifier.value;
+      setState(() {
+        _baseScale = newScale;
+        _currentScale = newScale;
+      });
     }
   }
 
@@ -54,6 +77,72 @@ class _HebrewGreekPanelState extends State<HebrewGreekPanel> {
       }
       _displayedChapters.add(_centerChapter);
     });
+  }
+
+  Map<Type, GestureRecognizerFactory<GestureRecognizer>> get _zoomGesture {
+    return {
+      ScaleGestureRecognizer:
+          GestureRecognizerFactoryWithHandlers<ScaleGestureRecognizer>(
+            () => ScaleGestureRecognizer(),
+            (ScaleGestureRecognizer instance) {
+              instance
+                ..onStart = (details) {
+                  _gestureStartScale = _baseScale;
+                  // Set the focal point for the zoom.
+                  _updateTransformAlignment(details.localFocalPoint);
+                }
+                ..onUpdate = (details) {
+                  setState(() {
+                    // Update the current scale during the gesture.
+                    _currentScale = (_gestureStartScale * details.scale).clamp(
+                      0.5,
+                      3.0,
+                    );
+                  });
+                }
+                ..onEnd = (details) {
+                  setState(() {
+                    // When the gesture ends, commit the new scale.
+                    _baseScale = _currentScale;
+                  });
+                  // Save the new scale factor.
+                  _manager.saveFontScale(_baseScale);
+                };
+            },
+          ),
+    };
+  }
+
+  void _updateTransformAlignment(Offset localFocalPoint) {
+    final renderBox = context.findRenderObject() as RenderBox?;
+    if (renderBox == null) return;
+
+    setState(() {
+      // Calculate the alignment based on the focal point and widget size.
+      _transformAlignment = _calculateAlignment(
+        renderBox.size,
+        localFocalPoint,
+      );
+    });
+  }
+
+  Alignment _calculateAlignment(Size widgetSize, Offset focalPoint) {
+    final dx = focalPoint.dx.clamp(0.0, widgetSize.width);
+    final dy = focalPoint.dy.clamp(0.0, widgetSize.height);
+    return Alignment(
+      (dx / widgetSize.width) * 2 - 1,
+      (dy / widgetSize.height) * 2 - 1,
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant HebrewGreekPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // If the parent widget rebuilds with a new book/chapter, reset the view.
+    if (widget.bookId != oldWidget.bookId ||
+        widget.chapter != oldWidget.chapter) {
+      _resetChapters();
+    }
   }
 
   void _scrollListener() {
@@ -152,6 +241,7 @@ class _HebrewGreekPanelState extends State<HebrewGreekPanel> {
 
   @override
   void dispose() {
+    _manager.fontScaleNotifier.removeListener(_onFontScaleChanged);
     _manager.dispose();
     _scrollController.removeListener(_scrollListener);
     _scrollController.dispose();
@@ -160,25 +250,36 @@ class _HebrewGreekPanelState extends State<HebrewGreekPanel> {
 
   @override
   Widget build(BuildContext context) {
-    return CustomScrollView(
-      controller: _scrollController,
-      // This key tells the scroll view which sliver to initially display.
-      center: ValueKey(_centerChapter.toString()),
-      slivers: _displayedChapters.map((chapterId) {
-        return SliverList(
-          // Use the chapter identifier to create a unique key for the centered sliver.
-          key: ValueKey(chapterId.toString()),
-          delegate: SliverChildBuilderDelegate((context, index) {
-            return ChapterPage(
-              // Use a different, more specific key for the page itself.
-              key: ValueKey('page-${chapterId.bookId}-${chapterId.chapter}'),
-              bookId: chapterId.bookId,
-              chapter: chapterId.chapter,
-              manager: _manager,
+    return RawGestureDetector(
+      gestures: _zoomGesture,
+      behavior: HitTestBehavior.translucent,
+      child: Transform.scale(
+        scale: _baseScale > 0 ? _currentScale / _baseScale : 1.0,
+        alignment: _transformAlignment,
+        child: CustomScrollView(
+          controller: _scrollController,
+          // This key tells the scroll view which sliver to initially display.
+          center: ValueKey(_centerChapter.toString()),
+          slivers: _displayedChapters.map((chapterId) {
+            return SliverList(
+              // Use the chapter identifier to create a unique key for the centered sliver.
+              key: ValueKey(chapterId.toString()),
+              delegate: SliverChildBuilderDelegate((context, index) {
+                return ChapterPage(
+                  // Use a different, more specific key for the page itself.
+                  key: ValueKey(
+                    'page-${chapterId.bookId}-${chapterId.chapter}',
+                  ),
+                  bookId: chapterId.bookId,
+                  chapter: chapterId.chapter,
+                  fontSize: _fontSize,
+                  manager: _manager,
+                );
+              }, childCount: 1),
             );
-          }, childCount: 1),
-        );
-      }).toList(),
+          }).toList(),
+        ),
+      ),
     );
   }
 }
