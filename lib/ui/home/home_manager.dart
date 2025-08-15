@@ -21,18 +21,15 @@ class HomeManager {
   final textParagraphNotifier = ValueNotifier<TextParagraph>([]);
   final downloadProgressNotifier = ValueNotifier<double?>(null);
 
-  final _glossService = getIt<GlossService>();
   // final _downloadService = getIt<DownloadService>();
   final _bibleDb = getIt<BibleDatabase>();
   final _settings = getIt<UserSettings>();
   int _currentBookId = 1;
 
-  void Function(Locale)? onGlossDownloadNeeded;
+  // void Function(Locale)? onGlossDownloadNeeded;
 
   static const _lastOldTestamentBookId = 39;
   bool isRtl(int bookId) => bookId <= _lastOldTestamentBookId;
-
-  double get baseFontSize => _settings.baseFontSize;
 
   // The total number of chapters in the Bible
   static const int totalChapters = 1189;
@@ -114,33 +111,6 @@ class HomeManager {
 
   (int, int) getInitialBookAndChapter() {
     return _settings.currentBookChapter;
-  }
-
-  Future<void> saveFontScale(double scale) async {
-    await _settings.setFontScale(scale);
-  }
-
-  double getFontScale() {
-    return _settings.fontScale;
-  }
-
-  Future<String?> getPopupTextForId(Locale uiLocale, int wordId) async {
-    return _glossService.glossForId(
-      locale: uiLocale,
-      wordId: wordId,
-      onDatabaseMissing: onGlossDownloadNeeded,
-    );
-  }
-
-  // Called from the UI when user agrees to download.
-  Future<void> downloadGlosses(Locale locale) async {
-    await _glossService.downloadGlosses(locale);
-  }
-
-  // Called from the UI when user wants to use English instead of downloading.
-  Future<void> setLanguageToEnglish(Locale originalLocale) async {
-    await _settings.setLocale('en');
-    getIt<AppState>().init();
   }
 
   void togglePanelState() {

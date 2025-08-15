@@ -1,12 +1,8 @@
-import 'dart:async';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:studyapp/l10n/app_localizations.dart';
-import 'package:studyapp/ui/home/chapter_page.dart';
 import 'package:studyapp/ui/home/drawer.dart';
-import 'package:studyapp/ui/home/word_details_dialog/word_details_dialog.dart';
+import 'package:studyapp/ui/home/hebrew_greek_panel/hebrew_greek_panel.dart';
 
-import 'book_chooser.dart';
 import 'bible_panel/bible_text.dart';
 import 'home_manager.dart';
 
@@ -21,7 +17,6 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final manager = HomeManager();
-  double _fontScale = 1.0;
 
   late int bookId;
   late int chapter;
@@ -29,7 +24,6 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    manager.onGlossDownloadNeeded = _showDownloadDialog;
 
     final (initialBook, initialChapter) = manager.getInitialBookAndChapter();
     bookId = initialBook;
@@ -40,7 +34,6 @@ class _HomeScreenState extends State<HomeScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     manager.init(context);
-    _fontScale = manager.getFontScale();
   }
 
   @override
@@ -54,13 +47,13 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: Row(
           children: [
-            OutlinedButton(
-              onPressed: _showBookChooserDialog,
-              child: ValueListenableBuilder<String>(
-                valueListenable: manager.currentBookNotifier,
-                builder: (context, value, child) => Text(value),
-              ),
-            ),
+            // OutlinedButton(
+            //   onPressed: _showBookChooserDialog,
+            //   child: ValueListenableBuilder<String>(
+            //     valueListenable: manager.currentBookNotifier,
+            //     builder: (context, value, child) => Text(value),
+            //   ),
+            // ),
             const SizedBox(width: 10),
             OutlinedButton(
               onPressed: () {
@@ -89,13 +82,19 @@ class _HomeScreenState extends State<HomeScreen> {
       drawer: AppDrawer(
         onSettingsClosed: () {
           setState(() {
-            _fontScale = manager.getFontScale();
+            // _fontScale = manager.getFontScale();
           });
         },
       ),
       body: Column(
         children: [
-          Expanded(child: _buildHebrewGreekView()),
+          Expanded(
+            child: HebrewGreekPanel(
+              bookId: bookId,
+              chapter: chapter,
+              // showWordDetails: _showWordDetails,
+            ),
+          ),
           ValueListenableBuilder<bool>(
             valueListenable: manager.isSinglePanelNotifier,
             builder: (context, isSinglePanel, child) {
@@ -111,57 +110,57 @@ class _HomeScreenState extends State<HomeScreen> {
   List<int> top = <int>[];
   List<int> bottom = <int>[0];
 
-  Widget _buildHebrewGreekView() {
-    const centerKey = ValueKey<String>('bottom-sliver-list');
-    return CustomScrollView(
-      center: centerKey,
-      slivers: [
-        SliverList(
-          delegate: SliverChildBuilderDelegate((
-            BuildContext context,
-            int index,
-          ) {
-            return ChapterPage(
-              key: ValueKey('$bookId-$chapter'),
-              bookId: bookId,
-              chapter: chapter,
-              manager: manager,
-              fontScale: _fontScale,
-              onScaleChanged: (newScale) {
-                setState(() {
-                  _fontScale = newScale;
-                  manager.saveFontScale(newScale);
-                });
-              },
-              showWordDetails: _showWordDetails,
-            );
-          }, childCount: 1),
-        ),
-        SliverList(
-          key: centerKey,
-          delegate: SliverChildBuilderDelegate((
-            BuildContext context,
-            int index,
-          ) {
-            return ChapterPage(
-              key: ValueKey('$bookId-$chapter'),
-              bookId: bookId,
-              chapter: chapter,
-              manager: manager,
-              fontScale: _fontScale,
-              onScaleChanged: (newScale) {
-                setState(() {
-                  _fontScale = newScale;
-                  manager.saveFontScale(newScale);
-                });
-              },
-              showWordDetails: _showWordDetails,
-            );
-          }, childCount: 1),
-        ),
-      ],
-    );
-  }
+  // Widget _buildHebrewGreekView() {
+  //   const centerKey = ValueKey<String>('bottom-sliver-list');
+  //   return CustomScrollView(
+  //     center: centerKey,
+  //     slivers: [
+  //       SliverList(
+  //         delegate: SliverChildBuilderDelegate((
+  //           BuildContext context,
+  //           int index,
+  //         ) {
+  //           return ChapterPage(
+  //             key: ValueKey('$bookId-$chapter'),
+  //             bookId: bookId,
+  //             chapter: chapter,
+  //             manager: manager,
+  //             fontScale: _fontScale,
+  //             onScaleChanged: (newScale) {
+  //               setState(() {
+  //                 _fontScale = newScale;
+  //                 manager.saveFontScale(newScale);
+  //               });
+  //             },
+  //             showWordDetails: _showWordDetails,
+  //           );
+  //         }, childCount: 1),
+  //       ),
+  //       SliverList(
+  //         key: centerKey,
+  //         delegate: SliverChildBuilderDelegate((
+  //           BuildContext context,
+  //           int index,
+  //         ) {
+  //           return ChapterPage(
+  //             key: ValueKey('$bookId-$chapter'),
+  //             bookId: bookId,
+  //             chapter: chapter,
+  //             manager: manager,
+  //             fontScale: _fontScale,
+  //             onScaleChanged: (newScale) {
+  //               setState(() {
+  //                 _fontScale = newScale;
+  //                 manager.saveFontScale(newScale);
+  //               });
+  //             },
+  //             showWordDetails: _showWordDetails,
+  //           );
+  //         }, childCount: 1),
+  //       ),
+  //     ],
+  //   );
+  // }
 
   void _requestText() {
     if (manager.isSinglePanelNotifier.value) return;
@@ -172,78 +171,16 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Future<void> _showDownloadDialog(Locale locale) async {
-    final l10n = AppLocalizations.of(context)!;
-    final choice =
-        await showDialog<DownloadDialogChoice>(
-          context: context,
-          barrierDismissible: false,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              content: Text(l10n.downloadGlossesMessage),
-              actions: <Widget>[
-                TextButton(
-                  child: Text(l10n.useEnglish),
-                  onPressed:
-                      () => Navigator.of(
-                        context,
-                      ).pop(DownloadDialogChoice.useEnglish),
-                ),
-                FilledButton(
-                  child: Text(l10n.download),
-                  onPressed:
-                      () => Navigator.of(
-                        context,
-                      ).pop(DownloadDialogChoice.download),
-                ),
-              ],
-            );
-          },
-        ) ??
-        DownloadDialogChoice.useEnglish;
-
-    if (!mounted) return;
-
-    if (choice == DownloadDialogChoice.useEnglish) {
-      await manager.setLanguageToEnglish(locale);
-    } else {
-      final messenger = ScaffoldMessenger.of(context);
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(l10n.downloadingGlossesMessage),
-          duration: const Duration(seconds: 30),
-        ),
-      );
-      try {
-        await manager.downloadGlosses(locale);
-        messenger.hideCurrentSnackBar();
-        messenger.showSnackBar(SnackBar(content: Text(l10n.downloadComplete)));
-      } catch (e) {
-        messenger.hideCurrentSnackBar();
-        messenger.showSnackBar(SnackBar(content: Text(l10n.downloadFailed)));
-      }
-    }
-  }
-
-  Future<void> _showBookChooserDialog() async {
-    manager.chapterCountNotifier.value = null;
-    final selectedIndex = await showDialog<int>(
-      context: context,
-      builder: (BuildContext context) => const BookChooser(),
-    );
-    if (mounted) {
-      manager.onBookSelected(context, selectedIndex);
-    }
-  }
-
-  Future<void> _showWordDetails(int wordId) async {
-    await showDialog(
-      context: context,
-      builder:
-          (context) =>
-              WordDetailsDialog(wordId: wordId, isRtl: manager.isRtl(bookId)),
-    );
-  }
+  // Future<void> _showBookChooserDialog() async {
+  //   // manager.chapterCountNotifier.value = null;
+  //   // final selectedIndex = await showDialog<int>(
+  //   //   context: context,
+  //   //   builder: (BuildContext context) => const BookChooser(),
+  //   // );
+  //   // if (mounted) {
+  //   //   manager.onBookSelected(context, selectedIndex);
+  //   // }
+  // }
 
   Widget _buildBibleView() {
     return Expanded(
