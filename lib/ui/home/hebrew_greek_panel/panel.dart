@@ -1,8 +1,11 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:studyapp/ui/home/hebrew_greek_panel/chapter_page.dart';
+import 'package:studyapp/ui/home/hebrew_greek_panel/chapter.dart';
 import 'package:studyapp/ui/home/hebrew_greek_panel/panel_manager.dart';
 
+/// Handles infinite scrolling and zooming for multiple chapters, all contained
+/// within a panel. This panel is meant to be separate but adjacent to a
+/// Bible translation panel that shows English text (or another language).
 class HebrewGreekPanel extends StatefulWidget {
   const HebrewGreekPanel({
     super.key,
@@ -265,7 +268,7 @@ class _HebrewGreekPanelState extends State<HebrewGreekPanel> {
               // Use the chapter identifier to create a unique key for the centered sliver.
               key: ValueKey(chapterId.toString()),
               delegate: SliverChildBuilderDelegate((context, index) {
-                return ChapterPage(
+                return HebrewGreekChapter(
                   // Use a different, more specific key for the page itself.
                   key: ValueKey(
                     'page-${chapterId.bookId}-${chapterId.chapter}',

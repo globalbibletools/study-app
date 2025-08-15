@@ -1,109 +1,29 @@
 import 'package:database_builder/database_builder.dart';
 import 'package:flutter/widgets.dart';
-import 'package:studyapp/app_state.dart';
 import 'package:studyapp/l10n/app_localizations.dart';
 import 'package:studyapp/services/bible/bible_database.dart';
-import 'package:studyapp/services/gloss/gloss_service.dart';
 import 'package:studyapp/services/service_locator.dart';
 import 'package:studyapp/services/user_settings.dart';
-
-import 'bible_panel/format_verses.dart';
 
 typedef TextParagraph = List<(TextSpan, TextType, Format?)>;
 
 class HomeManager {
   final currentBookNotifier = ValueNotifier<String>('');
   final currentChapterNotifier = ValueNotifier<int>(1);
-  final chapterCountNotifier = ValueNotifier<int?>(null);
-  // final pageJumpNotifier = ValueNotifier<int?>(null);
-  final pageDirectionNotifier = ValueNotifier<TextDirection>(TextDirection.rtl);
   final isSinglePanelNotifier = ValueNotifier(true);
   final textParagraphNotifier = ValueNotifier<TextParagraph>([]);
-  final downloadProgressNotifier = ValueNotifier<double?>(null);
 
-  // final _downloadService = getIt<DownloadService>();
   final _bibleDb = getIt<BibleDatabase>();
   final _settings = getIt<UserSettings>();
-  int _currentBookId = 1;
-
-  // void Function(Locale)? onGlossDownloadNeeded;
-
-  static const _lastOldTestamentBookId = 39;
-  bool isRtl(int bookId) => bookId <= _lastOldTestamentBookId;
-
-  // The total number of chapters in the Bible
-  static const int totalChapters = 1189;
-
-  // bool bibleExists = false;
 
   Future<void> init(BuildContext context) async {
     final (bookId, chapter) = _settings.currentBookChapter;
     _updateUiForBook(context, bookId, chapter);
-    // bibleExists = await _bibleDb.bibleExists();
-    // print('bible exists: $bibleExists');
   }
 
   void _updateUiForBook(BuildContext context, int bookId, int chapter) {
-    _currentBookId = bookId;
     currentBookNotifier.value = _bookNameFromId(context, bookId);
     currentChapterNotifier.value = chapter;
-    pageDirectionNotifier.value = isRtl(bookId)
-        ? TextDirection.rtl
-        : TextDirection.ltr;
-  }
-
-  // Called from the UI when a page is swiped to
-  void onPageChanged(BuildContext context, int pageIndex) {
-    final (bookId, chapter) = bookAndChapterForPageIndex(pageIndex);
-    _updateUiForBook(context, bookId, chapter);
-    _settings.setCurrentBookChapter(bookId, chapter);
-  }
-
-  void showChapterChooser() {
-    final numberOfChapters = _bookIdToChapterCountMap[_currentBookId];
-    chapterCountNotifier.value = numberOfChapters;
-  }
-
-  Future<void> onBookSelected(BuildContext context, int? bookId) async {
-    if (bookId == null) return;
-    const currentChapter = 1;
-    _updateUiForBook(context, bookId, currentChapter);
-    await _settings.setCurrentBookChapter(bookId, currentChapter);
-    // pageJumpNotifier.value = pageIndexForBookAndChapter(bookId, currentChapter);
-  }
-
-  Future<void> onChapterSelected(int? chapter) async {
-    chapterCountNotifier.value = null;
-    if (chapter == null) return;
-    currentChapterNotifier.value = chapter;
-    await _settings.setCurrentBookChapter(_currentBookId, chapter);
-  }
-
-  // int pageIndexForBookAndChapter(int bookId, int chapter) {
-  //   int index = 0;
-  //   // Sum chapters of all preceding books
-  //   for (int i = 1; i < bookId; i++) {
-  //     index += _bookIdToChapterCountMap[i]!;
-  //   }
-  //   index += chapter - 1;
-  //   return index;
-  // }
-
-  (int bookId, int chapter) bookAndChapterForPageIndex(int index) {
-    int pageIndex = index % totalChapters;
-    int currentBookId = 1;
-    int currentChapter = 1;
-    int remainingIndex = pageIndex;
-
-    for (final entry in _bookIdToChapterCountMap.entries) {
-      if (remainingIndex < entry.value) {
-        currentBookId = entry.key;
-        currentChapter = remainingIndex + 1;
-        break;
-      }
-      remainingIndex -= entry.value;
-    }
-    return (currentBookId, currentChapter);
   }
 
   (int, int) getInitialBookAndChapter() {
@@ -133,18 +53,18 @@ class HomeManager {
     required Color textColor,
     required Color footnoteColor,
   }) async {
-    final content = await _bibleDb.getChapter(
-      _currentBookId,
-      currentChapterNotifier.value,
-    );
-    final formattedContent = formatVerses(
-      verseLines: content,
-      baseFontSize: 20,
-      textColor: textColor,
-      verseNumberColor: footnoteColor,
-      showSectionTitles: false,
-    );
-    textParagraphNotifier.value = formattedContent;
+    //   final content = await _bibleDb.getChapter(
+    //     _currentBookId,
+    //     currentChapterNotifier.value,
+    //   );
+    //   final formattedContent = formatVerses(
+    //     verseLines: content,
+    //     baseFontSize: 20,
+    //     textColor: textColor,
+    //     verseNumberColor: footnoteColor,
+    //     showSectionTitles: false,
+    //   );
+    //   textParagraphNotifier.value = formattedContent;
   }
 }
 
@@ -287,72 +207,3 @@ String _bookNameFromId(BuildContext context, int bookId) {
       return '';
   }
 }
-
-final Map<int, int> _bookIdToChapterCountMap = {
-  1: 50, // Genesis
-  2: 40, // Exodus
-  3: 27, // Leviticus
-  4: 36, // Numbers
-  5: 34, // Deuteronomy
-  6: 24, // Joshua
-  7: 21, // Judges
-  8: 4, // Ruth
-  9: 31, // 1 Samuel
-  10: 24, // 2 Samuel
-  11: 22, // 1 Kings
-  12: 25, // 2 Kings
-  13: 29, // 1 Chronicles
-  14: 36, // 2 Chronicles
-  15: 10, // Ezra
-  16: 13, // Nehemiah
-  17: 10, // Esther
-  18: 42, // Job
-  19: 150, // Psalms
-  20: 31, // Proverbs
-  21: 12, // Ecclesiastes
-  22: 8, // Song of Solomon
-  23: 66, // Isaiah
-  24: 52, // Jeremiah
-  25: 5, // Lamentations
-  26: 48, // Ezekiel
-  27: 12, // Daniel
-  28: 14, // Hosea
-  29: 3, // Joel
-  30: 9, // Amos
-  31: 1, // Obadiah
-  32: 4, // Jonah
-  33: 7, // Micah
-  34: 3, // Nahum
-  35: 3, // Habakkuk
-  36: 3, // Zephaniah
-  37: 2, // Haggai
-  38: 14, // Zechariah
-  39: 4, // Malachi
-  40: 28, // Matthew
-  41: 16, // Mark
-  42: 24, // Luke
-  43: 21, // John
-  44: 28, // Acts
-  45: 16, // Romans
-  46: 16, // 1 Corinthians
-  47: 13, // 2 Corinthians
-  48: 6, // Galatians
-  49: 6, // Ephesians
-  50: 4, // Philippians
-  51: 4, // Colossians
-  52: 5, // 1 Thessalonians
-  53: 3, // 2 Thessalonians
-  54: 6, // 1 Timothy
-  55: 4, // 2 Timothy
-  56: 3, // Titus
-  57: 1, // Philemon
-  58: 13, // Hebrews
-  59: 5, // James
-  60: 5, // 1 Peter
-  61: 3, // 2 Peter
-  62: 5, // 1 John
-  63: 1, // 2 John
-  64: 1, // 3 John
-  65: 1, // Jude
-  66: 22, // Revelation
-};

@@ -1,7 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:studyapp/ui/home/drawer.dart';
-import 'package:studyapp/ui/home/hebrew_greek_panel/hebrew_greek_panel.dart';
+import 'package:studyapp/ui/home/hebrew_greek_panel/panel.dart';
 
 import 'bible_panel/bible_text.dart';
 import 'home_manager.dart';

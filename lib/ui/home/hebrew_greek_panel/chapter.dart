@@ -2,13 +2,15 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:studyapp/common/word.dart';
 import 'package:studyapp/l10n/app_localizations.dart';
-import 'package:studyapp/ui/home/hebrew_greek_panel/hebrew_greek_text.dart';
+import 'package:studyapp/ui/home/hebrew_greek_panel/chapter_manager.dart';
+import 'package:studyapp/ui/home/hebrew_greek_panel/text.dart';
 import 'package:studyapp/ui/home/hebrew_greek_panel/panel_manager.dart';
 import 'package:studyapp/ui/home/home.dart';
 import 'package:studyapp/ui/home/word_details_dialog/word_details_dialog.dart';
 
-class ChapterPage extends StatefulWidget {
-  const ChapterPage({
+/// Manages fetching data and alerts for a single chapter.
+class HebrewGreekChapter extends StatefulWidget {
+  const HebrewGreekChapter({
     super.key,
     required this.bookId,
     required this.chapter,
@@ -22,52 +24,32 @@ class ChapterPage extends StatefulWidget {
   final HebrewGreekPanelManager manager;
 
   @override
-  State<ChapterPage> createState() => _ChapterPageState();
+  State<HebrewGreekChapter> createState() => _HebrewGreekChapterState();
 }
 
-class _ChapterPageState extends State<ChapterPage> {
-  late HebrewGreekPanelManager manager;
-
-  final _textNotifier = ValueNotifier<List<HebrewGreekWord>>([]);
+class _HebrewGreekChapterState extends State<HebrewGreekChapter> {
+  final manager = HebrewGreekChapterManager();
 
   @override
   void initState() {
     super.initState();
-    manager = widget.manager;
-    _loadChapterData();
+    manager.loadChapterData(widget.bookId, widget.chapter);
   }
 
   @override
-  void didUpdateWidget(covariant ChapterPage oldWidget) {
+  void didUpdateWidget(covariant HebrewGreekChapter oldWidget) {
     super.didUpdateWidget(oldWidget);
     // If Flutter reuses this widget for a new chapter, fetch the new chapter's data.
     if (widget.bookId != oldWidget.bookId ||
         widget.chapter != oldWidget.chapter) {
-      _loadChapterData();
+      manager.loadChapterData(widget.bookId, widget.chapter);
     }
-  }
-
-  Future<void> _loadChapterData() async {
-    _textNotifier.value = [];
-    final words = await widget.manager.getChapterData(
-      widget.bookId,
-      widget.chapter,
-    );
-    if (mounted) {
-      _textNotifier.value = words;
-    }
-  }
-
-  @override
-  void dispose() {
-    _textNotifier.dispose();
-    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<List<HebrewGreekWord>>(
-      valueListenable: _textNotifier,
+      valueListenable: manager.textNotifier,
       builder: (context, words, child) {
         if (words.isEmpty) {
           return const SizedBox();
