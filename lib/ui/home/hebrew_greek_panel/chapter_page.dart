@@ -9,17 +9,25 @@ import 'package:studyapp/ui/home/home.dart';
 import 'package:studyapp/ui/home/word_details_dialog/word_details_dialog.dart';
 
 class ChapterPage extends StatefulWidget {
-  const ChapterPage({super.key, required this.bookId, required this.chapter});
+  const ChapterPage({
+    super.key,
+    required this.bookId,
+    required this.chapter,
+    required this.manager,
+  });
 
   final int bookId;
   final int chapter;
+  final HebrewGreekPanelManager manager;
 
   @override
   State<ChapterPage> createState() => _ChapterPageState();
 }
 
 class _ChapterPageState extends State<ChapterPage> {
-  final manager = HebrewGreekPanelManager();
+  late HebrewGreekPanelManager manager;
+
+  final _textNotifier = ValueNotifier<List<HebrewGreekWord>>([]);
 
   late final double _baseFontSize;
 
@@ -41,16 +49,53 @@ class _ChapterPageState extends State<ChapterPage> {
   @override
   void initState() {
     super.initState();
-    manager.loadChapter(widget.bookId, widget.chapter);
+    manager = widget.manager;
     _baseFontSize = manager.baseFontSize;
-    _baseScale = manager.fontScale;
-    _currentScale = manager.fontScale;
+    _baseScale = manager.fontScaleNotifier.value;
+    _currentScale = manager.fontScaleNotifier.value;
+
+    widget.manager.fontScaleNotifier.addListener(_onFontScaleChanged);
+    _loadChapterData();
+  }
+
+  @override
+  void didUpdateWidget(covariant ChapterPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // This is crucial: If Flutter reuses this widget for a new chapter,
+    // we must fetch the new chapter's data.
+    if (widget.bookId != oldWidget.bookId ||
+        widget.chapter != oldWidget.chapter) {
+      _loadChapterData();
+    }
+  }
+
+  Future<void> _loadChapterData() async {
+    // Clear old data to show a loading state.
+    _textNotifier.value = [];
+    final words = await widget.manager.getChapterData(
+      widget.bookId,
+      widget.chapter,
+    );
+    if (mounted) {
+      _textNotifier.value = words;
+    }
   }
 
   @override
   void dispose() {
-    manager.dispose();
+    widget.manager.fontScaleNotifier.removeListener(_onFontScaleChanged);
+    _textNotifier.dispose();
     super.dispose();
+  }
+
+  void _onFontScaleChanged() {
+    if (mounted) {
+      final newScale = widget.manager.fontScaleNotifier.value;
+      setState(() {
+        _baseScale = newScale;
+        _currentScale = newScale;
+      });
+    }
   }
 
   Map<Type, GestureRecognizerFactory<GestureRecognizer>> get _zoomGesture {
@@ -123,7 +168,7 @@ class _ChapterPageState extends State<ChapterPage> {
           scale: _baseScale > 0 ? _currentScale / _baseScale : 1.0,
           alignment: _transformAlignment,
           child: ValueListenableBuilder<List<HebrewGreekWord>>(
-            valueListenable: manager.textNotifier,
+            valueListenable: _textNotifier,
             builder: (context, words, child) {
               if (words.isEmpty) {
                 return const SizedBox();
@@ -131,7 +176,10 @@ class _ChapterPageState extends State<ChapterPage> {
               return Column(
                 children: [
                   const SizedBox(height: 10),
-                  Text('John 1', style: TextStyle(fontSize: 30)),
+                  Text(
+                    '${widget.bookId} ${widget.chapter}',
+                    style: TextStyle(fontSize: 30),
+                  ),
                   const SizedBox(height: 10),
                   HebrewGreekText(
                     words: words,

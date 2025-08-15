@@ -12,23 +12,22 @@ class HebrewGreekPanelManager {
   final _settings = getIt<UserSettings>();
   final _hebrewGreekDb = getIt<HebrewGreekDatabase>();
   final _glossService = getIt<GlossService>();
-  final textNotifier = ValueNotifier<List<HebrewGreekWord>>([]);
+  // final textNotifier = ValueNotifier<List<HebrewGreekWord>>([]);
+  late final fontScaleNotifier = ValueNotifier<double>(_settings.fontScale);
 
   double get baseFontSize => _settings.baseFontSize;
-
-  double get fontScale => _settings.fontScale;
 
   Future<void> saveFontScale(double scale) async {
     await _settings.setFontScale(scale);
   }
 
-  Future<void> loadChapter(int bookId, int chapter) async {
-    if (textNotifier.value.isNotEmpty) return;
-    textNotifier.value = await _hebrewGreekDb.getChapter(bookId, chapter);
-  }
+  // Future<void> loadChapter(int bookId, int chapter) async {
+  //   if (textNotifier.value.isNotEmpty) return;
+  //   textNotifier.value = await _hebrewGreekDb.getChapter(bookId, chapter);
+  // }
 
-  void dispose() {
-    textNotifier.dispose();
+  Future<List<HebrewGreekWord>> getChapterData(int bookId, int chapter) async {
+    return _hebrewGreekDb.getChapter(bookId, chapter);
   }
 
   bool isRtl(int bookId) {
@@ -57,5 +56,10 @@ class HebrewGreekPanelManager {
   Future<void> setLanguageToEnglish(Locale originalLocale) async {
     await _settings.setLocale('en');
     getIt<AppState>().init();
+  }
+
+  void dispose() {
+    // textNotifier.dispose();
+    fontScaleNotifier.dispose();
   }
 }

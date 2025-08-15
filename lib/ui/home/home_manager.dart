@@ -47,8 +47,9 @@ class HomeManager {
     _currentBookId = bookId;
     currentBookNotifier.value = _bookNameFromId(context, bookId);
     currentChapterNotifier.value = chapter;
-    pageDirectionNotifier.value =
-        isRtl(bookId) ? TextDirection.rtl : TextDirection.ltr;
+    pageDirectionNotifier.value = isRtl(bookId)
+        ? TextDirection.rtl
+        : TextDirection.ltr;
   }
 
   // Called from the UI when a page is swiped to
@@ -76,10 +77,6 @@ class HomeManager {
     if (chapter == null) return;
     currentChapterNotifier.value = chapter;
     await _settings.setCurrentBookChapter(_currentBookId, chapter);
-    // pageJumpNotifier.value = pageIndexForBookAndChapter(
-    //   _currentBookId,
-    //   chapter,
-    // );
   }
 
   // int pageIndexForBookAndChapter(int bookId, int chapter) {
