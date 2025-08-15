@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:studyapp/common/book_name.dart';
 import 'package:studyapp/common/word.dart';
 import 'package:studyapp/l10n/app_localizations.dart';
 import 'package:studyapp/ui/home/hebrew_greek_panel/chapter_manager.dart';
@@ -60,7 +61,7 @@ class _HebrewGreekChapterState extends State<HebrewGreekChapter> {
             children: [
               const SizedBox(height: 10),
               Text(
-                '${widget.bookId} ${widget.chapter}',
+                '${bookNameForId(context, widget.bookId)} ${widget.chapter}',
                 style: TextStyle(fontSize: 30),
               ),
               const SizedBox(height: 10),
