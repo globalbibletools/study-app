@@ -119,9 +119,7 @@ class _HebrewGreekPanelState extends State<HebrewGreekPanel> {
   void _updateTransformAlignment(Offset localFocalPoint) {
     final renderBox = context.findRenderObject() as RenderBox?;
     if (renderBox == null) return;
-
     setState(() {
-      // Calculate the alignment based on the focal point and widget size.
       _transformAlignment = _calculateAlignment(
         renderBox.size,
         localFocalPoint,
@@ -261,24 +259,17 @@ class _HebrewGreekPanelState extends State<HebrewGreekPanel> {
         alignment: _transformAlignment,
         child: CustomScrollView(
           controller: _scrollController,
-          // This key tells the scroll view which sliver to initially display.
           center: ValueKey(_centerChapter.toString()),
           slivers: _displayedChapters.map((chapterId) {
-            return SliverList(
-              // Use the chapter identifier to create a unique key for the centered sliver.
+            return SliverToBoxAdapter(
               key: ValueKey(chapterId.toString()),
-              delegate: SliverChildBuilderDelegate((context, index) {
-                return HebrewGreekChapter(
-                  // Use a different, more specific key for the page itself.
-                  key: ValueKey(
-                    'page-${chapterId.bookId}-${chapterId.chapter}',
-                  ),
-                  bookId: chapterId.bookId,
-                  chapter: chapterId.chapter,
-                  fontSize: _fontSize,
-                  manager: _manager,
-                );
-              }, childCount: 1),
+              child: HebrewGreekChapter(
+                key: ValueKey('page-${chapterId.bookId}-${chapterId.chapter}'),
+                bookId: chapterId.bookId,
+                chapter: chapterId.chapter,
+                fontSize: _fontSize,
+                manager: _manager,
+              ),
             );
           }).toList(),
         ),

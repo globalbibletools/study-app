@@ -19,6 +19,29 @@ typedef AsyncWordActionCallback = Future<void> Function(int wordId);
 /// no popup will be shown for that word.
 typedef AsyncPopupWordProvider = Future<String?> Function(int wordId);
 
+/// A way for the outside world (such as scroll controllers) to obtain the
+/// internal layout metrics of [HebrewGreekText].
+class HebrewGreekTextController {
+  final Map<int, Rect> _verseRects = {};
+
+  /// Updates the controller with the latest verse rectangles.
+  ///
+  /// This is intended to be called by the RenderHebrewGreekText object.
+  void _updateVerseRects(Map<int, Rect> rects) {
+    _verseRects.clear();
+    _verseRects.addAll(rects);
+  }
+
+  /// Retrieves the [Rect] for a given verse number.
+  ///
+  /// The [Rect] contains the position and size of the verse number
+  /// relative to the top-left corner of the HebrewGreekText widget.
+  /// Returns null if the verse number is not found.
+  Rect? getVerseRect(int verseNumber) {
+    return _verseRects[verseNumber];
+  }
+}
+
 /// A widget that renders Hebrew and Greek text with custom layout and styling.
 ///
 /// This widget takes a list of [HebrewGreekWord] objects and renders them according
@@ -37,6 +60,7 @@ class HebrewGreekText extends LeafRenderObjectWidget {
   const HebrewGreekText({
     super.key,
     required this.words,
+    this.controller,
     this.textDirection = TextDirection.ltr,
     this.textStyle,
     this.verseNumberStyle,
@@ -50,6 +74,10 @@ class HebrewGreekText extends LeafRenderObjectWidget {
 
   /// The words that will rendered in the text layout
   final List<HebrewGreekWord> words;
+
+  /// A controller to programmatically interact with the text layout,
+  /// for example, to scroll to a specific verse.
+  final HebrewGreekTextController? controller;
 
   /// RTL for Hebrew and LTR for Greek
   final TextDirection textDirection;
@@ -99,6 +127,7 @@ class HebrewGreekText extends LeafRenderObjectWidget {
 
     return RenderHebrewGreekText(
       words: words,
+      controller: controller,
       textDirection: textDirection,
       style: effectiveTextStyle!,
       verseNumberStyle: effectiveVerseNumberStyle,
@@ -135,6 +164,7 @@ class HebrewGreekText extends LeafRenderObjectWidget {
 
     renderObject
       ..words = words
+      ..controller = controller
       ..textDirection = textDirection
       ..textStyle = effectiveTextStyle!
       ..verseNumberStyle = effectiveVerseNumberStyle
@@ -153,6 +183,9 @@ class HebrewGreekText extends LeafRenderObjectWidget {
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     super.debugFillProperties(properties);
     properties.add(DiagnosticsProperty<List<HebrewGreekWord>>('words', words));
+    properties.add(
+      DiagnosticsProperty<HebrewGreekTextController>('controller', controller),
+    );
     properties.add(EnumProperty<TextDirection>('textDirection', textDirection));
     properties.add(DiagnosticsProperty<TextStyle>('textStyle', textStyle));
     properties.add(
@@ -186,6 +219,7 @@ class RenderHebrewGreekText extends RenderBox {
 
   RenderHebrewGreekText({
     required List<HebrewGreekWord> words,
+    HebrewGreekTextController? controller,
     required TextDirection textDirection,
     required TextStyle style,
     required TextStyle? verseNumberStyle,
@@ -196,6 +230,7 @@ class RenderHebrewGreekText extends RenderBox {
     AsyncWordActionCallback? onWordLongPress,
     required Color flashColor,
   }) : _words = words,
+       _controller = controller,
        _textDirection = textDirection,
        _textStyle = style,
        _verseNumberStyle = verseNumberStyle,
@@ -207,8 +242,8 @@ class RenderHebrewGreekText extends RenderBox {
        _flashColor = flashColor {
     _updatePainters();
     _tapRecognizer = TapGestureRecognizer()..onTapUp = _handleTapUp;
-    _longPressRecognizer =
-        LongPressGestureRecognizer()..onLongPressStart = _handleLongPressStart;
+    _longPressRecognizer = LongPressGestureRecognizer()
+      ..onLongPressStart = _handleLongPressStart;
   }
 
   int? _tappedWordId;
@@ -227,6 +262,13 @@ class RenderHebrewGreekText extends RenderBox {
     _words = value;
     _needsPaintersUpdate = true;
     markNeedsLayout();
+  }
+
+  HebrewGreekTextController? _controller;
+  HebrewGreekTextController? get controller => _controller;
+  set controller(HebrewGreekTextController? value) {
+    if (_controller == value) return;
+    _controller = value;
   }
 
   TextDirection _textDirection;
@@ -405,15 +447,15 @@ class RenderHebrewGreekText extends RenderBox {
       // Check if this word has an associated verse number
       final versePainter = _verseNumberPainters[currentWord.id];
       final verseNumberSize = versePainter?.size ?? Size.zero;
-      final verseNumberUnitWidth =
-          versePainter != null ? verseNumberSize.width + spaceWidth : 0.0;
+      final verseNumberUnitWidth = versePainter != null
+          ? verseNumberSize.width + spaceWidth
+          : 0.0;
 
       // "No orphan" rule: Check if the verse number AND its word fit together
       final totalUnitWidth = verseNumberUnitWidth + wordSize.width;
-      final bool fitsOnLine =
-          isLtr
-              ? mainAxisOffset + totalUnitWidth <= availableWidth
-              : mainAxisOffset - totalUnitWidth >= 0;
+      final bool fitsOnLine = isLtr
+          ? mainAxisOffset + totalUnitWidth <= availableWidth
+          : mainAxisOffset - totalUnitWidth >= 0;
 
       // Line wrap logic
       if (!fitsOnLine) {
@@ -496,9 +538,21 @@ class RenderHebrewGreekText extends RenderBox {
       }
     }
 
+    final Map<int, Rect> verseRectsMap = {};
+    for (final entry in _verseNumberRects.entries) {
+      final wordId = entry.key;
+      final rect = entry.value;
+      final verseNumber = (_getVerseNumber(
+        _words.firstWhere((w) => w.id == wordId),
+      ))!;
+      verseRectsMap[verseNumber] = rect;
+    }
+    controller?._updateVerseRects(verseRectsMap);
+
     final double finalHeight = crossAxisOffset + currentLineMaxHeight;
-    final double finalWidth =
-        constraints.hasBoundedWidth ? availableWidth : maxLineWidth;
+    final double finalWidth = constraints.hasBoundedWidth
+        ? availableWidth
+        : maxLineWidth;
 
     return Size(finalWidth, finalHeight);
   }
@@ -577,8 +631,9 @@ class RenderHebrewGreekText extends RenderBox {
       final int wordId = entry.key;
       final Rect rect = entry.value;
       if (rect.contains(position)) {
-        final verseNumber =
-            (_getVerseNumber(_words.firstWhere((w) => w.id == wordId)))!;
+        final verseNumber = (_getVerseNumber(
+          _words.firstWhere((w) => w.id == wordId),
+        ))!;
         result.add(VerseNumberHitTestEntry(this, verseNumber));
         return true;
       }
