@@ -5,7 +5,6 @@ import 'package:studyapp/common/word.dart';
 import 'package:studyapp/l10n/app_localizations.dart';
 import 'package:studyapp/ui/home/hebrew_greek_panel/chapter_manager.dart';
 import 'package:studyapp/ui/home/hebrew_greek_panel/text.dart';
-import 'package:studyapp/ui/home/hebrew_greek_panel/panel_manager.dart';
 import 'package:studyapp/ui/home/home.dart';
 import 'package:studyapp/ui/home/word_details_dialog/word_details_dialog.dart';
 
@@ -16,13 +15,11 @@ class HebrewGreekChapter extends StatefulWidget {
     required this.bookId,
     required this.chapter,
     required this.fontSize,
-    required this.manager,
   });
 
   final int bookId;
   final int chapter;
   final double fontSize;
-  final HebrewGreekPanelManager manager;
 
   @override
   State<HebrewGreekChapter> createState() => _HebrewGreekChapterState();

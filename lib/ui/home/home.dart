@@ -99,7 +99,7 @@ class _HomeScreenState extends State<HomeScreen> {
             valueListenable: manager.isSinglePanelNotifier,
             builder: (context, isSinglePanel, child) {
               if (isSinglePanel) return const SizedBox();
-              return Expanded(child: _buildBibleView());
+              return _buildBibleView();
             },
           ),
         ],

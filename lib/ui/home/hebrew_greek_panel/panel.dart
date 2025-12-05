@@ -268,7 +268,6 @@ class _HebrewGreekPanelState extends State<HebrewGreekPanel> {
                 bookId: chapterId.bookId,
                 chapter: chapterId.chapter,
                 fontSize: _fontSize,
-                manager: _manager,
               ),
             );
           }).toList(),
