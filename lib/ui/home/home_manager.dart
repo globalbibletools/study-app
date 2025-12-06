@@ -1,18 +1,15 @@
-import 'package:database_builder/database_builder.dart';
 import 'package:flutter/widgets.dart';
+import 'package:scripture/scripture.dart';
 import 'package:studyapp/l10n/book_names.dart';
 import 'package:studyapp/services/bible/bible_database.dart';
 import 'package:studyapp/services/service_locator.dart';
 import 'package:studyapp/services/user_settings.dart';
-import 'package:studyapp/ui/home/bible_panel/format_verses.dart';
-
-typedef TextParagraph = List<(TextSpan, TextType, Format?)>;
 
 class HomeManager {
   final currentBookNotifier = ValueNotifier<String>('');
   final currentChapterNotifier = ValueNotifier<int>(1);
   final isSinglePanelNotifier = ValueNotifier(true);
-  final textParagraphNotifier = ValueNotifier<TextParagraph>([]);
+  final textParagraphNotifier = ValueNotifier<List<UsfmLine>>([]);
 
   final _bibleDb = getIt<BibleDatabase>();
   final _settings = getIt<UserSettings>();
@@ -53,21 +50,11 @@ class HomeManager {
   //   downloadProgressNotifier.value = null;
   // }
 
-  Future<void> requestText({
-    required Color textColor,
-    required Color footnoteColor,
-  }) async {
+  Future<void> requestText() async {
     final content = await _bibleDb.getChapter(
       _currentBookId,
       currentChapterNotifier.value,
     );
-    final formattedContent = formatVerses(
-      verseLines: content,
-      baseFontSize: 20,
-      textColor: textColor,
-      verseNumberColor: footnoteColor,
-      showSectionTitles: false,
-    );
-    textParagraphNotifier.value = formattedContent;
+    textParagraphNotifier.value = content;
   }
 }

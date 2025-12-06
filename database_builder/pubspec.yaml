@@ -1,6 +1,7 @@
 name: database_builder
 description: A sample command-line application.
 version: 1.0.0
+publish_to: none
 
 environment:
   sdk: ^3.8.0
@@ -9,6 +10,10 @@ dependencies:
   path: ^1.9.1
   sqlite3: ^2.5.0
   unorm_dart: ^0.3.1+1
+  scripture: ^0.1.1
+  # scripture:
+  #   path: ../../../scripture
+    
 
 dev_dependencies:
   lints: ^5.0.0

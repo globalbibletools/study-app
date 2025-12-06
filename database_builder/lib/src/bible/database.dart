@@ -1,6 +1,7 @@
 import 'dart:developer';
 import 'dart:io';
 
+import 'package:scripture/scripture_core.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 import 'schema.dart';
@@ -41,33 +42,35 @@ class BibleDatabase {
   }
 
   Future<void> populateTable() async {
-    int? bookId;
-    int? chapter;
-    int? verse;
+    int bookId = 0;
+    int chapter = 0;
+    int verse = 0;
     String? text;
-    TextType? type;
-    Format? format;
-    String? footnote;
+    ParagraphFormat? format;
+
+    final parentheses = RegExp(r'[()]');
 
     for (String bookFilename in bibleBooks) {
       print('Processing: $bookFilename');
       final file = File('lib/src/bible/data/$databaseName/$bookFilename');
 
       if (!file.existsSync()) {
-        throw Exception('File doesn\'t exist: $bookFilename');
+        throw Exception('${file.path} does not exist');
       }
 
       _database.execute('BEGIN TRANSACTION;');
 
       final lines = await file.readAsLines();
-      for (final newLine in lines) {
+      String oldMarker = '';
+      for (String newLine in lines) {
+        // split at a space or a newline and take the text before it
         String marker = newLine.split(RegExp(r'[ \n]'))[0];
         final remainder = newLine.substring(marker.length).trim();
         marker = marker.replaceAll(r'\', '');
         switch (marker) {
           case 'id': // book
             bookId = _getBookId(remainder);
-            type = null;
+            format = null;
             continue;
           case 'h': // book title
           case 'toc1': // book title
@@ -77,111 +80,94 @@ class BibleDatabase {
             continue;
           case 'c': // chapter
             chapter = _getChapter(remainder);
-            verse = null;
+            verse = 0;
             continue;
+          case 'r': // cross reference
+            format = ParagraphFormat.r;
+            if (remainder.isEmpty) {
+              continue;
+            }
+            // Strip parentheses from reference
+            text = remainder.replaceAll(parentheses, '');
           case 's1': // section heading level 1
           case 's2': // section heading level 2
-          case 'r': // cross reference
           case 'ms': // major section (Psalms)
           case 'mr': // major section range (Psalms)
           case 'qa': // Acrostic heading (Psalm 119)
-            type = TextType.fromString(marker);
-            text = remainder;
           case 'm': // margin
           case 'pmo': // indented paragraph margin opening
           case 'li1': // list item level 1
           case 'li2': // list item level 2
-            type = TextType.v;
-            format = Format.fromString(marker);
+          case 'q1': // poetry indentation level 1
+          case 'q2': // poetry indentation level 2
+          case 'qr': // right aligned
+            format = ParagraphFormat.fromJson(marker);
             if (remainder.isEmpty) {
               continue;
             }
             text = remainder;
           case 'v': // verse
-            type = TextType.v;
             (verse, text) = _getVerse(remainder);
           case 'd': // descriptive title
-            type = TextType.d;
+            format = ParagraphFormat.d;
             if (remainder.isEmpty) {
               continue;
             }
             text = remainder;
             verse = 0;
           case 'b': // break
-            if (type != TextType.v) {
+            // ignore unnecessary breaks after section headings
+            if (oldMarker == 's1' || oldMarker == 's2') {
               continue;
             }
-            if (verse == null) {
-              continue;
-            }
-            if (format == null) {
-              print(
-                'Missing format for break, book: $bookId, chapter $chapter, verse $verse',
-              );
-              continue;
-            }
-            text = '\n';
-            format = null;
-          case 'q1': // poetry indentation level 1
-            type = TextType.v;
-            format = Format.q1;
-            if (remainder.isEmpty) {
-              continue;
-            }
-            text = remainder;
-          case 'q2': // poetry indentation level 2
-            type = TextType.v;
-            format = Format.q2;
-            if (remainder.isEmpty) {
-              continue;
-            }
-            text = remainder;
+            format = ParagraphFormat.b;
+            text = '';
           case 'pc': // centered
-            type = TextType.v;
-            format = Format.pc;
-            if (remainder.isEmpty) {
-              continue;
+            const habakkuk = 35;
+            if (bookId == habakkuk && chapter == 3 && verse == 19) {
+              // This should really be fixed in the original USFM file,
+              // but we need to make it centered and italic like TextType.d.
+              format = ParagraphFormat.d;
+              text = _removeItalicMarkers(remainder);
+            } else {
+              format = ParagraphFormat.pc;
+              if (remainder.isEmpty) {
+                continue;
+              }
+              text = remainder;
             }
-            text = remainder;
-          case 'qr': // right aligned
-            type = TextType.v;
-            format = Format.qr;
-            if (remainder.isEmpty) {
-              continue;
-            }
-            text = remainder;
           default:
             throw Exception(
               'Unknown marker: $marker (chapter: $chapter, verse: $verse)',
             );
         }
 
-        (text, footnote) = extractFootnote(text);
-
-        if (type == null) {
-          print('Type null at: $marker (chapter: $chapter, verse: $verse)');
+        if (format == null) {
+          print('Format null at: $marker (chapter: $chapter, verse: $verse)');
           return;
         }
 
-        final verseId = _getVerseId(bookId!, chapter!, verse ?? 0);
+        final reference = _packReference(bookId, chapter, verse);
+        _insertVerseLine.execute([reference, text, format.id]);
 
-        _insertVerseLine.execute([
-          verseId,
-          text,
-          type.id,
-          format?.id,
-          footnote,
-        ]);
-
-        footnote = null;
         text = null;
+        oldMarker = marker;
       }
 
       _database.execute('COMMIT;');
-
-      // Uncomment this for testing the first book only:
-      // break;
     }
+  }
+
+  String _removeItalicMarkers(String text) {
+    // Original: \it For the choirmaster. With stringed instruments. \it*
+    // Desired: For the choirmaster. With stringed instruments.
+    final modifiedText = text.replaceAll(r'\it*', '').replaceAll(r'\it', '');
+    return modifiedText.trim();
+  }
+
+  // BBCCCVVV packed int
+  int _packReference(int bookId, int chapter, int verse) {
+    return bookId * 1000000 + chapter * 1000 + verse;
   }
 
   int _getBookId(String textAfterMarker) {

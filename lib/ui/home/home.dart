@@ -1,5 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:scripture/scripture.dart';
 import 'package:studyapp/ui/home/drawer.dart';
 import 'package:studyapp/ui/home/hebrew_greek_panel/panel.dart';
 
@@ -165,10 +166,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void _requestText() {
     if (manager.isSinglePanelNotifier.value) return;
     print('requesting text');
-    manager.requestText(
-      textColor: Theme.of(context).textTheme.bodyMedium!.color!,
-      footnoteColor: Theme.of(context).primaryColor,
-    );
+    manager.requestText();
   }
 
   // Future<void> _showBookChooserDialog() async {
@@ -184,16 +182,36 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildBibleView() {
     return Expanded(
-      child: ValueListenableBuilder<TextParagraph>(
+      child: ValueListenableBuilder<List<UsfmLine>>(
         valueListenable: manager.textParagraphNotifier,
-        builder: (context, paragraph, child) {
+        builder: (context, verseLines, child) {
           return Container(
             width: double.infinity,
             color: Theme.of(context).scaffoldBackgroundColor,
             child: SingleChildScrollView(
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
-                child: BibleText(paragraphs: paragraph, paragraphSpacing: 10.0),
+                child: UsfmWidget(
+                  verseLines: verseLines,
+                  selectionController: ScriptureSelectionController(),
+                  onFootnoteTapped: (footnote) {},
+                  onWordTapped: (id) => print("Tapped word $id"),
+                  onSelectionRequested: (wordId) {
+                    // ScriptureLogic.highlightVerse(
+                    //   _selectionController,
+                    //   verseLines,
+                    //   wordId,
+                    // );
+                  },
+                  styleBuilder: (format) {
+                    return UsfmParagraphStyle.usfmDefaults(
+                      format: format,
+                      baseStyle: Theme.of(
+                        context,
+                      ).textTheme.bodyMedium!.copyWith(fontSize: 20),
+                    );
+                  },
+                ),
               ),
             ),
           );

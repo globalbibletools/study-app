@@ -4,12 +4,13 @@ import 'dart:io';
 import 'package:database_builder/database_builder.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart';
+import 'package:scripture/scripture.dart';
+import 'package:scripture/scripture_core.dart';
 import 'package:sqflite/sqflite.dart';
-import 'package:studyapp/common/verse_line.dart';
 
 class BibleDatabase {
   static const _databaseName = 'eng_bsb.db';
-  static const _databaseVersion = 1;
+  static const _databaseVersion = 2;
   late Database _database;
 
   Future<void> init() async {
@@ -53,49 +54,39 @@ class BibleDatabase {
     await File(path).writeAsBytes(bytes, flush: true);
   }
 
-  Future<List<VerseLine>> getChapter(int bookId, int chapter) async {
-    try {
-      final int startId = bookId * 1000000 + chapter * 1000;
-      final int endId = bookId * 1000000 + (chapter + 1) * 1000;
+  Future<List<UsfmLine>> getChapter(int bookId, int chapter) async {
+    final (lowerBound, upperBound) = _chapterBounds(bookId, chapter);
 
-      final String sql = '''
-      SELECT
-        ${BibleSchema.colId},
-        ${BibleSchema.colVerseId},
-        ${BibleSchema.colText},
-        ${BibleSchema.colType},
-        ${BibleSchema.colFormat},
-        ${BibleSchema.colFootnote}
-      FROM
-        ${BibleSchema.bibleTextTable}
-      WHERE
-        ${BibleSchema.colVerseId} >= ? AND ${BibleSchema.colVerseId} < ?
-      ORDER BY
-        ${BibleSchema.colVerseId}
-    ''';
+    final verses = await _database.query(
+      BibleSchema.bibleTextTable,
+      columns: [
+        BibleSchema.colReference,
+        BibleSchema.colText,
+        BibleSchema.colFormat,
+      ],
+      where:
+          '${BibleSchema.colReference} >= ? AND ${BibleSchema.colReference} < ?',
+      whereArgs: [lowerBound, upperBound],
+      orderBy: '${BibleSchema.colId} ASC',
+    );
 
-      final List<Map<String, dynamic>> verses = await _database.rawQuery(sql, [
-        startId,
-        endId,
-      ]);
+    return verses.map((verse) {
+      final format = verse[BibleSchema.colFormat] as String;
+      return UsfmLine(
+        bookChapterVerse: verse[BibleSchema.colReference] as int,
+        text: verse[BibleSchema.colText] as String,
+        format: ParagraphFormat.fromJson(format),
+      );
+    }).toList();
+  }
 
-      return verses.map((verse) {
-        final format = verse[BibleSchema.colFormat] as int?;
-        final verseNumber = (verse[BibleSchema.colVerseId] as int) % 1000;
-        return VerseLine(
-          bookId: bookId,
-          chapter: chapter,
-          verse: verseNumber,
-          text: verse[BibleSchema.colText] as String,
-          footnote: verse[BibleSchema.colFootnote] as String?,
-          format: (format == null) ? null : Format.fromInt(format),
-          type: TextType.fromInt(verse[BibleSchema.colType] as int),
-        );
-      }).toList();
-    } catch (e) {
-      log('Failed to get chapter: $e');
-      // Return an empty list if there's any error (e.g., db not found).
-      return [];
-    }
+  (int, int) _chapterBounds(int bookId, int chapter) {
+    const int bookMultiplier = 1000000;
+    const int chapterMultiplier = 1000;
+    final int lowerBound =
+        bookId * bookMultiplier + chapter * chapterMultiplier;
+    final int upperBound =
+        bookId * bookMultiplier + (chapter + 1) * chapterMultiplier;
+    return (lowerBound, upperBound);
   }
 }

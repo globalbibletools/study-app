@@ -10,7 +10,7 @@ Future<void> main(List<String> arguments) async {
   // await _createHebrewGreekDatabase();
   // await _createLexiconDatabases();
   // await _createGlossDatabase('spa');
-  await _createBibileDatabase('eng_bsb');
+  await _createBibleDatabase('eng_bsb');
 }
 
 Future<void> _createLexiconDatabases() async {
@@ -86,7 +86,7 @@ Future<void> _createGlossDatabase(String languageIsoCode) async {
   dbHelper.dispose();
 }
 
-Future<void> _createBibileDatabase(String name) async {
+Future<void> _createBibleDatabase(String name) async {
   final dbHelper = BibleDatabase(databaseName: name);
 
   print('Creating new Bible database');
