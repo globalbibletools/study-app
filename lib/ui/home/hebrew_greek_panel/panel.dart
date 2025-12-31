@@ -1,5 +1,8 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:studyapp/common/bible_navigation.dart';
+import 'package:studyapp/common/chapter_count.dart';
 import 'package:studyapp/ui/home/hebrew_greek_panel/chapter.dart';
 import 'package:studyapp/ui/home/hebrew_greek_panel/panel_manager.dart';
 
@@ -27,6 +30,7 @@ class _HebrewGreekPanelState extends State<HebrewGreekPanel> {
   late ChapterIdentifier _centerChapter;
   bool _isLoadingNextChapter = false;
   bool _isLoadingPreviousChapter = false;
+  final Map<ChapterIdentifier, GlobalKey> _chapterKeys = {};
 
   late final double _baseFontSize;
 
@@ -73,8 +77,11 @@ class _HebrewGreekPanelState extends State<HebrewGreekPanel> {
     setState(() {
       _centerChapter = ChapterIdentifier(widget.bookId, widget.chapter);
       _displayedChapters.clear();
+      _chapterKeys.clear();
 
-      final previousChapter = _getPreviousChapter(_centerChapter);
+      final previousChapter = BibleNavigation.getPreviousChapter(
+        _centerChapter,
+      );
       if (previousChapter != null) {
         _displayedChapters.add(previousChapter);
       }
@@ -164,7 +171,7 @@ class _HebrewGreekPanelState extends State<HebrewGreekPanel> {
 
     _isLoadingNextChapter = true;
     final lastChapter = _displayedChapters.last;
-    final nextChapter = _getNextChapter(lastChapter);
+    final nextChapter = BibleNavigation.getNextChapter(lastChapter);
 
     if (nextChapter != null && mounted) {
       setState(() {
@@ -181,7 +188,7 @@ class _HebrewGreekPanelState extends State<HebrewGreekPanel> {
 
     _isLoadingPreviousChapter = true;
     final firstChapter = _displayedChapters.first;
-    final previousChapter = _getPreviousChapter(firstChapter);
+    final previousChapter = BibleNavigation.getPreviousChapter(firstChapter);
 
     if (previousChapter != null && mounted) {
       setState(() {
@@ -189,18 +196,19 @@ class _HebrewGreekPanelState extends State<HebrewGreekPanel> {
         // When we add a new item at the top, the scroll position jumps.
         // We will restore it after the frame is rendered.
         final currentOffset = _scrollController.offset;
-        final firstItemKey = GlobalKey();
+        final newKey = GlobalKey();
+        _chapterKeys[previousChapter] = newKey;
 
         _displayedChapters.insert(0, previousChapter);
 
         // After the new item is added and the frame is rendered,
         // adjust the scroll position to keep the view stable.
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          final context = firstItemKey.currentContext;
+          final context = newKey.currentContext;
           if (context != null) {
-            final newOffset =
-                (context.findRenderObject() as RenderBox).size.height;
-            _scrollController.jumpTo(currentOffset + newOffset);
+            final renderSliver = context.findRenderObject() as RenderSliver;
+            final height = renderSliver.geometry?.scrollExtent ?? 0.0;
+            _scrollController.jumpTo(currentOffset + height);
           }
         });
       });
@@ -210,35 +218,35 @@ class _HebrewGreekPanelState extends State<HebrewGreekPanel> {
     _isLoadingPreviousChapter = false;
   }
 
-  ChapterIdentifier? _getPreviousChapter(ChapterIdentifier current) {
-    // Case 1: Not the first chapter of the book.
-    if (current.chapter > 1) {
-      return ChapterIdentifier(current.bookId, current.chapter - 1);
-    }
-    // Case 2: First chapter of the book, but not the first book.
-    if (current.bookId > 1) {
-      final previousBookId = current.bookId - 1;
-      final lastChapterOfPreviousBook =
-          _bookIdToChapterCountMap[previousBookId]!;
-      return ChapterIdentifier(previousBookId, lastChapterOfPreviousBook);
-    }
-    // Case 3: First chapter of the first book (Genesis 1).
-    return null;
-  }
+  // ChapterIdentifier? _getPreviousChapter(ChapterIdentifier current) {
+  //   // Case 1: Not the first chapter of the book.
+  //   if (current.chapter > 1) {
+  //     return ChapterIdentifier(current.bookId, current.chapter - 1);
+  //   }
+  //   // Case 2: First chapter of the book, but not the first book.
+  //   if (current.bookId > 1) {
+  //     final previousBookId = current.bookId - 1;
+  //     final lastChapterOfPreviousBook =
+  //         bookIdToChapterCountMap[previousBookId]!;
+  //     return ChapterIdentifier(previousBookId, lastChapterOfPreviousBook);
+  //   }
+  //   // Case 3: First chapter of the first book (Genesis 1).
+  //   return null;
+  // }
 
-  ChapterIdentifier? _getNextChapter(ChapterIdentifier current) {
-    final totalChaptersInBook = _bookIdToChapterCountMap[current.bookId]!;
-    // Case 1: Not the last chapter of the book.
-    if (current.chapter < totalChaptersInBook) {
-      return ChapterIdentifier(current.bookId, current.chapter + 1);
-    }
-    // Case 2: Last chapter of the book, but not the last book.
-    if (current.bookId < _bookIdToChapterCountMap.length) {
-      return ChapterIdentifier(current.bookId + 1, 1);
-    }
-    // Case 3: Last chapter of the last book (Revelation 22).
-    return null;
-  }
+  // ChapterIdentifier? _getNextChapter(ChapterIdentifier current) {
+  //   final totalChaptersInBook = bookIdToChapterCountMap[current.bookId]!;
+  //   // Case 1: Not the last chapter of the book.
+  //   if (current.chapter < totalChaptersInBook) {
+  //     return ChapterIdentifier(current.bookId, current.chapter + 1);
+  //   }
+  //   // Case 2: Last chapter of the book, but not the last book.
+  //   if (current.bookId < bookIdToChapterCountMap.length) {
+  //     return ChapterIdentifier(current.bookId + 1, 1);
+  //   }
+  //   // Case 3: Last chapter of the last book (Revelation 22).
+  //   return null;
+  // }
 
   @override
   void dispose() {
@@ -251,6 +259,22 @@ class _HebrewGreekPanelState extends State<HebrewGreekPanel> {
 
   @override
   Widget build(BuildContext context) {
+    // Generate slivers first so keys are created in the map
+    final sliversList = _displayedChapters.map((chapterId) {
+      if (!_chapterKeys.containsKey(chapterId)) {
+        _chapterKeys[chapterId] = GlobalKey();
+      }
+      return SliverToBoxAdapter(
+        key: _chapterKeys[chapterId], // Attach GlobalKey
+        child: HebrewGreekChapter(
+          key: ValueKey('page-${chapterId.bookId}-${chapterId.chapter}'),
+          bookId: chapterId.bookId,
+          chapter: chapterId.chapter,
+          fontSize: _fontSize,
+        ),
+      );
+    }).toList();
+
     return RawGestureDetector(
       gestures: _zoomGesture,
       behavior: HitTestBehavior.translucent,
@@ -259,113 +283,37 @@ class _HebrewGreekPanelState extends State<HebrewGreekPanel> {
         alignment: _transformAlignment,
         child: CustomScrollView(
           controller: _scrollController,
-          center: ValueKey(_centerChapter.toString()),
-          slivers: _displayedChapters.map((chapterId) {
-            return SliverToBoxAdapter(
-              key: ValueKey(chapterId.toString()),
-              child: HebrewGreekChapter(
-                key: ValueKey('page-${chapterId.bookId}-${chapterId.chapter}'),
-                bookId: chapterId.bookId,
-                chapter: chapterId.chapter,
-                fontSize: _fontSize,
-              ),
-            );
-          }).toList(),
+
+          // Use the GlobalKey for the center
+          center: _chapterKeys[_centerChapter],
+
+          slivers: sliversList,
         ),
       ),
     );
   }
 }
 
-@immutable
-class ChapterIdentifier {
-  final int bookId;
-  final int chapter;
+// @immutable
+// class ChapterIdentifier {
+//   final int bookId;
+//   final int chapter;
 
-  const ChapterIdentifier(this.bookId, this.chapter);
+//   const ChapterIdentifier(this.bookId, this.chapter);
 
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is ChapterIdentifier &&
-          runtimeType == other.runtimeType &&
-          bookId == other.bookId &&
-          chapter == other.chapter;
+//   @override
+//   bool operator ==(Object other) =>
+//       identical(this, other) ||
+//       other is ChapterIdentifier &&
+//           runtimeType == other.runtimeType &&
+//           bookId == other.bookId &&
+//           chapter == other.chapter;
 
-  @override
-  int get hashCode => bookId.hashCode ^ chapter.hashCode;
+//   @override
+//   int get hashCode => bookId.hashCode ^ chapter.hashCode;
 
-  @override
-  String toString() {
-    return 'ChapterIdentifier{bookId: $bookId, chapter: $chapter}';
-  }
-}
-
-final Map<int, int> _bookIdToChapterCountMap = {
-  1: 50, // Genesis
-  2: 40, // Exodus
-  3: 27, // Leviticus
-  4: 36, // Numbers
-  5: 34, // Deuteronomy
-  6: 24, // Joshua
-  7: 21, // Judges
-  8: 4, // Ruth
-  9: 31, // 1 Samuel
-  10: 24, // 2 Samuel
-  11: 22, // 1 Kings
-  12: 25, // 2 Kings
-  13: 29, // 1 Chronicles
-  14: 36, // 2 Chronicles
-  15: 10, // Ezra
-  16: 13, // Nehemiah
-  17: 10, // Esther
-  18: 42, // Job
-  19: 150, // Psalms
-  20: 31, // Proverbs
-  21: 12, // Ecclesiastes
-  22: 8, // Song of Solomon
-  23: 66, // Isaiah
-  24: 52, // Jeremiah
-  25: 5, // Lamentations
-  26: 48, // Ezekiel
-  27: 12, // Daniel
-  28: 14, // Hosea
-  29: 3, // Joel
-  30: 9, // Amos
-  31: 1, // Obadiah
-  32: 4, // Jonah
-  33: 7, // Micah
-  34: 3, // Nahum
-  35: 3, // Habakkuk
-  36: 3, // Zephaniah
-  37: 2, // Haggai
-  38: 14, // Zechariah
-  39: 4, // Malachi
-  40: 28, // Matthew
-  41: 16, // Mark
-  42: 24, // Luke
-  43: 21, // John
-  44: 28, // Acts
-  45: 16, // Romans
-  46: 16, // 1 Corinthians
-  47: 13, // 2 Corinthians
-  48: 6, // Galatians
-  49: 6, // Ephesians
-  50: 4, // Philippians
-  51: 4, // Colossians
-  52: 5, // 1 Thessalonians
-  53: 3, // 2 Thessalonians
-  54: 6, // 1 Timothy
-  55: 4, // 2 Timothy
-  56: 3, // Titus
-  57: 1, // Philemon
-  58: 13, // Hebrews
-  59: 5, // James
-  60: 5, // 1 Peter
-  61: 3, // 2 Peter
-  62: 5, // 1 John
-  63: 1, // 2 John
-  64: 1, // 3 John
-  65: 1, // Jude
-  66: 22, // Revelation
-};
+//   @override
+//   String toString() {
+//     return 'ChapterIdentifier{bookId: $bookId, chapter: $chapter}';
+//   }
+// }
