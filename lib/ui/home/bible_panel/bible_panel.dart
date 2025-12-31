@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:studyapp/common/bible_navigation.dart';
 import 'bible_chapter.dart';
 
@@ -92,18 +91,9 @@ class _BiblePanelState extends State<BiblePanel> {
 
     if (previousChapter != null && mounted) {
       setState(() {
-        final currentOffset = _scrollController.offset;
         final newKey = GlobalKey();
         _chapterKeys[previousChapter] = newKey;
         _displayedChapters.insert(0, previousChapter);
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          final context = newKey.currentContext;
-          if (context != null) {
-            final renderSliver = context.findRenderObject() as RenderSliver;
-            final height = renderSliver.geometry?.scrollExtent ?? 0.0;
-            _scrollController.jumpTo(currentOffset + height);
-          }
-        });
       });
     }
     // Tiny delay to prevent double-triggering
@@ -119,9 +109,6 @@ class _BiblePanelState extends State<BiblePanel> {
 
   @override
   Widget build(BuildContext context) {
-    // 1. Generate the list of slivers FIRST.
-    // This forces the map loop to run, ensuring that _chapterKeys is populated
-    // with the GlobalKeys for every displayed chapter before we try to use them.
     final sliversList = _displayedChapters.map((chapterId) {
       if (!_chapterKeys.containsKey(chapterId)) {
         _chapterKeys[chapterId] = GlobalKey();
@@ -142,11 +129,7 @@ class _BiblePanelState extends State<BiblePanel> {
       color: Theme.of(context).scaffoldBackgroundColor,
       child: CustomScrollView(
         controller: _scrollController,
-
-        // 2. Use the GlobalKey for the center chapter.
-        // Since we generated the list above, we know this key exists in the map now.
         center: _chapterKeys[_centerChapter],
-
         slivers: sliversList,
       ),
     );
