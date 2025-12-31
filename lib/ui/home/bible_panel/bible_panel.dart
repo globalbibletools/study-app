@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:studyapp/ui/home/common/infinite_scripture_scroll_view.dart';
+import 'package:studyapp/ui/home/common/infinite_scroll_view.dart';
 import 'package:studyapp/ui/home/common/zoom_wrapper.dart';
 import 'bible_chapter.dart';
 import 'bible_panel_manager.dart';
@@ -35,7 +35,7 @@ class _BiblePanelState extends State<BiblePanel> {
             final fontSize = _manager.baseFontSize * scale;
             return Container(
               color: Theme.of(context).scaffoldBackgroundColor,
-              child: InfiniteScriptureScrollView(
+              child: InfiniteScrollView(
                 bookId: widget.bookId,
                 chapter: widget.chapter,
                 chapterBuilder: (context, bId, ch) {

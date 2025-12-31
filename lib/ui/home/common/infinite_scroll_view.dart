@@ -4,8 +4,8 @@ import 'package:studyapp/common/bible_navigation.dart';
 typedef ChapterBuilder =
     Widget Function(BuildContext context, int bookId, int chapter);
 
-class InfiniteScriptureScrollView extends StatefulWidget {
-  const InfiniteScriptureScrollView({
+class InfiniteScrollView extends StatefulWidget {
+  const InfiniteScrollView({
     super.key,
     required this.bookId,
     required this.chapter,
@@ -19,12 +19,10 @@ class InfiniteScriptureScrollView extends StatefulWidget {
   final ScrollPhysics? physics;
 
   @override
-  State<InfiniteScriptureScrollView> createState() =>
-      _InfiniteScriptureScrollViewState();
+  State<InfiniteScrollView> createState() => _InfiniteScrollViewState();
 }
 
-class _InfiniteScriptureScrollViewState
-    extends State<InfiniteScriptureScrollView> {
+class _InfiniteScrollViewState extends State<InfiniteScrollView> {
   late final ScrollController _scrollController;
   final List<ChapterIdentifier> _displayedChapters = [];
   late ChapterIdentifier _centerChapter;
@@ -56,7 +54,7 @@ class _InfiniteScriptureScrollViewState
   }
 
   @override
-  void didUpdateWidget(covariant InfiniteScriptureScrollView oldWidget) {
+  void didUpdateWidget(covariant InfiniteScrollView oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.bookId != oldWidget.bookId ||
         widget.chapter != oldWidget.chapter) {
