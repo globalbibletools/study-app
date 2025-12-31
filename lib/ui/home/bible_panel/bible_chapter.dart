@@ -4,10 +4,16 @@ import 'package:studyapp/common/book_name.dart';
 import 'bible_chapter_manager.dart';
 
 class BibleChapter extends StatefulWidget {
-  const BibleChapter({super.key, required this.bookId, required this.chapter});
+  const BibleChapter({
+    super.key,
+    required this.bookId,
+    required this.chapter,
+    this.fontSize = 20.0,
+  });
 
   final int bookId;
   final int chapter;
+  final double fontSize;
 
   @override
   State<BibleChapter> createState() => _BibleChapterState();
@@ -73,9 +79,9 @@ class _BibleChapterState extends State<BibleChapter> {
                 styleBuilder: (format) {
                   return UsfmParagraphStyle.usfmDefaults(
                     format: format,
-                    baseStyle: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                      fontSize: 20, // Or inject font size from settings
-                    ),
+                    baseStyle: Theme.of(
+                      context,
+                    ).textTheme.bodyMedium!.copyWith(fontSize: widget.fontSize),
                   );
                 },
               ),

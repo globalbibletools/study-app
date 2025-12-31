@@ -2,17 +2,18 @@ import 'package:flutter/foundation.dart';
 import 'package:studyapp/services/service_locator.dart';
 import 'package:studyapp/services/user_settings.dart';
 
-class HebrewGreekPanelManager {
+class BiblePanelManager {
   final _settings = getIt<UserSettings>();
 
   late final fontScaleNotifier = ValueNotifier<double>(
-    _settings.hebrewGreekFontScale,
+    _settings.bibleFontScale,
   );
 
-  double get baseFontSize => _settings.baseFontSize;
+  double get baseFontSize => 20.0; // Standard English font size
 
   Future<void> saveFontScale(double scale) async {
-    await _settings.setHebrewGreekFontScale(scale);
+    fontScaleNotifier.value = scale;
+    await _settings.setBibleFontScale(scale);
   }
 
   void dispose() {

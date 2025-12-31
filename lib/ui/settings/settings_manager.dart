@@ -33,7 +33,7 @@ class SettingsManager extends ChangeNotifier {
   }
 
   double get textSize =>
-      (_settings.baseFontSize * _settings.fontScale).roundToDouble();
+      (_settings.baseFontSize * _settings.hebrewGreekFontScale).roundToDouble();
 
   double get minFontSize => 10;
 
@@ -43,7 +43,7 @@ class SettingsManager extends ChangeNotifier {
 
   Future<void> setTextSize(double fontSize) async {
     final scale = fontSize / _settings.baseFontSize;
-    await _settings.setFontScale(scale);
+    await _settings.setHebrewGreekFontScale(scale);
     notifyListeners();
   }
 }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:studyapp/common/bible_navigation.dart';
+import 'package:studyapp/ui/home/common/infinite_scripture_scroll_view.dart';
+import 'package:studyapp/ui/home/common/zoom_wrapper.dart';
 import 'bible_chapter.dart';
+import 'bible_panel_manager.dart';
 
 class BiblePanel extends StatefulWidget {
   const BiblePanel({super.key, required this.bookId, required this.chapter});
@@ -13,125 +15,42 @@ class BiblePanel extends StatefulWidget {
 }
 
 class _BiblePanelState extends State<BiblePanel> {
-  late final ScrollController _scrollController;
-  final List<ChapterIdentifier> _displayedChapters = [];
-  late ChapterIdentifier _centerChapter;
-  bool _isLoadingNextChapter = false;
-  bool _isLoadingPreviousChapter = false;
-  final Map<ChapterIdentifier, GlobalKey> _chapterKeys = {};
-
-  @override
-  void initState() {
-    super.initState();
-    _scrollController = ScrollController()..addListener(_scrollListener);
-    _resetChapters();
-  }
-
-  void _resetChapters() {
-    setState(() {
-      _centerChapter = ChapterIdentifier(widget.bookId, widget.chapter);
-      _displayedChapters.clear();
-      _chapterKeys.clear();
-
-      // Load current and previous (optional, mirroring HebrewGreekPanel logic)
-      final previousChapter = BibleNavigation.getPreviousChapter(
-        _centerChapter,
-      );
-      if (previousChapter != null) {
-        _displayedChapters.add(previousChapter);
-      }
-      _displayedChapters.add(_centerChapter);
-    });
-  }
-
-  @override
-  void didUpdateWidget(covariant BiblePanel oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.bookId != oldWidget.bookId ||
-        widget.chapter != oldWidget.chapter) {
-      _resetChapters();
-    }
-  }
-
-  void _scrollListener() {
-    // Load next when near bottom
-    if (_scrollController.position.pixels >
-        _scrollController.position.maxScrollExtent - 400) {
-      _loadNextChapter();
-    }
-    // Load previous when near top
-    if (_scrollController.position.pixels <
-        _scrollController.position.minScrollExtent + 400) {
-      _loadPreviousChapter();
-    }
-  }
-
-  void _loadNextChapter() async {
-    if (_isLoadingNextChapter || _displayedChapters.isEmpty) return;
-
-    _isLoadingNextChapter = true;
-    final lastChapter = _displayedChapters.last;
-    final nextChapter = BibleNavigation.getNextChapter(lastChapter);
-
-    if (nextChapter != null && mounted) {
-      setState(() {
-        _displayedChapters.add(nextChapter);
-      });
-    }
-    await Future.delayed(const Duration(milliseconds: 100));
-    _isLoadingNextChapter = false;
-  }
-
-  void _loadPreviousChapter() async {
-    if (_isLoadingPreviousChapter || _displayedChapters.isEmpty) return;
-
-    _isLoadingPreviousChapter = true;
-    final firstChapter = _displayedChapters.first;
-    final previousChapter = BibleNavigation.getPreviousChapter(firstChapter);
-
-    if (previousChapter != null && mounted) {
-      setState(() {
-        final newKey = GlobalKey();
-        _chapterKeys[previousChapter] = newKey;
-        _displayedChapters.insert(0, previousChapter);
-      });
-    }
-    // Tiny delay to prevent double-triggering
-    await Future.delayed(const Duration(milliseconds: 100));
-    _isLoadingPreviousChapter = false;
-  }
+  final _manager = BiblePanelManager();
 
   @override
   void dispose() {
-    _scrollController.dispose();
+    _manager.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final sliversList = _displayedChapters.map((chapterId) {
-      if (!_chapterKeys.containsKey(chapterId)) {
-        _chapterKeys[chapterId] = GlobalKey();
-      }
-      final key = _chapterKeys[chapterId];
-
-      return SliverToBoxAdapter(
-        key: key, // This is the GlobalKey
-        child: BibleChapter(
-          key: ValueKey('bible-${chapterId.bookId}-${chapterId.chapter}'),
-          bookId: chapterId.bookId,
-          chapter: chapterId.chapter,
-        ),
-      );
-    }).toList();
-
-    return Container(
-      color: Theme.of(context).scaffoldBackgroundColor,
-      child: CustomScrollView(
-        controller: _scrollController,
-        center: _chapterKeys[_centerChapter],
-        slivers: sliversList,
-      ),
+    return ValueListenableBuilder<double>(
+      valueListenable: _manager.fontScaleNotifier,
+      builder: (context, currentScale, child) {
+        return ZoomWrapper(
+          initialScale: currentScale,
+          onScaleChanged: (newScale) => _manager.saveFontScale(newScale),
+          builder: (context, scale) {
+            final fontSize = _manager.baseFontSize * scale;
+            return Container(
+              color: Theme.of(context).scaffoldBackgroundColor,
+              child: InfiniteScriptureScrollView(
+                bookId: widget.bookId,
+                chapter: widget.chapter,
+                chapterBuilder: (context, bId, ch) {
+                  return BibleChapter(
+                    key: ValueKey('bible-$bId-$ch'),
+                    bookId: bId,
+                    chapter: ch,
+                    fontSize: fontSize,
+                  );
+                },
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }
