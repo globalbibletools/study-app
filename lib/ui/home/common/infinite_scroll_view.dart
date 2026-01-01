@@ -42,6 +42,14 @@ class _InfiniteScrollViewState extends State<InfiniteScrollView> {
     _scrollController = ScrollController()..addListener(_scrollListener);
     widget.syncController?.addListener(_onSyncReceived);
     _resetChapters();
+
+    if (widget.syncController != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _onSyncReceived();
+        }
+      });
+    }
   }
 
   void _onSyncReceived() {
@@ -68,9 +76,8 @@ class _InfiniteScrollViewState extends State<InfiniteScrollView> {
             renderSliver.geometry != null) {
           final viewport = RenderAbstractViewport.of(renderSliver);
           final revealedOffset = viewport.getOffsetToReveal(renderSliver, 0.0);
-
-          // CHANGED: Use 'geometry.scrollExtent' for height instead of 'size.height'
           final chapterHeight = renderSliver.geometry!.scrollExtent;
+          if (chapterHeight == 0) return;
 
           final targetPixels =
               revealedOffset.offset + (chapterHeight * controller.progress);
@@ -215,7 +222,7 @@ class _InfiniteScrollViewState extends State<InfiniteScrollView> {
 
   @override
   Widget build(BuildContext context) {
-    return NotificationListener<ScrollNotification>(
+    return NotificationListener<Notification>(
       onNotification: _onScrollNotification,
       child: CustomScrollView(
         controller: _scrollController,
@@ -224,10 +231,12 @@ class _InfiniteScrollViewState extends State<InfiniteScrollView> {
         slivers: _displayedChapters.map((chapterId) {
           return SliverToBoxAdapter(
             key: _chapterKeys[chapterId],
-            child: widget.chapterBuilder(
-              context,
-              chapterId.bookId,
-              chapterId.chapter,
+            child: SizeChangedLayoutNotifier(
+              child: widget.chapterBuilder(
+                context,
+                chapterId.bookId,
+                chapterId.chapter,
+              ),
             ),
           );
         }).toList(),
@@ -235,15 +244,23 @@ class _InfiniteScrollViewState extends State<InfiniteScrollView> {
     );
   }
 
-  bool _onScrollNotification(ScrollNotification notification) {
+  bool _onScrollNotification(Notification notification) {
     if (widget.syncController == null) return false;
 
-    // DETECT USER INTERACTION
+    // 1. Detect Dragging (Master Panel logic)
     if (notification is ScrollStartNotification) {
-      // If the user starts dragging this panel, claim 'Master' status
       if (notification.dragDetails != null) {
         widget.syncController!.setActiveSource(_panelId);
       }
+    }
+
+    // 2. Detect Size Changes (Slave Panel logic)
+    // If any chapter changes size (e.g. finishes loading), trigger sync again.
+    if (notification is SizeChangedLayoutNotification) {
+      // We schedule this to avoid modifying scroll position during layout
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _onSyncReceived();
+      });
     }
 
     // Optional: clear active source on scroll end if you want snapping behavior,
