@@ -94,8 +94,10 @@ class _InfiniteScrollViewState extends State<InfiniteScrollView> {
       );
       if (previousChapter != null) {
         _displayedChapters.add(previousChapter);
+        _chapterKeys[previousChapter] = GlobalKey();
       }
       _displayedChapters.add(_centerChapter);
+      _chapterKeys[_centerChapter] = GlobalKey();
     });
   }
 
@@ -139,6 +141,7 @@ class _InfiniteScrollViewState extends State<InfiniteScrollView> {
     if (nextChapter != null && mounted) {
       setState(() {
         _displayedChapters.add(nextChapter);
+        _chapterKeys[nextChapter] = GlobalKey();
       });
     }
     await Future.delayed(const Duration(milliseconds: 100));
@@ -154,9 +157,8 @@ class _InfiniteScrollViewState extends State<InfiniteScrollView> {
 
     if (previousChapter != null && mounted) {
       setState(() {
-        final newKey = GlobalKey();
-        _chapterKeys[previousChapter] = newKey;
         _displayedChapters.insert(0, previousChapter);
+        _chapterKeys[previousChapter] = GlobalKey();
       });
     }
     await Future.delayed(const Duration(milliseconds: 100));
@@ -213,13 +215,6 @@ class _InfiniteScrollViewState extends State<InfiniteScrollView> {
 
   @override
   Widget build(BuildContext context) {
-    // Ensure keys exist
-    for (var chapterId in _displayedChapters) {
-      if (!_chapterKeys.containsKey(chapterId)) {
-        _chapterKeys[chapterId] = GlobalKey();
-      }
-    }
-
     return NotificationListener<ScrollNotification>(
       onNotification: _onScrollNotification,
       child: CustomScrollView(
