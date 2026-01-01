@@ -247,24 +247,33 @@ class _InfiniteScrollViewState extends State<InfiniteScrollView> {
   bool _onScrollNotification(Notification notification) {
     if (widget.syncController == null) return false;
 
-    // 1. Detect Dragging (Master Panel logic)
+    // 1. Detect Dragging (Active Panel logic)
     if (notification is ScrollStartNotification) {
       if (notification.dragDetails != null) {
         widget.syncController!.setActiveSource(_panelId);
       }
     }
 
-    // 2. Detect Size Changes (Slave Panel logic)
-    // If any chapter changes size (e.g. finishes loading), trigger sync again.
+    // 2. Detect Size Changes (Zooming or Loading)
     if (notification is SizeChangedLayoutNotification) {
-      // We schedule this to avoid modifying scroll position during layout
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _onSyncReceived();
+        if (!mounted) return;
+
+        // Check who is the active source
+        if (widget.syncController!.isSourceActive(_panelId)) {
+          // Case A: We are the active source (User zoomed us).
+          // Our geometry changed, so our "percentage" position implies a new pixel offset.
+          // We must calculate that and report it to the other panel.
+          _reportSyncPosition();
+        } else {
+          // Case B: We are the other panel.
+          // Either we zoomed, or we finished loading data.
+          // We must re-align ourselves to match the active panel's target.
+          _onSyncReceived();
+        }
       });
     }
 
-    // Optional: clear active source on scroll end if you want snapping behavior,
-    // but usually keeping it active until the other panel is touched is smoother.
     return false;
   }
 }
