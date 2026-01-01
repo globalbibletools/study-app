@@ -1,10 +1,10 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:scripture/scripture.dart';
 import 'package:studyapp/ui/home/bible_panel/bible_panel.dart';
 import 'package:studyapp/ui/home/drawer.dart';
 import 'package:studyapp/ui/home/hebrew_greek_panel/panel.dart';
 
+import 'common/scroll_sync_controller.dart';
 import 'home_manager.dart';
 
 enum DownloadDialogChoice { useEnglish, download }
@@ -18,6 +18,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final manager = HomeManager();
+  final syncController = ScrollSyncController();
 
   late int bookId;
   late int chapter;
@@ -39,6 +40,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
+    syncController.dispose();
     super.dispose();
   }
 
@@ -94,13 +96,20 @@ class _HomeScreenState extends State<HomeScreen> {
               bookId: bookId,
               chapter: chapter,
               // showWordDetails: _showWordDetails,
+              syncController: syncController,
             ),
           ),
           ValueListenableBuilder<bool>(
             valueListenable: manager.isSinglePanelNotifier,
             builder: (context, isSinglePanel, child) {
               if (isSinglePanel) return const SizedBox();
-              return _buildBibleView();
+              return Expanded(
+                child: BiblePanel(
+                  bookId: bookId,
+                  chapter: chapter,
+                  syncController: syncController,
+                ),
+              );
             },
           ),
         ],
@@ -110,58 +119,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   List<int> top = <int>[];
   List<int> bottom = <int>[0];
-
-  // Widget _buildHebrewGreekView() {
-  //   const centerKey = ValueKey<String>('bottom-sliver-list');
-  //   return CustomScrollView(
-  //     center: centerKey,
-  //     slivers: [
-  //       SliverList(
-  //         delegate: SliverChildBuilderDelegate((
-  //           BuildContext context,
-  //           int index,
-  //         ) {
-  //           return ChapterPage(
-  //             key: ValueKey('$bookId-$chapter'),
-  //             bookId: bookId,
-  //             chapter: chapter,
-  //             manager: manager,
-  //             fontScale: _fontScale,
-  //             onScaleChanged: (newScale) {
-  //               setState(() {
-  //                 _fontScale = newScale;
-  //                 manager.saveFontScale(newScale);
-  //               });
-  //             },
-  //             showWordDetails: _showWordDetails,
-  //           );
-  //         }, childCount: 1),
-  //       ),
-  //       SliverList(
-  //         key: centerKey,
-  //         delegate: SliverChildBuilderDelegate((
-  //           BuildContext context,
-  //           int index,
-  //         ) {
-  //           return ChapterPage(
-  //             key: ValueKey('$bookId-$chapter'),
-  //             bookId: bookId,
-  //             chapter: chapter,
-  //             manager: manager,
-  //             fontScale: _fontScale,
-  //             onScaleChanged: (newScale) {
-  //               setState(() {
-  //                 _fontScale = newScale;
-  //                 manager.saveFontScale(newScale);
-  //               });
-  //             },
-  //             showWordDetails: _showWordDetails,
-  //           );
-  //         }, childCount: 1),
-  //       ),
-  //     ],
-  //   );
-  // }
 
   void _requestText() {
     if (manager.isSinglePanelNotifier.value) return;
@@ -180,49 +137,9 @@ class _HomeScreenState extends State<HomeScreen> {
   //   // }
   // }
 
-  Widget _buildBibleView() {
-    return Expanded(
-      child: BiblePanel(bookId: bookId, chapter: chapter),
-    );
-  }
-
   // Widget _buildBibleView() {
   //   return Expanded(
-  //     child: ValueListenableBuilder<List<UsfmLine>>(
-  //       valueListenable: manager.textParagraphNotifier,
-  //       builder: (context, verseLines, child) {
-  //         return Container(
-  //           width: double.infinity,
-  //           color: Theme.of(context).scaffoldBackgroundColor,
-  //           child: SingleChildScrollView(
-  //             child: Padding(
-  //               padding: const EdgeInsets.all(16.0),
-  //               child: UsfmWidget(
-  //                 verseLines: verseLines,
-  //                 selectionController: ScriptureSelectionController(),
-  //                 onFootnoteTapped: (footnote) {},
-  //                 onWordTapped: (id) => print("Tapped word $id"),
-  //                 onSelectionRequested: (wordId) {
-  //                   // ScriptureLogic.highlightVerse(
-  //                   //   _selectionController,
-  //                   //   verseLines,
-  //                   //   wordId,
-  //                   // );
-  //                 },
-  //                 styleBuilder: (format) {
-  //                   return UsfmParagraphStyle.usfmDefaults(
-  //                     format: format,
-  //                     baseStyle: Theme.of(
-  //                       context,
-  //                     ).textTheme.bodyMedium!.copyWith(fontSize: 20),
-  //                   );
-  //                 },
-  //               ),
-  //             ),
-  //           ),
-  //         );
-  //       },
-  //     ),
+  //     child: BiblePanel(bookId: bookId, chapter: chapter),
   //   );
   // }
 }

@@ -1,14 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:studyapp/ui/home/common/infinite_scroll_view.dart';
+import 'package:studyapp/ui/home/common/scroll_sync_controller.dart';
 import 'package:studyapp/ui/home/common/zoom_wrapper.dart';
 import 'bible_chapter.dart';
 import 'bible_panel_manager.dart';
 
 class BiblePanel extends StatefulWidget {
-  const BiblePanel({super.key, required this.bookId, required this.chapter});
+  const BiblePanel({
+    super.key,
+    required this.bookId,
+    required this.chapter,
+    this.syncController,
+  });
 
   final int bookId;
   final int chapter;
+  final ScrollSyncController? syncController;
 
   @override
   State<BiblePanel> createState() => _BiblePanelState();
@@ -38,6 +45,7 @@ class _BiblePanelState extends State<BiblePanel> {
               child: InfiniteScrollView(
                 bookId: widget.bookId,
                 chapter: widget.chapter,
+                syncController: widget.syncController,
                 chapterBuilder: (context, bId, ch) {
                   return BibleChapter(
                     key: ValueKey('bible-$bId-$ch'),

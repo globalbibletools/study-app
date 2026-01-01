@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:studyapp/ui/home/common/infinite_scroll_view.dart';
+import 'package:studyapp/ui/home/common/scroll_sync_controller.dart';
 import 'package:studyapp/ui/home/common/zoom_wrapper.dart';
 import 'package:studyapp/ui/home/hebrew_greek_panel/chapter.dart';
 import 'package:studyapp/ui/home/hebrew_greek_panel/panel_manager.dart';
@@ -12,10 +13,12 @@ class HebrewGreekPanel extends StatefulWidget {
     super.key,
     required this.bookId,
     required this.chapter,
+    this.syncController,
   });
 
   final int bookId;
   final int chapter;
+  final ScrollSyncController? syncController;
 
   @override
   State<HebrewGreekPanel> createState() => _HebrewGreekPanelState();
@@ -44,6 +47,7 @@ class _HebrewGreekPanelState extends State<HebrewGreekPanel> {
             return InfiniteScrollView(
               bookId: widget.bookId,
               chapter: widget.chapter,
+              syncController: widget.syncController,
               chapterBuilder: (context, bId, ch) {
                 return HebrewGreekChapter(
                   key: ValueKey('page-$bId-$ch'),
