@@ -57,7 +57,7 @@ class _HomeScreenState extends State<HomeScreen> {
             return ValueListenableBuilder<int>(
               valueListenable: manager.currentChapterNotifier,
               builder: (context, chapter, _) {
-                return BibleNavBar(
+                return ReferenceChooser(
                   currentBookName: bookName,
                   currentBookId: manager.currentBookId,
                   currentChapter: chapter,

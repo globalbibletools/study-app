@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:studyapp/common/bible_navigation.dart';
 import 'package:studyapp/l10n/book_names.dart'; // Ensure this import exists in your project
 
-class BibleNavBar extends StatefulWidget {
+class ReferenceChooser extends StatefulWidget {
   final String currentBookName;
   final int currentBookId;
   final int currentChapter;
@@ -11,7 +11,7 @@ class BibleNavBar extends StatefulWidget {
   final Function(int chapter) onChapterSelected;
   final Function(int verse) onVerseSelected;
 
-  const BibleNavBar({
+  const ReferenceChooser({
     super.key,
     required this.currentBookName,
     required this.currentBookId,
@@ -22,10 +22,10 @@ class BibleNavBar extends StatefulWidget {
   });
 
   @override
-  State<BibleNavBar> createState() => _BibleNavBarState();
+  State<ReferenceChooser> createState() => _ReferenceChooserState();
 }
 
-class _BibleNavBarState extends State<BibleNavBar> {
+class _ReferenceChooserState extends State<ReferenceChooser> {
   // Focus Nodes to manage navigation flow
   final FocusNode _bookFocus = FocusNode();
   final FocusNode _chapterFocus = FocusNode();
