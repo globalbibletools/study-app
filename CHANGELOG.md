@@ -1,3 +1,11 @@
+## 0.14.0
+
+- Split screen with update translation text layout.
+- Keep scroll in sync between screens.
+- New book, chapter, verse navigation.
+- Infinite scroll.
+- Update book, chapter, verse labels on scroll.
+
 ## 0.13.0
 
 - Make longpress highlight time lengh a little longer.

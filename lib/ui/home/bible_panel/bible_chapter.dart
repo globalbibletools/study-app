@@ -76,12 +76,18 @@ class _BibleChapterState extends State<BibleChapter> {
                 onFootnoteTapped: (footnote) {},
                 onWordTapped: (id) => print("Tapped word $id"),
                 onSelectionRequested: (wordId) {},
+                showHeadings: false,
                 styleBuilder: (format) {
-                  return UsfmParagraphStyle.usfmDefaults(
+                  final baseStyle = UsfmParagraphStyle.usfmDefaults(
                     format: format,
                     baseStyle: Theme.of(
                       context,
                     ).textTheme.bodyMedium!.copyWith(fontSize: widget.fontSize),
+                  );
+                  return baseStyle.copyWith(
+                    verseNumberStyle: baseStyle.textStyle.copyWith(
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
                   );
                 },
               ),
