@@ -23,6 +23,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   late int bookId;
   late int chapter;
+  int verse = 1;
 
   @override
   void initState() {
@@ -61,12 +62,19 @@ class _HomeScreenState extends State<HomeScreen> {
                   currentBookName: bookName,
                   currentBookId: manager.currentBookId,
                   currentChapter: chapter,
+                  currentVerse: verse,
                   onBookSelected: (bookId) async {
                     manager.onBookSelected(context, bookId);
+                    setState(() {
+                      verse = 1;
+                    });
                     _requestText();
                   },
                   onChapterSelected: (newChapter) {
                     manager.onChapterSelected(newChapter);
+                    setState(() {
+                      verse = 1;
+                    });
                     _requestText();
                   },
                   onVerseSelected: (verse) {
@@ -138,6 +146,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _scrollToVerse(int verse) {
+    setState(() {
+      this.verse = verse;
+    });
     syncController.jumpToVerse(verse);
   }
 }

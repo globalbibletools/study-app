@@ -7,6 +7,7 @@ class ReferenceChooser extends StatefulWidget {
   final String currentBookName;
   final int currentBookId;
   final int currentChapter;
+  final int currentVerse;
   final Function(int bookId) onBookSelected;
   final Function(int chapter) onChapterSelected;
   final Function(int verse) onVerseSelected;
@@ -16,6 +17,7 @@ class ReferenceChooser extends StatefulWidget {
     required this.currentBookName,
     required this.currentBookId,
     required this.currentChapter,
+    required this.currentVerse,
     required this.onBookSelected,
     required this.onChapterSelected,
     required this.onVerseSelected,
@@ -26,12 +28,10 @@ class ReferenceChooser extends StatefulWidget {
 }
 
 class _ReferenceChooserState extends State<ReferenceChooser> {
-  // Focus Nodes to manage navigation flow
   final FocusNode _bookFocus = FocusNode();
   final FocusNode _chapterFocus = FocusNode();
   final FocusNode _verseFocus = FocusNode();
 
-  // Active state trackers
   bool _isSelectingBook = false;
   bool _isSelectingChapter = false;
   bool _isSelectingVerse = false;
@@ -150,7 +150,7 @@ class _ReferenceChooserState extends State<ReferenceChooser> {
 
         // --- VERSE SELECTOR ---
         _NumberSelector(
-          label: 'Verse',
+          label: '${widget.currentVerse}',
           isActive: _isSelectingVerse,
           focusNode: _verseFocus,
           maxValue: 200, // Safe upper bound
@@ -220,6 +220,22 @@ class _BookSelectorState extends State<_BookSelector> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     _loadBookData();
+  }
+
+  @override
+  void didUpdateWidget(covariant _BookSelector oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!widget.isActive && oldWidget.isActive) {
+      _controller.clear();
+    }
+  }
+
+  @override
+  void dispose() {
+    _removeOverlay();
+    _controller.dispose();
+    widget.focusNode.removeListener(_onFocusChanged);
+    super.dispose();
   }
 
   void _loadBookData() {
@@ -365,14 +381,6 @@ class _BookSelectorState extends State<_BookSelector> {
   }
 
   @override
-  void dispose() {
-    _removeOverlay();
-    _controller.dispose();
-    widget.focusNode.removeListener(_onFocusChanged);
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return CompositedTransformTarget(
       link: _layerLink,
@@ -446,6 +454,14 @@ class _NumberSelectorState extends State<_NumberSelector> {
   void initState() {
     super.initState();
     _controller.addListener(_onTextChanged);
+  }
+
+  @override
+  void didUpdateWidget(covariant _NumberSelector oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!widget.isActive && oldWidget.isActive) {
+      _controller.clear();
+    }
   }
 
   @override
