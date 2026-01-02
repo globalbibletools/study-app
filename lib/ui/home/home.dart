@@ -4,6 +4,7 @@ import 'package:studyapp/ui/home/bible_panel/bible_panel.dart';
 import 'package:studyapp/ui/home/drawer.dart';
 import 'package:studyapp/ui/home/hebrew_greek_panel/panel.dart';
 
+import 'bible_nav_bar.dart';
 import 'common/scroll_sync_controller.dart';
 import 'home_manager.dart';
 
@@ -48,29 +49,33 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Row(
-          children: [
-            // OutlinedButton(
-            //   onPressed: _showBookChooserDialog,
-            //   child: ValueListenableBuilder<String>(
-            //     valueListenable: manager.currentBookNotifier,
-            //     builder: (context, value, child) => Text(value),
-            //   ),
-            // ),
-            const SizedBox(width: 10),
-            OutlinedButton(
-              onPressed: () {
-                setState(() {
-                  top.add(-top.length - 1);
-                  bottom.add(bottom.length);
-                });
+        title: ValueListenableBuilder<String>(
+          valueListenable: manager.currentBookNotifier,
+          builder: (context, bookName, _) {
+            return ValueListenableBuilder<int>(
+              valueListenable: manager.currentChapterNotifier,
+              builder: (context, chapter, _) {
+                return BibleNavBar(
+                  currentBookName: bookName,
+                  currentBookId: manager
+                      .currentBookId, // Make sure to add getter in HomeManager
+                  currentChapter: chapter,
+                  onBookSelected: (id) async {
+                    // Navigate to Book 1, Chapter 1 of selected book
+                    // manager.onBookSelected(context, id); // You might need to expose this logic
+                  },
+                  onChapterSelected: (newChapter) {
+                    manager.currentChapterNotifier.value = newChapter;
+                    _requestText();
+                  },
+                  onVerseSelected: (verse) {
+                    // Scroll logic
+                    _scrollToVerse(verse);
+                  },
+                );
               },
-              child: ValueListenableBuilder(
-                valueListenable: manager.currentChapterNotifier,
-                builder: (context, value, child) => Text('$value'),
-              ),
-            ),
-          ],
+            );
+          },
         ),
         actions: [
           IconButton(
@@ -78,7 +83,7 @@ class _HomeScreenState extends State<HomeScreen> {
               manager.togglePanelState();
               _requestText();
             },
-            icon: Icon(Icons.splitscreen),
+            icon: const Icon(Icons.splitscreen),
           ),
         ],
       ),
@@ -126,6 +131,16 @@ class _HomeScreenState extends State<HomeScreen> {
     manager.requestText();
   }
 
+  void _scrollToVerse(int verse) {
+    // This logic depends heavily on how your Panels render the text.
+    // Assuming syncController can handle a "goto" request:
+    // syncController.scrollToVerse(verse);
+
+    // OR, if you don't have that method, you might need to find the item index.
+    // For now, let's print as placeholder if the implementation is missing:
+    print("Navigating to Verse: $verse");
+  }
+
   // Future<void> _showBookChooserDialog() async {
   //   // manager.chapterCountNotifier.value = null;
   //   // final selectedIndex = await showDialog<int>(
@@ -135,12 +150,6 @@ class _HomeScreenState extends State<HomeScreen> {
   //   // if (mounted) {
   //   //   manager.onBookSelected(context, selectedIndex);
   //   // }
-  // }
-
-  // Widget _buildBibleView() {
-  //   return Expanded(
-  //     child: BiblePanel(bookId: bookId, chapter: chapter),
-  //   );
   // }
 }
 

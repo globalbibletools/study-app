@@ -15,6 +15,8 @@ class HomeManager {
   final _settings = getIt<UserSettings>();
   late int _currentBookId;
 
+  int get currentBookId => _currentBookId;
+
   Future<void> init(BuildContext context) async {
     final (bookId, chapter) = _settings.currentBookChapter;
     _currentBookId = bookId;
