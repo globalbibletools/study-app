@@ -1,10 +1,10 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:studyapp/ui/home/bible_panel/bible_panel.dart';
-import 'package:studyapp/ui/home/drawer.dart';
+import 'package:studyapp/ui/home/appbar/drawer.dart';
 import 'package:studyapp/ui/home/hebrew_greek_panel/panel.dart';
 
-import 'bible_nav_bar.dart';
+import 'appbar/reference_chooser.dart';
 import 'common/scroll_sync_controller.dart';
 import 'home_manager.dart';
 
@@ -63,13 +63,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   currentChapter: chapter,
                   onBookSelected: (bookId) async {
                     manager.onBookSelected(context, bookId);
+                    _requestText();
                   },
                   onChapterSelected: (newChapter) {
-                    manager.currentChapterNotifier.value = newChapter;
+                    manager.onChapterSelected(newChapter);
                     _requestText();
                   },
                   onVerseSelected: (verse) {
-                    // Scroll logic
                     _scrollToVerse(verse);
                   },
                 );
@@ -126,31 +126,28 @@ class _HomeScreenState extends State<HomeScreen> {
   List<int> bottom = <int>[0];
 
   void _requestText() {
+    // If you need to trigger updates in the children widgets:
+    setState(() {
+      bookId = manager.currentBookId;
+      chapter = manager.currentChapterNotifier.value;
+    });
+
+    // Original logic
     if (manager.isSinglePanelNotifier.value) return;
-    print('requesting text');
     manager.requestText();
   }
 
   void _scrollToVerse(int verse) {
-    // This logic depends heavily on how your Panels render the text.
-    // Assuming syncController can handle a "goto" request:
+    print("Navigating to Verse: $verse");
+    // Since syncController syncs based on percentage/progress,
+    // exact verse mapping requires knowing the total height and verse offsets.
+    // However, if your syncController supports a custom event for verse scrolling:
+
     // syncController.scrollToVerse(verse);
 
-    // OR, if you don't have that method, you might need to find the item index.
-    // For now, let's print as placeholder if the implementation is missing:
-    print("Navigating to Verse: $verse");
+    // Note: To implement this fully, your Panels/TextControllers need to expose
+    // 'scrollToVerse' which calculates the Rect of that verse and jumps to it.
   }
-
-  // Future<void> _showBookChooserDialog() async {
-  //   // manager.chapterCountNotifier.value = null;
-  //   // final selectedIndex = await showDialog<int>(
-  //   //   context: context,
-  //   //   builder: (BuildContext context) => const BookChooser(),
-  //   // );
-  //   // if (mounted) {
-  //   //   manager.onBookSelected(context, selectedIndex);
-  //   // }
-  // }
 }
 
 /// Custom recognizer that listens only for scaling (pinch) gestures

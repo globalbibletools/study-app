@@ -37,21 +37,6 @@ class HomeManager {
     isSinglePanelNotifier.value = !isSinglePanelNotifier.value;
   }
 
-  // Future<void> downloadBible() async {
-  //   await _downloadService.download(
-  //     url: 'https://assets.globalbibletools.com/bibles/eng_bsb/eng_bsb.db.zip',
-  //     downloadTo: 'bibles',
-  //     onProgress: (progress) {
-  //       print('progress: ${progress.toStringAsFixed(2)}');
-  //       // goes from 0 to 1
-  //       downloadProgressNotifier.value = progress;
-  //     },
-  //   );
-  //   print('Download is done');
-  //   bibleExists = true;
-  //   downloadProgressNotifier.value = null;
-  // }
-
   Future<void> requestText() async {
     final content = await _bibleDb.getChapter(
       _currentBookId,
@@ -63,5 +48,9 @@ class HomeManager {
   void onBookSelected(BuildContext context, int bookId) {
     _currentBookId = bookId;
     _updateUiForBook(context, bookId, 1);
+  }
+
+  void onChapterSelected(int chapter) {
+    currentChapterNotifier.value = chapter;
   }
 }

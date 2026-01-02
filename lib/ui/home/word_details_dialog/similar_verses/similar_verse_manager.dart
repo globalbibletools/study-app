@@ -5,7 +5,7 @@ import 'package:studyapp/common/reference.dart';
 import 'package:studyapp/common/word.dart';
 import 'package:studyapp/services/hebrew_greek/database.dart';
 import 'package:studyapp/services/service_locator.dart';
-import 'package:studyapp/ui/home/similar_verses/similar_verses_page.dart';
+import 'package:studyapp/ui/home/word_details_dialog/similar_verses/similar_verses_page.dart';
 import 'package:studyapp/ui/home/word_details_dialog/dialog_manager.dart';
 
 class SimilarVerseManager {
@@ -25,8 +25,10 @@ class SimilarVerseManager {
     } else {
       verseIds = await _db.searchExactMatchNoPunctuation(word.word);
     }
-    final references =
-        verseIds.map(extractReferenceFromWordId).toSet().toList();
+    final references = verseIds
+        .map(extractReferenceFromWordId)
+        .toSet()
+        .toList();
     similarVersesNotifier.value = references;
   }
 
@@ -59,14 +61,13 @@ class SimilarVerseManager {
       if (searchType == SearchType.exact) {
         color =
             (removePunctuation(word.text) ==
-                    removePunctuation(pressedWord.word))
-                ? highlightColor
-                : null;
+                removePunctuation(pressedWord.word))
+            ? highlightColor
+            : null;
       } else {
-        color =
-            (word.strongsCode == pressedWord.strongsCode)
-                ? highlightColor
-                : null;
+        color = (word.strongsCode == pressedWord.strongsCode)
+            ? highlightColor
+            : null;
       }
 
       final text = word.text.endsWith(maqaph) ? word.text : '${word.text} ';

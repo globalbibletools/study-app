@@ -37,6 +37,35 @@ class _ReferenceChooserState extends State<ReferenceChooser> {
   bool _isSelectingVerse = false;
 
   @override
+  void initState() {
+    super.initState();
+    _bookFocus.addListener(
+      () => _handleFocusChange(_bookFocus, (val) => _isSelectingBook = val),
+    );
+    _chapterFocus.addListener(
+      () =>
+          _handleFocusChange(_chapterFocus, (val) => _isSelectingChapter = val),
+    );
+    _verseFocus.addListener(
+      () => _handleFocusChange(_verseFocus, (val) => _isSelectingVerse = val),
+    );
+  }
+
+  void _handleFocusChange(FocusNode node, Function(bool) setter) {
+    if (!node.hasFocus) {
+      // Small delay to ensure the new focus target is registered
+      // before we close this one, preventing UI jank
+      Future.delayed(const Duration(milliseconds: 50), () {
+        if (mounted && !node.hasFocus) {
+          setState(() {
+            setter(false);
+          });
+        }
+      });
+    }
+  }
+
+  @override
   void dispose() {
     _bookFocus.dispose();
     _chapterFocus.dispose();
@@ -50,6 +79,7 @@ class _ReferenceChooserState extends State<ReferenceChooser> {
       _isSelectingChapter = false;
       _isSelectingVerse = false;
     });
+    FocusManager.instance.primaryFocus?.unfocus();
   }
 
   @override
@@ -71,8 +101,10 @@ class _ReferenceChooserState extends State<ReferenceChooser> {
             });
           },
           onBookSelected: (id) {
+            // 1. Notify Parent immediately
             widget.onBookSelected(id);
-            // Auto-focus chapter after book selection
+
+            // 2. Move to Chapter Selection
             setState(() {
               _isSelectingBook = false;
               _isSelectingChapter = true;
@@ -97,23 +129,19 @@ class _ReferenceChooserState extends State<ReferenceChooser> {
               _isSelectingVerse = false;
             });
           },
-          onValueChanged: (val) {
-            widget.onChapterSelected(val);
-            // Auto-focus verse after chapter selection?
-            // Usually simpler to stay on chapter until explicit move,
-            // but prompt implied flow. Let's strictly follow prompt logic:
-            // "Disambiguated -> immediately selected".
+          onChanged: (val) {
+            // Do NOTHING here. Changing the text should not load the chapter yet.
           },
-          onDisambiguated: () {
-            // Optional: Move to verse automatically when chapter is done
-            // setState(() {
-            //   _isSelectingChapter = false;
-            //   _isSelectingVerse = true;
-            // });
-            // _verseFocus.requestFocus();
+          onSubmitted: (val) {
+            // 1. Notify Parent to load text
+            widget.onChapterSelected(val);
 
-            // For now, just close input as per standard "Selection" behavior
-            _resetAll();
+            // 2. Move to Verse Selection
+            setState(() {
+              _isSelectingChapter = false;
+              _isSelectingVerse = true;
+            });
+            _verseFocus.requestFocus();
           },
           onCancel: _resetAll,
         ),
@@ -122,12 +150,10 @@ class _ReferenceChooserState extends State<ReferenceChooser> {
 
         // --- VERSE SELECTOR ---
         _NumberSelector(
-          label: 'Verse', // Or a specific icon/text
+          label: 'Verse',
           isActive: _isSelectingVerse,
           focusNode: _verseFocus,
-          // We assume a high number for max verses if we don't have exact data,
-          // or pass 176 (longest psalm) as safe upper bound for scrolling logic.
-          maxValue: 200,
+          maxValue: 200, // Safe upper bound
           onTap: () {
             setState(() {
               _isSelectingBook = false;
@@ -135,10 +161,14 @@ class _ReferenceChooserState extends State<ReferenceChooser> {
               _isSelectingVerse = true;
             });
           },
-          onValueChanged: (val) {
+          onChanged: (val) {
+            // Verse changes trigger IMMEDIATE scrolling
             widget.onVerseSelected(val);
           },
-          onDisambiguated: _resetAll,
+          onSubmitted: (val) {
+            // Pressing enter on verse just closes the inputs
+            _resetAll();
+          },
           onCancel: _resetAll,
         ),
       ],
@@ -176,7 +206,6 @@ class _BookSelectorState extends State<_BookSelector> {
   final LayerLink _layerLink = LayerLink();
   OverlayEntry? _overlayEntry;
 
-  // Cache of all available books (Id, Name)
   List<MapEntry<int, String>> _allBooks = [];
   List<MapEntry<int, String>> _filteredBooks = [];
 
@@ -194,11 +223,8 @@ class _BookSelectorState extends State<_BookSelector> {
   }
 
   void _loadBookData() {
-    // Generate list from 1 to 66 using the helper from main context
     _allBooks = List.generate(66, (index) {
       final id = index + 1;
-      // Note: Assuming bookNameFromId is globally available or passed down.
-      // If it's strictly local to context, we assume this widget is in tree.
       return MapEntry(id, bookNameFromId(context, id));
     });
     _filteredBooks = List.from(_allBooks);
@@ -209,15 +235,6 @@ class _BookSelectorState extends State<_BookSelector> {
       _showOverlay();
     } else {
       _removeOverlay();
-      // If we lost focus and didn't select, cancel editing
-      if (widget.isActive) {
-        Future.delayed(const Duration(milliseconds: 100), () {
-          // Delay to allow tap on dropdown item to register before closing
-          if (!mounted) return;
-          // If we aren't handling a selection, cancel.
-          // Note: actual selection logic handles state update.
-        });
-      }
     }
   }
 
@@ -232,8 +249,6 @@ class _BookSelectorState extends State<_BookSelector> {
     // AUTO-ACCEPT LOGIC
     if (_filteredBooks.length == 1) {
       final match = _filteredBooks.first;
-      // Only auto-accept if the input roughly matches length or user specifically typed enough
-      // to distinguish. To be safe, we auto-accept immediately as requested.
       _selectBook(match.key);
     }
   }
@@ -294,8 +309,6 @@ class _BookSelectorState extends State<_BookSelector> {
         // If currentScore > minScore, we ignore it because a better match already exists.
       }
     }
-
-    print(bestMatches);
 
     return bestMatches;
   }
@@ -361,16 +374,10 @@ class _BookSelectorState extends State<_BookSelector> {
 
   @override
   Widget build(BuildContext context) {
-    // We use a Stack to ensure the text field takes exactly the same space
-    // as the button by rendering the button (invisible) to dictate size.
-    // However, since book names vary wildly in length, a fixed width or
-    // IntrinsicWidth is better.
-
     return CompositedTransformTarget(
       link: _layerLink,
       child: widget.isActive
           ? SizedBox(
-              // Constraint width to prevent jumping, or use fixed reasonable width
               width: 140,
               child: TextField(
                 controller: _controller,
@@ -385,7 +392,14 @@ class _BookSelectorState extends State<_BookSelector> {
                   border: OutlineInputBorder(),
                   hintText: 'Book',
                 ),
-                onSubmitted: (_) => widget.onCancel(),
+                onSubmitted: (_) {
+                  // If user hits enter and there is 1 valid match in filter, select it
+                  if (_filteredBooks.isNotEmpty) {
+                    _selectBook(_filteredBooks.first.key);
+                  } else {
+                    widget.onCancel();
+                  }
+                },
               ),
             )
           : OutlinedButton(
@@ -406,8 +420,8 @@ class _NumberSelector extends StatefulWidget {
   final FocusNode focusNode;
   final int maxValue;
   final VoidCallback onTap;
-  final Function(int) onValueChanged;
-  final VoidCallback onDisambiguated;
+  final Function(int) onChanged;
+  final Function(int) onSubmitted;
   final VoidCallback onCancel;
 
   const _NumberSelector({
@@ -416,8 +430,8 @@ class _NumberSelector extends StatefulWidget {
     required this.focusNode,
     required this.maxValue,
     required this.onTap,
-    required this.onValueChanged,
-    required this.onDisambiguated,
+    required this.onChanged,
+    required this.onSubmitted,
     required this.onCancel,
   });
 
@@ -447,33 +461,34 @@ class _NumberSelectorState extends State<_NumberSelector> {
     final value = int.tryParse(text);
     if (value == null) return;
 
-    // 1. Notify change (for Verse scrolling)
-    widget.onValueChanged(value);
+    // 1. Report the change (e.g. for Verse scrolling)
+    widget.onChanged(value);
 
-    // 2. Check logic for Auto-Accept (Disambiguation)
-    bool shouldAccept = false;
+    // 2. Disambiguation Logic (Auto-Submit)
+    bool shouldAutoSubmit = false;
 
     // Case A: Exact match of max value (e.g. max 50, typed 50)
     if (value == widget.maxValue) {
-      shouldAccept = true;
+      shouldAutoSubmit = true;
     }
     // Case B: Typing next digit would exceed max
     // (e.g. max 50. Typed '6'. '60' > 50. So '6' is final)
-    // (e.g. max 50. Typed '4'. '40' <= 50. Wait.)
     else if (value * 10 > widget.maxValue) {
-      shouldAccept = true;
+      shouldAutoSubmit = true;
     }
 
-    if (shouldAccept) {
-      _controller.clear();
-      widget.onDisambiguated();
+    if (shouldAutoSubmit) {
+      _submit(value);
     }
+  }
+
+  void _submit(int value) {
+    _controller.clear();
+    widget.onSubmitted(value);
   }
 
   @override
   Widget build(BuildContext context) {
-    // To match button width, we can use IntrinsicWidth or a specific box.
-    // Buttons for chapters are usually small.
     return widget.isActive
         ? SizedBox(
             width: 60,
@@ -491,7 +506,14 @@ class _NumberSelectorState extends State<_NumberSelector> {
                 ),
                 border: OutlineInputBorder(),
               ),
-              onSubmitted: (_) => widget.onCancel(),
+              onSubmitted: (val) {
+                final intVal = int.tryParse(val);
+                if (intVal != null) {
+                  _submit(intVal);
+                } else {
+                  widget.onCancel();
+                }
+              },
             ),
           )
         : OutlinedButton(onPressed: widget.onTap, child: Text(widget.label));
