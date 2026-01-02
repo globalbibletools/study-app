@@ -138,15 +138,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _scrollToVerse(int verse) {
-    print("Navigating to Verse: $verse");
-    // Since syncController syncs based on percentage/progress,
-    // exact verse mapping requires knowing the total height and verse offsets.
-    // However, if your syncController supports a custom event for verse scrolling:
-
-    // syncController.scrollToVerse(verse);
-
-    // Note: To implement this fully, your Panels/TextControllers need to expose
-    // 'scrollToVerse' which calculates the Rect of that verse and jumps to it.
+    syncController.jumpToVerse(verse);
   }
 }
 

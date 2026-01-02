@@ -22,11 +22,13 @@ class HebrewGreekChapter extends StatefulWidget {
   final double fontSize;
 
   @override
-  State<HebrewGreekChapter> createState() => _HebrewGreekChapterState();
+  State<HebrewGreekChapter> createState() => HebrewGreekChapterState();
 }
 
-class _HebrewGreekChapterState extends State<HebrewGreekChapter> {
+class HebrewGreekChapterState extends State<HebrewGreekChapter> {
   final manager = HebrewGreekChapterManager();
+
+  final _textController = HebrewGreekTextController();
 
   @override
   void initState() {
@@ -44,14 +46,18 @@ class _HebrewGreekChapterState extends State<HebrewGreekChapter> {
     }
   }
 
+  double? getOffsetForVerse(int verseNumber) {
+    final rect = _textController.getVerseRect(verseNumber);
+    return rect?.top;
+  }
+
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<List<HebrewGreekWord>>(
       valueListenable: manager.textNotifier,
       builder: (context, words, child) {
-        if (words.isEmpty) {
-          return const SizedBox();
-        }
+        if (words.isEmpty) return const SizedBox();
+
         return Padding(
           padding: const EdgeInsets.only(left: 16.0, right: 16.0),
           child: Column(
@@ -64,6 +70,7 @@ class _HebrewGreekChapterState extends State<HebrewGreekChapter> {
               const SizedBox(height: 10),
               HebrewGreekText(
                 words: words,
+                controller: _textController,
                 textDirection: manager.isRtl(widget.bookId)
                     ? TextDirection.rtl
                     : TextDirection.ltr,

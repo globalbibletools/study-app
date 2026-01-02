@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 class ScrollSyncController extends ChangeNotifier {
   // Track which panel is currently being touched/scrolled by the user
   // so we don't create an infinite feedback loop.
   Object? _activeSource;
+  final _verseJumpController = StreamController<int>.broadcast();
+  Stream<int> get onVerseJump => _verseJumpController.stream;
 
   void setActiveSource(Object source) {
     _activeSource = source;
@@ -36,4 +40,14 @@ class ScrollSyncController extends ChangeNotifier {
   }
 
   bool isSourceActive(Object source) => _activeSource == source;
+
+  void jumpToVerse(int verse) {
+    _verseJumpController.add(verse);
+  }
+
+  @override
+  void dispose() {
+    _verseJumpController.close();
+    super.dispose();
+  }
 }

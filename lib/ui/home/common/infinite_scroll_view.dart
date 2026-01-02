@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:studyapp/common/bible_navigation.dart';
+import 'package:studyapp/ui/home/hebrew_greek_panel/chapter.dart';
 
 import 'scroll_sync_controller.dart';
 
@@ -35,12 +38,20 @@ class _InfiniteScrollViewState extends State<InfiniteScrollView> {
   bool _isLoadingPreviousChapter = false;
   final Map<ChapterIdentifier, GlobalKey> _chapterKeys = {};
   final String _panelId = UniqueKey().toString();
+  StreamSubscription? _verseJumpSubscription;
 
   @override
   void initState() {
     super.initState();
     _scrollController = ScrollController()..addListener(_scrollListener);
     widget.syncController?.addListener(_onSyncReceived);
+
+    if (widget.syncController != null) {
+      _verseJumpSubscription = widget.syncController!.onVerseJump.listen(
+        _handleVerseJump,
+      );
+    }
+
     _resetChapters();
 
     if (widget.syncController != null) {
@@ -215,9 +226,72 @@ class _InfiniteScrollViewState extends State<InfiniteScrollView> {
 
   @override
   void dispose() {
+    _verseJumpSubscription?.cancel();
     widget.syncController?.removeListener(_onSyncReceived);
     _scrollController.dispose();
     super.dispose();
+  }
+
+  void _handleVerseJump(int verse) {
+    // 1. Get the Key for the center/current chapter
+    final key = _chapterKeys[_centerChapter];
+    if (key == null) return;
+
+    // 2. Get the Context of the Sliver
+    final sliverContext = key.currentContext;
+    if (sliverContext == null) return;
+
+    // 3. Find the State
+    HebrewGreekChapterState? state;
+    void visitor(Element element) {
+      if (state != null) return;
+      if (element is StatefulElement &&
+          element.state is HebrewGreekChapterState) {
+        state = element.state as HebrewGreekChapterState;
+      } else {
+        element.visitChildren(visitor);
+      }
+    }
+
+    sliverContext.visitChildElements(visitor);
+
+    // 4. Perform the scroll using state.context
+    if (state != null) {
+      final verseOffset = state!.getOffsetForVerse(verse);
+
+      if (verseOffset != null) {
+        _scrollToAbsolutePosition(state!.context, verseOffset);
+      } else {
+        print("Verse $verse not found in current layout");
+      }
+    }
+  }
+
+  void _scrollToAbsolutePosition(
+    BuildContext chapterContext,
+    double offsetInsideChapter,
+  ) {
+    // 4. Calculate absolute scroll position
+    final renderObject = chapterContext.findRenderObject();
+    if (renderObject is! RenderBox) return;
+
+    // This finds the scroll offset required to bring the *top* of the chapter
+    // to the top of the viewport.
+    final viewport = RenderAbstractViewport.of(renderObject);
+    final revealedOffset = viewport.getOffsetToReveal(renderObject, 0.0);
+
+    // 5. Add the verse's internal offset
+    // You might want to subtract a little padding (e.g. 20px) so the verse isn't
+    // glued to the very top edge.
+    double targetPixels = revealedOffset.offset + offsetInsideChapter;
+
+    // Optional: Clamp to bounds
+    targetPixels = targetPixels.clamp(
+      _scrollController.position.minScrollExtent,
+      _scrollController.position.maxScrollExtent,
+    );
+
+    _scrollController.jumpTo(targetPixels);
   }
 
   @override
