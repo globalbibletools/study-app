@@ -3,12 +3,17 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:studyapp/common/bible_navigation.dart';
-import 'package:studyapp/ui/home/hebrew_greek_panel/chapter.dart';
 
 import 'scroll_sync_controller.dart';
 
 typedef ChapterBuilder =
     Widget Function(BuildContext context, int bookId, int chapter);
+
+mixin VerseScrollable {
+  /// Returns the vertical offset (pixels) of the verse relative to the top of the widget.
+  /// Returns null if the verse is not found.
+  double? getOffsetForVerse(int verseNumber);
+}
 
 class InfiniteScrollView extends StatefulWidget {
   const InfiniteScrollView({
@@ -242,12 +247,15 @@ class _InfiniteScrollViewState extends State<InfiniteScrollView> {
     if (sliverContext == null) return;
 
     // 3. Find the State
-    HebrewGreekChapterState? state;
+    VerseScrollable? scrollableState;
+    State? actualState;
+
     void visitor(Element element) {
-      if (state != null) return;
-      if (element is StatefulElement &&
-          element.state is HebrewGreekChapterState) {
-        state = element.state as HebrewGreekChapterState;
+      if (scrollableState != null) return;
+
+      if (element is StatefulElement && element.state is VerseScrollable) {
+        scrollableState = element.state as VerseScrollable;
+        actualState = element.state;
       } else {
         element.visitChildren(visitor);
       }
@@ -255,12 +263,12 @@ class _InfiniteScrollViewState extends State<InfiniteScrollView> {
 
     sliverContext.visitChildElements(visitor);
 
-    // 4. Perform the scroll using state.context
-    if (state != null) {
-      final verseOffset = state!.getOffsetForVerse(verse);
+    // 4. Perform the scroll using the generic mixin
+    if (scrollableState != null && actualState != null) {
+      final verseOffset = scrollableState!.getOffsetForVerse(verse);
 
       if (verseOffset != null) {
-        _scrollToAbsolutePosition(state!.context, verseOffset);
+        _scrollToAbsolutePosition(actualState!.context, verseOffset);
       } else {
         print("Verse $verse not found in current layout");
       }

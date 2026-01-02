@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:studyapp/common/book_name.dart';
 import 'package:studyapp/common/word.dart';
 import 'package:studyapp/l10n/app_localizations.dart';
+import 'package:studyapp/ui/home/common/infinite_scroll_view.dart';
 import 'package:studyapp/ui/home/hebrew_greek_panel/chapter_manager.dart';
 import 'package:studyapp/ui/home/hebrew_greek_panel/text.dart';
 import 'package:studyapp/ui/home/home.dart';
@@ -25,7 +26,8 @@ class HebrewGreekChapter extends StatefulWidget {
   State<HebrewGreekChapter> createState() => HebrewGreekChapterState();
 }
 
-class HebrewGreekChapterState extends State<HebrewGreekChapter> {
+class HebrewGreekChapterState extends State<HebrewGreekChapter>
+    with VerseScrollable {
   final manager = HebrewGreekChapterManager();
 
   final _textController = HebrewGreekTextController();
@@ -46,6 +48,7 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter> {
     }
   }
 
+  @override
   double? getOffsetForVerse(int verseNumber) {
     final rect = _textController.getVerseRect(verseNumber);
     return rect?.top;
