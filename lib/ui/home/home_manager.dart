@@ -59,4 +59,9 @@ class HomeManager {
     );
     textParagraphNotifier.value = content;
   }
+
+  void onBookSelected(BuildContext context, int bookId) {
+    _currentBookId = bookId;
+    _updateUiForBook(context, bookId, 1);
+  }
 }

@@ -56,6 +56,7 @@ class _BibleNavBarState extends State<BibleNavBar> {
   Widget build(BuildContext context) {
     return Row(
       mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.start,
       children: [
         // --- BOOK SELECTOR ---
         _BookSelector(
@@ -223,9 +224,7 @@ class _BookSelectorState extends State<_BookSelector> {
   void _onTextChanged() {
     final input = _controller.text.toLowerCase();
     setState(() {
-      _filteredBooks = _allBooks.where((entry) {
-        return entry.value.toLowerCase().contains(input);
-      }).toList();
+      _filteredBooks = _filter(input);
     });
 
     _overlayEntry?.markNeedsBuild();
@@ -237,6 +236,68 @@ class _BookSelectorState extends State<_BookSelector> {
       // to distinguish. To be safe, we auto-accept immediately as requested.
       _selectBook(match.key);
     }
+  }
+
+  List<MapEntry<int, String>> _filter(String input) {
+    if (input.isEmpty) return _allBooks;
+
+    // We will track the best (lowest) score found so far.
+    // Initialize with a high number.
+    int minScore = 999999;
+    List<MapEntry<int, String>> bestMatches = [];
+
+    for (var entry in _allBooks) {
+      final bookName = entry.value.toLowerCase();
+
+      // Rule 1: The book must start with the first letter of the input.
+      if (!bookName.startsWith(input[0])) {
+        continue;
+      }
+
+      // Rule 2 & 3: Check for subsequence and calculate "closeness" score.
+      int currentScore = 0;
+      int lastIndex = -1; // To ensure we search forward in the string
+      bool isMatch = true;
+
+      for (int i = 0; i < input.length; i++) {
+        final char = input[i];
+
+        // Find the character in the book name, strictly AFTER the previous character's position
+        // greedy matching (indexOf) ensures we find the earliest occurrence,
+        // which helps the score be as low as possible.
+        final index = bookName.indexOf(char, lastIndex + 1);
+
+        if (index == -1) {
+          isMatch = false;
+          break; // Character not found in order
+        }
+
+        // Add the index to the score.
+        // Example "gn":
+        // Genesis:   'g' (0) + 'n' (2) = Score 2
+        // Galatians: 'g' (0) + 'n' (7) = Score 7
+        currentScore += index;
+        lastIndex = index;
+      }
+
+      if (isMatch) {
+        if (currentScore < minScore) {
+          // We found a better match (closer to front).
+          // Clear previous candidates and start a new list with this winner.
+          minScore = currentScore;
+          bestMatches = [entry];
+        } else if (currentScore == minScore) {
+          // We found a tie (same letters in same positions).
+          // Add to the existing list of winners.
+          bestMatches.add(entry);
+        }
+        // If currentScore > minScore, we ignore it because a better match already exists.
+      }
+    }
+
+    print(bestMatches);
+
+    return bestMatches;
   }
 
   void _selectBook(int id) {

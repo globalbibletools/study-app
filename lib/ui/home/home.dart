@@ -49,6 +49,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        centerTitle: false,
+        titleSpacing: 0,
         title: ValueListenableBuilder<String>(
           valueListenable: manager.currentBookNotifier,
           builder: (context, bookName, _) {
@@ -57,12 +59,10 @@ class _HomeScreenState extends State<HomeScreen> {
               builder: (context, chapter, _) {
                 return BibleNavBar(
                   currentBookName: bookName,
-                  currentBookId: manager
-                      .currentBookId, // Make sure to add getter in HomeManager
+                  currentBookId: manager.currentBookId,
                   currentChapter: chapter,
-                  onBookSelected: (id) async {
-                    // Navigate to Book 1, Chapter 1 of selected book
-                    // manager.onBookSelected(context, id); // You might need to expose this logic
+                  onBookSelected: (bookId) async {
+                    manager.onBookSelected(context, bookId);
                   },
                   onChapterSelected: (newChapter) {
                     manager.currentChapterNotifier.value = newChapter;
