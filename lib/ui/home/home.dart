@@ -1,5 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:studyapp/l10n/book_names.dart';
 import 'package:studyapp/ui/home/bible_panel/bible_panel.dart';
 import 'package:studyapp/ui/home/appbar/drawer.dart';
 import 'package:studyapp/ui/home/hebrew_greek_panel/panel.dart';
@@ -21,17 +22,49 @@ class _HomeScreenState extends State<HomeScreen> {
   final manager = HomeManager();
   final syncController = ScrollSyncController();
 
-  late int bookId;
-  late int chapter;
-  int verse = 1;
+  // "Panel" State: Triggers infinite scroll reset only when explicitly changed by User
+  late int panelBookId;
+  late int panelChapter;
+
+  // "Display" State: Updates freely while scrolling or selecting
+  late int displayBookId;
+  late int displayChapter;
+  int displayVerse = 1;
 
   @override
   void initState() {
     super.initState();
 
     final (initialBook, initialChapter) = manager.getInitialBookAndChapter();
-    bookId = initialBook;
-    chapter = initialChapter;
+    // Initialize both sets of state
+    panelBookId = initialBook;
+    panelChapter = initialChapter;
+
+    displayBookId = initialBook;
+    displayChapter = initialChapter;
+
+    // Listen to scroll updates
+    syncController.addListener(_onScrollUpdate);
+  }
+
+  void _onScrollUpdate() {
+    // Only update if we have valid data
+    if (syncController.bookId != null && syncController.chapter != null) {
+      final newBook = syncController.bookId!;
+      final newChapter = syncController.chapter!;
+      final newVerse = syncController.verse ?? 1;
+
+      // Avoid setState if nothing changed
+      if (newBook != displayBookId ||
+          newChapter != displayChapter ||
+          newVerse != displayVerse) {
+        setState(() {
+          displayBookId = newBook;
+          displayChapter = newChapter;
+          displayVerse = newVerse;
+        });
+      }
+    }
   }
 
   @override
@@ -52,43 +85,26 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         centerTitle: false,
         titleSpacing: 0,
-        title: ValueListenableBuilder<String>(
-          valueListenable: manager.currentBookNotifier,
-          builder: (context, bookName, _) {
-            return ValueListenableBuilder<int>(
-              valueListenable: manager.currentChapterNotifier,
-              builder: (context, chapter, _) {
-                return ReferenceChooser(
-                  currentBookName: bookName,
-                  currentBookId: manager.currentBookId,
-                  currentChapter: chapter,
-                  currentVerse: verse,
-                  onBookSelected: (bookId) async {
-                    manager.onBookSelected(context, bookId);
-                    setState(() {
-                      verse = 1;
-                    });
-                    _requestText();
-                  },
-                  onChapterSelected: (newChapter) {
-                    manager.onChapterSelected(newChapter);
-                    setState(() {
-                      verse = 1;
-                    });
-                    _requestText();
-                  },
-                  onVerseSelected: (verse) {
-                    _scrollToVerse(verse);
-                  },
-                );
-              },
-            );
+        title: ReferenceChooser(
+          currentBookName: bookNameFromId(context, displayBookId),
+          currentBookId: displayBookId,
+          currentChapter: displayChapter,
+          currentVerse: displayVerse,
+          onBookSelected: (bookId) async {
+            _onUserNavigation(bookId, 1, 1);
+          },
+          onChapterSelected: (newChapter) {
+            _onUserNavigation(displayBookId, newChapter, 1);
+          },
+          onVerseSelected: (verse) {
+            _scrollToVerse(verse);
           },
         ),
         actions: [
           IconButton(
             onPressed: () {
               manager.togglePanelState();
+              _syncManagerToDisplay();
               _requestText();
             },
             icon: const Icon(Icons.splitscreen),
@@ -106,9 +122,8 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           Expanded(
             child: HebrewGreekPanel(
-              bookId: bookId,
-              chapter: chapter,
-              // showWordDetails: _showWordDetails,
+              bookId: panelBookId,
+              chapter: panelChapter,
               syncController: syncController,
             ),
           ),
@@ -118,8 +133,8 @@ class _HomeScreenState extends State<HomeScreen> {
               if (isSinglePanel) return const SizedBox();
               return Expanded(
                 child: BiblePanel(
-                  bookId: bookId,
-                  chapter: chapter,
+                  bookId: panelBookId,
+                  chapter: panelChapter,
                   syncController: syncController,
                 ),
               );
@@ -133,22 +148,42 @@ class _HomeScreenState extends State<HomeScreen> {
   List<int> top = <int>[];
   List<int> bottom = <int>[0];
 
-  void _requestText() {
-    // If you need to trigger updates in the children widgets:
+  /// Handles explicit user navigation (selecting from menus)
+  void _onUserNavigation(int bId, int ch, int v) {
     setState(() {
-      bookId = manager.currentBookId;
-      chapter = manager.currentChapterNotifier.value;
+      // 1. Update Display
+      displayBookId = bId;
+      displayChapter = ch;
+      displayVerse = v;
+
+      // 2. Update Panel (Forces reset/jump)
+      panelBookId = bId;
+      panelChapter = ch;
     });
 
-    // Original logic
+    // 3. Update Manager (for single panel mode fetching)
+    manager.onBookSelected(context, bId);
+    manager.currentChapterNotifier.value = ch;
+
+    // 4. Fetch
+    _requestText();
+  }
+
+  void _syncManagerToDisplay() {
+    if (manager.currentBookId != displayBookId) {
+      manager.onBookSelected(context, displayBookId);
+    }
+    manager.currentChapterNotifier.value = displayChapter;
+  }
+
+  void _requestText() {
     if (manager.isSinglePanelNotifier.value) return;
     manager.requestText();
   }
 
   void _scrollToVerse(int verse) {
-    setState(() {
-      this.verse = verse;
-    });
+    print("Navigating to Verse: $verse");
+    // Just jump, the scroll listener will update the UI when it arrives
     syncController.jumpToVerse(verse);
   }
 }

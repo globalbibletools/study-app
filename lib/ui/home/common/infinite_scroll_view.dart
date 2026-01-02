@@ -13,6 +13,10 @@ mixin VerseScrollable {
   /// Returns the vertical offset (pixels) of the verse relative to the top of the widget.
   /// Returns null if the verse is not found.
   double? getOffsetForVerse(int verseNumber);
+
+  /// Returns the verse number at the given vertical offset (pixels) relative to the top of the widget.
+  /// Returns 0 or 1 if no specific verse is found (e.g. top padding).
+  int getVerseForOffset(double yOffset);
 }
 
 class InfiniteScrollView extends StatefulWidget {
@@ -190,15 +194,14 @@ class _InfiniteScrollViewState extends State<InfiniteScrollView> {
 
   void _reportSyncPosition() {
     // Find the chapter currently most visible in the viewport
-    // A simple heuristic: find the chapter closest to offset 0 relative to viewport
     for (final chapterId in _displayedChapters) {
       final key = _chapterKeys[chapterId];
       if (key == null) continue;
 
-      final context = key.currentContext;
-      if (context == null) continue;
+      final sliverContext = key.currentContext;
+      if (sliverContext == null) continue;
 
-      final renderSliver = context.findRenderObject() as RenderSliver?;
+      final renderSliver = sliverContext.findRenderObject() as RenderSliver?;
       if (renderSliver == null ||
           !renderSliver.attached ||
           renderSliver.geometry == null) {
@@ -218,13 +221,36 @@ class _InfiniteScrollViewState extends State<InfiniteScrollView> {
         final double offsetIntoChapter = currentScroll - revealedOffset;
         final double progress = offsetIntoChapter / chapterHeight;
 
+        // --- NEW LOGIC: Determine the verse ---
+        int? visibleVerse;
+        VerseScrollable? scrollableState;
+
+        // Find the state just like in handleJump
+        void visitor(Element element) {
+          if (scrollableState != null) return;
+          if (element is StatefulElement && element.state is VerseScrollable) {
+            scrollableState = element.state as VerseScrollable;
+          } else {
+            element.visitChildren(visitor);
+          }
+        }
+
+        sliverContext.visitChildElements(visitor);
+
+        if (scrollableState != null) {
+          // We ask: "What verse is at this specific Y offset?"
+          // offsetIntoChapter is exactly pixels from top of chapter widget
+          visibleVerse = scrollableState!.getVerseForOffset(offsetIntoChapter);
+        }
+
         widget.syncController!.updatePosition(
           _panelId,
           chapterId.bookId,
           chapterId.chapter,
           progress.clamp(0.0, 1.0),
+          verse: visibleVerse,
         );
-        break; // Found the active chapter, stop looking
+        break;
       }
     }
   }

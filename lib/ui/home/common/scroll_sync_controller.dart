@@ -20,22 +20,31 @@ class ScrollSyncController extends ChangeNotifier {
   // The state to broadcast
   int? _bookId;
   int? _chapter;
+  int? _verse;
   double _progress = 0.0;
 
   int? get bookId => _bookId;
   int? get chapter => _chapter;
+  int? get verse => _verse;
   double get progress => _progress;
 
-  /// Called by the "Master" panel to report position
-  void updatePosition(Object source, int bookId, int chapter, double progress) {
+  /// Called by the active panel to report position
+  void updatePosition(
+    Object source,
+    int bookId,
+    int chapter,
+    double progress, {
+    int? verse,
+  }) {
     // Only accept updates from the panel the user is actually touching
     if (_activeSource != null && _activeSource != source) return;
 
     _bookId = bookId;
     _chapter = chapter;
+    _verse = verse;
     _progress = progress;
 
-    // Notify the "Slave" panel
+    // Notify the other panel
     notifyListeners();
   }
 

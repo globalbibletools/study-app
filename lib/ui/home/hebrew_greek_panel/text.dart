@@ -19,10 +19,14 @@ typedef AsyncWordActionCallback = Future<void> Function(int wordId);
 /// no popup will be shown for that word.
 typedef AsyncPopupWordProvider = Future<String?> Function(int wordId);
 
+/// A callback to find a verse number at a specific Y offset
+typedef VerseAtOffsetCallback = int Function(double y);
+
 /// A way for the outside world (such as scroll controllers) to obtain the
 /// internal layout metrics of [HebrewGreekText].
 class HebrewGreekTextController {
   final Map<int, Rect> _verseRects = {};
+  VerseAtOffsetCallback? _verseAtOffsetCallback;
 
   /// Updates the controller with the latest verse rectangles.
   ///
@@ -32,6 +36,11 @@ class HebrewGreekTextController {
     _verseRects.addAll(rects);
   }
 
+  /// Registers the callback from the RenderObject
+  void _registerVerseFinder(VerseAtOffsetCallback callback) {
+    _verseAtOffsetCallback = callback;
+  }
+
   /// Retrieves the [Rect] for a given verse number.
   ///
   /// The [Rect] contains the position and size of the verse number
@@ -39,6 +48,13 @@ class HebrewGreekTextController {
   /// Returns null if the verse number is not found.
   Rect? getVerseRect(int verseNumber) {
     return _verseRects[verseNumber];
+  }
+
+  int getVerseForOffset(double y) {
+    if (_verseAtOffsetCallback != null) {
+      return _verseAtOffsetCallback!(y);
+    }
+    return 1;
   }
 }
 
@@ -244,6 +260,7 @@ class RenderHebrewGreekText extends RenderBox {
     _tapRecognizer = TapGestureRecognizer()..onTapUp = _handleTapUp;
     _longPressRecognizer = LongPressGestureRecognizer()
       ..onLongPressStart = _handleLongPressStart;
+    _controller?._registerVerseFinder(_findVerseAtOffset);
   }
 
   int? _tappedWordId;
@@ -269,6 +286,7 @@ class RenderHebrewGreekText extends RenderBox {
   set controller(HebrewGreekTextController? value) {
     if (_controller == value) return;
     _controller = value;
+    _controller?._registerVerseFinder(_findVerseAtOffset);
   }
 
   TextDirection _textDirection;
@@ -418,6 +436,36 @@ class RenderHebrewGreekText extends RenderBox {
     final wordNumber = word.id % 100;
     if (wordNumber != 1) return null;
     return (word.id ~/ 100) % 1000;
+  }
+
+  int _findVerseAtOffset(double y) {
+    // 1. Check if the offset hits a specific word
+    for (final entry in _wordRects.entries) {
+      final rect = entry.value;
+      // We check if Y is within the vertical bounds of the line
+      if (y >= rect.top && y <= rect.bottom) {
+        // Decode verse from word ID
+        // WordID format: (chapter * 1000 + verse) * 100 + wordNumber
+        final wordId = entry.key;
+        final verse = (wordId ~/ 100) % 1000;
+        return verse;
+      }
+    }
+
+    // 2. If no direct hit (e.g. in spacing), find closest previous word
+    int closestVerse = 1;
+    double maxTopFound = -1.0;
+
+    for (final entry in _wordRects.entries) {
+      final rect = entry.value;
+      if (rect.top <= y && rect.top > maxTopFound) {
+        maxTopFound = rect.top;
+        final wordId = entry.key;
+        closestVerse = (wordId ~/ 100) % 1000;
+      }
+    }
+
+    return closestVerse;
   }
 
   Size _performLayout(BoxConstraints constraints) {

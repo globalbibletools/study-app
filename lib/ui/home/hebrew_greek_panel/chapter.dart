@@ -55,6 +55,11 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter>
   }
 
   @override
+  int getVerseForOffset(double yOffset) {
+    return _textController.getVerseForOffset(yOffset);
+  }
+
+  @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<List<HebrewGreekWord>>(
       valueListenable: manager.textNotifier,
