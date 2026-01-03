@@ -121,35 +121,34 @@ class _HomeScreenState extends State<HomeScreen> {
           });
         },
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: HebrewGreekPanel(
-              bookId: panelBookId,
-              chapter: panelChapter,
-              syncController: syncController,
-            ),
-          ),
-          ValueListenableBuilder<bool>(
-            valueListenable: manager.isSinglePanelNotifier,
-            builder: (context, isSinglePanel, child) {
-              if (isSinglePanel) return const SizedBox();
-              return Expanded(
-                child: BiblePanel(
+      body: ValueListenableBuilder<bool>(
+        valueListenable: manager.isSinglePanelNotifier,
+        builder: (context, isSinglePanel, _) {
+          return Column(
+            children: [
+              Expanded(
+                child: HebrewGreekPanel(
                   bookId: panelBookId,
                   chapter: panelChapter,
                   syncController: syncController,
                 ),
-              );
-            },
-          ),
-        ],
+              ),
+              if (!isSinglePanel) ...[
+                const SizedBox(height: 16),
+                Expanded(
+                  child: BiblePanel(
+                    bookId: panelBookId,
+                    chapter: panelChapter,
+                    syncController: syncController,
+                  ),
+                ),
+              ],
+            ],
+          );
+        },
       ),
     );
   }
-
-  List<int> top = <int>[];
-  List<int> bottom = <int>[0];
 
   /// Handles explicit user navigation (selecting from menus)
   void _onUserNavigation(int bId, int ch, int v) {
