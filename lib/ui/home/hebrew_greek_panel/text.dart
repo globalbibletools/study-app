@@ -22,6 +22,16 @@ typedef AsyncPopupWordProvider = Future<String?> Function(int wordId);
 /// A callback to find a verse number at a specific Y offset
 typedef VerseAtOffsetCallback = int? Function(double y);
 
+class _LineMetrics {
+  final double top;
+  final double bottom;
+
+  // The verse to show if this line is visible
+  final int labelVerse;
+
+  _LineMetrics(this.top, this.bottom, this.labelVerse);
+}
+
 /// A way for the outside world (such as scroll controllers) to obtain the
 /// internal layout metrics of [HebrewGreekText].
 class HebrewGreekTextController {
@@ -271,6 +281,7 @@ class RenderHebrewGreekText extends RenderBox {
   late final LongPressGestureRecognizer _longPressRecognizer;
   int? _flashedWordId;
   Timer? _flashTimer;
+  final List<_LineMetrics> _lineMetrics = [];
 
   List<HebrewGreekWord> _words;
   List<HebrewGreekWord> get words => _words;
@@ -439,68 +450,44 @@ class RenderHebrewGreekText extends RenderBox {
   }
 
   int? _findVerseAtOffset(double y) {
-    if (_wordRects.isEmpty) return null;
+    if (_lineMetrics.isEmpty) return null;
 
-    int? bestStartVerse; // Best verse that STARTS on this line (Word 1)
-    int? lowestVerseOnLine; // Fallback: Lowest verse number found on this line
+    // Binary search to find the line containing 'y'
+    int min = 0;
+    int max = _lineMetrics.length - 1;
+    _LineMetrics? match;
+    int? closestPrevIndex;
 
-    // 1. Scan the specific line
-    for (final entry in _wordRects.entries) {
-      final rect = entry.value;
+    while (min <= max) {
+      final mid = min + ((max - min) >> 1);
+      final line = _lineMetrics[mid];
 
-      // Check intersection with the scan line
-      if (y >= rect.top && y <= rect.bottom) {
-        final wordId = entry.key;
-        final verse = (wordId ~/ 100) % 1000;
-        final wordNum = wordId % 100;
-
-        // Track the lowest verse number visible on this line
-        if (lowestVerseOnLine == null || verse < lowestVerseOnLine) {
-          lowestVerseOnLine = verse;
-        }
-
-        // Check if this is the start of a verse
-        if (wordNum == 1) {
-          // Track the lowest verse number that STARTS on this line
-          if (bestStartVerse == null || verse < bestStartVerse) {
-            bestStartVerse = verse;
-          }
-        }
+      if (y < line.top) {
+        // Look before
+        max = mid - 1;
+      } else if (y > line.bottom) {
+        // Look after
+        min = mid + 1;
+        closestPrevIndex = mid;
+      } else {
+        // Direct hit!
+        match = line;
+        break;
       }
     }
 
-    // If a verse starts here, that is the most relevant label (e.g. "11" in the [10 end][11 start] case)
-    if (bestStartVerse != null) return bestStartVerse;
-
-    // Otherwise, just report the verse we are in (e.g. middle of a paragraph)
-    if (lowestVerseOnLine != null) return lowestVerseOnLine;
-
-    // 2. Fallback: Find closest previous word (scrolled just past)
-    // (This handles cases where y is in the margin/spacing between lines)
-    int? closestVerse;
-    double maxTopFound = -double.infinity;
-
-    for (final entry in _wordRects.entries) {
-      final rect = entry.value;
-      if (rect.top <= y && rect.top > maxTopFound) {
-        maxTopFound = rect.top;
-        final wordId = entry.key;
-        closestVerse = (wordId ~/ 100) % 1000;
-      }
+    if (match != null) {
+      return match.labelVerse;
     }
 
-    // 3. Fallback: Top of screen (y is negative or above first word)
-    if (closestVerse == null && _wordRects.isNotEmpty) {
-      double minTop = double.infinity;
-      for (final entry in _wordRects.entries) {
-        if (entry.value.top < minTop) {
-          minTop = entry.value.top;
-          closestVerse = (entry.key ~/ 100) % 1000;
-        }
-      }
+    // Fallback: If we scrolled past everything (y > last line)
+    // closestPrevIndex will point to the last line.
+    if (closestPrevIndex != null) {
+      return _lineMetrics[closestPrevIndex].labelVerse;
     }
 
-    return closestVerse;
+    // Fallback: Top of screen (y < first line)
+    return _lineMetrics.first.labelVerse;
   }
 
   Size _performLayout(BoxConstraints constraints) {
@@ -509,6 +496,7 @@ class RenderHebrewGreekText extends RenderBox {
     }
     _wordRects.clear();
     _verseNumberRects.clear();
+    _lineMetrics.clear();
 
     double mainAxisOffset = 0.0;
     double crossAxisOffset = 0.0;
@@ -519,7 +507,36 @@ class RenderHebrewGreekText extends RenderBox {
     final double spaceWidth = _spacePainter.width;
     final isLtr = _textDirection == TextDirection.ltr;
 
-    // Set starting position based on text direction
+    // Temporary storage for calculating verse priority on the current line
+    List<int> currentLineWordIds = [];
+
+    // Helper to finalize a line
+    void finalizeLine(double top, double bottom, List<int> wordIds) {
+      if (wordIds.isEmpty) return;
+
+      int? bestStartVerse;
+      int? lowestVerseOnLine;
+
+      for (final wordId in wordIds) {
+        final verse = (wordId ~/ 100) % 1000;
+        final wordNum = wordId % 100;
+
+        if (lowestVerseOnLine == null || verse < lowestVerseOnLine!) {
+          lowestVerseOnLine = verse;
+        }
+        if (wordNum == 1) {
+          if (bestStartVerse == null || verse < bestStartVerse!) {
+            bestStartVerse = verse;
+          }
+        }
+      }
+
+      // Priority: Start Verse > Lowest Visible
+      final label = bestStartVerse ?? lowestVerseOnLine ?? 1;
+      _lineMetrics.add(_LineMetrics(top, bottom, label));
+      wordIds.clear();
+    }
+
     mainAxisOffset = isLtr ? 0.0 : availableWidth;
 
     for (int i = 0; i < _wordPainters.length; i++) {
@@ -542,13 +559,21 @@ class RenderHebrewGreekText extends RenderBox {
 
       // Line wrap logic
       if (!fitsOnLine) {
-        // Move to the next line
+        // --- End of previous line ---
+        finalizeLine(
+          crossAxisOffset,
+          crossAxisOffset + currentLineMaxHeight,
+          currentLineWordIds,
+        );
+
         crossAxisOffset += currentLineMaxHeight;
         currentLineMaxHeight = 0.0;
         mainAxisOffset = isLtr ? 0.0 : availableWidth;
       }
 
-      // Track the max height on the current line
+      // Track word for the current line
+      currentLineWordIds.add(currentWord.id);
+
       currentLineMaxHeight = math.max(
         currentLineMaxHeight,
         math.max(wordSize.height, verseNumberSize.height),
@@ -620,6 +645,13 @@ class RenderHebrewGreekText extends RenderBox {
         );
       }
     }
+
+    // Finalize the last line
+    finalizeLine(
+      crossAxisOffset,
+      crossAxisOffset + currentLineMaxHeight,
+      currentLineWordIds,
+    );
 
     final Map<int, Rect> verseRectsMap = {};
     for (final entry in _verseNumberRects.entries) {
