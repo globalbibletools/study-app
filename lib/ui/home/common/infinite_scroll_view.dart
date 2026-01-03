@@ -335,6 +335,7 @@ class _InfiniteScrollViewState extends State<InfiniteScrollView> {
       child: CustomScrollView(
         controller: _scrollController,
         physics: widget.physics,
+        // keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         center: _chapterKeys[_centerChapter],
         slivers: _displayedChapters.map((chapterId) {
           return SliverToBoxAdapter(

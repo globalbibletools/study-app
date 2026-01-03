@@ -124,31 +124,36 @@ class _HomeScreenState extends State<HomeScreen> {
           });
         },
       ),
-      body: ValueListenableBuilder<bool>(
-        valueListenable: manager.isSinglePanelNotifier,
-        builder: (context, isSinglePanel, _) {
-          return Column(
-            children: [
-              Expanded(
-                child: HebrewGreekPanel(
-                  bookId: panelBookId,
-                  chapter: panelChapter,
-                  syncController: syncController,
-                ),
-              ),
-              if (!isSinglePanel) ...[
-                const SizedBox(height: 16),
+      body: Listener(
+        onPointerDown: (_) {
+          FocusManager.instance.primaryFocus?.unfocus();
+        },
+        child: ValueListenableBuilder<bool>(
+          valueListenable: manager.isSinglePanelNotifier,
+          builder: (context, isSinglePanel, _) {
+            return Column(
+              children: [
                 Expanded(
-                  child: BiblePanel(
+                  child: HebrewGreekPanel(
                     bookId: panelBookId,
                     chapter: panelChapter,
                     syncController: syncController,
                   ),
                 ),
+                if (!isSinglePanel) ...[
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: BiblePanel(
+                      bookId: panelBookId,
+                      chapter: panelChapter,
+                      syncController: syncController,
+                    ),
+                  ),
+                ],
               ],
-            ],
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }
