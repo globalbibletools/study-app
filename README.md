@@ -17,6 +17,12 @@ iOS
 flutter build ipa
 ```
 
+Open in Xcode:
+
+```
+build/ios/archive/Runner.xcarchive
+```
+
 ## Licenses
 
 The source code for this app is in the [public domain (CC0)](https://creativecommons.org/public-domain/cc0/) as stated in the [LICENSE](https://github.com/globalbibletools/study-app/blob/main/LICENSE) file.

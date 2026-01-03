@@ -1,6 +1,6 @@
-## 0.13.0
+## 0.13.0 - January 3, 2026
 
-- Split screen with update translation text layout.
+- Split screen with updated translation text layout.
 - Keep scroll in sync between screens.
 - New book, chapter, verse navigation.
 - Infinite scroll.
