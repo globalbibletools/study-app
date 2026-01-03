@@ -91,8 +91,6 @@ class _BibleChapterState extends State<BibleChapter> {
                   );
                 },
               ),
-              // Add a divider to visually separate chapters
-              const Divider(height: 40, thickness: 2),
             ],
           ),
         );
