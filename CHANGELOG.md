@@ -1,15 +1,11 @@
-## 0.14.0
+## 0.13.0
 
 - Split screen with update translation text layout.
 - Keep scroll in sync between screens.
 - New book, chapter, verse navigation.
 - Infinite scroll.
 - Update book, chapter, verse labels on scroll.
-
-## 0.13.0
-
-- Make longpress highlight time lengh a little longer.
-- Modify Bible translation formatting (no headers, footnotes)
+- Make longpress highlight time length a little longer.
 
 ## 0.12.0 - August 13, 2025
 
@@ -22,7 +18,7 @@
 - Move chapter chooser dialog closer to the top.
 - Allow both root search and exact search in similar verses screen.
 - Add data to query Strong's code root directly rather than using lexicon estimate.
-- MVP for splitscreen Bible translation. (BSB default)
+- MVP for split screen Bible translation. (BSB default)
 
 ## 0.11.0 - August 9, 2025
 
@@ -115,4 +111,4 @@
 
 ## 0.1.0 - May 29, 2025
 
-- Full Hebrew/Greek text navigatable.
+- Full Hebrew/Greek text navigable.

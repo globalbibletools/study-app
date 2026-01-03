@@ -1,3 +1,4 @@
+import 'dart:developer';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
@@ -18,7 +19,7 @@ class DownloadService {
 
       // Create the destination directory if it doesn't exist
       final destinationDir = Directory('${appDocumentsDir.path}/$downloadTo');
-      print(destinationDir.path);
+      log(destinationDir.path);
       if (!await destinationDir.exists()) {
         await destinationDir.create(recursive: true);
       }
@@ -73,7 +74,6 @@ class DownloadService {
   Future<bool> fileExists(String path) async {
     final appDocumentsDir = await getApplicationDocumentsDirectory();
     final file = File('${appDocumentsDir.path}/$path');
-    print(file.path);
     return await file.exists();
   }
 }

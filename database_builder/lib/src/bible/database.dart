@@ -187,11 +187,6 @@ class BibleDatabase {
     return (verseNumber, remainder);
   }
 
-  int _getVerseId(int book, int chapter, int verse) {
-    // verseId is in the form of BBCCCVVV
-    return book * 1000000 + chapter * 1000 + verse;
-  }
-
   /// Extracts the footnote from the text.
   ///
   /// The text may contain multiple footnotes. Each footnote is separated

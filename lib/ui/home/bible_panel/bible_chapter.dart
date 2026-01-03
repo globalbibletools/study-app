@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:scripture/scripture.dart';
 import 'package:studyapp/common/book_name.dart';
@@ -74,7 +76,7 @@ class _BibleChapterState extends State<BibleChapter> {
                 verseLines: verseLines,
                 selectionController: ScriptureSelectionController(),
                 onFootnoteTapped: (footnote) {},
-                onWordTapped: (id) => print("Tapped word $id"),
+                onWordTapped: (id) => log("Tapped word $id"),
                 onSelectionRequested: (wordId) {},
                 showHeadings: false,
                 styleBuilder: (format) {

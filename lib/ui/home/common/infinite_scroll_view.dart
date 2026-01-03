@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -295,7 +296,7 @@ class _InfiniteScrollViewState extends State<InfiniteScrollView> {
         widget.syncController?.setActiveSource(_panelId);
         _scrollToAbsolutePosition(actualState!.context, verseOffset);
       } else {
-        print("Verse $verse not found in current layout");
+        log("Verse $verse not found in current layout");
       }
     }
   }
