@@ -56,10 +56,11 @@ class _ZoomWrapperState extends State<ZoomWrapper> {
 
   Map<Type, GestureRecognizerFactory<GestureRecognizer>> get _zoomGesture {
     return {
-      ScaleGestureRecognizer:
-          GestureRecognizerFactoryWithHandlers<ScaleGestureRecognizer>(
-            () => ScaleGestureRecognizer(),
-            (ScaleGestureRecognizer instance) {
+      // Use CustomScaleGestureRecognizer instead of the default ScaleGestureRecognizer
+      CustomScaleGestureRecognizer:
+          GestureRecognizerFactoryWithHandlers<CustomScaleGestureRecognizer>(
+            () => CustomScaleGestureRecognizer(),
+            (CustomScaleGestureRecognizer instance) {
               instance
                 ..onStart = (details) {
                   _gestureStartScale = _baseScale;
@@ -120,5 +121,18 @@ class _ZoomWrapperState extends State<ZoomWrapper> {
         child: widget.builder(context, _baseScale),
       ),
     );
+  }
+}
+
+/// Custom recognizer that listens only for scaling (pinch) gestures.
+/// It overrides rejectGesture to forcefully accept the gesture even if
+/// the scroll view thinks it won the arena.
+class CustomScaleGestureRecognizer extends ScaleGestureRecognizer {
+  CustomScaleGestureRecognizer({super.debugOwner});
+
+  @override
+  void rejectGesture(int pointer) {
+    // Don't reject just because another gesture (e.g., scroll) won
+    acceptGesture(pointer);
   }
 }

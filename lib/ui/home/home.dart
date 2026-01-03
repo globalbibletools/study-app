@@ -1,4 +1,3 @@
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:studyapp/l10n/book_names.dart';
 import 'package:studyapp/ui/home/bible_panel/bible_panel.dart';
@@ -196,16 +195,5 @@ class _HomeScreenState extends State<HomeScreen> {
   void _scrollToVerse(int verse) {
     // Just jump, the scroll listener will update the UI when it arrives
     syncController.jumpToVerse(verse);
-  }
-}
-
-/// Custom recognizer that listens only for scaling (pinch) gestures
-class CustomScaleGestureRecognizer extends ScaleGestureRecognizer {
-  CustomScaleGestureRecognizer({super.debugOwner});
-
-  @override
-  void rejectGesture(int pointer) {
-    // Don't reject just because another gesture (e.g., scroll) won
-    acceptGesture(pointer);
   }
 }
