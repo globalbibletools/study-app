@@ -48,26 +48,29 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _onScrollUpdate() {
-    // Only update if we have valid data
-    if (syncController.bookId != null && syncController.chapter != null) {
-      final newBook = syncController.bookId!;
-      final newChapter = syncController.chapter!;
-      final newVerse = syncController.verse;
+    final newBook = syncController.bookId;
+    final newChapter = syncController.chapter;
 
-      // Only change the verse if the controller reported a valid one
-      final effectiveVerse = newVerse ?? displayVerse;
+    if (newBook == null || newChapter == null) return;
 
-      // Avoid setState if nothing changed
-      if (newBook != displayBookId ||
-          newChapter != displayChapter ||
-          effectiveVerse != displayVerse) {
-        setState(() {
-          displayBookId = newBook;
-          displayChapter = newChapter;
-          displayVerse = effectiveVerse;
-        });
-      }
+    final newVerse = syncController.verse ?? displayVerse;
+
+    final hasChanged =
+        newBook != displayBookId ||
+        newChapter != displayChapter ||
+        newVerse != displayVerse;
+
+    if (!hasChanged) return;
+
+    if (newBook != displayBookId || newChapter != displayChapter) {
+      manager.saveBookAndChapter(newBook, newChapter);
     }
+
+    setState(() {
+      displayBookId = newBook;
+      displayChapter = newChapter;
+      displayVerse = newVerse;
+    });
   }
 
   @override
@@ -151,21 +154,23 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   /// Handles explicit user navigation (selecting from menus)
-  void _onUserNavigation(int bId, int ch, int v) {
+  void _onUserNavigation(int bookId, int chapter, int verse) {
+    manager.saveBookAndChapter(bookId, chapter);
+
     setState(() {
       // 1. Update Display
-      displayBookId = bId;
-      displayChapter = ch;
-      displayVerse = v;
+      displayBookId = bookId;
+      displayChapter = chapter;
+      displayVerse = verse;
 
       // 2. Update Panel (Forces reset/jump)
-      panelBookId = bId;
-      panelChapter = ch;
+      panelBookId = bookId;
+      panelChapter = chapter;
     });
 
     // 3. Update Manager (for single panel mode fetching)
-    manager.onBookSelected(context, bId);
-    manager.currentChapterNotifier.value = ch;
+    manager.onBookSelected(context, bookId);
+    manager.currentChapterNotifier.value = chapter;
 
     // 4. Fetch
     _requestText();

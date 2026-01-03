@@ -33,6 +33,10 @@ class HomeManager {
     return _settings.currentBookChapter;
   }
 
+  Future<void> saveBookAndChapter(int bookId, int chapter) async {
+    await _settings.setCurrentBookChapter(bookId, chapter);
+  }
+
   void togglePanelState() {
     isSinglePanelNotifier.value = !isSinglePanelNotifier.value;
   }
