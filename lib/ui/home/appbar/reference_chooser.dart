@@ -53,9 +53,8 @@ class _ReferenceChooserState extends State<ReferenceChooser> {
 
   void _handleFocusChange(FocusNode node, Function(bool) setter) {
     if (!node.hasFocus) {
-      // Small delay to ensure the new focus target is registered
-      // before we close this one, preventing UI jank
-      Future.delayed(const Duration(milliseconds: 50), () {
+      // Delay reverting to button to allow taps (like picking a book) to finish
+      Future.delayed(const Duration(milliseconds: 200), () {
         if (mounted && !node.hasFocus) {
           setState(() {
             setter(false);
@@ -227,6 +226,7 @@ class _BookSelectorState extends State<_BookSelector> {
     super.didUpdateWidget(oldWidget);
     if (!widget.isActive && oldWidget.isActive) {
       _controller.clear();
+      _removeOverlay();
     }
   }
 
@@ -250,7 +250,14 @@ class _BookSelectorState extends State<_BookSelector> {
     if (widget.focusNode.hasFocus) {
       _showOverlay();
     } else {
-      _removeOverlay();
+      // Add a delay before removing the overlay.
+      // This gives the 'onTap' event in the Overlay enough time to fire
+      // before the widget is removed from the tree.
+      Future.delayed(const Duration(milliseconds: 200), () {
+        if (mounted && !widget.focusNode.hasFocus) {
+          _removeOverlay();
+        }
+      });
     }
   }
 

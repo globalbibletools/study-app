@@ -521,11 +521,11 @@ class RenderHebrewGreekText extends RenderBox {
         final verse = (wordId ~/ 100) % 1000;
         final wordNum = wordId % 100;
 
-        if (lowestVerseOnLine == null || verse < lowestVerseOnLine!) {
+        if (lowestVerseOnLine == null || verse < lowestVerseOnLine) {
           lowestVerseOnLine = verse;
         }
         if (wordNum == 1) {
-          if (bestStartVerse == null || verse < bestStartVerse!) {
+          if (bestStartVerse == null || verse < bestStartVerse) {
             bestStartVerse = verse;
           }
         }
