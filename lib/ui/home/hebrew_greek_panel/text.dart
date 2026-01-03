@@ -20,7 +20,7 @@ typedef AsyncWordActionCallback = Future<void> Function(int wordId);
 typedef AsyncPopupWordProvider = Future<String?> Function(int wordId);
 
 /// A callback to find a verse number at a specific Y offset
-typedef VerseAtOffsetCallback = int Function(double y);
+typedef VerseAtOffsetCallback = int? Function(double y);
 
 /// A way for the outside world (such as scroll controllers) to obtain the
 /// internal layout metrics of [HebrewGreekText].
@@ -50,7 +50,7 @@ class HebrewGreekTextController {
     return _verseRects[verseNumber];
   }
 
-  int getVerseForOffset(double y) {
+  int? getVerseForOffset(double y) {
     if (_verseAtOffsetCallback != null) {
       return _verseAtOffsetCallback!(y);
     }
@@ -438,23 +438,47 @@ class RenderHebrewGreekText extends RenderBox {
     return (word.id ~/ 100) % 1000;
   }
 
-  int _findVerseAtOffset(double y) {
-    // 1. Check if the offset hits a specific word
+  int? _findVerseAtOffset(double y) {
+    if (_wordRects.isEmpty) return null;
+
+    int? bestStartVerse; // Best verse that STARTS on this line (Word 1)
+    int? lowestVerseOnLine; // Fallback: Lowest verse number found on this line
+
+    // 1. Scan the specific line
     for (final entry in _wordRects.entries) {
       final rect = entry.value;
-      // We check if Y is within the vertical bounds of the line
+
+      // Check intersection with the scan line
       if (y >= rect.top && y <= rect.bottom) {
-        // Decode verse from word ID
-        // WordID format: (chapter * 1000 + verse) * 100 + wordNumber
         final wordId = entry.key;
         final verse = (wordId ~/ 100) % 1000;
-        return verse;
+        final wordNum = wordId % 100;
+
+        // Track the lowest verse number visible on this line
+        if (lowestVerseOnLine == null || verse < lowestVerseOnLine) {
+          lowestVerseOnLine = verse;
+        }
+
+        // Check if this is the start of a verse
+        if (wordNum == 1) {
+          // Track the lowest verse number that STARTS on this line
+          if (bestStartVerse == null || verse < bestStartVerse) {
+            bestStartVerse = verse;
+          }
+        }
       }
     }
 
-    // 2. If no direct hit (e.g. in spacing), find closest previous word
-    int closestVerse = 1;
-    double maxTopFound = -1.0;
+    // If a verse starts here, that is the most relevant label (e.g. "11" in the [10 end][11 start] case)
+    if (bestStartVerse != null) return bestStartVerse;
+
+    // Otherwise, just report the verse we are in (e.g. middle of a paragraph)
+    if (lowestVerseOnLine != null) return lowestVerseOnLine;
+
+    // 2. Fallback: Find closest previous word (scrolled just past)
+    // (This handles cases where y is in the margin/spacing between lines)
+    int? closestVerse;
+    double maxTopFound = -double.infinity;
 
     for (final entry in _wordRects.entries) {
       final rect = entry.value;
@@ -462,6 +486,17 @@ class RenderHebrewGreekText extends RenderBox {
         maxTopFound = rect.top;
         final wordId = entry.key;
         closestVerse = (wordId ~/ 100) % 1000;
+      }
+    }
+
+    // 3. Fallback: Top of screen (y is negative or above first word)
+    if (closestVerse == null && _wordRects.isNotEmpty) {
+      double minTop = double.infinity;
+      for (final entry in _wordRects.entries) {
+        if (entry.value.top < minTop) {
+          minTop = entry.value.top;
+          closestVerse = (entry.key ~/ 100) % 1000;
+        }
       }
     }
 

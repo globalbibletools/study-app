@@ -15,8 +15,8 @@ mixin VerseScrollable {
   double? getOffsetForVerse(int verseNumber);
 
   /// Returns the verse number at the given vertical offset (pixels) relative to the top of the widget.
-  /// Returns 0 or 1 if no specific verse is found (e.g. top padding).
-  int getVerseForOffset(double yOffset);
+  /// Returns null if no specific verse is found.
+  int? getVerseForOffset(double yOffset);
 }
 
 class InfiniteScrollView extends StatefulWidget {
@@ -221,7 +221,7 @@ class _InfiniteScrollViewState extends State<InfiniteScrollView> {
         final double offsetIntoChapter = currentScroll - revealedOffset;
         final double progress = offsetIntoChapter / chapterHeight;
 
-        // --- NEW LOGIC: Determine the verse ---
+        // Determine the verse
         int? visibleVerse;
         VerseScrollable? scrollableState;
 
@@ -238,8 +238,6 @@ class _InfiniteScrollViewState extends State<InfiniteScrollView> {
         sliverContext.visitChildElements(visitor);
 
         if (scrollableState != null) {
-          // We ask: "What verse is at this specific Y offset?"
-          // offsetIntoChapter is exactly pixels from top of chapter widget
           visibleVerse = scrollableState!.getVerseForOffset(offsetIntoChapter);
         }
 
@@ -294,6 +292,7 @@ class _InfiniteScrollViewState extends State<InfiniteScrollView> {
       final verseOffset = scrollableState!.getOffsetForVerse(verse);
 
       if (verseOffset != null) {
+        widget.syncController?.setActiveSource(_panelId);
         _scrollToAbsolutePosition(actualState!.context, verseOffset);
       } else {
         print("Verse $verse not found in current layout");

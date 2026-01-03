@@ -52,16 +52,19 @@ class _HomeScreenState extends State<HomeScreen> {
     if (syncController.bookId != null && syncController.chapter != null) {
       final newBook = syncController.bookId!;
       final newChapter = syncController.chapter!;
-      final newVerse = syncController.verse ?? 1;
+      final newVerse = syncController.verse;
+
+      // Only change the verse if the controller reported a valid one
+      final effectiveVerse = newVerse ?? displayVerse;
 
       // Avoid setState if nothing changed
       if (newBook != displayBookId ||
           newChapter != displayChapter ||
-          newVerse != displayVerse) {
+          effectiveVerse != displayVerse) {
         setState(() {
           displayBookId = newBook;
           displayChapter = newChapter;
-          displayVerse = newVerse;
+          displayVerse = effectiveVerse;
         });
       }
     }
@@ -182,7 +185,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _scrollToVerse(int verse) {
-    print("Navigating to Verse: $verse");
     // Just jump, the scroll listener will update the UI when it arrives
     syncController.jumpToVerse(verse);
   }
