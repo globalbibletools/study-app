@@ -405,7 +405,6 @@ class _BookSelectorState extends State<_BookSelector> {
                     vertical: 8,
                   ),
                   border: OutlineInputBorder(),
-                  hintText: 'Book',
                 ),
                 onSubmitted: (_) {
                   // If user hits enter and there is 1 valid match in filter, select it
