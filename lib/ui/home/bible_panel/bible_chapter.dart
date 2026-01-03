@@ -62,14 +62,14 @@ class _BibleChapterState extends State<BibleChapter> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Optional: Render a header for the chapter
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16.0),
+              const SizedBox(height: 10),
+              Center(
                 child: Text(
                   '${bookNameForId(context, widget.bookId)} ${widget.chapter}',
-                  style: Theme.of(context).textTheme.headlineSmall,
+                  style: const TextStyle(fontSize: 30),
                 ),
               ),
+              const SizedBox(height: 10),
               UsfmWidget(
                 verseLines: verseLines,
                 selectionController: ScriptureSelectionController(),
