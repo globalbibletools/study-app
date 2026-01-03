@@ -53,6 +53,11 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter>
 
   @override
   double? getOffsetForVerse(int verseNumber) {
+    // If Verse 1 is requested, return 0.0 to show the Chapter Header (Title).
+    if (verseNumber == 1) {
+      return 0.0;
+    }
+
     final textLocalRect = _textController.getVerseRect(verseNumber);
     if (textLocalRect == null) return null;
 
