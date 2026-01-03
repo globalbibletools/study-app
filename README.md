@@ -2,6 +2,21 @@
 
 A Hebrew and Greek reader for [Global Bible Tools](https://globalbibletools.com).
 
+## Publishing tips
+
+Android
+
+```
+flutter build appbundle
+flutter build apk --split-per-abi
+```
+
+iOS
+
+```
+flutter build ipa
+```
+
 ## Licenses
 
 The source code for this app is in the [public domain (CC0)](https://creativecommons.org/public-domain/cc0/) as stated in the [LICENSE](https://github.com/globalbibletools/study-app/blob/main/LICENSE) file.
