@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:just_audio_background/just_audio_background.dart';
 import 'package:studyapp/l10n/app_localizations.dart';
 import 'package:studyapp/services/bible/bible_database.dart';
 import 'package:studyapp/services/gloss/gloss_service.dart';
@@ -20,6 +21,11 @@ Future<void> main() async {
   // TODO: Maybe we should delay loading the lexicon until it is needed.
   await getIt<LexiconsDatabase>().init();
   await getIt<BibleDatabase>().init();
+  await JustAudioBackground.init(
+    androidNotificationChannelId: 'com.ryanheise.bg_demo.channel.audio',
+    androidNotificationChannelName: 'Audio playback',
+    androidNotificationOngoing: true,
+  );
   runApp(const GbtStudyApp());
 }
 

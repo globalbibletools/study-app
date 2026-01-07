@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:studyapp/l10n/book_names.dart';
+import 'package:studyapp/ui/home/audio/audio_player.dart';
 import 'package:studyapp/ui/home/bible_panel/bible_panel.dart';
 import 'package:studyapp/ui/home/appbar/drawer.dart';
 import 'package:studyapp/ui/home/hebrew_greek_panel/panel.dart';
@@ -106,6 +108,10 @@ class _HomeScreenState extends State<HomeScreen> {
         },
         onPlayAudio: () {
           print("Play audio requested for Verse $displayVerse");
+          manager.playAudioForCurrentChapter(
+            bookNameFromId(context, displayBookId),
+            displayChapter,
+          );
         },
       ),
       drawer: AppDrawer(
@@ -141,6 +147,17 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                 ],
+                ValueListenableBuilder<bool>(
+                  valueListenable: manager.isAudioVisibleNotifier,
+                  builder: (context, isVisible, _) {
+                    if (!isVisible) return const SizedBox.shrink();
+
+                    return BottomAudioPlayer(
+                      audioHandler: manager.audioHandler,
+                      onClose: manager.closeAudioPlayer,
+                    );
+                  },
+                ),
               ],
             );
           },

@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:scripture/scripture.dart';
 import 'package:studyapp/l10n/book_names.dart';
+import 'package:studyapp/services/audio/audio_player_handler.dart';
 import 'package:studyapp/services/bible/bible_database.dart';
 import 'package:studyapp/services/service_locator.dart';
 import 'package:studyapp/services/user_settings.dart';
@@ -10,6 +11,9 @@ class HomeManager {
   final currentChapterNotifier = ValueNotifier<int>(1);
   final isSinglePanelNotifier = ValueNotifier(true);
   final textParagraphNotifier = ValueNotifier<List<UsfmLine>>([]);
+  final isAudioVisibleNotifier = ValueNotifier<bool>(false);
+
+  final audioHandler = AudioPlayerHandler();
 
   final _bibleDb = getIt<BibleDatabase>();
   final _settings = getIt<UserSettings>();
@@ -56,5 +60,32 @@ class HomeManager {
 
   void onChapterSelected(int chapter) {
     currentChapterNotifier.value = chapter;
+  }
+
+  Future<void> playAudioForCurrentChapter(String bookName, int chapter) async {
+    // 1. Show the player UI
+    isAudioVisibleNotifier.value = true;
+
+    // 2. Generate or fetch URL
+    // TODO: Replace this with your actual logic to get the URL for Book/Chapter
+    // For demo, we use a sample MP3
+    const String sampleUrl =
+        "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3";
+
+    // 3. Play
+    await audioHandler.playUrl(
+      sampleUrl,
+      title: "Chapter $chapter",
+      subtitle: bookName,
+    );
+  }
+
+  void closeAudioPlayer() {
+    isAudioVisibleNotifier.value = false;
+    // Optional: audioHandler.stop(); // If you want closing UI to stop playback
+  }
+
+  void dispose() {
+    audioHandler.dispose();
   }
 }
