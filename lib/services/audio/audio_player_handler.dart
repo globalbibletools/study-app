@@ -53,7 +53,8 @@ class AudioPlayerHandler {
     await _player.setSpeed(1.0);
   }
 
-  Future<void> playUrl(
+  /// Loads the URL but does NOT auto-start playback.
+  Future<void> setUrl(
     String url, {
     required String title,
     required String subtitle,
@@ -61,18 +62,36 @@ class AudioPlayerHandler {
     try {
       final source = AudioSource.uri(
         Uri.parse(url),
-        tag: MediaItem(
-          id: url,
-          album: subtitle, // We use album for Book Name
-          title: title, // We use title for "Chapter X"
-        ),
+        tag: MediaItem(id: url, album: subtitle, title: title),
       );
       await _player.setAudioSource(source);
-      await _player.play();
     } catch (e) {
       debugPrint("Error loading audio: $e");
     }
   }
+
+  Stream<SequenceState?> get sequenceStateStream => _player.sequenceStateStream;
+
+  // Future<void> playUrl(
+  //   String url, {
+  //   required String title,
+  //   required String subtitle,
+  // }) async {
+  //   try {
+  //     final source = AudioSource.uri(
+  //       Uri.parse(url),
+  //       tag: MediaItem(
+  //         id: url,
+  //         album: subtitle, // We use album for Book Name
+  //         title: title, // We use title for "Chapter X"
+  //       ),
+  //     );
+  //     await _player.setAudioSource(source);
+  //     await _player.play();
+  //   } catch (e) {
+  //     debugPrint("Error loading audio: $e");
+  //   }
+  // }
 
   Future<void> play() => _player.play();
   Future<void> pause() => _player.pause();

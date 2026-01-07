@@ -73,9 +73,9 @@ class HomeManager {
         "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3";
 
     // 3. Play
-    await audioHandler.playUrl(
+    await audioHandler.setUrl(
       sampleUrl,
-      title: "Chapter $chapter",
+      title: "$bookName $chapter", // Combined title for the UI
       subtitle: bookName,
     );
   }
