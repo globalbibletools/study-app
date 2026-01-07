@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:studyapp/l10n/book_names.dart';
 import 'reference_chooser.dart';
 
+enum _HomeMenuAction { splitScreen, playAudio }
+
 class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
   final int displayBookId;
   final int displayChapter;
@@ -10,6 +12,7 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
   final Function(int chapter) onChapterSelected;
   final Function(int verse) onVerseSelected;
   final VoidCallback onTogglePanel;
+  final VoidCallback onPlayAudio;
 
   const HomeAppBar({
     super.key,
@@ -20,6 +23,7 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
     required this.onChapterSelected,
     required this.onVerseSelected,
     required this.onTogglePanel,
+    required this.onPlayAudio,
   });
 
   @override
@@ -37,9 +41,40 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
         onVerseSelected: onVerseSelected,
       ),
       actions: [
-        IconButton(
-          onPressed: onTogglePanel,
-          icon: const Icon(Icons.splitscreen),
+        PopupMenuButton<_HomeMenuAction>(
+          icon: const Icon(Icons.more_vert),
+          onSelected: (action) {
+            switch (action) {
+              case _HomeMenuAction.splitScreen:
+                onTogglePanel();
+                break;
+              case _HomeMenuAction.playAudio:
+                onPlayAudio();
+                break;
+            }
+          },
+          itemBuilder: (BuildContext context) => [
+            const PopupMenuItem(
+              value: _HomeMenuAction.splitScreen,
+              child: Row(
+                children: [
+                  Icon(Icons.splitscreen),
+                  SizedBox(width: 12),
+                  Text('Split Screen'),
+                ],
+              ),
+            ),
+            const PopupMenuItem(
+              value: _HomeMenuAction.playAudio,
+              child: Row(
+                children: [
+                  Icon(Icons.play_arrow),
+                  SizedBox(width: 12),
+                  Text('Play Audio'),
+                ],
+              ),
+            ),
+          ],
         ),
       ],
     );

@@ -104,6 +104,9 @@ class _HomeScreenState extends State<HomeScreen> {
           _syncManagerToDisplay();
           _requestText();
         },
+        onPlayAudio: () {
+          print("Play audio requested for Verse $displayVerse");
+        },
       ),
       drawer: AppDrawer(
         onSettingsClosed: () {
