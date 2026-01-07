@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:studyapp/l10n/book_names.dart';
 import 'package:studyapp/ui/home/bible_panel/bible_panel.dart';
 import 'package:studyapp/ui/home/appbar/drawer.dart';
 import 'package:studyapp/ui/home/hebrew_greek_panel/panel.dart';
 
-import 'appbar/reference_chooser.dart';
+import 'appbar/appbar.dart';
 import 'common/scroll_sync_controller.dart';
 import 'home_manager.dart';
 
@@ -87,34 +86,24 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        centerTitle: false,
-        titleSpacing: 0,
-        title: ReferenceChooser(
-          currentBookName: bookNameFromId(context, displayBookId),
-          currentBookId: displayBookId,
-          currentChapter: displayChapter,
-          currentVerse: displayVerse,
-          onBookSelected: (bookId) async {
-            _onUserNavigation(bookId, 1, 1);
-          },
-          onChapterSelected: (newChapter) {
-            _onUserNavigation(displayBookId, newChapter, 1);
-          },
-          onVerseSelected: (verse) {
-            _scrollToVerse(verse);
-          },
-        ),
-        actions: [
-          IconButton(
-            onPressed: () {
-              manager.togglePanelState();
-              _syncManagerToDisplay();
-              _requestText();
-            },
-            icon: const Icon(Icons.splitscreen),
-          ),
-        ],
+      appBar: HomeAppBar(
+        displayBookId: displayBookId,
+        displayChapter: displayChapter,
+        displayVerse: displayVerse,
+        onBookSelected: (bookId) async {
+          _onUserNavigation(bookId, 1, 1);
+        },
+        onChapterSelected: (newChapter) {
+          _onUserNavigation(displayBookId, newChapter, 1);
+        },
+        onVerseSelected: (verse) {
+          _scrollToVerse(verse);
+        },
+        onTogglePanel: () {
+          manager.togglePanelState();
+          _syncManagerToDisplay();
+          _requestText();
+        },
       ),
       drawer: AppDrawer(
         onSettingsClosed: () {
