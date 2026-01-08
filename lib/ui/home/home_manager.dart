@@ -134,28 +134,32 @@ class HomeManager {
           (t) => currentSeconds >= t.start && currentSeconds < t.end,
         );
       } catch (e) {
-        // No match found (e.g. intro silence, or end silence)
+        // No match (silence between verses), clear highlight
+        _syncController?.setHighlightedVerse(null);
         return;
       }
 
       final verseNum = match.verseNumber;
 
-      // Only jump if we moved to a NEW verse to prevent spamming the controller
+      // Highlight the text
+      _syncController?.setHighlightedVerse(verseNum);
+
+      // Scroll to it
       if (verseNum != _lastSyncedVerse) {
         _lastSyncedVerse = verseNum;
-
-        // Trigger the scroll
-        print("Auto-syncing to verse $verseNum");
         _syncController?.jumpToVerse(verseNum);
       }
     });
   }
 
   void closeAudioPlayer() {
-    isAudioVisibleNotifier.value = false;
-    audioHandler.stop();
-    _positionSubscription?.cancel();
-    _currentTimings = [];
+    if (isAudioVisibleNotifier.value) {
+      isAudioVisibleNotifier.value = false;
+      audioHandler.stop();
+      _positionSubscription?.cancel();
+      _currentTimings = [];
+      _syncController?.setHighlightedVerse(null);
+    }
   }
 
   void dispose() {

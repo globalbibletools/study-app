@@ -4,6 +4,7 @@ import 'package:studyapp/common/book_name.dart';
 import 'package:studyapp/common/word.dart';
 import 'package:studyapp/l10n/app_localizations.dart';
 import 'package:studyapp/ui/home/common/infinite_scroll_view.dart';
+import 'package:studyapp/ui/home/common/scroll_sync_controller.dart';
 import 'package:studyapp/ui/home/hebrew_greek_panel/chapter_manager.dart';
 import 'package:studyapp/ui/home/hebrew_greek_panel/text.dart';
 import 'package:studyapp/ui/home/home.dart';
@@ -16,11 +17,13 @@ class HebrewGreekChapter extends StatefulWidget {
     required this.bookId,
     required this.chapter,
     required this.fontSize,
+    this.syncController,
   });
 
   final int bookId;
   final int chapter;
   final double fontSize;
+  final ScrollSyncController? syncController;
 
   @override
   State<HebrewGreekChapter> createState() => HebrewGreekChapterState();
@@ -111,48 +114,56 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter>
       builder: (context, words, child) {
         if (words.isEmpty) return const SizedBox();
 
-        return Padding(
-          padding: const EdgeInsets.only(left: 16.0, right: 16.0),
-          child: Column(
-            children: [
-              const SizedBox(height: 10),
-              Text(
-                '${bookNameForId(context, widget.bookId)} ${widget.chapter}',
-                style: TextStyle(fontSize: 30),
+        return ValueListenableBuilder<int?>(
+          valueListenable:
+              widget.syncController?.highlightedVerseNotifier ??
+              ValueNotifier(null),
+          builder: (context, highlightedVerse, _) {
+            return Padding(
+              padding: const EdgeInsets.only(left: 16.0, right: 16.0),
+              child: Column(
+                children: [
+                  const SizedBox(height: 10),
+                  Text(
+                    '${bookNameForId(context, widget.bookId)} ${widget.chapter}',
+                    style: TextStyle(fontSize: 30),
+                  ),
+                  const SizedBox(height: 10),
+                  HebrewGreekText(
+                    key: _hebrewGreekTextKey,
+                    words: words,
+                    controller: _textController,
+                    textDirection: manager.isRtl(widget.bookId)
+                        ? TextDirection.rtl
+                        : TextDirection.ltr,
+                    textStyle: TextStyle(fontSize: widget.fontSize),
+                    verseNumberStyle: TextStyle(
+                      color: Theme.of(context).colorScheme.primary,
+                      fontSize: widget.fontSize * 0.7,
+                    ),
+                    popupBackgroundColor: Theme.of(
+                      context,
+                    ).colorScheme.inverseSurface,
+                    popupTextStyle: TextStyle(
+                      fontFamily: 'sbl',
+                      fontSize: widget.fontSize * 0.7,
+                      color: Theme.of(context).colorScheme.onInverseSurface,
+                    ),
+                    popupWordProvider: (wordId) {
+                      final locale = Localizations.localeOf(context);
+                      return manager.getPopupTextForId(
+                        locale,
+                        wordId,
+                        _showDownloadDialog,
+                      );
+                    },
+                    onWordLongPress: _showWordDetails,
+                    highlightedVerse: highlightedVerse,
+                  ),
+                ],
               ),
-              const SizedBox(height: 10),
-              HebrewGreekText(
-                key: _hebrewGreekTextKey,
-                words: words,
-                controller: _textController,
-                textDirection: manager.isRtl(widget.bookId)
-                    ? TextDirection.rtl
-                    : TextDirection.ltr,
-                textStyle: TextStyle(fontSize: widget.fontSize),
-                verseNumberStyle: TextStyle(
-                  color: Theme.of(context).colorScheme.primary,
-                  fontSize: widget.fontSize * 0.7,
-                ),
-                popupBackgroundColor: Theme.of(
-                  context,
-                ).colorScheme.inverseSurface,
-                popupTextStyle: TextStyle(
-                  fontFamily: 'sbl',
-                  fontSize: widget.fontSize * 0.7,
-                  color: Theme.of(context).colorScheme.onInverseSurface,
-                ),
-                popupWordProvider: (wordId) {
-                  final locale = Localizations.localeOf(context);
-                  return manager.getPopupTextForId(
-                    locale,
-                    wordId,
-                    _showDownloadDialog,
-                  );
-                },
-                onWordLongPress: _showWordDetails,
-              ),
-            ],
-          ),
+            );
+          },
         );
       },
     );

@@ -54,6 +54,7 @@ class _HebrewGreekPanelState extends State<HebrewGreekPanel> {
                   bookId: bId,
                   chapter: ch,
                   fontSize: fontSize,
+                  syncController: widget.syncController,
                 );
               },
             );

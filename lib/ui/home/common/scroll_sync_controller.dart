@@ -65,9 +65,18 @@ class ScrollSyncController extends ChangeNotifier {
     _verseJumpController.add(verse);
   }
 
+  final highlightedVerseNotifier = ValueNotifier<int?>(null);
+
+  void setHighlightedVerse(int? verse) {
+    if (highlightedVerseNotifier.value != verse) {
+      highlightedVerseNotifier.value = verse;
+    }
+  }
+
   @override
   void dispose() {
     _verseJumpController.close();
+    highlightedVerseNotifier.dispose();
     super.dispose();
   }
 }

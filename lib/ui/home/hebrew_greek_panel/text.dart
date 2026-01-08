@@ -96,6 +96,8 @@ class HebrewGreekText extends LeafRenderObjectWidget {
     this.onPopupShown,
     this.onWordLongPress,
     this.flashColor,
+    this.highlightedVerse,
+    this.highlightColor,
   });
 
   /// The words that will rendered in the text layout
@@ -136,6 +138,12 @@ class HebrewGreekText extends LeafRenderObjectWidget {
   /// Defaults to the same color as [verseNumberStyle].
   final Color? flashColor;
 
+  /// The verse number to highlight
+  final int? highlightedVerse;
+
+  /// The background color to use for a highlighted verse
+  final Color? highlightColor;
+
   @override
   RenderHebrewGreekText createRenderObject(BuildContext context) {
     final defaultTextStyle = DefaultTextStyle.of(context);
@@ -164,6 +172,11 @@ class HebrewGreekText extends LeafRenderObjectWidget {
       onWordLongPress: onWordLongPress,
       flashColor:
           flashColor ??
+          effectiveVerseNumberStyle?.color?.withValues(alpha: 0.4) ??
+          const Color(0xFFFFFFFF),
+      highlightedVerse: highlightedVerse,
+      highlightColor:
+          highlightColor ??
           effectiveVerseNumberStyle?.color?.withValues(alpha: 0.4) ??
           const Color(0xFFFFFFFF),
     );
@@ -202,6 +215,11 @@ class HebrewGreekText extends LeafRenderObjectWidget {
       ..flashColor =
           flashColor ??
           effectiveVerseNumberStyle?.color?.withValues(alpha: 0.4) ??
+          const Color(0xFFFFFFFF)
+      ..highlightedVerse = highlightedVerse
+      ..highlightColor =
+          highlightColor ??
+          effectiveVerseNumberStyle?.color?.withValues(alpha: 0.4) ??
           const Color(0xFFFFFFFF);
   }
 
@@ -237,6 +255,8 @@ class HebrewGreekText extends LeafRenderObjectWidget {
       ),
     );
     properties.add(ColorProperty('flashColor', flashColor));
+    properties.add(IntProperty('highlightedVerse', highlightedVerse));
+    properties.add(ColorProperty('highlightColor', highlightColor));
   }
 }
 
@@ -255,6 +275,8 @@ class RenderHebrewGreekText extends RenderBox {
     ValueChanged<Rect>? onPopupShown,
     AsyncWordActionCallback? onWordLongPress,
     required Color flashColor,
+    int? highlightedVerse,
+    Color? highlightColor,
   }) : _words = words,
        _controller = controller,
        _textDirection = textDirection,
@@ -265,7 +287,9 @@ class RenderHebrewGreekText extends RenderBox {
        _popupTextStyle = popupTextStyle,
        _onPopupShown = onPopupShown,
        _onWordLongPress = onWordLongPress,
-       _flashColor = flashColor {
+       _flashColor = flashColor,
+       _highlightedVerse = highlightedVerse,
+       _highlightColor = highlightColor {
     _updatePainters();
     _tapRecognizer = TapGestureRecognizer()..onTapUp = _handleTapUp;
     _longPressRecognizer = LongPressGestureRecognizer()
@@ -391,6 +415,22 @@ class RenderHebrewGreekText extends RenderBox {
     if (_flashedWordId != null) {
       markNeedsPaint();
     }
+  }
+
+  int? _highlightedVerse;
+  int? get highlightedVerse => _highlightedVerse;
+  set highlightedVerse(int? value) {
+    if (_highlightedVerse == value) return;
+    _highlightedVerse = value;
+    markNeedsPaint();
+  }
+
+  Color? _highlightColor;
+  Color? get highlightColor => _highlightColor;
+  set highlightColor(Color? value) {
+    if (_highlightColor == value) return;
+    _highlightColor = value;
+    markNeedsPaint();
   }
 
   /// Clears all popup state and requests a repaint to make it disappear.
@@ -899,6 +939,30 @@ class RenderHebrewGreekText extends RenderBox {
     final canvas = context.canvas;
     canvas.save();
     canvas.translate(offset.dx, offset.dy);
+
+    // 0. Paint audio highlight
+    if (_highlightedVerse != null && _highlightColor != null) {
+      final highlightPaint = Paint()..color = _highlightColor!;
+
+      for (int i = 0; i < _words.length; i++) {
+        final word = _words[i];
+        // Calculate verse number from ID (reusing your logic: BBCCCVVVWW -> VVV)
+        // Assuming word.id structure: (word.id ~/ 100) % 1000
+        final verseNum = (word.id ~/ 100) % 1000;
+
+        if (verseNum == _highlightedVerse) {
+          final rect = _wordRects[word.id];
+          if (rect != null) {
+            // Inflate slightly for better visual look
+            final rrect = RRect.fromRectAndRadius(
+              rect.inflate(2.0),
+              const Radius.circular(4.0),
+            );
+            canvas.drawRRect(rrect, highlightPaint);
+          }
+        }
+      }
+    }
 
     // 0. Paint the flash effect if a word is being flashed
     if (_flashedWordId != null) {
