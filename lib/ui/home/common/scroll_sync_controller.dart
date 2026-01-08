@@ -48,6 +48,17 @@ class ScrollSyncController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Called by a passive panel (one being automatically scrolled) to
+  /// report the verse it landed on, providing better metadata
+  /// than the active driver might possess.
+  void reportAutoDetectedVerse(int verse) {
+    // If the verse hasn't changed, don't notify to save performance
+    if (_verse == verse) return;
+
+    _verse = verse;
+    notifyListeners();
+  }
+
   bool isSourceActive(Object source) => _activeSource == source;
 
   void jumpToVerse(int verse) {

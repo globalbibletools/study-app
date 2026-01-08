@@ -105,6 +105,15 @@ class _InfiniteScrollViewState extends State<InfiniteScrollView> {
 
           if (_scrollController.hasClients) {
             _scrollController.jumpTo(targetPixels);
+
+            // If the driver (Bottom Panel) didn't provide a verse (verse == null),
+            // and we (Top Panel) are able to calculate it, report it back.
+            if (controller.verse == null) {
+              final detectedVerse = _findVisibleVerse();
+              if (detectedVerse != null) {
+                controller.reportAutoDetectedVerse(detectedVerse);
+              }
+            }
           }
         }
       }
@@ -193,8 +202,8 @@ class _InfiniteScrollViewState extends State<InfiniteScrollView> {
     _isLoadingPreviousChapter = false;
   }
 
-  void _reportSyncPosition() {
-    // Find the chapter currently most visible in the viewport
+  /// Extracted logic to find the visible verse at the current scroll offset.
+  int? _findVisibleVerse() {
     for (final chapterId in _displayedChapters) {
       final key = _chapterKeys[chapterId];
       if (key == null) continue;
@@ -220,13 +229,10 @@ class _InfiniteScrollViewState extends State<InfiniteScrollView> {
       if (currentScroll >= revealedOffset &&
           currentScroll < revealedOffset + chapterHeight) {
         final double offsetIntoChapter = currentScroll - revealedOffset;
-        final double progress = offsetIntoChapter / chapterHeight;
 
         // Determine the verse
-        int? visibleVerse;
         VerseScrollable? scrollableState;
 
-        // Find the state just like in handleJump
         void visitor(Element element) {
           if (scrollableState != null) return;
           if (element is StatefulElement && element.state is VerseScrollable) {
@@ -239,8 +245,50 @@ class _InfiniteScrollViewState extends State<InfiniteScrollView> {
         sliverContext.visitChildElements(visitor);
 
         if (scrollableState != null) {
-          visibleVerse = scrollableState!.getVerseForOffset(offsetIntoChapter);
+          return scrollableState!.getVerseForOffset(offsetIntoChapter);
         }
+        break;
+      }
+    }
+    return null;
+  }
+
+  void _reportSyncPosition() {
+    // 1. Find the visible chapter (Sliver)
+    // 2. Calculate progress
+    // 3. Find visible Verse
+
+    // We duplicate the finding logic slightly here to get the 'progress'
+    // variables which _findVisibleVerse doesn't return.
+
+    for (final chapterId in _displayedChapters) {
+      final key = _chapterKeys[chapterId];
+      if (key == null) continue;
+
+      final sliverContext = key.currentContext;
+      if (sliverContext == null) continue;
+
+      final renderSliver = sliverContext.findRenderObject() as RenderSliver?;
+      if (renderSliver == null ||
+          !renderSliver.attached ||
+          renderSliver.geometry == null) {
+        continue;
+      }
+
+      final viewport = RenderAbstractViewport.of(renderSliver);
+      final revealedOffset = viewport
+          .getOffsetToReveal(renderSliver, 0.0)
+          .offset;
+      final currentScroll = _scrollController.offset;
+      final chapterHeight = renderSliver.geometry!.scrollExtent;
+
+      if (currentScroll >= revealedOffset &&
+          currentScroll < revealedOffset + chapterHeight) {
+        final double offsetIntoChapter = currentScroll - revealedOffset;
+        final double progress = offsetIntoChapter / chapterHeight;
+
+        // Use the helper to get the verse specifically
+        final visibleVerse = _findVisibleVerse();
 
         widget.syncController!.updatePosition(
           _panelId,
@@ -305,7 +353,7 @@ class _InfiniteScrollViewState extends State<InfiniteScrollView> {
     BuildContext chapterContext,
     double offsetInsideChapter,
   ) {
-    // 4. Calculate absolute scroll position
+    // Calculate absolute scroll position
     final renderObject = chapterContext.findRenderObject();
     if (renderObject is! RenderBox) return;
 
