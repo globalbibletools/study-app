@@ -61,7 +61,8 @@ class GlossDatabase {
     }
 
     try {
-      final query = '''
+      final query =
+          '''
         SELECT t.${GlossSchema.textColText}
         FROM ${GlossSchema.versesTable} v
         JOIN ${GlossSchema.textTable} t 
