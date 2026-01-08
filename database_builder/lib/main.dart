@@ -1,5 +1,6 @@
 // ignore_for_file: unused_element
 
+import 'package:database_builder/src/audio/database.dart';
 import 'package:database_builder/src/bible/database.dart';
 
 import 'src/gloss/database.dart';
@@ -10,7 +11,8 @@ Future<void> main(List<String> arguments) async {
   // await _createHebrewGreekDatabase();
   // await _createLexiconDatabases();
   // await _createGlossDatabase('spa');
-  await _createBibleDatabase('eng_bsb');
+  // await _createBibleDatabase('eng_bsb');
+  await _createAudioDatabase();
 }
 
 Future<void> _createLexiconDatabases() async {
@@ -96,5 +98,18 @@ Future<void> _createBibleDatabase(String name) async {
   await dbHelper.populateTable();
 
   print('Dispose database resources');
+  dbHelper.dispose();
+}
+
+Future<void> _createAudioDatabase() async {
+  final dbHelper = AudioDatabase();
+
+  print('Creating new Audio Timings database');
+  dbHelper.init();
+
+  print('Populate Audio Timings table');
+  await dbHelper.populateTable();
+
+  print('Dispose Audio database resources');
   dbHelper.dispose();
 }

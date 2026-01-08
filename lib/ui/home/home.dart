@@ -45,6 +45,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // Listen to scroll updates
     syncController.addListener(_onScrollUpdate);
+
+    // audio syncing
+    manager.setSyncController(syncController);
   }
 
   void _onScrollUpdate() {

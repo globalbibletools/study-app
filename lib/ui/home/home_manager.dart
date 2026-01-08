@@ -1,10 +1,16 @@
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 import 'package:scripture/scripture.dart';
 import 'package:studyapp/l10n/book_names.dart';
+import 'package:studyapp/services/audio/audio_database.dart';
 import 'package:studyapp/services/audio/audio_player_handler.dart';
+import 'package:studyapp/services/audio/audio_timing.dart';
+import 'package:studyapp/services/audio/audio_url_helper.dart';
 import 'package:studyapp/services/bible/bible_database.dart';
 import 'package:studyapp/services/service_locator.dart';
 import 'package:studyapp/services/user_settings.dart';
+import 'package:studyapp/ui/home/common/scroll_sync_controller.dart';
 
 class HomeManager {
   final currentBookNotifier = ValueNotifier<String>('');
@@ -16,8 +22,16 @@ class HomeManager {
   final audioHandler = AudioPlayerHandler();
 
   final _bibleDb = getIt<BibleDatabase>();
+  final _audioDb = getIt<AudioDatabase>();
   final _settings = getIt<UserSettings>();
   late int _currentBookId;
+
+  // We need access to the SyncController to trigger jumps.
+  // Ideally, pass this in init, or set it via setter if created in UI.
+  ScrollSyncController? _syncController;
+  StreamSubscription? _positionSubscription;
+  List<AudioTiming> _currentTimings = [];
+  int _lastSyncedVerse = -1;
 
   int get currentBookId => _currentBookId;
 
@@ -31,6 +45,10 @@ class HomeManager {
     _currentBookId = bookId;
     currentBookNotifier.value = bookNameFromId(context, bookId);
     currentChapterNotifier.value = chapter;
+  }
+
+  void setSyncController(ScrollSyncController controller) {
+    _syncController = controller;
   }
 
   (int, int) getInitialBookAndChapter() {
@@ -54,35 +72,90 @@ class HomeManager {
   }
 
   void onBookSelected(BuildContext context, int bookId) {
+    closeAudioPlayer();
     _currentBookId = bookId;
     _updateUiForBook(context, bookId, 1);
   }
 
   void onChapterSelected(int chapter) {
+    closeAudioPlayer();
     currentChapterNotifier.value = chapter;
   }
 
   Future<void> playAudioForCurrentChapter(String bookName, int chapter) async {
-    // 1. Show the player UI
     isAudioVisibleNotifier.value = true;
 
-    // 2. Generate or fetch URL
-    // TODO: Replace this with your actual logic to get the URL for Book/Chapter
-    // For demo, we use a sample MP3
-    const String sampleUrl =
-        "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3";
+    final bookId = _currentBookId;
+    // Default to HEB for Old Testament, you might want logic for NT later
+    final recordingId = 'RDB'; // or HEB
 
-    // 3. Play
+    // 1. Get URL
+    final url = AudioUrlHelper.getAudioUrl(
+      bookId: bookId,
+      chapter: chapter,
+      recordingId: recordingId,
+    );
+
+    // 2. Fetch Timings
+    _currentTimings = await _audioDb.getTimingsForChapter(
+      bookId,
+      chapter,
+      recordingId,
+    );
+    _lastSyncedVerse = -1; // Reset
+
+    // 3. Play Audio
     await audioHandler.setUrl(
-      sampleUrl,
-      title: "$bookName $chapter", // Combined title for the UI
+      url,
+      title: "$bookName $chapter",
       subtitle: bookName,
     );
+    audioHandler.play();
+
+    // 4. Start Listening for Sync
+    _startSyncListener();
+  }
+
+  void _startSyncListener() {
+    _positionSubscription?.cancel();
+    _positionSubscription = audioHandler.positionDataStream.listen((
+      positionData,
+    ) {
+      if (_currentTimings.isEmpty) return;
+
+      final currentSeconds = positionData.position.inMilliseconds / 1000.0;
+
+      // Find the verse corresponding to current time
+      // We look for: start <= time < end
+      // Optimization: We could track index, but list size (~30-150 items) is small enough for iteration
+      AudioTiming? match;
+      try {
+        match = _currentTimings.firstWhere(
+          (t) => currentSeconds >= t.start && currentSeconds < t.end,
+        );
+      } catch (e) {
+        // No match found (e.g. intro silence, or end silence)
+        return;
+      }
+
+      final verseNum = match.verseNumber;
+
+      // Only jump if we moved to a NEW verse to prevent spamming the controller
+      if (verseNum != _lastSyncedVerse) {
+        _lastSyncedVerse = verseNum;
+
+        // Trigger the scroll
+        print("Auto-syncing to verse $verseNum");
+        _syncController?.jumpToVerse(verseNum);
+      }
+    });
   }
 
   void closeAudioPlayer() {
     isAudioVisibleNotifier.value = false;
-    // Optional: audioHandler.stop(); // If you want closing UI to stop playback
+    audioHandler.stop();
+    _positionSubscription?.cancel();
+    _currentTimings = [];
   }
 
   void dispose() {

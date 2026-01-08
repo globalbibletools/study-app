@@ -1,5 +1,6 @@
 import 'package:get_it/get_it.dart';
 import 'package:studyapp/app_state.dart';
+import 'package:studyapp/services/audio/audio_database.dart';
 import 'package:studyapp/services/bible/bible_database.dart';
 import 'package:studyapp/services/download/download.dart';
 import 'package:studyapp/services/gloss/gloss_service.dart';
@@ -18,4 +19,5 @@ void setupServiceLocator() {
   getIt.registerLazySingleton<AppState>(() => AppState());
   getIt.registerLazySingleton<DownloadService>(() => DownloadService());
   getIt.registerLazySingleton<BibleDatabase>(() => BibleDatabase());
+  getIt.registerLazySingleton<AudioDatabase>(() => AudioDatabase());
 }
