@@ -159,6 +159,9 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter>
                     },
                     onWordLongPress: _showWordDetails,
                     highlightedVerse: highlightedVerse,
+                    highlightColor: Theme.of(
+                      context,
+                    ).colorScheme.primary.withValues(alpha: 0.25),
                   ),
                 ],
               ),

@@ -940,31 +940,91 @@ class RenderHebrewGreekText extends RenderBox {
     canvas.save();
     canvas.translate(offset.dx, offset.dy);
 
-    // 0. Paint audio highlight
+    // --- 0. Paint audio highlight (Continuous Line Style) ---
     if (_highlightedVerse != null && _highlightColor != null) {
       final highlightPaint = Paint()..color = _highlightColor!;
+      final List<Rect> verseRects = [];
 
-      for (int i = 0; i < _words.length; i++) {
-        final word = _words[i];
-        // Calculate verse number from ID (reusing your logic: BBCCCVVVWW -> VVV)
-        // Assuming word.id structure: (word.id ~/ 100) % 1000
-        final verseNum = (word.id ~/ 100) % 1000;
-
+      // A. Collect all Word Rects for this verse
+      for (final word in _words) {
+        final verseNum = (word.id ~/ 100) % 1000; // Extract Verse ID
         if (verseNum == _highlightedVerse) {
           final rect = _wordRects[word.id];
-          if (rect != null) {
-            // Inflate slightly for better visual look
-            final rrect = RRect.fromRectAndRadius(
-              rect.inflate(2.0),
-              const Radius.circular(4.0),
-            );
-            canvas.drawRRect(rrect, highlightPaint);
-          }
+          if (rect != null) verseRects.add(rect);
         }
       }
-    }
 
-    // 0. Paint the flash effect if a word is being flashed
+      // B. Collect Verse Number Rect (if it belongs to this verse)
+      // We iterate verse numbers to see if they match the highlighted verse
+      for (final entry in _verseNumberRects.entries) {
+        final wordId = entry.key;
+        final verseNum = (wordId ~/ 100) % 1000;
+        if (verseNum == _highlightedVerse) {
+          verseRects.add(entry.value);
+        }
+      }
+
+      if (verseRects.isNotEmpty) {
+        // C. Sort rects: First by Top (Line), then by Left (Position)
+        // This groups them so we can merge them easily.
+        verseRects.sort((a, b) {
+          final diffY = a.top - b.top;
+          // If vertical difference is small, treat as same line
+          if (diffY.abs() > 2.0) {
+            return diffY.compareTo(0);
+          }
+          return a.left.compareTo(b.left);
+        });
+
+        // D. Merge rects on the same line
+        final List<Rect> mergedLines = [];
+        Rect? currentLineRect;
+
+        for (final rect in verseRects) {
+          if (currentLineRect == null) {
+            currentLineRect = rect;
+            continue;
+          }
+
+          // Check if 'rect' is on the same line as 'currentLineRect'
+          if ((rect.top - currentLineRect.top).abs() < 5.0) {
+            // Same line: Expand the current rect to include this new one.
+            // This fills the gap between words.
+            currentLineRect = currentLineRect.expandToInclude(rect);
+          } else {
+            // New line detected: Store the completed line and start a new one
+            mergedLines.add(currentLineRect);
+            currentLineRect = rect;
+          }
+        }
+        // Add the last line
+        if (currentLineRect != null) {
+          mergedLines.add(currentLineRect);
+        }
+
+        // E. Paint the merged lines using a single Path
+        final highlightPath = Path();
+
+        for (final rect in mergedLines) {
+          // Inflate slightly
+          final displayRect = rect.inflate(4.0);
+          final rrect = RRect.fromRectAndRadius(
+            displayRect,
+            const Radius.circular(4.0),
+          );
+
+          // Add to the path instead of drawing immediately
+          highlightPath.addRRect(rrect);
+        }
+
+        // Draw the entire path once.
+        // Overlapping areas within a single Path do not accumulate alpha.
+        canvas.drawPath(highlightPath, highlightPaint);
+      }
+    }
+    // ---------------------------------------------------------
+
+    // 1. Paint the flash effect (long press)
     if (_flashedWordId != null) {
       final rect = _wordRects[_flashedWordId];
       if (rect != null) {
@@ -977,7 +1037,7 @@ class RenderHebrewGreekText extends RenderBox {
       }
     }
 
-    // 1. Paint all the words
+    // 2. Paint all the words
     for (int i = 0; i < _wordPainters.length; i++) {
       final wordId = _words[i].id;
       final rect = _wordRects[wordId];
@@ -987,7 +1047,7 @@ class RenderHebrewGreekText extends RenderBox {
       }
     }
 
-    // 2. Paint all the verse numbers
+    // 3. Paint all the verse numbers
     for (final entry in _verseNumberPainters.entries) {
       final wordId = entry.key;
       final painter = entry.value;
@@ -997,7 +1057,7 @@ class RenderHebrewGreekText extends RenderBox {
       }
     }
 
-    // 3. Paint the popup if a word is tapped AND its painter is ready
+    // 4. Paint the popup if a word is tapped AND its painter is ready
     if (_tappedWordId != null && _popupPainter != null) {
       final tappedWordRect = _wordRects[_tappedWordId];
       if (tappedWordRect != null) {
