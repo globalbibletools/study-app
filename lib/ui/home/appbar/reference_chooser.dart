@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:studyapp/common/bible_navigation.dart';
-import 'package:studyapp/l10n/book_names.dart'; // Ensure this import exists in your project
+import 'package:studyapp/l10n/book_names.dart';
+import 'package:unorm_dart/unorm_dart.dart' as unorm;
 
 class ReferenceChooser extends StatefulWidget {
   final String currentBookName;
@@ -204,9 +205,8 @@ class _BookSelectorState extends State<_BookSelector> {
   final TextEditingController _controller = TextEditingController();
   final LayerLink _layerLink = LayerLink();
   OverlayEntry? _overlayEntry;
-
-  List<MapEntry<int, String>> _allBooks = [];
-  List<MapEntry<int, String>> _filteredBooks = [];
+  List<_BookSearchModel> _allBooks = [];
+  List<_BookSearchModel> _filteredBooks = [];
 
   @override
   void initState() {
@@ -238,21 +238,10 @@ class _BookSelectorState extends State<_BookSelector> {
     super.dispose();
   }
 
-  void _loadBookData() {
-    _allBooks = List.generate(66, (index) {
-      final id = index + 1;
-      return MapEntry(id, bookNameFromId(context, id));
-    });
-    _filteredBooks = List.from(_allBooks);
-  }
-
   void _onFocusChanged() {
     if (widget.focusNode.hasFocus) {
       _showOverlay();
     } else {
-      // Add a delay before removing the overlay.
-      // This gives the 'onTap' event in the Overlay enough time to fire
-      // before the widget is removed from the tree.
       Future.delayed(const Duration(milliseconds: 200), () {
         if (mounted && !widget.focusNode.hasFocus) {
           _removeOverlay();
@@ -261,75 +250,86 @@ class _BookSelectorState extends State<_BookSelector> {
     }
   }
 
+  void _removeOverlay() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+  }
+
+  // Pre-calculate the search keys
+  void _loadBookData() {
+    _allBooks = List.generate(66, (index) {
+      final id = index + 1;
+      final name = bookNameFromId(context, id);
+
+      return _BookSearchModel(
+        id: id,
+        displayName: name,
+        searchKey: SearchUtilities.normalize(name),
+      );
+    });
+    _filteredBooks = List.from(_allBooks);
+  }
+
+  // Filter logic
   void _onTextChanged() {
-    final input = _controller.text.toLowerCase();
+    // Normalize user input (e.g., input "Ex" matches searchKey "exodo")
+    final input = SearchUtilities.normalize(_controller.text);
+
     setState(() {
       _filteredBooks = _filter(input);
     });
 
     _overlayEntry?.markNeedsBuild();
 
-    // AUTO-ACCEPT LOGIC
+    // Auto-accept if only 1 match remains
     if (_filteredBooks.length == 1) {
       final match = _filteredBooks.first;
-      _selectBook(match.key);
+      _selectBook(match.id);
     }
   }
 
-  List<MapEntry<int, String>> _filter(String input) {
-    if (input.isEmpty) return _allBooks;
+  // Fuzzy matching algorithm using searchKey
+  List<_BookSearchModel> _filter(String normalizedInput) {
+    if (normalizedInput.isEmpty) return _allBooks;
 
-    // We will track the best (lowest) score found so far.
-    // Initialize with a high number.
     int minScore = 999999;
-    List<MapEntry<int, String>> bestMatches = [];
+    List<_BookSearchModel> bestMatches = [];
 
-    for (var entry in _allBooks) {
-      final bookName = entry.value.toLowerCase();
+    for (var book in _allBooks) {
+      final searchKey = book.searchKey;
 
-      // Rule 1: The book must start with the first letter of the input.
-      if (!bookName.startsWith(input[0])) {
+      // Rule 1: The book must start with the first letter of the input
+      if (!searchKey.startsWith(normalizedInput[0])) {
         continue;
       }
 
-      // Rule 2 & 3: Check for subsequence and calculate "closeness" score.
+      // Rule 2 & 3: Check for subsequence and calculate score
       int currentScore = 0;
-      int lastIndex = -1; // To ensure we search forward in the string
+      int lastIndex = -1;
       bool isMatch = true;
 
-      for (int i = 0; i < input.length; i++) {
-        final char = input[i];
+      for (int i = 0; i < normalizedInput.length; i++) {
+        final char = normalizedInput[i];
 
-        // Find the character in the book name, strictly AFTER the previous character's position
-        // greedy matching (indexOf) ensures we find the earliest occurrence,
-        // which helps the score be as low as possible.
-        final index = bookName.indexOf(char, lastIndex + 1);
+        // Find char in searchKey after the previous char's position
+        final index = searchKey.indexOf(char, lastIndex + 1);
 
         if (index == -1) {
           isMatch = false;
-          break; // Character not found in order
+          break;
         }
 
-        // Add the index to the score.
-        // Example "gn":
-        // Genesis:   'g' (0) + 'n' (2) = Score 2
-        // Galatians: 'g' (0) + 'n' (7) = Score 7
         currentScore += index;
         lastIndex = index;
       }
 
       if (isMatch) {
         if (currentScore < minScore) {
-          // We found a better match (closer to front).
-          // Clear previous candidates and start a new list with this winner.
           minScore = currentScore;
-          bestMatches = [entry];
+          bestMatches = [book];
         } else if (currentScore == minScore) {
-          // We found a tie (same letters in same positions).
-          // Add to the existing list of winners.
-          bestMatches.add(entry);
+          bestMatches.add(book);
         }
-        // If currentScore > minScore, we ignore it because a better match already exists.
       }
     }
 
@@ -350,7 +350,7 @@ class _BookSelectorState extends State<_BookSelector> {
 
     _overlayEntry = OverlayEntry(
       builder: (context) => Positioned(
-        width: 200, // Fixed width for dropdown or use size.width
+        width: 200,
         child: CompositedTransformFollower(
           link: _layerLink,
           showWhenUnlinked: false,
@@ -368,8 +368,9 @@ class _BookSelectorState extends State<_BookSelector> {
                   final book = _filteredBooks[index];
                   return ListTile(
                     dense: true,
-                    title: Text(book.value),
-                    onTap: () => _selectBook(book.key),
+                    // Display the pretty name, not the search key
+                    title: Text(book.displayName),
+                    onTap: () => _selectBook(book.id),
                   );
                 },
               ),
@@ -380,11 +381,6 @@ class _BookSelectorState extends State<_BookSelector> {
     );
 
     Overlay.of(context).insert(_overlayEntry!);
-  }
-
-  void _removeOverlay() {
-    _overlayEntry?.remove();
-    _overlayEntry = null;
   }
 
   @override
@@ -407,9 +403,9 @@ class _BookSelectorState extends State<_BookSelector> {
                   border: OutlineInputBorder(),
                 ),
                 onSubmitted: (_) {
-                  // If user hits enter and there is 1 valid match in filter, select it
                   if (_filteredBooks.isNotEmpty) {
-                    _selectBook(_filteredBooks.first.key);
+                    // Select the first valid match
+                    _selectBook(_filteredBooks.first.id);
                   } else {
                     widget.onCancel();
                   }
@@ -539,5 +535,45 @@ class _NumberSelectorState extends State<_NumberSelector> {
             ),
           )
         : OutlinedButton(onPressed: widget.onTap, child: Text(widget.label));
+  }
+}
+
+/// A container to hold the book data and its pre-computed search key.
+class _BookSearchModel {
+  final int id;
+  final String displayName;
+
+  /// The normalized, lower-case, diacritic-free name
+  final String searchKey;
+
+  _BookSearchModel({
+    required this.id,
+    required this.displayName,
+    required this.searchKey,
+  });
+}
+
+/// Centralized logic for text normalization.
+class SearchUtilities {
+  // Unicode Block: Combining Diacritical Marks (U+0300 to U+036F)
+  static final _combiningMarks = RegExp(r'[\u0300-\u036f]');
+
+  static String normalize(String input) {
+    if (input.isEmpty) return '';
+
+    // 1. Decompose (NFD):
+    //    "É" (U+00C9) -> "E" (U+0045) + "´" (U+0301)
+    String normalized = unorm.nfd(input);
+
+    // 2. Remove combining marks (accents)
+    normalized = normalized.replaceAll(_combiningMarks, '');
+
+    // 3. Lowercase
+    normalized = normalized.toLowerCase();
+
+    // 4. Future Extension:
+    // if (isChinese(input)) { return PinyinHelper.convertToPinyin(input); }
+
+    return normalized;
   }
 }
