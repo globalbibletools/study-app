@@ -50,6 +50,10 @@ class _InfiniteScrollViewState extends State<InfiniteScrollView> {
   final String _panelId = UniqueKey().toString();
   StreamSubscription? _verseJumpSubscription;
 
+  // Flag to prevent the scroll listener from overwriting the selected verse
+  // with the geometrically visible verse during a programmatic jump.
+  bool _isProgrammaticScroll = false;
+
   @override
   void initState() {
     super.initState();
@@ -149,6 +153,11 @@ class _InfiniteScrollViewState extends State<InfiniteScrollView> {
 
   void _scrollListener() {
     _handleInfiniteScrollLoading();
+
+    // If we are scrolling programmatically (jumping to a verse),
+    // do not report geometric position. The jump logic handles reporting
+    // the specific target verse.
+    if (_isProgrammaticScroll) return;
 
     // Only calculate and report sync if WE are the active source
     if (widget.syncController != null &&
@@ -319,7 +328,11 @@ class _InfiniteScrollViewState extends State<InfiniteScrollView> {
     final sliverContext = key.currentContext;
     if (sliverContext == null) return;
 
-    // 3. Find the State
+    // 3. Find the RenderSliver (for height calculation)
+    final renderSliver = sliverContext.findRenderObject() as RenderSliver?;
+    if (renderSliver == null || renderSliver.geometry == null) return;
+
+    // 4. Find the State
     VerseScrollable? scrollableState;
     State? actualState;
 
@@ -336,13 +349,37 @@ class _InfiniteScrollViewState extends State<InfiniteScrollView> {
 
     sliverContext.visitChildElements(visitor);
 
-    // 4. Perform the scroll using the generic mixin
+    // 5. Perform the scroll using the generic mixin
     if (scrollableState != null && actualState != null) {
       final verseOffset = scrollableState!.getOffsetForVerse(verse);
 
       if (verseOffset != null) {
+        _isProgrammaticScroll = true; // Lock geometric updates
+
         widget.syncController?.setActiveSource(_panelId);
+
+        // Calculate progress so other panels can follow correctly
+        final double chapterHeight = renderSliver.geometry!.scrollExtent;
+        final double progress = chapterHeight > 0
+            ? verseOffset / chapterHeight
+            : 0.0;
+
+        // Explicitly report the target verse so the UI updates to exactly what was clicked
+        // instead of what geometry thinks (e.g. verse 16 might be at pixel 0).
+        widget.syncController!.updatePosition(
+          _panelId,
+          _centerChapter.bookId,
+          _centerChapter.chapter,
+          progress.clamp(0.0, 1.0),
+          verse: verse,
+        );
+
         _scrollToAbsolutePosition(actualState!.context, verseOffset);
+
+        // Release the lock after the frame renders and scroll settles
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _isProgrammaticScroll = false;
+        });
       } else {
         log("Verse $verse not found in current layout");
       }
@@ -407,6 +444,8 @@ class _InfiniteScrollViewState extends State<InfiniteScrollView> {
     // 1. Detect Dragging (Active Panel logic)
     if (notification is ScrollStartNotification) {
       if (notification.dragDetails != null) {
+        // User manually touched the screen, so we respect geometric calculations again
+        _isProgrammaticScroll = false;
         widget.syncController!.setActiveSource(_panelId);
       }
     }
@@ -419,13 +458,12 @@ class _InfiniteScrollViewState extends State<InfiniteScrollView> {
         // Check who is the active source
         if (widget.syncController!.isSourceActive(_panelId)) {
           // Case A: We are the active source (User zoomed us).
-          // Our geometry changed, so our "percentage" position implies a new pixel offset.
-          // We must calculate that and report it to the other panel.
-          _reportSyncPosition();
+          if (!_isProgrammaticScroll) {
+            _reportSyncPosition();
+          }
         } else {
           // Case B: We are the other panel.
-          // Either we zoomed, or we finished loading data.
-          // We must re-align ourselves to match the active panel's target.
+          // Re-align ourselves to match the active panel's target.
           _onSyncReceived();
         }
       });
