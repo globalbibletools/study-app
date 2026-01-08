@@ -89,29 +89,29 @@ class _ReferenceChooserState extends State<ReferenceChooser> {
       mainAxisAlignment: MainAxisAlignment.start,
       children: [
         // --- BOOK SELECTOR ---
-        _BookSelector(
-          currentBookName: widget.currentBookName,
-          isActive: _isSelectingBook,
-          focusNode: _bookFocus,
-          onTap: () {
-            setState(() {
-              _isSelectingBook = true;
-              _isSelectingChapter = false;
-              _isSelectingVerse = false;
-            });
-          },
-          onBookSelected: (id) {
-            // 1. Notify Parent immediately
-            widget.onBookSelected(id);
-
-            // 2. Move to Chapter Selection
-            setState(() {
-              _isSelectingBook = false;
-              _isSelectingChapter = true;
-            });
-            _chapterFocus.requestFocus();
-          },
-          onCancel: _resetAll,
+        Flexible(
+          fit: FlexFit.loose,
+          child: _BookSelector(
+            currentBookName: widget.currentBookName,
+            isActive: _isSelectingBook,
+            focusNode: _bookFocus,
+            onTap: () {
+              setState(() {
+                _isSelectingBook = true;
+                _isSelectingChapter = false;
+                _isSelectingVerse = false;
+              });
+            },
+            onBookSelected: (id) {
+              widget.onBookSelected(id);
+              setState(() {
+                _isSelectingBook = false;
+                _isSelectingChapter = true;
+              });
+              _chapterFocus.requestFocus();
+            },
+            onCancel: _resetAll,
+          ),
         ),
 
         const SizedBox(width: 8),
@@ -172,6 +172,40 @@ class _ReferenceChooserState extends State<ReferenceChooser> {
           onCancel: _resetAll,
         ),
       ],
+    );
+  }
+}
+
+class _CompactSelectorButton extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+
+  const _CompactSelectorButton({required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          border: Border.all(color: colorScheme.outline),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        // Ensure text doesn't overflow internally
+        child: Text(
+          label,
+          style: theme.textTheme.labelLarge?.copyWith(
+            color: colorScheme.primary,
+          ),
+          overflow: TextOverflow.ellipsis,
+          maxLines: 1,
+        ),
+      ),
     );
   }
 }
@@ -367,8 +401,6 @@ class _BookSelectorState extends State<_BookSelector> {
                 itemBuilder: (context, index) {
                   final book = _filteredBooks[index];
                   return ListTile(
-                    dense: true,
-                    // Display the pretty name, not the search key
                     title: Text(book.displayName),
                     onTap: () => _selectBook(book.id),
                   );
@@ -389,7 +421,7 @@ class _BookSelectorState extends State<_BookSelector> {
       link: _layerLink,
       child: widget.isActive
           ? SizedBox(
-              width: 140,
+              width: 100,
               child: TextField(
                 controller: _controller,
                 focusNode: widget.focusNode,
@@ -404,7 +436,6 @@ class _BookSelectorState extends State<_BookSelector> {
                 ),
                 onSubmitted: (_) {
                   if (_filteredBooks.isNotEmpty) {
-                    // Select the first valid match
                     _selectBook(_filteredBooks.first.id);
                   } else {
                     widget.onCancel();
@@ -412,9 +443,9 @@ class _BookSelectorState extends State<_BookSelector> {
                 },
               ),
             )
-          : OutlinedButton(
-              onPressed: widget.onTap,
-              child: Text(widget.currentBookName),
+          : _CompactSelectorButton(
+              label: widget.currentBookName,
+              onTap: widget.onTap,
             ),
     );
   }
@@ -509,7 +540,7 @@ class _NumberSelectorState extends State<_NumberSelector> {
   Widget build(BuildContext context) {
     return widget.isActive
         ? SizedBox(
-            width: 60,
+            width: 50,
             child: TextField(
               controller: _controller,
               focusNode: widget.focusNode,
@@ -534,7 +565,7 @@ class _NumberSelectorState extends State<_NumberSelector> {
               },
             ),
           )
-        : OutlinedButton(onPressed: widget.onTap, child: Text(widget.label));
+        : _CompactSelectorButton(label: widget.label, onTap: widget.onTap);
   }
 }
 

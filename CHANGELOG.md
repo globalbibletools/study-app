@@ -1,8 +1,10 @@
 ## 0.14.0
 
+- Allow fuzzy filtering for book name navigation (remove diacritics)
 - Fixed: Scrolling bottom panel doesn't update verse label.
 - Fixed: Navigation to verse shows verse - 1 in verse label.
-- Allow fuzzy filtering for book name navigation (remove diacritics)
+- Make reference navigation buttons less wide so they don't overflow the app bar on small phones.
+- Increase the font size of the book chooser list.
 
 ## 0.13.0 - January 3, 2026
 
