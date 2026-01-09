@@ -90,6 +90,15 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get actionSplitScreen => 'Split Screen';
+
+  @override
+  String get actionPlayAudio => 'Play Audio';
+
+  @override
+  String get audioPlaybackSpeed => 'Playback Speed';
+
+  @override
   String get bookGenesis => 'Genesis';
 
   @override

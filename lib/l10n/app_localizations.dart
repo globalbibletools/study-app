@@ -236,6 +236,24 @@ abstract class AppLocalizations {
   /// **'{count, plural, =0{No results} =1{1 result} other{{count} results}}'**
   String resultsCount(int count);
 
+  /// Menu item name to change between one or two panels
+  ///
+  /// In en, this message translates to:
+  /// **'Split Screen'**
+  String get actionSplitScreen;
+
+  /// Menu item name to start the audio player
+  ///
+  /// In en, this message translates to:
+  /// **'Play Audio'**
+  String get actionPlayAudio;
+
+  /// Bottom popup panel title for changing the audio speed
+  ///
+  /// In en, this message translates to:
+  /// **'Playback Speed'**
+  String get audioPlaybackSpeed;
+
   /// The name of the first book of the Bible
   ///
   /// In en, this message translates to:

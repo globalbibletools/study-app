@@ -97,6 +97,18 @@
       }
     }
   },
+  "actionSplitScreen": "Split Screen",
+  "@actionSplitScreen": {
+    "description": "Menu item name to change between one or two panels"
+  },
+  "actionPlayAudio": "Play Audio",
+  "@actionPlayAudio": {
+    "description": "Menu item name to start the audio player"
+  },
+  "audioPlaybackSpeed": "Playback Speed",
+  "@audioPlaybackSpeed": {
+    "description": "Bottom popup panel title for changing the audio speed"
+  },
   "bookGenesis": "Genesis",
   "@bookGenesis": {
     "description": "The name of the first book of the Bible"

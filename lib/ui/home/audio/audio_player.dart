@@ -2,6 +2,7 @@ import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:just_audio_background/just_audio_background.dart';
+import 'package:studyapp/l10n/app_localizations.dart';
 import 'package:studyapp/services/audio/audio_player_handler.dart';
 
 class BottomAudioPlayer extends StatelessWidget {
@@ -56,7 +57,7 @@ class BottomAudioPlayer extends StatelessWidget {
                           final state = snapshot.data;
                           final title = state?.currentSource?.tag is MediaItem
                               ? (state!.currentSource!.tag as MediaItem).title
-                              : "Audio Player";
+                              : '';
 
                           return Text(
                             title,
@@ -156,15 +157,15 @@ class BottomAudioPlayer extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              ListTile(
-                title: Text(
-                  "Playback Speed",
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
+              SizedBox(height: 16),
+              Text(
+                AppLocalizations.of(context)!.audioPlaybackSpeed,
+                style: Theme.of(context).textTheme.titleMedium,
               ),
+              SizedBox(height: 8),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [0.75, 1.0, 1.25, 1.5, 2.0].map((speed) {
+                children: [0.5, 0.8, 1.0, 1.5, 2.0].map((speed) {
                   return TextButton(
                     onPressed: () {
                       audioHandler.setSpeed(speed);
@@ -174,7 +175,7 @@ class BottomAudioPlayer extends StatelessWidget {
                   );
                 }).toList(),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 16),
             ],
           ),
         );

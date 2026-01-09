@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:studyapp/l10n/app_localizations.dart';
 import 'package:studyapp/l10n/book_names.dart';
 import 'reference_chooser.dart';
 
@@ -54,23 +55,23 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
             }
           },
           itemBuilder: (BuildContext context) => [
-            const PopupMenuItem(
+            PopupMenuItem(
               value: _HomeMenuAction.splitScreen,
               child: Row(
                 children: [
                   Icon(Icons.splitscreen),
                   SizedBox(width: 12),
-                  Text('Split Screen'),
+                  Text(AppLocalizations.of(context)!.actionSplitScreen),
                 ],
               ),
             ),
-            const PopupMenuItem(
+            PopupMenuItem(
               value: _HomeMenuAction.playAudio,
               child: Row(
                 children: [
                   Icon(Icons.play_arrow),
                   SizedBox(width: 12),
-                  Text('Play Audio'),
+                  Text(AppLocalizations.of(context)!.actionPlayAudio),
                 ],
               ),
             ),

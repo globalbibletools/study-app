@@ -1,6 +1,7 @@
 ## 0.14.0
 
 - Audio playback synced to verse numbers.
+- Highlight currently playing verse.
 - Allow fuzzy filtering for book name navigation (remove diacritics).
 - Fixed: Scrolling bottom panel doesn't update verse label.
 - Fixed: Navigation to verse shows verse - 1 in verse label.
