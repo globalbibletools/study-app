@@ -124,48 +124,50 @@ class _HomeScreenState extends State<HomeScreen> {
           });
         },
       ),
-      body: Listener(
-        onPointerDown: (_) {
-          FocusManager.instance.primaryFocus?.unfocus();
-        },
-        child: ValueListenableBuilder<bool>(
-          valueListenable: manager.isSinglePanelNotifier,
-          builder: (context, isSinglePanel, _) {
-            return Column(
-              children: [
-                Expanded(
-                  child: HebrewGreekPanel(
-                    bookId: panelBookId,
-                    chapter: panelChapter,
-                    syncController: syncController,
-                  ),
-                ),
-                if (!isSinglePanel) ...[
-                  const SizedBox(height: 16),
+      body: SafeArea(
+        child: Listener(
+          onPointerDown: (_) {
+            FocusManager.instance.primaryFocus?.unfocus();
+          },
+          child: ValueListenableBuilder<bool>(
+            valueListenable: manager.isSinglePanelNotifier,
+            builder: (context, isSinglePanel, _) {
+              return Column(
+                children: [
                   Expanded(
-                    child: BiblePanel(
+                    child: HebrewGreekPanel(
                       bookId: panelBookId,
                       chapter: panelChapter,
                       syncController: syncController,
                     ),
                   ),
-                ],
-                ValueListenableBuilder<bool>(
-                  valueListenable: manager.isAudioVisibleNotifier,
-                  builder: (context, isVisible, _) {
-                    if (!isVisible) return const SizedBox.shrink();
+                  if (!isSinglePanel) ...[
+                    const SizedBox(height: 16),
+                    Expanded(
+                      child: BiblePanel(
+                        bookId: panelBookId,
+                        chapter: panelChapter,
+                        syncController: syncController,
+                      ),
+                    ),
+                  ],
+                  ValueListenableBuilder<bool>(
+                    valueListenable: manager.isAudioVisibleNotifier,
+                    builder: (context, isVisible, _) {
+                      if (!isVisible) return const SizedBox.shrink();
 
-                    return BottomAudioPlayer(
-                      audioHandler: manager.audioHandler,
-                      onClose: manager.closeAudioPlayer,
-                      onNext: manager.skipToNextVerse,
-                      onPrevious: manager.skipToPreviousVerse,
-                    );
-                  },
-                ),
-              ],
-            );
-          },
+                      return BottomAudioPlayer(
+                        audioHandler: manager.audioHandler,
+                        onClose: manager.closeAudioPlayer,
+                        onNext: manager.skipToNextVerse,
+                        onPrevious: manager.skipToPreviousVerse,
+                      );
+                    },
+                  ),
+                ],
+              );
+            },
+          ),
         ),
       ),
     );
