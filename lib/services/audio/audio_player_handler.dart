@@ -7,6 +7,7 @@ class AudioPlayerHandler {
 
   Stream<PlayerState> get playerStateStream => _player.playerStateStream;
   Stream<double> get speedStream => _player.speedStream;
+  Duration get position => _player.position;
 
   /// Returns a stream of PositionData.
   /// This manually combines position, buffered position, and duration

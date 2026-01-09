@@ -8,11 +8,15 @@ import 'package:studyapp/services/audio/audio_player_handler.dart';
 class BottomAudioPlayer extends StatelessWidget {
   final AudioPlayerHandler audioHandler;
   final VoidCallback onClose;
+  final VoidCallback onNext;
+  final VoidCallback onPrevious;
 
   const BottomAudioPlayer({
     super.key,
     required this.audioHandler,
     required this.onClose,
+    required this.onNext,
+    required this.onPrevious,
   });
 
   @override
@@ -50,25 +54,55 @@ class BottomAudioPlayer extends StatelessWidget {
                 Row(
                   children: [
                     // Title (Book Chapter)
-                    Expanded(
-                      child: StreamBuilder<SequenceState?>(
-                        stream: audioHandler.sequenceStateStream,
-                        builder: (context, snapshot) {
-                          final state = snapshot.data;
-                          final title = state?.currentSource?.tag is MediaItem
-                              ? (state!.currentSource!.tag as MediaItem).title
-                              : '';
+                    StreamBuilder<SequenceState?>(
+                      stream: audioHandler.sequenceStateStream,
+                      builder: (context, snapshot) {
+                        final state = snapshot.data;
+                        final title = state?.currentSource?.tag is MediaItem
+                            ? (state!.currentSource!.tag as MediaItem).title
+                            : '';
 
-                          return Text(
-                            title,
-                            style: theme.textTheme.labelLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          );
-                        },
-                      ),
+                        return Text(
+                          title,
+                          style: theme.textTheme.labelLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        );
+                      },
                     ),
+
+                    Spacer(),
+
+                    // Previous
+                    IconButton(
+                      icon: const Icon(Icons.chevron_left),
+                      iconSize: 20,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      visualDensity: VisualDensity.compact,
+                      style: IconButton.styleFrom(
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      onPressed: onPrevious,
+                    ),
+
+                    const SizedBox(width: 16),
+
+                    // Next
+                    IconButton(
+                      icon: const Icon(Icons.chevron_right),
+                      iconSize: 20,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      visualDensity: VisualDensity.compact,
+                      style: IconButton.styleFrom(
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      onPressed: onNext,
+                    ),
+
+                    Spacer(),
 
                     // Speed
                     StreamBuilder<double>(

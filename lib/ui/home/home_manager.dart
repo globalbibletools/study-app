@@ -152,6 +152,77 @@ class HomeManager {
     });
   }
 
+  void skipToNextVerse() {
+    if (_currentTimings.isEmpty) return;
+
+    final currentPos = audioHandler.position.inMilliseconds / 1000.0;
+
+    // Find the current verse index
+    int currentIndex = -1;
+    for (int i = 0; i < _currentTimings.length; i++) {
+      if (currentPos >= _currentTimings[i].start &&
+          currentPos < _currentTimings[i].end) {
+        currentIndex = i;
+        break;
+      }
+    }
+
+    if (currentIndex != -1) {
+      // We are inside a verse. Jump to the next one.
+      if (currentIndex + 1 < _currentTimings.length) {
+        final nextStart = _currentTimings[currentIndex + 1].start;
+        audioHandler.seek(Duration(milliseconds: (nextStart * 1000).toInt()));
+      }
+    } else {
+      // We are in a gap (silence). Find the next verse that starts after now.
+      for (final t in _currentTimings) {
+        if (t.start > currentPos) {
+          audioHandler.seek(Duration(milliseconds: (t.start * 1000).toInt()));
+          break;
+        }
+      }
+    }
+  }
+
+  void skipToPreviousVerse() {
+    if (_currentTimings.isEmpty) return;
+
+    final currentPos = audioHandler.position.inMilliseconds / 1000.0;
+
+    // Find current verse index
+    int currentIndex = -1;
+    for (int i = 0; i < _currentTimings.length; i++) {
+      if (currentPos >= _currentTimings[i].start &&
+          currentPos < _currentTimings[i].end) {
+        currentIndex = i;
+        break;
+      }
+    }
+
+    if (currentIndex != -1) {
+      // We are inside a verse.
+      if (currentIndex > 0) {
+        // Jump to the start of the previous verse
+        final prevStart = _currentTimings[currentIndex - 1].start;
+        audioHandler.seek(Duration(milliseconds: (prevStart * 1000).toInt()));
+      } else {
+        // We are at the first verse, jump to 0
+        audioHandler.seek(Duration.zero);
+      }
+    } else {
+      // We are in a gap. Find the last verse that ended before now.
+      for (int i = _currentTimings.length - 1; i >= 0; i--) {
+        if (_currentTimings[i].end <= currentPos) {
+          final targetStart = _currentTimings[i].start;
+          audioHandler.seek(
+            Duration(milliseconds: (targetStart * 1000).toInt()),
+          );
+          break;
+        }
+      }
+    }
+  }
+
   void closeAudioPlayer() {
     if (isAudioVisibleNotifier.value) {
       isAudioVisibleNotifier.value = false;
