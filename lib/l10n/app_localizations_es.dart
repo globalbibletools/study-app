@@ -96,7 +96,31 @@ class AppLocalizationsEs extends AppLocalizations {
   String get actionPlayAudio => 'Reproducir Audio';
 
   @override
+  String get audioSettings => 'Configuración de audio';
+
+  @override
   String get audioPlaybackSpeed => 'Velocidad de Reproducción';
+
+  @override
+  String get audioRepeatMode => 'Modo de repetición';
+
+  @override
+  String get repeatNone => 'Ninguno';
+
+  @override
+  String get repeatVerse => 'Versículo';
+
+  @override
+  String get repeatChapter => 'Capítulo';
+
+  @override
+  String get audioRecordingSource => 'Fuente de grabación';
+
+  @override
+  String get sourceHEB => 'Abraham Shmueloff';
+
+  @override
+  String get sourceRDB => 'Rabbi Dan Beeri';
 
   @override
   String get bookGenesis => 'Génesis';

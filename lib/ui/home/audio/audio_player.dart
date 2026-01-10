@@ -1,6 +1,7 @@
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:studyapp/l10n/app_localizations.dart';
 import 'package:studyapp/services/audio/position_data.dart';
 
 import 'audio_manager.dart';
@@ -23,6 +24,7 @@ class BottomAudioPlayer extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context)!;
 
     return Container(
       decoration: BoxDecoration(
@@ -47,7 +49,7 @@ class BottomAudioPlayer extends StatelessWidget {
               IconButton(
                 icon: const Icon(Icons.settings_outlined),
                 visualDensity: VisualDensity.compact,
-                tooltip: "Audio Settings",
+                tooltip: l10n.audioSettings,
                 onPressed: () => _showSettingsBottomSheet(context),
               ),
 
@@ -221,6 +223,7 @@ class _AudioSettingsSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
@@ -229,12 +232,12 @@ class _AudioSettingsSheet extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Center(
-            child: Text("Audio Settings", style: theme.textTheme.titleLarge),
+            child: Text(l10n.audioSettings, style: theme.textTheme.titleLarge),
           ),
           const SizedBox(height: 24),
 
           // 1. Playback Speed (Segmented Button with Scroll)
-          Text("Playback Speed", style: theme.textTheme.titleMedium),
+          Text(l10n.audioPlaybackSpeed, style: theme.textTheme.titleMedium),
           const SizedBox(height: 12),
           ValueListenableBuilder<double>(
             valueListenable: manager.playbackSpeedNotifier,
@@ -262,7 +265,7 @@ class _AudioSettingsSheet extends StatelessWidget {
           const SizedBox(height: 32),
 
           // 2. Repeat Mode (Segmented Button)
-          Text("Repeat Mode", style: theme.textTheme.titleMedium),
+          Text(l10n.audioRepeatMode, style: theme.textTheme.titleMedium),
           const SizedBox(height: 12),
           ValueListenableBuilder<AudioRepeatMode>(
             valueListenable: manager.repeatModeNotifier,
@@ -271,18 +274,18 @@ class _AudioSettingsSheet extends StatelessWidget {
                 width: double.infinity,
                 child: SegmentedButton<AudioRepeatMode>(
                   showSelectedIcon: false,
-                  segments: const [
+                  segments: [
                     ButtonSegment(
                       value: AudioRepeatMode.none,
-                      label: Text("None"),
+                      label: Text(l10n.repeatNone),
                     ),
                     ButtonSegment(
                       value: AudioRepeatMode.verse,
-                      label: Text("Verse"),
+                      label: Text(l10n.repeatVerse),
                     ),
                     ButtonSegment(
                       value: AudioRepeatMode.chapter,
-                      label: Text("Chapter"),
+                      label: Text(l10n.repeatChapter),
                     ),
                   ],
                   selected: {currentMode},
@@ -297,7 +300,7 @@ class _AudioSettingsSheet extends StatelessWidget {
           const SizedBox(height: 32),
 
           // 3. Recording Source (Segmented Button)
-          Text("Recording Source", style: theme.textTheme.titleMedium),
+          Text(l10n.audioRecordingSource, style: theme.textTheme.titleMedium),
           const SizedBox(height: 12),
           ValueListenableBuilder<AudioSourceType>(
             valueListenable: manager.audioSourceNotifier,
@@ -306,14 +309,14 @@ class _AudioSettingsSheet extends StatelessWidget {
                 width: double.infinity,
                 child: SegmentedButton<AudioSourceType>(
                   showSelectedIcon: false,
-                  segments: const [
+                  segments: [
                     ButtonSegment(
                       value: AudioSourceType.heb,
-                      label: Text("Hebrew (HEB)"),
+                      label: Text(l10n.sourceHEB),
                     ),
                     ButtonSegment(
                       value: AudioSourceType.rdb,
-                      label: Text("Reading (RDB)"),
+                      label: Text(l10n.sourceRDB),
                     ),
                   ],
                   selected: {currentSource},

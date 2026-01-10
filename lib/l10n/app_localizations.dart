@@ -248,11 +248,59 @@ abstract class AppLocalizations {
   /// **'Play Audio'**
   String get actionPlayAudio;
 
+  /// Audio settings panel title
+  ///
+  /// In en, this message translates to:
+  /// **'Audio Settings'**
+  String get audioSettings;
+
   /// Bottom popup panel title for changing the audio speed
   ///
   /// In en, this message translates to:
   /// **'Playback Speed'**
   String get audioPlaybackSpeed;
+
+  /// Audio settings: Repeat mode setting
+  ///
+  /// In en, this message translates to:
+  /// **'Repeat Mode'**
+  String get audioRepeatMode;
+
+  /// Audio setting: Repeat node
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get repeatNone;
+
+  /// Audio setting: Repeat verse
+  ///
+  /// In en, this message translates to:
+  /// **'Verse'**
+  String get repeatVerse;
+
+  /// Audio setting: Repeat chapter
+  ///
+  /// In en, this message translates to:
+  /// **'Chapter'**
+  String get repeatChapter;
+
+  /// Audio settings: Recording source
+  ///
+  /// In en, this message translates to:
+  /// **'Recording Source'**
+  String get audioRecordingSource;
+
+  /// Audio recording source setting: Abraham Shmueloff
+  ///
+  /// In en, this message translates to:
+  /// **'Abraham Shmueloff'**
+  String get sourceHEB;
+
+  /// Audio recording source setting: Rabbi Dan Beeri
+  ///
+  /// In en, this message translates to:
+  /// **'Rabbi Dan Beeri'**
+  String get sourceRDB;
 
   /// The name of the first book of the Bible
   ///

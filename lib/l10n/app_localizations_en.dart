@@ -96,7 +96,31 @@ class AppLocalizationsEn extends AppLocalizations {
   String get actionPlayAudio => 'Play Audio';
 
   @override
+  String get audioSettings => 'Audio Settings';
+
+  @override
   String get audioPlaybackSpeed => 'Playback Speed';
+
+  @override
+  String get audioRepeatMode => 'Repeat Mode';
+
+  @override
+  String get repeatNone => 'None';
+
+  @override
+  String get repeatVerse => 'Verse';
+
+  @override
+  String get repeatChapter => 'Chapter';
+
+  @override
+  String get audioRecordingSource => 'Recording Source';
+
+  @override
+  String get sourceHEB => 'Abraham Shmueloff';
+
+  @override
+  String get sourceRDB => 'Rabbi Dan Beeri';
 
   @override
   String get bookGenesis => 'Genesis';

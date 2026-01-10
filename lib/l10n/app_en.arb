@@ -105,9 +105,41 @@
   "@actionPlayAudio": {
     "description": "Menu item name to start the audio player"
   },
+  "audioSettings": "Audio Settings",
+  "@audioSettings": {
+    "description": "Audio settings panel title"
+  },
   "audioPlaybackSpeed": "Playback Speed",
   "@audioPlaybackSpeed": {
     "description": "Bottom popup panel title for changing the audio speed"
+  },
+  "audioRepeatMode": "Repeat Mode",
+  "@audioRepeatMode": {
+    "description": "Audio settings: Repeat mode setting"
+  },
+  "repeatNone": "None",
+  "@repeatNone": {
+    "description": "Audio setting: Repeat node"
+  },
+  "repeatVerse": "Verse",
+  "@repeatVerse": {
+    "description": "Audio setting: Repeat verse"
+  },
+  "repeatChapter": "Chapter",
+  "@repeatChapter": {
+    "description": "Audio setting: Repeat chapter"
+  },
+  "audioRecordingSource": "Recording Source",
+  "@audioRecordingSource": {
+    "description": "Audio settings: Recording source"
+  },
+  "sourceHEB": "Abraham Shmueloff",
+  "@sourceHEB": {
+    "description": "Audio recording source setting: Abraham Shmueloff"
+  },
+  "sourceRDB": "Rabbi Dan Beeri",
+  "@sourceRDB": {
+    "description": "Audio recording source setting: Rabbi Dan Beeri"
   },
   "bookGenesis": "Genesis",
   "@bookGenesis": {

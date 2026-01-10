@@ -20,10 +20,10 @@ class AudioManager {
   final isVisibleNotifier = ValueNotifier<bool>(false);
   final playbackSpeedNotifier = ValueNotifier<double>(1.0);
   final repeatModeNotifier = ValueNotifier<AudioRepeatMode>(
-    AudioRepeatMode.chapter,
+    AudioRepeatMode.none,
   );
   final audioSourceNotifier = ValueNotifier<AudioSourceType>(
-    AudioSourceType.heb,
+    AudioSourceType.rdb,
   );
 
   // --- Internal State ---
@@ -108,13 +108,36 @@ class AudioManager {
     // Handle End of Chapter
     _playerStateSubscription = audioHandler.playerStateStream.listen((state) {
       if (state.processingState == ProcessingState.completed) {
-        // Clear UI Highlight
-        _clearHighlight();
-        _lastSyncedVerse = -1;
+        // --- CHECK REPEAT MODE ---
+        if (repeatModeNotifier.value == AudioRepeatMode.chapter) {
+          // REPEAT CHAPTER:
+          _lastSyncedVerse = -1;
+          // Seek to beginning (Audio stays 'playing' automatically)
+          audioHandler.seek(Duration.zero);
+        } else if (repeatModeNotifier.value == AudioRepeatMode.verse) {
+          // EDGE CASE: If repeating the LAST verse, the file finishes before
+          // the timestamp check triggers (due to the 36000s fix).
+          // So if we hit 'completed' in verse mode, repeat the last verse.
+          if (_currentTimings.isNotEmpty) {
+            _seekToTiming(_currentTimings.last);
+          }
+        } else {
+          // NO REPEAT (Standard Stop Logic):
 
-        // Reset Player (Pause & Rewind)
-        audioHandler.pause();
-        audioHandler.seek(Duration.zero);
+          // Clear UI Highlight
+          if (_loadedBookId != null && _loadedChapter != null) {
+            _syncController?.setHighlight(
+              _loadedBookId!,
+              _loadedChapter!,
+              null,
+            );
+          }
+          _lastSyncedVerse = -1;
+
+          // Reset Player (Pause & Rewind)
+          audioHandler.pause();
+          audioHandler.seek(Duration.zero);
+        }
       }
     });
 
