@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:studyapp/services/audio/audio_database.dart';
 import 'package:studyapp/services/audio/audio_player_handler.dart';
 import 'package:studyapp/services/audio/audio_timing.dart';
@@ -28,6 +29,8 @@ class AudioManager {
   // --- Internal State ---
   ScrollSyncController? _syncController;
   StreamSubscription? _positionSubscription;
+  StreamSubscription? _playerStateSubscription;
+
   List<AudioTiming> _currentTimings = [];
   int _lastSyncedVerse = -1;
 
@@ -100,6 +103,23 @@ class AudioManager {
 
   void _startSyncListener() {
     _positionSubscription?.cancel();
+    _playerStateSubscription?.cancel();
+
+    // Handle End of Chapter
+    _playerStateSubscription = audioHandler.playerStateStream.listen((state) {
+      if (state.processingState == ProcessingState.completed) {
+        // _isChapterFinished = true; // Block highlighting
+
+        // Clear UI Highlight
+        _syncController?.setHighlightedVerse(null);
+        _lastSyncedVerse = -1;
+
+        // Reset Player (Pause & Rewind)
+        audioHandler.pause();
+        audioHandler.seek(Duration.zero);
+      }
+    });
+
     _positionSubscription = audioHandler.positionDataStream.listen((
       positionData,
     ) {
