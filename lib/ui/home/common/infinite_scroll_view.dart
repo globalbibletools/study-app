@@ -319,26 +319,29 @@ class _InfiniteScrollViewState extends State<InfiniteScrollView> {
     super.dispose();
   }
 
-  void _handleVerseJump(int verse) {
-    // 1. Get the Key for the center/current chapter
-    final key = _chapterKeys[_centerChapter];
+  void _handleVerseJump(VerseHighlight target) {
+    // Find if the target chapter is currently displayed
+    // We construct a temporary ID to look up the key
+    final targetId = ChapterIdentifier(target.bookId, target.chapter);
+
+    final key = _chapterKeys[targetId];
+
+    // If this chapter isn't loaded/visible, ignore the scroll command.
+    // (This prevents scrolling Chapter 5 when Audio plays Chapter 1)
     if (key == null) return;
 
-    // 2. Get the Context of the Sliver
+    // Get context using the specific chapter's key
     final sliverContext = key.currentContext;
     if (sliverContext == null) return;
 
-    // 3. Find the RenderSliver (for height calculation)
     final renderSliver = sliverContext.findRenderObject() as RenderSliver?;
     if (renderSliver == null || renderSliver.geometry == null) return;
 
-    // 4. Find the State
     VerseScrollable? scrollableState;
     State? actualState;
 
     void visitor(Element element) {
       if (scrollableState != null) return;
-
       if (element is StatefulElement && element.state is VerseScrollable) {
         scrollableState = element.state as VerseScrollable;
         actualState = element.state;
@@ -349,39 +352,32 @@ class _InfiniteScrollViewState extends State<InfiniteScrollView> {
 
     sliverContext.visitChildElements(visitor);
 
-    // 5. Perform the scroll using the generic mixin
     if (scrollableState != null && actualState != null) {
-      final verseOffset = scrollableState!.getOffsetForVerse(verse);
+      // Use target.verse
+      final verseOffset = scrollableState!.getOffsetForVerse(target.verse);
 
       if (verseOffset != null) {
-        _isProgrammaticScroll = true; // Lock geometric updates
-
+        _isProgrammaticScroll = true;
         widget.syncController?.setActiveSource(_panelId);
 
-        // Calculate progress so other panels can follow correctly
         final double chapterHeight = renderSliver.geometry!.scrollExtent;
         final double progress = chapterHeight > 0
             ? verseOffset / chapterHeight
             : 0.0;
 
-        // Explicitly report the target verse so the UI updates to exactly what was clicked
-        // instead of what geometry thinks (e.g. verse 16 might be at pixel 0).
         widget.syncController!.updatePosition(
           _panelId,
-          _centerChapter.bookId,
-          _centerChapter.chapter,
+          target.bookId, // Use target data
+          target.chapter,
           progress.clamp(0.0, 1.0),
-          verse: verse,
+          verse: target.verse,
         );
 
         _scrollToAbsolutePosition(actualState!.context, verseOffset);
 
-        // Release the lock after the frame renders and scroll settles
         WidgetsBinding.instance.addPostFrameCallback((_) {
           _isProgrammaticScroll = false;
         });
-      } else {
-        log("Verse $verse not found in current layout");
       }
     }
   }

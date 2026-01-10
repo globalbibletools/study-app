@@ -154,6 +154,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
                       return BottomAudioPlayer(
                         audioManager: manager.audioManager,
+                        currentBookId: displayBookId,
+                        currentChapter: displayChapter,
+                        currentBookName: bookNameFromId(context, displayBookId),
                       );
                     },
                   ),
@@ -202,8 +205,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _scrollToVerse(int verse) {
-    // Just jump, the scroll listener will update the UI when it arrives
-    syncController.jumpToVerse(verse);
+    syncController.jumpToVerse(displayBookId, displayChapter, verse);
   }
 
   Future<void> _onPlayAudio(BuildContext context) async {

@@ -2,12 +2,36 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+class VerseHighlight {
+  final int bookId;
+  final int chapter;
+  final int verse;
+
+  VerseHighlight({
+    required this.bookId,
+    required this.chapter,
+    required this.verse,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is VerseHighlight &&
+          runtimeType == other.runtimeType &&
+          bookId == other.bookId &&
+          chapter == other.chapter &&
+          verse == other.verse;
+
+  @override
+  int get hashCode => Object.hash(bookId, chapter, verse);
+}
+
 class ScrollSyncController extends ChangeNotifier {
   // Track which panel is currently being touched/scrolled by the user
   // so we don't create an infinite feedback loop.
   Object? _activeSource;
-  final _verseJumpController = StreamController<int>.broadcast();
-  Stream<int> get onVerseJump => _verseJumpController.stream;
+  final _verseJumpController = StreamController<VerseHighlight>.broadcast();
+  Stream<VerseHighlight> get onVerseJump => _verseJumpController.stream;
 
   void setActiveSource(Object source) {
     _activeSource = source;
@@ -61,22 +85,36 @@ class ScrollSyncController extends ChangeNotifier {
 
   bool isSourceActive(Object source) => _activeSource == source;
 
-  void jumpToVerse(int verse) {
-    _verseJumpController.add(verse);
+  void jumpToVerse(int bookId, int chapter, int verse) {
+    _verseJumpController.add(
+      VerseHighlight(bookId: bookId, chapter: chapter, verse: verse),
+    );
   }
 
-  final highlightedVerseNotifier = ValueNotifier<int?>(null);
+  final highlightNotifier = ValueNotifier<VerseHighlight?>(null);
 
-  void setHighlightedVerse(int? verse) {
-    if (highlightedVerseNotifier.value != verse) {
-      highlightedVerseNotifier.value = verse;
+  void setHighlight(int bookId, int chapter, int? verse) {
+    if (verse == null) {
+      if (highlightNotifier.value != null) {
+        highlightNotifier.value = null;
+      }
+      return;
+    }
+
+    final newState = VerseHighlight(
+      bookId: bookId,
+      chapter: chapter,
+      verse: verse,
+    );
+    if (highlightNotifier.value != newState) {
+      highlightNotifier.value = newState;
     }
   }
 
   @override
   void dispose() {
     _verseJumpController.close();
-    highlightedVerseNotifier.dispose();
+    highlightNotifier.dispose();
     super.dispose();
   }
 }

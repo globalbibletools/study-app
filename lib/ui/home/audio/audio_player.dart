@@ -7,8 +7,17 @@ import 'audio_manager.dart';
 
 class BottomAudioPlayer extends StatelessWidget {
   final AudioManager audioManager;
+  final int currentBookId;
+  final int currentChapter;
+  final String currentBookName;
 
-  const BottomAudioPlayer({super.key, required this.audioManager});
+  const BottomAudioPlayer({
+    super.key,
+    required this.audioManager,
+    required this.currentBookId,
+    required this.currentChapter,
+    required this.currentBookName,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -100,7 +109,12 @@ class BottomAudioPlayer extends StatelessWidget {
               const SizedBox(width: 24),
 
               // Play/Pause
-              _PlayButton(audioManager: audioManager),
+              _PlayButton(
+                audioManager: audioManager,
+                bookId: currentBookId,
+                chapter: currentChapter,
+                bookName: currentBookName,
+              ),
 
               const SizedBox(width: 24),
 
@@ -133,7 +147,16 @@ class BottomAudioPlayer extends StatelessWidget {
 
 class _PlayButton extends StatelessWidget {
   final AudioManager audioManager;
-  const _PlayButton({required this.audioManager});
+  final int bookId;
+  final int chapter;
+  final String bookName;
+
+  const _PlayButton({
+    required this.audioManager,
+    required this.bookId,
+    required this.chapter,
+    required this.bookName,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -165,7 +188,13 @@ class _PlayButton extends StatelessWidget {
             iconSize: 48.0,
             color: primaryColor,
             padding: EdgeInsets.zero,
-            onPressed: audioManager.play,
+            onPressed: () {
+              audioManager.play(
+                checkBookId: bookId,
+                checkChapter: chapter,
+                checkBookName: bookName,
+              );
+            },
           );
         } else {
           // Pause Button

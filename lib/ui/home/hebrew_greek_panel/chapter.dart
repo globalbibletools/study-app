@@ -114,11 +114,16 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter>
       builder: (context, words, child) {
         if (words.isEmpty) return const SizedBox();
 
-        return ValueListenableBuilder<int?>(
+        return ValueListenableBuilder<VerseHighlight?>(
           valueListenable:
-              widget.syncController?.highlightedVerseNotifier ??
-              ValueNotifier(null),
-          builder: (context, highlightedVerse, _) {
+              widget.syncController?.highlightNotifier ?? ValueNotifier(null),
+          builder: (context, highlightInfo, _) {
+            int? verseToHighlight;
+            if (highlightInfo != null &&
+                highlightInfo.bookId == widget.bookId &&
+                highlightInfo.chapter == widget.chapter) {
+              verseToHighlight = highlightInfo.verse;
+            }
             return Padding(
               padding: const EdgeInsets.only(left: 16.0, right: 16.0),
               child: Column(
@@ -158,7 +163,7 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter>
                       );
                     },
                     onWordLongPress: _showWordDetails,
-                    highlightedVerse: highlightedVerse,
+                    highlightedVerse: verseToHighlight,
                     highlightColor: Theme.of(
                       context,
                     ).colorScheme.primary.withValues(alpha: 0.25),

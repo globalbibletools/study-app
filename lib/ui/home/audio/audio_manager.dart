@@ -108,10 +108,8 @@ class AudioManager {
     // Handle End of Chapter
     _playerStateSubscription = audioHandler.playerStateStream.listen((state) {
       if (state.processingState == ProcessingState.completed) {
-        // _isChapterFinished = true; // Block highlighting
-
         // Clear UI Highlight
-        _syncController?.setHighlightedVerse(null);
+        _clearHighlight();
         _lastSyncedVerse = -1;
 
         // Reset Player (Pause & Rewind)
@@ -155,18 +153,39 @@ class AudioManager {
           (t) => currentSeconds >= t.start && currentSeconds < t.end,
         );
       } catch (e) {
-        _syncController?.setHighlightedVerse(null);
+        _clearHighlight();
         return;
       }
 
       final verseNum = match.verseNumber;
-      _syncController?.setHighlightedVerse(verseNum);
 
+      // Update Highlight
+      if (_loadedBookId != null && _loadedChapter != null) {
+        _syncController?.setHighlight(
+          _loadedBookId!,
+          _loadedChapter!,
+          verseNum,
+        );
+      }
+
+      // Update Jump
       if (verseNum != _lastSyncedVerse) {
         _lastSyncedVerse = verseNum;
-        _syncController?.jumpToVerse(verseNum);
+        if (_loadedBookId != null && _loadedChapter != null) {
+          _syncController?.jumpToVerse(
+            _loadedBookId!,
+            _loadedChapter!,
+            verseNum,
+          );
+        }
       }
     });
+  }
+
+  void _clearHighlight() {
+    if (_loadedBookId != null && _loadedChapter != null) {
+      _syncController?.setHighlight(_loadedBookId!, _loadedChapter!, null);
+    }
   }
 
   // --- Controls ---
@@ -176,8 +195,9 @@ class AudioManager {
       isVisibleNotifier.value = false;
       audioHandler.stop();
       _positionSubscription?.cancel();
+      _playerStateSubscription?.cancel();
       _currentTimings = [];
-      _syncController?.setHighlightedVerse(null);
+      _clearHighlight();
       _loadedBookId = null;
     }
   }
@@ -236,7 +256,22 @@ class AudioManager {
     audioHandler.seek(position);
   }
 
-  void play() {
+  Future<void> play({
+    int? checkBookId,
+    int? checkChapter,
+    String? checkBookName,
+  }) async {
+    // Check if the user has scrolled to a new chapter while paused/stopped
+    if (checkBookId != null && checkChapter != null && checkBookName != null) {
+      if (checkBookId != _loadedBookId || checkChapter != _loadedChapter) {
+        // User is looking at a different chapter than what is loaded.
+        // Load the new chapter and start playing.
+        await loadAndPlay(checkBookId, checkChapter, checkBookName);
+        return;
+      }
+    }
+
+    // Otherwise, resume existing audio
     audioHandler.play();
   }
 
@@ -267,6 +302,7 @@ class AudioManager {
 
   void dispose() {
     _positionSubscription?.cancel();
+    _playerStateSubscription?.cancel();
     audioHandler.dispose();
     isVisibleNotifier.dispose();
     playbackSpeedNotifier.dispose();
