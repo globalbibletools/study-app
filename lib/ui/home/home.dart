@@ -154,6 +154,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                       return BottomAudioPlayer(
                         audioHandler: manager.audioHandler,
+                        manager: manager,
                         onClose: manager.closeAudioPlayer,
                         onNext: manager.skipToNextVerse,
                         onPrevious: manager.skipToPreviousVerse,

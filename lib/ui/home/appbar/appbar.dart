@@ -42,41 +42,51 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
         onVerseSelected: onVerseSelected,
       ),
       actions: [
-        PopupMenuButton<_HomeMenuAction>(
-          icon: const Icon(Icons.more_vert),
-          onSelected: (action) {
-            switch (action) {
-              case _HomeMenuAction.splitScreen:
-                onTogglePanel();
-                break;
-              case _HomeMenuAction.playAudio:
-                onPlayAudio();
-                break;
-            }
-          },
-          itemBuilder: (BuildContext context) => [
-            PopupMenuItem(
-              value: _HomeMenuAction.splitScreen,
-              child: Row(
-                children: [
-                  Icon(Icons.splitscreen),
-                  SizedBox(width: 12),
-                  Text(AppLocalizations.of(context)!.actionSplitScreen),
-                ],
-              ),
-            ),
-            PopupMenuItem(
-              value: _HomeMenuAction.playAudio,
-              child: Row(
-                children: [
-                  Icon(Icons.play_arrow),
-                  SizedBox(width: 12),
-                  Text(AppLocalizations.of(context)!.actionPlayAudio),
-                ],
-              ),
-            ),
-          ],
+        IconButton(
+          onPressed: onPlayAudio,
+          icon: Icon(Icons.play_arrow),
+          tooltip: AppLocalizations.of(context)!.actionPlayAudio,
         ),
+        IconButton(
+          onPressed: onTogglePanel,
+          icon: Icon(Icons.splitscreen),
+          tooltip: AppLocalizations.of(context)!.actionSplitScreen,
+        ),
+        // PopupMenuButton<_HomeMenuAction>(
+        //   icon: const Icon(Icons.more_vert),
+        //   onSelected: (action) {
+        //     switch (action) {
+        //       case _HomeMenuAction.splitScreen:
+        //         onTogglePanel();
+        //         break;
+        //       case _HomeMenuAction.playAudio:
+        //         onPlayAudio();
+        //         break;
+        //     }
+        //   },
+        //   itemBuilder: (BuildContext context) => [
+        //     PopupMenuItem(
+        //       value: _HomeMenuAction.splitScreen,
+        //       child: Row(
+        //         children: [
+        //           Icon(Icons.splitscreen),
+        //           SizedBox(width: 12),
+        //           Text(AppLocalizations.of(context)!.actionSplitScreen),
+        //         ],
+        //       ),
+        //     ),
+        //     PopupMenuItem(
+        //       value: _HomeMenuAction.playAudio,
+        //       child: Row(
+        //         children: [
+        //           Icon(Icons.play_arrow),
+        //           SizedBox(width: 12),
+        //           Text(AppLocalizations.of(context)!.actionPlayAudio),
+        //         ],
+        //       ),
+        //     ),
+        //   ],
+        // ),
       ],
     );
   }

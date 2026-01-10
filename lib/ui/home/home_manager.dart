@@ -12,12 +12,23 @@ import 'package:studyapp/services/service_locator.dart';
 import 'package:studyapp/services/user_settings.dart';
 import 'package:studyapp/ui/home/common/scroll_sync_controller.dart';
 
+enum AudioRepeatMode { none, chapter, verse }
+
+enum AudioSourceType { heb, rdb }
+
 class HomeManager {
   final currentBookNotifier = ValueNotifier<String>('');
   final currentChapterNotifier = ValueNotifier<int>(1);
   final isSinglePanelNotifier = ValueNotifier(true);
   final textParagraphNotifier = ValueNotifier<List<UsfmLine>>([]);
   final isAudioVisibleNotifier = ValueNotifier<bool>(false);
+  final playbackSpeedNotifier = ValueNotifier<double>(1.0);
+  final repeatModeNotifier = ValueNotifier<AudioRepeatMode>(
+    AudioRepeatMode.chapter,
+  );
+  final audioSourceNotifier = ValueNotifier<AudioSourceType>(
+    AudioSourceType.heb,
+  );
 
   final audioHandler = AudioPlayerHandler();
 
@@ -82,37 +93,53 @@ class HomeManager {
     currentChapterNotifier.value = chapter;
   }
 
+  Future<void> setAudioSource(
+    AudioSourceType source,
+    BuildContext context,
+  ) async {
+    if (audioSourceNotifier.value == source) return;
+
+    audioSourceNotifier.value = source;
+    // Reload audio with new source
+    if (isAudioVisibleNotifier.value) {
+      await playAudioForCurrentChapter(
+        currentBookNotifier.value,
+        currentChapterNotifier.value,
+      );
+    }
+  }
+
   Future<void> playAudioForCurrentChapter(String bookName, int chapter) async {
     isAudioVisibleNotifier.value = true;
-
     final bookId = _currentBookId;
-    // Default to HEB for Old Testament, you might want logic for NT later
-    final recordingId = 'RDB'; // or HEB
 
-    // 1. Get URL
+    String recordingId = audioSourceNotifier.value == AudioSourceType.heb
+        ? 'HEB'
+        : 'RDB';
+
     final url = AudioUrlHelper.getAudioUrl(
       bookId: bookId,
       chapter: chapter,
       recordingId: recordingId,
     );
 
-    // 2. Fetch Timings
     _currentTimings = await _audioDb.getTimingsForChapter(
       bookId,
       chapter,
       recordingId,
     );
-    _lastSyncedVerse = -1; // Reset
+    _lastSyncedVerse = -1;
 
-    // 3. Play Audio
     await audioHandler.setUrl(
       url,
       title: "$bookName $chapter",
       subtitle: bookName,
     );
-    audioHandler.play();
 
-    // 4. Start Listening for Sync
+    // Apply current speed
+    await audioHandler.setSpeed(playbackSpeedNotifier.value);
+
+    audioHandler.play();
     _startSyncListener();
   }
 
@@ -124,6 +151,28 @@ class HomeManager {
       if (_currentTimings.isEmpty) return;
 
       final currentSeconds = positionData.position.inMilliseconds / 1000.0;
+
+      // --- REPEAT VERSE LOGIC ---
+      if (repeatModeNotifier.value == AudioRepeatMode.verse) {
+        // Find current verse bounds
+        AudioTiming? currentMatch;
+        for (var t in _currentTimings) {
+          if (t.verseNumber == _lastSyncedVerse) {
+            // Use the last synced verse as truth
+            currentMatch = t;
+            break;
+          }
+        }
+
+        // If we have passed the end of the verse, loop back
+        if (currentMatch != null && currentSeconds >= currentMatch.end - 0.2) {
+          // Seek back to start of this verse
+          audioHandler.seek(
+            Duration(milliseconds: (currentMatch.start * 1000).toInt()),
+          );
+          return; // Skip the rest of the logic this tick
+        }
+      }
 
       // Find the verse corresponding to current time
       // We look for: start <= time < end
@@ -150,6 +199,17 @@ class HomeManager {
         _syncController?.jumpToVerse(verseNum);
       }
     });
+  }
+
+  void setPlaybackSpeed(double speed) {
+    playbackSpeedNotifier.value = speed;
+    audioHandler.setSpeed(speed);
+  }
+
+  void setRepeatMode(AudioRepeatMode mode) {
+    repeatModeNotifier.value = mode;
+    // If you want "None" to stop at end of track vs "Chapter" to loop track:
+    // audioHandler.setLoopMode(mode == AudioRepeatMode.chapter ? LoopMode.one : LoopMode.off);
   }
 
   void skipToNextVerse() {
