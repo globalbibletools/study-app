@@ -176,6 +176,7 @@ class AudioManager {
             _loadedBookId!,
             _loadedChapter!,
             verseNum,
+            isAuto: true,
           );
         }
       }

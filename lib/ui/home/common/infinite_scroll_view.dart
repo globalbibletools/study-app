@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -320,14 +319,17 @@ class _InfiniteScrollViewState extends State<InfiniteScrollView> {
   }
 
   void _handleVerseJump(VerseHighlight target) {
+    // If this specific panel is being touched/dragged by the user, ignore auto-scrolls.
+    if (widget.syncController != null &&
+        widget.syncController!.isSourceActive(_panelId) &&
+        target.isAuto) {
+      return;
+    }
+
     // Find if the target chapter is currently displayed
     // We construct a temporary ID to look up the key
     final targetId = ChapterIdentifier(target.bookId, target.chapter);
-
     final key = _chapterKeys[targetId];
-
-    // If this chapter isn't loaded/visible, ignore the scroll command.
-    // (This prevents scrolling Chapter 5 when Audio plays Chapter 1)
     if (key == null) return;
 
     // Get context using the specific chapter's key
@@ -353,10 +355,16 @@ class _InfiniteScrollViewState extends State<InfiniteScrollView> {
     sliverContext.visitChildElements(visitor);
 
     if (scrollableState != null && actualState != null) {
-      // Use target.verse
       final verseOffset = scrollableState!.getOffsetForVerse(target.verse);
 
       if (verseOffset != null) {
+        // If it's an auto-jump (audio) and the verse is already visible, don't scroll.
+        if (target.isAuto) {
+          if (_isVerseVisible(actualState!.context, verseOffset)) {
+            return;
+          }
+        }
+
         _isProgrammaticScroll = true;
         widget.syncController?.setActiveSource(_panelId);
 
@@ -377,9 +385,43 @@ class _InfiniteScrollViewState extends State<InfiniteScrollView> {
 
         WidgetsBinding.instance.addPostFrameCallback((_) {
           _isProgrammaticScroll = false;
+          if (widget.syncController != null &&
+              widget.syncController!.isSourceActive(_panelId)) {
+            widget.syncController!.clearActiveSource();
+          }
         });
       }
     }
+  }
+
+  /// Helper to check if a specific offset inside a chapter is currently within the viewport.
+  bool _isVerseVisible(
+    BuildContext chapterContext,
+    double offsetInsideChapter,
+  ) {
+    final renderObject = chapterContext.findRenderObject();
+    if (renderObject is! RenderBox) return false;
+
+    // Calculate where the Chapter starts relative to the ScrollView
+    final viewport = RenderAbstractViewport.of(renderObject);
+    final revealedOffset = viewport.getOffsetToReveal(renderObject, 0.0);
+
+    // Calculate the absolute pixel position of the verse in the scroll view
+    final double absoluteVersePosition =
+        revealedOffset.offset + offsetInsideChapter;
+
+    // Get current viewport bounds
+    final double currentScroll = _scrollController.offset;
+    final double viewportHeight = _scrollController.position.viewportDimension;
+    final double viewportBottom = currentScroll + viewportHeight;
+
+    // Logic: Is the verse top between the Scroll Top and Scroll Bottom?
+    // We add a buffer (e.g., 50px) to viewportBottom so we don't count a verse
+    // that is half-cut-off at the bottom as "visible".
+    const double bottomBuffer = 100.0;
+
+    return absoluteVersePosition >= currentScroll &&
+        absoluteVersePosition < (viewportBottom - bottomBuffer);
   }
 
   void _scrollToAbsolutePosition(
@@ -437,16 +479,22 @@ class _InfiniteScrollViewState extends State<InfiniteScrollView> {
   bool _onScrollNotification(Notification notification) {
     if (widget.syncController == null) return false;
 
-    // 1. Detect Dragging (Active Panel logic)
+    // Detect Start of Manual Drag
     if (notification is ScrollStartNotification) {
       if (notification.dragDetails != null) {
-        // User manually touched the screen, so we respect geometric calculations again
         _isProgrammaticScroll = false;
         widget.syncController!.setActiveSource(_panelId);
       }
     }
 
-    // 2. Detect Size Changes (Zooming or Loading)
+    // Detect End of Manual Drag / Momentum
+    if (notification is ScrollEndNotification) {
+      if (widget.syncController!.isSourceActive(_panelId)) {
+        widget.syncController!.clearActiveSource();
+      }
+    }
+
+    // Detect Size Changes (Zooming or Loading)
     if (notification is SizeChangedLayoutNotification) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;

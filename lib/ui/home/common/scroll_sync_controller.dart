@@ -6,11 +6,13 @@ class VerseHighlight {
   final int bookId;
   final int chapter;
   final int verse;
+  final bool isAuto;
 
   VerseHighlight({
     required this.bookId,
     required this.chapter,
     required this.verse,
+    this.isAuto = false,
   });
 
   @override
@@ -20,10 +22,11 @@ class VerseHighlight {
           runtimeType == other.runtimeType &&
           bookId == other.bookId &&
           chapter == other.chapter &&
-          verse == other.verse;
+          verse == other.verse &&
+          isAuto == isAuto;
 
   @override
-  int get hashCode => Object.hash(bookId, chapter, verse);
+  int get hashCode => Object.hash(bookId, chapter, verse, isAuto);
 }
 
 class ScrollSyncController extends ChangeNotifier {
@@ -85,9 +88,14 @@ class ScrollSyncController extends ChangeNotifier {
 
   bool isSourceActive(Object source) => _activeSource == source;
 
-  void jumpToVerse(int bookId, int chapter, int verse) {
+  void jumpToVerse(int bookId, int chapter, int verse, {bool isAuto = false}) {
     _verseJumpController.add(
-      VerseHighlight(bookId: bookId, chapter: chapter, verse: verse),
+      VerseHighlight(
+        bookId: bookId,
+        chapter: chapter,
+        verse: verse,
+        isAuto: isAuto,
+      ),
     );
   }
 
