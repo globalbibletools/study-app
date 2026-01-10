@@ -64,6 +64,26 @@ class AudioManager {
       chapter,
       recordingId,
     );
+
+    // --- FIX: Sanitize bad data for the last verse ---
+    if (_currentTimings.isNotEmpty) {
+      final last = _currentTimings.last;
+
+      // If the end time is smaller than the start time (e.g. 0.324 < 353.277)
+      // We assume it means "play until the end".
+      // We set the end time to a very large number (e.g. 10 hours).
+      if (last.end <= last.start) {
+        _currentTimings.removeLast();
+        _currentTimings.add(
+          AudioTiming(
+            verseId: last.verseId,
+            start: last.start,
+            end: 36000.0, // Arbitrary large number (10 hours)
+          ),
+        );
+      }
+    }
+
     _lastSyncedVerse = -1;
 
     // Initialize Player
