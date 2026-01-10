@@ -368,6 +368,7 @@ class _InfiniteScrollViewState extends State<InfiniteScrollView> {
         _isProgrammaticScroll = true;
         widget.syncController?.setActiveSource(_panelId);
 
+        // Update sync controller (so other panels follow)
         final double chapterHeight = renderSliver.geometry!.scrollExtent;
         final double progress = chapterHeight > 0
             ? verseOffset / chapterHeight
@@ -375,21 +376,30 @@ class _InfiniteScrollViewState extends State<InfiniteScrollView> {
 
         widget.syncController!.updatePosition(
           _panelId,
-          target.bookId, // Use target data
+          target.bookId,
           target.chapter,
           progress.clamp(0.0, 1.0),
           verse: target.verse,
         );
 
-        _scrollToAbsolutePosition(actualState!.context, verseOffset);
+        // Perform the scroll (Animate if Auto, Jump if Manual)
+        // We use an async closure to handle the cleanup AFTER the animation finishes
+        () async {
+          await _scrollToAbsolutePosition(
+            actualState!.context,
+            verseOffset,
+            animate: target.isAuto, // <--- Animate if triggered by audio
+          );
 
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _isProgrammaticScroll = false;
-          if (widget.syncController != null &&
-              widget.syncController!.isSourceActive(_panelId)) {
-            widget.syncController!.clearActiveSource();
+          // 4. CLEANUP
+          if (mounted) {
+            _isProgrammaticScroll = false;
+            if (widget.syncController != null &&
+                widget.syncController!.isSourceActive(_panelId)) {
+              widget.syncController!.clearActiveSource();
+            }
           }
-        });
+        }();
       }
     }
   }
@@ -424,31 +434,36 @@ class _InfiniteScrollViewState extends State<InfiniteScrollView> {
         absoluteVersePosition < (viewportBottom - bottomBuffer);
   }
 
-  void _scrollToAbsolutePosition(
+  Future<void> _scrollToAbsolutePosition(
     BuildContext chapterContext,
-    double offsetInsideChapter,
-  ) {
+    double offsetInsideChapter, {
+    required bool animate,
+  }) async {
     // Calculate absolute scroll position
     final renderObject = chapterContext.findRenderObject();
     if (renderObject is! RenderBox) return;
 
-    // This finds the scroll offset required to bring the *top* of the chapter
-    // to the top of the viewport.
     final viewport = RenderAbstractViewport.of(renderObject);
     final revealedOffset = viewport.getOffsetToReveal(renderObject, 0.0);
 
-    // 5. Add the verse's internal offset
-    // You might want to subtract a little padding (e.g. 20px) so the verse isn't
-    // glued to the very top edge.
+    // Add the verse's internal offset
     double targetPixels = revealedOffset.offset + offsetInsideChapter;
 
-    // Optional: Clamp to bounds
+    // Clamp to bounds
     targetPixels = targetPixels.clamp(
       _scrollController.position.minScrollExtent,
       _scrollController.position.maxScrollExtent,
     );
 
-    _scrollController.jumpTo(targetPixels);
+    if (animate) {
+      await _scrollController.animateTo(
+        targetPixels,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    } else {
+      _scrollController.jumpTo(targetPixels);
+    }
   }
 
   @override

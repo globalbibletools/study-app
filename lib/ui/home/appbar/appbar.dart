@@ -3,8 +3,6 @@ import 'package:studyapp/l10n/app_localizations.dart';
 import 'package:studyapp/l10n/book_names.dart';
 import 'reference_chooser.dart';
 
-enum _HomeMenuAction { splitScreen, playAudio }
-
 class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
   final int displayBookId;
   final int displayChapter;
@@ -52,41 +50,6 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
           icon: Icon(Icons.splitscreen),
           tooltip: AppLocalizations.of(context)!.actionSplitScreen,
         ),
-        // PopupMenuButton<_HomeMenuAction>(
-        //   icon: const Icon(Icons.more_vert),
-        //   onSelected: (action) {
-        //     switch (action) {
-        //       case _HomeMenuAction.splitScreen:
-        //         onTogglePanel();
-        //         break;
-        //       case _HomeMenuAction.playAudio:
-        //         onPlayAudio();
-        //         break;
-        //     }
-        //   },
-        //   itemBuilder: (BuildContext context) => [
-        //     PopupMenuItem(
-        //       value: _HomeMenuAction.splitScreen,
-        //       child: Row(
-        //         children: [
-        //           Icon(Icons.splitscreen),
-        //           SizedBox(width: 12),
-        //           Text(AppLocalizations.of(context)!.actionSplitScreen),
-        //         ],
-        //       ),
-        //     ),
-        //     PopupMenuItem(
-        //       value: _HomeMenuAction.playAudio,
-        //       child: Row(
-        //         children: [
-        //           Icon(Icons.play_arrow),
-        //           SizedBox(width: 12),
-        //           Text(AppLocalizations.of(context)!.actionPlayAudio),
-        //         ],
-        //       ),
-        //     ),
-        //   ],
-        // ),
       ],
     );
   }
