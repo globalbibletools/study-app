@@ -68,6 +68,7 @@ class AudioPlayerHandler {
       await _player.setAudioSource(source);
     } catch (e) {
       debugPrint("Error loading audio: $e");
+      rethrow;
     }
   }
 

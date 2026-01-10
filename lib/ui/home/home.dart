@@ -110,11 +110,7 @@ class _HomeScreenState extends State<HomeScreen> {
           _requestText();
         },
         onPlayAudio: () {
-          print("Play audio requested for Verse $displayVerse");
-          manager.playAudioForCurrentChapter(
-            bookNameFromId(context, displayBookId),
-            displayChapter,
-          );
+          _onPlayAudio(context);
         },
       ),
       drawer: AppDrawer(
@@ -211,5 +207,30 @@ class _HomeScreenState extends State<HomeScreen> {
   void _scrollToVerse(int verse) {
     // Just jump, the scroll listener will update the UI when it arrives
     syncController.jumpToVerse(verse);
+  }
+
+  Future<void> _onPlayAudio(BuildContext context) async {
+    try {
+      await manager.playAudioForCurrentChapter(
+        bookNameFromId(context, displayBookId),
+        displayChapter,
+      );
+    } catch (e) {
+      if (context.mounted) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text("Audio Error"),
+            content: SingleChildScrollView(child: Text(e.toString())),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text("OK"),
+              ),
+            ],
+          ),
+        );
+      }
+    }
   }
 }
