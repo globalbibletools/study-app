@@ -148,16 +148,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ],
                   ValueListenableBuilder<bool>(
-                    valueListenable: manager.isAudioVisibleNotifier,
+                    valueListenable: manager.audioManager.isVisibleNotifier,
                     builder: (context, isVisible, _) {
                       if (!isVisible) return const SizedBox.shrink();
 
                       return BottomAudioPlayer(
-                        audioHandler: manager.audioHandler,
-                        manager: manager,
-                        onClose: manager.closeAudioPlayer,
-                        onNext: manager.skipToNextVerse,
-                        onPrevious: manager.skipToPreviousVerse,
+                        audioManager: manager.audioManager,
                       );
                     },
                   ),

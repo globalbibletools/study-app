@@ -1,32 +1,19 @@
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
-import 'package:studyapp/services/audio/audio_player_handler.dart';
-import 'package:studyapp/ui/home/home_manager.dart';
+import 'package:studyapp/services/audio/position_data.dart';
+
+import 'audio_manager.dart';
 
 class BottomAudioPlayer extends StatelessWidget {
-  final AudioPlayerHandler audioHandler;
-  final HomeManager manager;
-  final VoidCallback onClose;
-  final VoidCallback onNext;
-  final VoidCallback onPrevious;
+  final AudioManager audioManager;
 
-  const BottomAudioPlayer({
-    super.key,
-    required this.audioHandler,
-    required this.manager,
-    required this.onClose,
-    required this.onNext,
-    required this.onPrevious,
-  });
+  const BottomAudioPlayer({super.key, required this.audioManager});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-
-    // Common style for auxiliary buttons (Settings/Close)
-    // final auxIconColor = colorScheme.onSurfaceVariant;
 
     return Container(
       decoration: BoxDecoration(
@@ -47,11 +34,10 @@ class BottomAudioPlayer extends StatelessWidget {
           // --- ROW 1: Settings | Progress | Close ---
           Row(
             children: [
-              // Settings Button (Left)
+              // Settings Button
               IconButton(
                 icon: const Icon(Icons.settings_outlined),
                 visualDensity: VisualDensity.compact,
-                // color: auxIconColor,
                 tooltip: "Audio Settings",
                 onPressed: () => _showSettingsBottomSheet(context),
               ),
@@ -61,14 +47,14 @@ class BottomAudioPlayer extends StatelessWidget {
               // Progress Bar
               Expanded(
                 child: StreamBuilder<PositionData>(
-                  stream: audioHandler.positionDataStream,
+                  stream: audioManager.audioHandler.positionDataStream,
                   builder: (context, snapshot) {
                     final positionData = snapshot.data;
                     return ProgressBar(
                       progress: positionData?.position ?? Duration.zero,
                       buffered: positionData?.bufferedPosition ?? Duration.zero,
                       total: positionData?.duration ?? Duration.zero,
-                      onSeek: audioHandler.seek,
+                      onSeek: audioManager.seek,
                       barHeight: 4.0,
                       thumbRadius: 6.0,
                       thumbGlowRadius: 12.0,
@@ -88,15 +74,11 @@ class BottomAudioPlayer extends StatelessWidget {
 
               const SizedBox(width: 8),
 
-              // Close Button (Right)
+              // Close Button
               IconButton(
                 icon: const Icon(Icons.close),
                 visualDensity: VisualDensity.compact,
-                // color: auxIconColor,
-                onPressed: () {
-                  audioHandler.stop();
-                  onClose();
-                },
+                onPressed: audioManager.stopAndClose,
               ),
             ],
           ),
@@ -107,27 +89,27 @@ class BottomAudioPlayer extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Previous Verse (Chevron)
+              // Previous Verse
               IconButton(
                 icon: const Icon(Icons.chevron_left_rounded),
                 iconSize: 24,
                 color: colorScheme.primary,
-                onPressed: onPrevious,
+                onPressed: audioManager.skipToPreviousVerse,
               ),
 
               const SizedBox(width: 24),
 
-              // Play/Pause (Alternating)
-              _PlayButton(audioHandler: audioHandler),
+              // Play/Pause
+              _PlayButton(audioManager: audioManager),
 
               const SizedBox(width: 24),
 
-              // Next Verse (Chevron)
+              // Next Verse
               IconButton(
                 icon: const Icon(Icons.chevron_right_rounded),
                 iconSize: 24,
                 color: colorScheme.primary,
-                onPressed: onNext,
+                onPressed: audioManager.skipToNextVerse,
               ),
             ],
           ),
@@ -143,15 +125,15 @@ class BottomAudioPlayer extends StatelessWidget {
       useSafeArea: true,
       showDragHandle: true,
       builder: (context) {
-        return _AudioSettingsSheet(manager: manager);
+        return _AudioSettingsSheet(manager: audioManager);
       },
     );
   }
 }
 
 class _PlayButton extends StatelessWidget {
-  final AudioPlayerHandler audioHandler;
-  const _PlayButton({required this.audioHandler});
+  final AudioManager audioManager;
+  const _PlayButton({required this.audioManager});
 
   @override
   Widget build(BuildContext context) {
@@ -159,7 +141,7 @@ class _PlayButton extends StatelessWidget {
     final primaryColor = Theme.of(context).colorScheme.primary;
 
     return StreamBuilder<PlayerState>(
-      stream: audioHandler.playerStateStream,
+      stream: audioManager.audioHandler.playerStateStream,
       builder: (context, snapshot) {
         final playerState = snapshot.data;
         final processingState = playerState?.processingState;
@@ -177,22 +159,22 @@ class _PlayButton extends StatelessWidget {
             ),
           );
         } else if (playing != true) {
-          // Play Button (Triangle) - No background
+          // Play Button
           return IconButton(
             icon: const Icon(Icons.play_arrow_rounded),
-            iconSize: 48.0, // Large icon size
-            color: primaryColor, // Icon is green (or app primary color)
-            padding: EdgeInsets.zero, // Remove padding to keep layout tight
-            onPressed: audioHandler.play,
-          );
-        } else {
-          // Pause Button (Bars) - No background
-          return IconButton(
-            icon: const Icon(Icons.pause_rounded),
-            iconSize: 48.0, // Large icon size
+            iconSize: 48.0,
             color: primaryColor,
             padding: EdgeInsets.zero,
-            onPressed: audioHandler.pause,
+            onPressed: audioManager.play,
+          );
+        } else {
+          // Pause Button
+          return IconButton(
+            icon: const Icon(Icons.pause_rounded),
+            iconSize: 48.0,
+            color: primaryColor,
+            padding: EdgeInsets.zero,
+            onPressed: audioManager.pause,
           );
         }
       },
@@ -203,7 +185,7 @@ class _PlayButton extends StatelessWidget {
 // --- SETTINGS BOTTOM SHEET ---
 
 class _AudioSettingsSheet extends StatelessWidget {
-  final HomeManager manager;
+  final AudioManager manager;
 
   const _AudioSettingsSheet({required this.manager});
 
@@ -307,7 +289,7 @@ class _AudioSettingsSheet extends StatelessWidget {
                   ],
                   selected: {currentSource},
                   onSelectionChanged: (Set<AudioSourceType> newSelection) {
-                    manager.setAudioSource(newSelection.first, context);
+                    manager.setAudioSource(newSelection.first);
                   },
                 ),
               );

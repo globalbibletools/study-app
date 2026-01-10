@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:just_audio/just_audio.dart';
 import 'package:just_audio_background/just_audio_background.dart';
+import 'package:studyapp/services/audio/position_data.dart';
 
 class AudioPlayerHandler {
   final _player = AudioPlayer();
@@ -112,12 +113,4 @@ class AudioPlayerHandler {
   void debugPrint(String msg) {
     // print(msg);
   }
-}
-
-class PositionData {
-  final Duration position;
-  final Duration bufferedPosition;
-  final Duration duration;
-
-  PositionData(this.position, this.bufferedPosition, this.duration);
 }
