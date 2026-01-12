@@ -4,7 +4,7 @@ import 'package:studyapp/common/book_name.dart';
 import 'package:studyapp/common/reference.dart';
 import 'package:studyapp/l10n/app_localizations.dart';
 import 'package:studyapp/ui/home/word_details_dialog/dialog_manager.dart';
-import 'package:studyapp/ui/shared/verse_list_item.dart';
+import 'package:studyapp/ui/common/verse_list_item.dart';
 
 import 'similar_verse_manager.dart';
 

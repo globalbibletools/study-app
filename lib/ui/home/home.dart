@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:studyapp/l10n/book_names.dart';
+import 'package:studyapp/services/download/cancel_token.dart';
+import 'package:studyapp/ui/common/download_progress_dialog.dart';
 import 'package:studyapp/ui/home/audio/audio_manager.dart';
 import 'package:studyapp/ui/home/audio/audio_player.dart';
 import 'package:studyapp/ui/home/bible_panel/bible_panel.dart';
@@ -251,69 +253,64 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _showDownloadAudioDialog(BuildContext context) async {
-    // Determine what we are downloading
     final bookName = bookNameFromId(context, displayBookId);
 
-    showDialog(
+    // 1. Ask for confirmation
+    final shouldDownload = await showDialog<bool>(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text("Download Audio"),
+          title: const Text("Download Audio"),
           content: Text(
             "Audio for $bookName $displayChapter is not on your device.",
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => Navigator.pop(context, false),
               child: const Text("Cancel"),
             ),
             FilledButton(
-              onPressed: () {
-                Navigator.pop(context);
-                _performDownload(bookOnly: false);
-              },
-              child: const Text("Download Chapter"),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                _performDownload(bookOnly: true);
-              },
-              child: const Text("Download Book"),
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text("Download"),
             ),
           ],
         );
       },
     );
-  }
 
-  Future<void> _performDownload({required bool bookOnly}) async {
-    // Show a snackbar or loading indicator
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Downloading audio..."),
-        duration: Duration(days: 1),
-      ),
-    );
+    if (shouldDownload != true) return;
+
+    // Check mounted before showing the next dialog
+    if (!mounted) return;
 
     try {
-      if (bookOnly) {
-        await manager.downloadAudioForBook(displayBookId);
-      } else {
-        await manager.downloadAudioForChapter(displayBookId, displayChapter);
-      }
+      // 2. Show Progress Dialog (Auto-closes on success)
+      await DownloadProgressDialog.show(
+        context: context,
+        task: (progress, cancelToken) {
+          return manager.downloadAudioForChapter(
+            displayBookId,
+            displayChapter,
+            progress,
+            cancelToken,
+          );
+        },
+      );
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).hideCurrentSnackBar();
-        // Auto-play after download success
-        _onPlayAudio(context);
-      }
+      // Check mounted again after the async dialog closes
+      if (!mounted) return;
+
+      // 3. Play audio (No Snackbar)
+      // We pass the context here, but since we checked !mounted above, it's safe.
+      _onPlayAudio(context);
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      if (!mounted) return;
+
+      // Ignore cancel exceptions, show errors for everything else
+      if (e is! DownloadCanceledException) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text("Download failed: $e")));
+        ).showSnackBar(SnackBar(content: Text("Download error: $e")));
       }
     }
   }

@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:archive/archive_io.dart';
 import 'package:flutter/foundation.dart';
+import 'package:studyapp/services/download/cancel_token.dart'; // Import this
 import 'package:studyapp/services/files/file_service.dart';
 import 'package:studyapp/services/service_locator.dart';
 
@@ -10,29 +11,26 @@ class DownloadService {
   final HttpClient _httpClient = HttpClient();
   final _fileService = getIt<FileService>();
 
-  /// Downloads a file from [url].
-  ///
-  /// [type]: Determines the base folder (gloss, audio, etc).
-  /// [relativePath]: The path inside that base folder (e.g. 'HEB/Gen/001.mp3').
-  /// [isZip]: If true, unzips the content into the parent directory of the target.
   Future<void> downloadFile({
     required String url,
     required FileType type,
     required String relativePath,
     bool isZip = false,
-    void Function(double)? onProgress,
+    ValueChanged<double>? onProgress,
+    CancelToken? cancelToken, // Add this parameter
   }) async {
+    File? tempFile;
+
     try {
       final localPath = await _fileService.getLocalPath(type, relativePath);
-
-      // Ensure the target folder exists
       await _fileService.ensureDirectoryExists(localPath);
 
-      // If zipped, download to a temp file first. If not, download directly to path.
-      final downloadTarget = isZip ? '$localPath.temp.zip' : localPath;
-      final file = File(downloadTarget);
+      final downloadTarget = isZip ? '$localPath.temp.zip' : '$localPath.part';
+      tempFile = File(downloadTarget);
 
-      // Network Request
+      // Check cancellation before starting
+      if (cancelToken?.isCancelled ?? false) throw DownloadCanceledException();
+
       final request = await _httpClient.getUrl(Uri.parse(url));
       final response = await request.close();
 
@@ -42,43 +40,71 @@ class DownloadService {
 
       final totalBytes = response.contentLength;
       int receivedBytes = 0;
-      final IOSink fileSink = file.openWrite();
+      final IOSink fileSink = tempFile.openWrite();
 
-      await response
-          .listen(
-            (List<int> chunk) {
-              fileSink.add(chunk);
-              receivedBytes += chunk.length;
-              if (onProgress != null && totalBytes != -1) {
-                onProgress(receivedBytes / totalBytes);
-              }
-            },
-            onDone: () async => await fileSink.close(),
-            onError: (e) {
-              fileSink.close();
-              throw e;
-            },
-            cancelOnError: true,
-          )
-          .asFuture();
+      StreamSubscription? subscription;
+      final completer = Completer<void>();
 
-      // Handle Unzipping
+      // Listen to cancellation to abort the stream immediately
+      cancelToken?.addListener(() {
+        if (!completer.isCompleted) {
+          subscription?.cancel();
+          fileSink.close();
+          completer.completeError(DownloadCanceledException());
+        }
+      });
+
+      subscription = response.listen(
+        (List<int> chunk) {
+          fileSink.add(chunk);
+          receivedBytes += chunk.length;
+          if (onProgress != null && totalBytes != -1) {
+            onProgress(receivedBytes / totalBytes);
+          }
+        },
+        onDone: () async {
+          await fileSink.close();
+          if (!completer.isCompleted) completer.complete();
+        },
+        onError: (e) {
+          fileSink.close();
+          if (!completer.isCompleted) completer.completeError(e);
+        },
+        cancelOnError: true,
+      );
+
+      // Wait for stream to finish or be canceled
+      await completer.future;
+
+      // Unzipping / Finalizing
       if (isZip) {
+        if (cancelToken?.isCancelled ?? false)
+          throw DownloadCanceledException();
+
         debugPrint('Extracting archive...');
         final inputStream = InputFileStream(downloadTarget);
         final archive = ZipDecoder().decodeStream(inputStream);
 
-        // Extract to the directory containing the file
         final extractDir = File(localPath).parent.path;
         extractArchiveToDisk(archive, extractDir);
 
         await inputStream.close();
-        await file.delete(); // Delete temp zip
-        debugPrint('Extraction complete.');
+      } else {
+        // Rename .part to actual file name
+        await tempFile.rename(localPath);
+        // tempFile is now invalid, but that's okay as we renamed it
+        tempFile = null;
       }
     } catch (e) {
-      debugPrint('Error downloading $url: $e');
+      // Clean up temp files on error or cancel
+      if (tempFile != null && await tempFile.exists()) {
+        await tempFile.delete();
+      }
       rethrow;
+    } finally {
+      if (isZip && tempFile != null && await tempFile.exists()) {
+        await tempFile.delete();
+      }
     }
   }
 }

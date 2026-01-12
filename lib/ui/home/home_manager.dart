@@ -2,10 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/widgets.dart';
 import 'package:scripture/scripture.dart';
-import 'package:studyapp/common/bible_navigation.dart';
 import 'package:studyapp/l10n/book_names.dart';
 import 'package:studyapp/services/audio/audio_url_helper.dart';
 import 'package:studyapp/services/bible/bible_database.dart';
+import 'package:studyapp/services/download/cancel_token.dart';
 import 'package:studyapp/services/download/download.dart';
 import 'package:studyapp/services/files/file_service.dart';
 import 'package:studyapp/services/service_locator.dart';
@@ -82,7 +82,14 @@ class HomeManager {
     await audioManager.loadAndPlay(_currentBookId, chapter, bookName);
   }
 
-  Future<void> downloadAudioForChapter(int bookId, int chapter) async {
+  /// Returns a Future that completes when download is done.
+  /// Used by the ProgressDialog.
+  Future<void> downloadAudioForChapter(
+    int bookId,
+    int chapter,
+    ValueNotifier<double> progressNotifier,
+    CancelToken cancelToken,
+  ) async {
     final recordingId =
         audioManager.audioSourceNotifier.value == AudioSourceType.heb
         ? 'HEB'
@@ -103,19 +110,9 @@ class HomeManager {
       url: url,
       type: FileType.audio,
       relativePath: relativePath,
+      cancelToken: cancelToken,
+      onProgress: (p) => progressNotifier.value = p,
     );
-  }
-
-  Future<void> downloadAudioForBook(int bookId) async {
-    // Assuming BibleNavigation or similar can give us total chapters
-    final totalChapters = BibleNavigation.getChapterCount(bookId);
-
-    // Ideally, you'd want to do this in parallel batches (e.g. 5 at a time)
-    // or sequentially to avoid hitting connection limits.
-    // Sequential example:
-    for (int i = 1; i <= totalChapters; i++) {
-      await downloadAudioForChapter(bookId, i);
-    }
   }
 
   void dispose() {

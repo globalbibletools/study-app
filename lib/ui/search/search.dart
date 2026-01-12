@@ -4,7 +4,7 @@ import 'package:studyapp/common/book_name.dart';
 import 'package:studyapp/common/reference.dart';
 import 'package:studyapp/l10n/app_localizations.dart';
 import 'package:studyapp/ui/search/keyboard.dart';
-import 'package:studyapp/ui/shared/verse_list_item.dart';
+import 'package:studyapp/ui/common/verse_list_item.dart';
 
 import 'search_manager.dart';
 
@@ -107,10 +107,9 @@ class _SearchPageState extends State<SearchPage> {
                   ? Icons.keyboard_hide_outlined
                   : Icons.keyboard_alt_outlined,
             ),
-            tooltip:
-                _useSystemKeyboard
-                    ? AppLocalizations.of(context)!.useInAppKeyboard
-                    : AppLocalizations.of(context)!.useSystemKeyboard,
+            tooltip: _useSystemKeyboard
+                ? AppLocalizations.of(context)!.useInAppKeyboard
+                : AppLocalizations.of(context)!.useSystemKeyboard,
             onPressed: () {
               _toggleKeyboardType();
               manager.setUseSystemKeyboard(_useSystemKeyboard);
@@ -240,12 +239,11 @@ class _SearchPageState extends State<SearchPage> {
                   !_isSwitchingKeyboard)
                 HebrewGreekKeyboard(
                   controller: _controller,
-                  backgroundColor:
-                      Color.lerp(
-                        Theme.of(context).scaffoldBackgroundColor,
-                        Theme.of(context).colorScheme.surface,
-                        0.5,
-                      )!,
+                  backgroundColor: Color.lerp(
+                    Theme.of(context).scaffoldBackgroundColor,
+                    Theme.of(context).colorScheme.surface,
+                    0.5,
+                  )!,
                   keyColor: Theme.of(context).colorScheme.surface,
                   keyTextColor: Theme.of(context).colorScheme.onSurface,
                   onLanguageChange: (textDirection) {
