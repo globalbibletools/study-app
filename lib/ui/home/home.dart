@@ -174,6 +174,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         currentBookId: displayBookId,
                         currentChapter: displayChapter,
                         currentBookName: bookNameFromId(context, displayBookId),
+                        onAudioMissing: () => _showDownloadAudioDialog(context),
                       ),
                     );
                   },

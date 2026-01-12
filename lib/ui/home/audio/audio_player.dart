@@ -11,6 +11,7 @@ class BottomAudioPlayer extends StatelessWidget {
   final int currentBookId;
   final int currentChapter;
   final String currentBookName;
+  final VoidCallback? onAudioMissing;
 
   const BottomAudioPlayer({
     super.key,
@@ -18,6 +19,7 @@ class BottomAudioPlayer extends StatelessWidget {
     required this.currentBookId,
     required this.currentChapter,
     required this.currentBookName,
+    this.onAudioMissing,
   });
 
   @override
@@ -124,6 +126,7 @@ class BottomAudioPlayer extends StatelessWidget {
                     bookId: currentBookId,
                     chapter: currentChapter,
                     bookName: currentBookName,
+                    onAudioMissing: onAudioMissing,
                   ),
 
                   const SizedBox(width: 12),
@@ -314,12 +317,14 @@ class _PlayButton extends StatelessWidget {
     required this.bookId,
     required this.chapter,
     required this.bookName,
+    this.onAudioMissing,
   });
 
   final AudioManager audioManager;
   final int bookId;
   final int chapter;
   final String bookName;
+  final VoidCallback? onAudioMissing;
 
   static const _size = 48.0;
 
@@ -350,12 +355,18 @@ class _PlayButton extends StatelessWidget {
             iconSize: _size,
             color: primaryColor,
             padding: EdgeInsets.zero,
-            onPressed: () {
-              audioManager.play(
-                checkBookId: bookId,
-                checkChapter: chapter,
-                checkBookName: bookName,
-              );
+            onPressed: () async {
+              try {
+                await audioManager.play(
+                  checkBookId: bookId,
+                  checkChapter: chapter,
+                  checkBookName: bookName,
+                );
+              } on AudioMissingException catch (_) {
+                onAudioMissing?.call();
+              } catch (e) {
+                debugPrint("Play error: $e");
+              }
             },
           );
         } else {
