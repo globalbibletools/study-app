@@ -1,6 +1,7 @@
 ## 0.15.0 
 
-- Update design of audio player to remove need for settings panel and close button.
+- Update design of audio player to remove need for settings panel.
+- Download rather than stream audio.
 
 ## 0.14.0 - January 10, 2025
 

@@ -1,37 +1,31 @@
 import 'dart:developer';
-import 'dart:io';
-
-import 'package:archive/archive_io.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:database_builder/database_builder.dart';
-import 'package:http/http.dart';
-import 'package:path/path.dart';
+import 'package:database_builder/database_builder.dart'; // Assuming this is where GlossSchema lives
 import 'package:sqflite/sqflite.dart';
+import 'package:studyapp/services/files/file_service.dart';
+import 'package:studyapp/services/service_locator.dart';
 
 class GlossDatabase {
+  final _fileService = getIt<FileService>();
+
   Database? _database;
   String _currentLangCode = '';
 
-  static const _url =
-      'https://github.com/globalbibletools/study-app/raw/refs/heads/main/temp/spa.db.zip';
-
-  String _getDbName(String langCode) {
+  /// Maps language codes (e.g., 'es') to filename (e.g., 'spa.db').
+  /// Only needed if the file name on disk differs from the ISO code.
+  String getDbFilename(String langCode) {
     switch (langCode) {
       case 'es':
         return 'spa.db';
+      // Add other mappings here as you support more languages
       default:
-        throw Exception('Unsupported language code: $langCode');
+        // Default to the lang code (e.g., 'fr' -> 'fr.db')
+        return '$langCode.db';
     }
   }
 
-  Future<String> _getDbPath(String langCode) async {
-    final databasesPath = await getDatabasesPath();
-    return join(databasesPath, _getDbName(langCode));
-  }
-
   Future<bool> glossDbExists(String langCode) async {
-    final path = await _getDbPath(langCode);
-    return databaseExists(path);
+    final filename = getDbFilename(langCode);
+    return _fileService.checkFileExists(FileType.gloss, filename);
   }
 
   Future<void> initDb(String langCode) async {
@@ -39,9 +33,11 @@ class GlossDatabase {
       return;
     }
 
-    final path = await _getDbPath(langCode);
-    if (!await File(path).exists()) {
-      log('Database for $langCode does not exist at $path');
+    final filename = getDbFilename(langCode);
+    final exists = await _fileService.checkFileExists(FileType.gloss, filename);
+
+    if (!exists) {
+      log('Database for $langCode does not exist at $filename');
       return;
     }
 
@@ -51,14 +47,25 @@ class GlossDatabase {
       _currentLangCode = '';
     }
 
-    _database = await openDatabase(path, readOnly: true);
-    _currentLangCode = langCode;
+    // Get the absolute path from FileService to open the DB
+    final path = await _fileService.getLocalPath(FileType.gloss, filename);
+
+    try {
+      _database = await openDatabase(path, readOnly: true);
+      _currentLangCode = langCode;
+    } catch (e) {
+      log("Error opening gloss DB: $e");
+    }
   }
 
   Future<String?> getGloss(String langCode, int wordId) async {
-    if (_database == null) {
+    // Ensure DB is open for this language
+    if (_database == null || _currentLangCode != langCode) {
       await initDb(langCode);
     }
+
+    // If still null, we failed to open (likely not downloaded)
+    if (_database == null) return null;
 
     try {
       final query =
@@ -79,32 +86,5 @@ class GlossDatabase {
       log('Error getting gloss for $langCode', error: e, stackTrace: s);
       return null;
     }
-  }
-
-  Future<void> downloadAndInstallGlossDb(String langCode) async {
-    final connectivityResult = await Connectivity().checkConnectivity();
-    if (connectivityResult.contains(ConnectivityResult.none)) {
-      throw Exception('No internet connection.');
-    }
-
-    final response = await get(Uri.parse(_url));
-
-    if (response.statusCode != 200) {
-      throw Exception('Failed to download file: ${response.statusCode}');
-    }
-
-    final bytes = response.bodyBytes;
-    final archive = ZipDecoder().decodeBytes(bytes);
-    final archiveFile = archive.findFile('spa.db');
-
-    if (archiveFile == null) {
-      throw Exception('Database file not found in zip archive for $langCode.');
-    }
-
-    final dbPath = await _getDbPath(langCode);
-    await File(
-      dbPath,
-    ).writeAsBytes(archiveFile.content as List<int>, flush: true);
-    log('Successfully installed gloss database for $langCode');
   }
 }

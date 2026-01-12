@@ -16,14 +16,12 @@ class FileService {
 
     switch (type) {
       case FileType.bible:
+      case FileType.gloss:
         // SQFLite expects databases here
         basePath = await getDatabasesPath();
       case FileType.audio:
         final docDir = await getApplicationDocumentsDirectory();
         basePath = join(docDir.path, 'audio');
-      case FileType.gloss:
-        final docDir = await getApplicationDocumentsDirectory();
-        basePath = join(docDir.path, 'gloss');
     }
 
     return join(basePath, relativePath);
