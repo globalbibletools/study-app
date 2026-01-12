@@ -1,79 +1,84 @@
-import 'dart:developer';
+import 'dart:async';
 import 'dart:io';
-import 'package:flutter/foundation.dart';
-import 'package:path_provider/path_provider.dart';
+
 import 'package:archive/archive_io.dart';
+import 'package:flutter/foundation.dart';
+import 'package:studyapp/services/files/file_service.dart';
+import 'package:studyapp/services/service_locator.dart';
 
 class DownloadService {
   final HttpClient _httpClient = HttpClient();
+  final _fileService = getIt<FileService>();
 
-  Future<void> download({
+  /// Downloads a file from [url].
+  ///
+  /// [type]: Determines the base folder (gloss, audio, etc).
+  /// [relativePath]: The path inside that base folder (e.g. 'HEB/Gen/001.mp3').
+  /// [isZip]: If true, unzips the content into the parent directory of the target.
+  Future<void> downloadFile({
     required String url,
-    required String downloadTo,
+    required FileType type,
+    required String relativePath,
+    bool isZip = false,
     void Function(double)? onProgress,
   }) async {
     try {
-      final appDocumentsDir = await getApplicationDocumentsDirectory();
-      final zipPath = '${appDocumentsDir.path}/temp.zip';
-      final zipFile = File(zipPath);
+      final localPath = await _fileService.getLocalPath(type, relativePath);
 
-      // Create the destination directory if it doesn't exist
-      final destinationDir = Directory('${appDocumentsDir.path}/$downloadTo');
-      log(destinationDir.path);
-      if (!await destinationDir.exists()) {
-        await destinationDir.create(recursive: true);
-      }
+      // Ensure the target folder exists
+      await _fileService.ensureDirectoryExists(localPath);
 
-      // Make the HTTP request and download the file
+      // If zipped, download to a temp file first. If not, download directly to path.
+      final downloadTarget = isZip ? '$localPath.temp.zip' : localPath;
+      final file = File(downloadTarget);
+
+      // Network Request
       final request = await _httpClient.getUrl(Uri.parse(url));
       final response = await request.close();
 
-      if (response.statusCode == HttpStatus.ok) {
-        final totalBytes = response.contentLength;
-        int receivedBytes = 0;
-        final IOSink fileSink = zipFile.openWrite();
+      if (response.statusCode != HttpStatus.ok) {
+        throw HttpException('Failed to download: ${response.statusCode}');
+      }
 
-        await response
-            .listen(
-              (List<int> chunk) {
-                fileSink.add(chunk);
-                receivedBytes += chunk.length;
-                if (onProgress != null && totalBytes != -1) {
-                  final progress = receivedBytes / totalBytes;
-                  onProgress(progress);
-                }
-              },
-              onDone: () async {
-                await fileSink.close();
-              },
-              onError: (e) {
-                fileSink.close();
-                throw e;
-              },
-              cancelOnError: true,
-            )
-            .asFuture();
+      final totalBytes = response.contentLength;
+      int receivedBytes = 0;
+      final IOSink fileSink = file.openWrite();
 
-        // Unzip
-        debugPrint('Starting to extract archive...');
-        final inputStream = InputFileStream(zipPath);
+      await response
+          .listen(
+            (List<int> chunk) {
+              fileSink.add(chunk);
+              receivedBytes += chunk.length;
+              if (onProgress != null && totalBytes != -1) {
+                onProgress(receivedBytes / totalBytes);
+              }
+            },
+            onDone: () async => await fileSink.close(),
+            onError: (e) {
+              fileSink.close();
+              throw e;
+            },
+            cancelOnError: true,
+          )
+          .asFuture();
+
+      // Handle Unzipping
+      if (isZip) {
+        debugPrint('Extracting archive...');
+        final inputStream = InputFileStream(downloadTarget);
         final archive = ZipDecoder().decodeStream(inputStream);
-        extractArchiveToDisk(archive, destinationDir.path);
+
+        // Extract to the directory containing the file
+        final extractDir = File(localPath).parent.path;
+        extractArchiveToDisk(archive, extractDir);
+
         await inputStream.close();
+        await file.delete(); // Delete temp zip
         debugPrint('Extraction complete.');
-        await zipFile.delete();
-      } else {
-        throw HttpException('Failed to download file: ${response.statusCode}');
       }
     } catch (e) {
-      debugPrint('Error during download and unzip: $e');
+      debugPrint('Error downloading $url: $e');
       rethrow;
     }
-  }
-
-  Future<bool> fileExists(String path) async {
-    final appDocumentsDir = await getApplicationDocumentsDirectory();
-    final file = File('${appDocumentsDir.path}/$path');
-    return await file.exists();
   }
 }

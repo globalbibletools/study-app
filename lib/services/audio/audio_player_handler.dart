@@ -4,11 +4,11 @@ import 'package:just_audio_background/just_audio_background.dart';
 import 'package:studyapp/services/audio/position_data.dart';
 
 class AudioPlayerHandler {
-  final _player = AudioPlayer();
+  final player = AudioPlayer();
 
-  Stream<PlayerState> get playerStateStream => _player.playerStateStream;
-  Stream<double> get speedStream => _player.speedStream;
-  Duration get position => _player.position;
+  Stream<PlayerState> get playerStateStream => player.playerStateStream;
+  Stream<double> get speedStream => player.speedStream;
+  Duration get position => player.position;
 
   /// Returns a stream of PositionData.
   /// This manually combines position, buffered position, and duration
@@ -23,9 +23,9 @@ class AudioPlayerHandler {
       if (controller != null && !controller.isClosed) {
         controller.add(
           PositionData(
-            _player.position,
-            _player.bufferedPosition,
-            _player.duration ?? Duration.zero,
+            player.position,
+            player.bufferedPosition,
+            player.duration ?? Duration.zero,
           ),
         );
       }
@@ -37,9 +37,9 @@ class AudioPlayerHandler {
         emit();
 
         // Listen to all three streams and emit on any change
-        positionSub = _player.positionStream.listen((_) => emit());
-        bufferSub = _player.bufferedPositionStream.listen((_) => emit());
-        durationSub = _player.durationStream.listen((_) => emit());
+        positionSub = player.positionStream.listen((_) => emit());
+        bufferSub = player.bufferedPositionStream.listen((_) => emit());
+        durationSub = player.durationStream.listen((_) => emit());
       },
       onCancel: () {
         positionSub?.cancel();
@@ -52,7 +52,7 @@ class AudioPlayerHandler {
   }
 
   Future<void> init() async {
-    await _player.setSpeed(1.0);
+    await player.setSpeed(1.0);
   }
 
   /// Loads the URL but does NOT auto-start playback.
@@ -66,14 +66,14 @@ class AudioPlayerHandler {
         Uri.parse(url),
         tag: MediaItem(id: url, album: subtitle, title: title),
       );
-      await _player.setAudioSource(source);
+      await player.setAudioSource(source);
     } catch (e) {
       debugPrint("Error loading audio: $e");
       rethrow;
     }
   }
 
-  Stream<SequenceState?> get sequenceStateStream => _player.sequenceStateStream;
+  Stream<SequenceState?> get sequenceStateStream => player.sequenceStateStream;
 
   // Future<void> playUrl(
   //   String url, {
@@ -96,17 +96,17 @@ class AudioPlayerHandler {
   //   }
   // }
 
-  Future<void> play() => _player.play();
-  Future<void> pause() => _player.pause();
-  Future<void> seek(Duration position) => _player.seek(position);
-  Future<void> setSpeed(double speed) => _player.setSpeed(speed);
+  Future<void> play() => player.play();
+  Future<void> pause() => player.pause();
+  Future<void> seek(Duration position) => player.seek(position);
+  Future<void> setSpeed(double speed) => player.setSpeed(speed);
 
   Future<void> stop() async {
-    await _player.stop();
+    await player.stop();
   }
 
   void dispose() {
-    _player.dispose();
+    player.dispose();
   }
 
   // Helper for debug printing if needed

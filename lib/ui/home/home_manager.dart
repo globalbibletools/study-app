@@ -2,8 +2,12 @@ import 'dart:async';
 
 import 'package:flutter/widgets.dart';
 import 'package:scripture/scripture.dart';
+import 'package:studyapp/common/bible_navigation.dart';
 import 'package:studyapp/l10n/book_names.dart';
+import 'package:studyapp/services/audio/audio_url_helper.dart';
 import 'package:studyapp/services/bible/bible_database.dart';
+import 'package:studyapp/services/download/download.dart';
+import 'package:studyapp/services/files/file_service.dart';
 import 'package:studyapp/services/service_locator.dart';
 import 'package:studyapp/services/user_settings.dart';
 import 'package:studyapp/ui/home/audio/audio_manager.dart';
@@ -22,6 +26,7 @@ class HomeManager {
   final audioManager = AudioManager();
   final _bibleDb = getIt<BibleDatabase>();
   final _settings = getIt<UserSettings>();
+  final _downloadService = getIt<DownloadService>();
 
   late int _currentBookId;
   int get currentBookId => _currentBookId;
@@ -75,6 +80,42 @@ class HomeManager {
 
   Future<void> playAudioForCurrentChapter(String bookName, int chapter) async {
     await audioManager.loadAndPlay(_currentBookId, chapter, bookName);
+  }
+
+  Future<void> downloadAudioForChapter(int bookId, int chapter) async {
+    final recordingId =
+        audioManager.audioSourceNotifier.value == AudioSourceType.heb
+        ? 'HEB'
+        : 'RDB';
+
+    final url = AudioUrlHelper.getAudioUrl(
+      bookId: bookId,
+      chapter: chapter,
+      recordingId: recordingId,
+    );
+    final relativePath = AudioUrlHelper.getLocalRelativePath(
+      bookId: bookId,
+      chapter: chapter,
+      recordingId: recordingId,
+    );
+
+    await _downloadService.downloadFile(
+      url: url,
+      type: FileType.audio,
+      relativePath: relativePath,
+    );
+  }
+
+  Future<void> downloadAudioForBook(int bookId) async {
+    // Assuming BibleNavigation or similar can give us total chapters
+    final totalChapters = BibleNavigation.getChapterCount(bookId);
+
+    // Ideally, you'd want to do this in parallel batches (e.g. 5 at a time)
+    // or sequentially to avoid hitting connection limits.
+    // Sequential example:
+    for (int i = 1; i <= totalChapters; i++) {
+      await downloadAudioForChapter(bookId, i);
+    }
   }
 
   void dispose() {

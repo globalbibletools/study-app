@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:studyapp/l10n/book_names.dart';
+import 'package:studyapp/ui/home/audio/audio_manager.dart';
 import 'package:studyapp/ui/home/audio/audio_player.dart';
 import 'package:studyapp/ui/home/bible_panel/bible_panel.dart';
 import 'package:studyapp/ui/home/appbar/drawer.dart';
@@ -125,44 +126,58 @@ class _HomeScreenState extends State<HomeScreen> {
           onPointerDown: (_) {
             FocusManager.instance.primaryFocus?.unfocus();
           },
-          child: ValueListenableBuilder<bool>(
-            valueListenable: manager.isSinglePanelNotifier,
-            builder: (context, isSinglePanel, _) {
-              return Column(
-                children: [
-                  Expanded(
-                    child: HebrewGreekPanel(
-                      bookId: panelBookId,
-                      chapter: panelChapter,
-                      syncController: syncController,
-                    ),
-                  ),
-                  if (!isSinglePanel) ...[
-                    const SizedBox(height: 16),
-                    Expanded(
-                      child: BiblePanel(
-                        bookId: panelBookId,
-                        chapter: panelChapter,
-                        syncController: syncController,
+          child: Stack(
+            children: [
+              // The main content (Bible Panels)
+              ValueListenableBuilder<bool>(
+                valueListenable: manager.isSinglePanelNotifier,
+                builder: (context, isSinglePanel, _) {
+                  return Column(
+                    children: [
+                      Expanded(
+                        child: HebrewGreekPanel(
+                          bookId: panelBookId,
+                          chapter: panelChapter,
+                          syncController: syncController,
+                        ),
                       ),
-                    ),
-                  ],
-                  ValueListenableBuilder<bool>(
-                    valueListenable: manager.audioManager.isVisibleNotifier,
-                    builder: (context, isVisible, _) {
-                      if (!isVisible) return const SizedBox.shrink();
+                      if (!isSinglePanel) ...[
+                        const SizedBox(height: 16),
+                        Expanded(
+                          child: BiblePanel(
+                            bookId: panelBookId,
+                            chapter: panelChapter,
+                            syncController: syncController,
+                          ),
+                        ),
+                      ],
+                    ],
+                  );
+                },
+              ),
 
-                      return BottomAudioPlayer(
+              // The Audio Player sliding up from the bottom
+              Align(
+                alignment: Alignment.bottomCenter,
+                child: ValueListenableBuilder<bool>(
+                  valueListenable: manager.audioManager.isVisibleNotifier,
+                  builder: (context, isVisible, _) {
+                    // Change 2: Use AnimatedSlide to move it in/out
+                    return AnimatedSlide(
+                      offset: isVisible ? Offset.zero : const Offset(0, 1),
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                      child: BottomAudioPlayer(
                         audioManager: manager.audioManager,
                         currentBookId: displayBookId,
                         currentChapter: displayChapter,
                         currentBookName: bookNameFromId(context, displayBookId),
-                      );
-                    },
-                  ),
-                ],
-              );
-            },
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -209,26 +224,96 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _onPlayAudio(BuildContext context) async {
+    if (manager.audioManager.isVisibleNotifier.value) {
+      manager.audioManager.stopAndClose();
+      return;
+    }
+
     try {
       await manager.playAudioForCurrentChapter(
         bookNameFromId(context, displayBookId),
         displayChapter,
       );
+    } on AudioMissingException catch (_) {
+      // Catch the specific missing audio error
+      if (context.mounted) {
+        _showDownloadAudioDialog(context);
+      }
     } catch (e) {
+      // Handle other errors
       if (context.mounted) {
         showDialog(
           context: context,
-          builder: (context) => AlertDialog(
-            title: const Text("Audio Error"),
-            content: SingleChildScrollView(child: Text(e.toString())),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text("OK"),
-              ),
-            ],
-          ),
+          builder: (context) => AlertDialog(content: Text(e.toString())),
         );
+      }
+    }
+  }
+
+  Future<void> _showDownloadAudioDialog(BuildContext context) async {
+    // Determine what we are downloading
+    final bookName = bookNameFromId(context, displayBookId);
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text("Download Audio"),
+          content: Text(
+            "Audio for $bookName $displayChapter is not on your device.",
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancel"),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _performDownload(bookOnly: false);
+              },
+              child: const Text("Download Chapter"),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _performDownload(bookOnly: true);
+              },
+              child: const Text("Download Book"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _performDownload({required bool bookOnly}) async {
+    // Show a snackbar or loading indicator
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Downloading audio..."),
+        duration: Duration(days: 1),
+      ),
+    );
+
+    try {
+      if (bookOnly) {
+        await manager.downloadAudioForBook(displayBookId);
+      } else {
+        await manager.downloadAudioForChapter(displayBookId, displayChapter);
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        // Auto-play after download success
+        _onPlayAudio(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Download failed: $e")));
       }
     }
   }

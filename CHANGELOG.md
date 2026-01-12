@@ -1,6 +1,11 @@
-## 0.14.0
+## 0.15.0 
+
+- Update design of audio player to remove need for settings panel and close button.
+
+## 0.14.0 - January 10, 2025
 
 - Audio playback synced to verse numbers.
+- Audio settings for repeat mode, playback speed, audio source.
 - Highlight currently playing verse.
 - Allow fuzzy filtering for book name navigation (remove diacritics).
 - Fixed: Scrolling bottom panel doesn't update verse label.

@@ -1,7 +1,6 @@
 class AudioUrlHelper {
   static const String _baseUrl = "https://assets.globalbibletools.com/audio";
 
-  // Your provided keys list
   static const List<String> _bookKeys = [
     'Gen',
     'Exo',
@@ -71,20 +70,35 @@ class AudioUrlHelper {
     'Rev',
   ];
 
+  /// Returns the relative local path: "recordingId/BookKey/Chapter.mp3"
+  static String getLocalRelativePath({
+    required int bookId,
+    required int chapter,
+    String recordingId = 'HEB',
+  }) {
+    final parts = _getParts(bookId, chapter);
+    if (parts == null) return "";
+    return "$recordingId/${parts.bookKey}/${parts.chapterStr}.mp3";
+  }
+
   static String getAudioUrl({
     required int bookId,
     required int chapter,
     String recordingId = 'HEB',
   }) {
-    // Safety check for bookId (1-66)
-    if (bookId < 1 || bookId > _bookKeys.length) return "";
+    final parts = _getParts(bookId, chapter);
+    if (parts == null) return "";
+    return "$_baseUrl/$recordingId/${parts.bookKey}/${parts.chapterStr}.mp3";
+  }
 
-    final bookKey =
-        _bookKeys[bookId - 1]; // Array is 0-indexed, ID is 1-indexed
-
-    // Chapter needs to be padded to 3 digits (e.g., 1 -> "001")
+  // Helper to get the filename parts (e.g. 'Gen', '001')
+  static ({String bookKey, String chapterStr})? _getParts(
+    int bookId,
+    int chapter,
+  ) {
+    if (bookId < 1 || bookId > _bookKeys.length) return null;
+    final bookKey = _bookKeys[bookId - 1];
     final chapterStr = chapter.toString().padLeft(3, '0');
-
-    return "$_baseUrl/$recordingId/$bookKey/$chapterStr.mp3";
+    return (bookKey: bookKey, chapterStr: chapterStr);
   }
 }

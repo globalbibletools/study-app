@@ -5,8 +5,15 @@ import 'package:studyapp/services/audio/audio_database.dart';
 import 'package:studyapp/services/audio/audio_player_handler.dart';
 import 'package:studyapp/services/audio/audio_timing.dart';
 import 'package:studyapp/services/audio/audio_url_helper.dart';
+import 'package:studyapp/services/files/file_service.dart';
 import 'package:studyapp/services/service_locator.dart';
 import 'package:studyapp/ui/home/common/scroll_sync_controller.dart';
+
+class AudioMissingException implements Exception {
+  final int bookId;
+  final int chapter;
+  AudioMissingException(this.bookId, this.chapter);
+}
 
 enum AudioRepeatMode { none, chapter, verse }
 
@@ -15,6 +22,7 @@ enum AudioSourceType { heb, rdb }
 class AudioManager {
   final AudioPlayerHandler audioHandler = AudioPlayerHandler();
   final _audioDb = getIt<AudioDatabase>();
+  final _fileService = getIt<FileService>();
 
   // --- State Notifiers ---
   final isVisibleNotifier = ValueNotifier<bool>(false);
@@ -44,22 +52,41 @@ class AudioManager {
   }
 
   Future<void> loadAndPlay(int bookId, int chapter, String bookName) async {
-    // Save state for reloading
-    _loadedBookId = bookId;
-    _loadedChapter = chapter;
-    _loadedBookName = bookName;
-
-    isVisibleNotifier.value = true;
-
+    // 1. Determine IDs
     final recordingId = audioSourceNotifier.value == AudioSourceType.heb
         ? 'HEB'
         : 'RDB';
 
-    final url = AudioUrlHelper.getAudioUrl(
+    // 2. Get the Relative Path
+    final relativePath = AudioUrlHelper.getLocalRelativePath(
       bookId: bookId,
       chapter: chapter,
       recordingId: recordingId,
     );
+
+    // 3. Check if file exists locally
+    final exists = await _fileService.checkFileExists(
+      FileType.audio,
+      relativePath,
+    );
+
+    if (!exists) {
+      // 4. If not, stop everything and throw exception for UI to handle
+      stopAndClose();
+      throw AudioMissingException(bookId, chapter);
+    }
+
+    // 5. If exists, get the absolute path
+    final localFullPath = await _fileService.getLocalPath(
+      FileType.audio,
+      relativePath,
+    );
+
+    // Save state for reloading
+    _loadedBookId = bookId;
+    _loadedChapter = chapter;
+    _loadedBookName = bookName;
+    isVisibleNotifier.value = true;
 
     // Fetch timings
     _currentTimings = await _audioDb.getTimingsForChapter(
@@ -89,9 +116,9 @@ class AudioManager {
 
     _lastSyncedVerse = -1;
 
-    // Initialize Player
+    // 6. Initialize Player with LOCAL FILE URI
     await audioHandler.setUrl(
-      url,
+      Uri.file(localFullPath).toString(),
       title: "$bookName $chapter",
       subtitle: bookName,
     );
@@ -214,16 +241,56 @@ class AudioManager {
 
   // --- Controls ---
 
+  // void stopAndClose() {
+  //   if (isVisibleNotifier.value) {
+  //     isVisibleNotifier.value = false;
+  //     audioHandler.stop();
+  //     _positionSubscription?.cancel();
+  //     _playerStateSubscription?.cancel();
+  //     _currentTimings = [];
+  //     _clearHighlight();
+  //     _loadedBookId = null;
+  //   }
+  // }
+
   void stopAndClose() {
     if (isVisibleNotifier.value) {
+      // Trigger UI animation immediately
       isVisibleNotifier.value = false;
-      audioHandler.stop();
-      _positionSubscription?.cancel();
-      _playerStateSubscription?.cancel();
-      _currentTimings = [];
-      _clearHighlight();
-      _loadedBookId = null;
+
+      // Start fade out operation
+      _fadeOut().then((_) {
+        _positionSubscription?.cancel();
+        _playerStateSubscription?.cancel();
+        _currentTimings = [];
+        _clearHighlight();
+        _loadedBookId = null;
+      });
     }
+  }
+
+  Future<void> _fadeOut() async {
+    const duration = Duration(milliseconds: 800);
+    const steps = 10;
+    final stepDuration = duration ~/ steps;
+
+    // Get current volume or default to 1.0
+    double startVolume = audioHandler.player.volume;
+    double vol = startVolume;
+
+    for (int i = 0; i < steps; i++) {
+      if (!isVisibleNotifier.value) {
+        // If UI is already closed/closing, we proceed with fade
+        await Future.delayed(stepDuration);
+        vol -= (startVolume / steps);
+        if (vol < 0) vol = 0;
+        await audioHandler.player.setVolume(vol);
+      }
+    }
+
+    await audioHandler.stop();
+    // Restore volume for next time
+    await audioHandler.player.setVolume(startVolume);
   }
 
   void skipToNextVerse() {
