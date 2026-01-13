@@ -49,6 +49,7 @@ class HomeManager {
   }
 
   Future<void> saveBookAndChapter(int bookId, int chapter) async {
+    _currentBookId = bookId;
     await _settings.setCurrentBookChapter(bookId, chapter);
   }
 

@@ -27,13 +27,17 @@ class AudioLogic {
     return !isNewTestament(bookId);
   }
 
+  /// Checks if Rabbi Dan Beeri audio exists for this specific book
+  static bool isRdbAvailableForBook(int bookId) {
+    if (isNewTestament(bookId)) return false;
+    return !_missingRdbBooks.contains(bookId);
+  }
+
   /// Determines the actual folder/recording ID to use based on book and preference.
   static String getRecordingId(int bookId, AudioSourceType userPreference) {
     // 1. New Testament Logic
     if (isNewTestament(bookId)) {
-      // Assuming NT audio is stored in a specific folder, e.g., 'GNT' or 'GK'.
-      // Update this string to match your backend/folder structure.
-      return 'GNT';
+      return 'GNT'; // Greek New Testament folder
     }
 
     // 2. Old Testament Logic

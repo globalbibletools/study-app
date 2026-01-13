@@ -55,6 +55,7 @@ class BottomAudioPlayer extends StatelessWidget {
                 _VoiceMenuButton(
                   audioManager: audioManager,
                   onAudioMissing: onAudioMissing,
+                  currentBookId: currentBookId,
                 ),
                 const SizedBox(width: 8),
               ],
@@ -177,8 +178,13 @@ class BottomAudioPlayer extends StatelessWidget {
 class _VoiceMenuButton extends StatelessWidget {
   final AudioManager audioManager;
   final VoidCallback? onAudioMissing;
+  final int currentBookId;
 
-  const _VoiceMenuButton({required this.audioManager, this.onAudioMissing});
+  const _VoiceMenuButton({
+    required this.audioManager,
+    required this.currentBookId,
+    this.onAudioMissing,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -187,7 +193,7 @@ class _VoiceMenuButton extends StatelessWidget {
       builder: (context, currentSource, _) {
         return PopupMenuButton<AudioSourceType>(
           icon: const Icon(Icons.person_outline),
-          offset: const Offset(0, 40),
+          // offset: const Offset(0, 40),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -200,19 +206,26 @@ class _VoiceMenuButton extends StatelessWidget {
             }
           },
           itemBuilder: (BuildContext context) {
+            final l10n = AppLocalizations.of(context)!;
+            final rdbAvailable = AudioLogic.isRdbAvailableForBook(
+              currentBookId,
+            );
             return [
-              // Shmueloff
+              // Shmueloff (Always available for OT)
               CheckedPopupMenuItem<AudioSourceType>(
                 value: AudioSourceType.heb,
-                checked: currentSource == AudioSourceType.heb,
-                child: Text(AppLocalizations.of(context)!.sourceHEB),
+                checked: currentSource == AudioSourceType.heb || !rdbAvailable,
+                // Note: If RDB isn't available, HEB is effectively checked/active
+                child: Text(l10n.sourceHEB),
               ),
-              // Dan Beeri
-              CheckedPopupMenuItem<AudioSourceType>(
-                value: AudioSourceType.rdb,
-                checked: currentSource == AudioSourceType.rdb,
-                child: Text(AppLocalizations.of(context)!.sourceRDB),
-              ),
+
+              // Dan Beeri (Only if available)
+              if (rdbAvailable)
+                CheckedPopupMenuItem<AudioSourceType>(
+                  value: AudioSourceType.rdb,
+                  checked: currentSource == AudioSourceType.rdb,
+                  child: Text(l10n.sourceRDB),
+                ),
             ];
           },
         );
