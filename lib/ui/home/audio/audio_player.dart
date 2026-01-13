@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:studyapp/l10n/app_localizations.dart';
 import 'package:studyapp/services/audio/position_data.dart';
+import 'package:studyapp/ui/home/audio/audio_logic.dart';
 
 import 'audio_manager.dart';
 
@@ -28,6 +29,7 @@ class BottomAudioPlayer extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final hasTiming = AudioLogic.hasTimingData(currentBookId);
 
     return Container(
       decoration: BoxDecoration(
@@ -49,12 +51,13 @@ class BottomAudioPlayer extends StatelessWidget {
           Row(
             children: [
               // Voice Source Button (Person Head)
-              _VoiceMenuButton(
-                audioManager: audioManager,
-                onAudioMissing: onAudioMissing,
-              ),
-
-              const SizedBox(width: 8),
+              if (!AudioLogic.isNewTestament(currentBookId)) ...[
+                _VoiceMenuButton(
+                  audioManager: audioManager,
+                  onAudioMissing: onAudioMissing,
+                ),
+                const SizedBox(width: 8),
+              ],
 
               // Progress Bar
               Expanded(
@@ -106,7 +109,9 @@ class BottomAudioPlayer extends StatelessWidget {
               Expanded(
                 child: Align(
                   alignment: Alignment.centerLeft,
-                  child: _RepeatMenuButton(audioManager: audioManager),
+                  child: hasTiming
+                      ? _RepeatMenuButton(audioManager: audioManager)
+                      : const SizedBox(),
                 ),
               ),
 
@@ -118,8 +123,12 @@ class BottomAudioPlayer extends StatelessWidget {
                   IconButton(
                     icon: const Icon(Icons.chevron_left_rounded),
                     iconSize: 28,
-                    color: colorScheme.primary,
-                    onPressed: audioManager.skipToPreviousVerse,
+                    color: hasTiming
+                        ? colorScheme.primary
+                        : colorScheme.onSurface.withValues(alpha: 0.3),
+                    onPressed: hasTiming
+                        ? audioManager.skipToPreviousVerse
+                        : null,
                   ),
 
                   const SizedBox(width: 12),
@@ -140,8 +149,10 @@ class BottomAudioPlayer extends StatelessWidget {
                   IconButton(
                     icon: const Icon(Icons.chevron_right_rounded),
                     iconSize: 28,
-                    color: colorScheme.primary,
-                    onPressed: audioManager.skipToNextVerse,
+                    color: hasTiming
+                        ? colorScheme.primary
+                        : colorScheme.onSurface.withValues(alpha: 0.3),
+                    onPressed: hasTiming ? audioManager.skipToNextVerse : null,
                   ),
                 ],
               ),

@@ -10,6 +10,7 @@ import 'package:studyapp/services/download/download.dart';
 import 'package:studyapp/services/files/file_service.dart';
 import 'package:studyapp/services/service_locator.dart';
 import 'package:studyapp/services/user_settings.dart';
+import 'package:studyapp/ui/home/audio/audio_logic.dart';
 import 'package:studyapp/ui/home/audio/audio_manager.dart';
 import 'package:studyapp/ui/home/common/scroll_sync_controller.dart';
 
@@ -95,10 +96,10 @@ class HomeManager {
     ValueNotifier<double> progressNotifier,
     CancelToken cancelToken,
   ) async {
-    final recordingId =
-        audioManager.audioSourceNotifier.value == AudioSourceType.heb
-        ? 'HEB'
-        : 'RDB';
+    final recordingId = AudioLogic.getRecordingId(
+      bookId,
+      audioManager.audioSourceNotifier.value,
+    );
 
     final url = AudioUrlHelper.getAudioUrl(
       bookId: bookId,

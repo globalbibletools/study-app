@@ -7,6 +7,7 @@ import 'package:studyapp/services/audio/audio_timing.dart';
 import 'package:studyapp/services/audio/audio_url_helper.dart';
 import 'package:studyapp/services/files/file_service.dart';
 import 'package:studyapp/services/service_locator.dart';
+import 'package:studyapp/ui/home/audio/audio_logic.dart';
 import 'package:studyapp/ui/home/common/scroll_sync_controller.dart';
 
 class AudioMissingException implements Exception {
@@ -57,9 +58,10 @@ class AudioManager {
     String bookName, {
     int? startVerse,
   }) async {
-    final recordingId = audioSourceNotifier.value == AudioSourceType.heb
-        ? 'HEB'
-        : 'RDB';
+    final recordingId = AudioLogic.getRecordingId(
+      bookId,
+      audioSourceNotifier.value,
+    );
 
     final relativePath = AudioUrlHelper.getLocalRelativePath(
       bookId: bookId,
@@ -153,6 +155,11 @@ class AudioManager {
   void _startSyncListener() {
     _positionSubscription?.cancel();
     _playerStateSubscription?.cancel();
+
+    // If no timings (NT), we just want basic playback without sync logic
+    if (_currentTimings.isEmpty) {
+      return;
+    }
 
     // Handle End of Chapter
     _playerStateSubscription = audioHandler.playerStateStream.listen((state) {
