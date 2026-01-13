@@ -123,6 +123,10 @@ class AudioManager {
         (t) => t.verseNumber == startVerse,
         orElse: () => _currentTimings.first,
       );
+
+      // Update state immediately so repeat logic knows where we are
+      _updateCurrentVerse(timing.verseNumber);
+
       // Seek to the start of the verse
       await audioHandler.seek(
         Duration(milliseconds: (timing.start * 1000).toInt()),
@@ -130,6 +134,20 @@ class AudioManager {
     }
 
     audioHandler.play();
+  }
+
+  /// Updates internal state and UI immediately during manual navigation
+  void _updateCurrentVerse(int verseNum) {
+    _lastSyncedVerse = verseNum;
+    if (_loadedBookId != null && _loadedChapter != null) {
+      _syncController?.setHighlight(_loadedBookId!, _loadedChapter!, verseNum);
+      _syncController?.jumpToVerse(
+        _loadedBookId!,
+        _loadedChapter!,
+        verseNum,
+        isAuto: true,
+      );
+    }
   }
 
   void _startSyncListener() {
@@ -318,7 +336,11 @@ class AudioManager {
       if (currentIndex > 0) {
         _seekToTiming(_currentTimings[currentIndex - 1]);
       } else {
-        audioHandler.seek(Duration.zero);
+        if (_currentTimings.isNotEmpty) {
+          _seekToTiming(_currentTimings.first);
+        } else {
+          audioHandler.seek(Duration.zero);
+        }
       }
     } else {
       // Logic for gaps (find last ended)
@@ -332,10 +354,22 @@ class AudioManager {
   }
 
   void _seekToTiming(AudioTiming t) {
+    _updateCurrentVerse(t.verseNumber);
     audioHandler.seek(Duration(milliseconds: (t.start * 1000).toInt()));
   }
 
   void seek(Duration position) {
+    if (_currentTimings.isNotEmpty) {
+      final seconds = position.inMilliseconds / 1000.0;
+      try {
+        final match = _currentTimings.firstWhere(
+          (t) => seconds >= t.start && seconds < t.end,
+        );
+        _updateCurrentVerse(match.verseNumber);
+      } catch (_) {
+        // Seeking to a gap or end; let the listener handle it normally
+      }
+    }
     audioHandler.seek(position);
   }
 
@@ -366,6 +400,7 @@ class AudioManager {
         (t) => t.verseNumber == startVerse,
         orElse: () => _currentTimings.first,
       );
+      _updateCurrentVerse(timing.verseNumber);
       await audioHandler.seek(
         Duration(milliseconds: (timing.start * 1000).toInt()),
       );
