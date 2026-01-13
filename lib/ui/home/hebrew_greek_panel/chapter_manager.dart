@@ -45,4 +45,28 @@ class HebrewGreekChapterManager {
     await _settings.setLocale('en');
     getIt<AppState>().init();
   }
+
+  String getVerseText(int verse) {
+    final words = textNotifier.value;
+    final verseWords = words
+        .where((w) => (w.id ~/ 100) % 1000 == verse)
+        .toList();
+
+    if (verseWords.isEmpty) return '';
+
+    final buffer = StringBuffer();
+    // Maqaph (Hebrew hyphen) indicates words should be connected without space.
+    const maqaph = '־';
+
+    for (int i = 0; i < verseWords.length; i++) {
+      final text = verseWords[i].text;
+      buffer.write(text);
+
+      // Add space if it's not the last word and doesn't end with a maqaph
+      if (i < verseWords.length - 1 && !text.endsWith(maqaph)) {
+        buffer.write(' ');
+      }
+    }
+    return buffer.toString();
+  }
 }

@@ -95,10 +95,11 @@ class HebrewGreekText extends LeafRenderObjectWidget {
     this.popupTextStyle,
     this.onPopupShown,
     this.onWordLongPress,
+    this.onVerseNumberTap,
+    this.onVerseNumberLongPress,
     this.flashColor,
     this.highlightedVerse,
     this.highlightColor,
-    this.onVerseNumberTap,
   });
 
   /// The words that will rendered in the text layout
@@ -134,6 +135,12 @@ class HebrewGreekText extends LeafRenderObjectWidget {
   /// A callback that is invoked when a word is long-pressed.
   final AsyncWordActionCallback? onWordLongPress;
 
+  /// Callback when a verse number is tapped
+  final ValueChanged<int>? onVerseNumberTap;
+
+  /// Callback when a verse number is long pressed
+  final ValueChanged<int>? onVerseNumberLongPress;
+
   /// The color of the flash effect.
   ///
   /// Defaults to the same color as [verseNumberStyle].
@@ -144,9 +151,6 @@ class HebrewGreekText extends LeafRenderObjectWidget {
 
   /// The background color to use for a highlighted verse
   final Color? highlightColor;
-
-  /// Callback when a verse number is tapped
-  final ValueChanged<int>? onVerseNumberTap;
 
   @override
   RenderHebrewGreekText createRenderObject(BuildContext context) {
@@ -175,6 +179,7 @@ class HebrewGreekText extends LeafRenderObjectWidget {
       onPopupShown: onPopupShown,
       onWordLongPress: onWordLongPress,
       onVerseNumberTap: onVerseNumberTap,
+      onVerseNumberLongPress: onVerseNumberLongPress,
       flashColor:
           flashColor ??
           effectiveVerseNumberStyle?.color?.withValues(alpha: 0.4) ??
@@ -218,6 +223,7 @@ class HebrewGreekText extends LeafRenderObjectWidget {
       ..onPopupShown = onPopupShown
       ..onWordLongPress = onWordLongPress
       ..onVerseNumberTap = onVerseNumberTap
+      ..onVerseNumberLongPress = onVerseNumberLongPress
       ..flashColor =
           flashColor ??
           effectiveVerseNumberStyle?.color?.withValues(alpha: 0.4) ??
@@ -266,6 +272,12 @@ class HebrewGreekText extends LeafRenderObjectWidget {
         onVerseNumberTap,
       ),
     );
+    properties.add(
+      ObjectFlagProperty<ValueChanged<int>>.has(
+        'onVerseNumberLongPress',
+        onVerseNumberLongPress,
+      ),
+    );
     properties.add(ColorProperty('flashColor', flashColor));
     properties.add(IntProperty('highlightedVerse', highlightedVerse));
     properties.add(ColorProperty('highlightColor', highlightColor));
@@ -287,6 +299,7 @@ class RenderHebrewGreekText extends RenderBox {
     ValueChanged<Rect>? onPopupShown,
     AsyncWordActionCallback? onWordLongPress,
     ValueChanged<int>? onVerseNumberTap,
+    ValueChanged<int>? onVerseNumberLongPress,
     required Color flashColor,
     int? highlightedVerse,
     Color? highlightColor,
@@ -301,6 +314,7 @@ class RenderHebrewGreekText extends RenderBox {
        _onPopupShown = onPopupShown,
        _onWordLongPress = onWordLongPress,
        _onVerseNumberTap = onVerseNumberTap,
+       _onVerseNumberLongPress = onVerseNumberLongPress,
        _flashColor = flashColor,
        _highlightedVerse = highlightedVerse,
        _highlightColor = highlightColor {
@@ -426,6 +440,13 @@ class RenderHebrewGreekText extends RenderBox {
   set onVerseNumberTap(ValueChanged<int>? value) {
     if (_onVerseNumberTap == value) return;
     _onVerseNumberTap = value;
+  }
+
+  ValueChanged<int>? _onVerseNumberLongPress;
+  ValueChanged<int>? get onVerseNumberLongPress => _onVerseNumberLongPress;
+  set onVerseNumberLongPress(ValueChanged<int>? value) {
+    if (_onVerseNumberLongPress == value) return;
+    _onVerseNumberLongPress = value;
   }
 
   Color _flashColor;
@@ -935,6 +956,14 @@ class RenderHebrewGreekText extends RenderBox {
   Future<void> _handleLongPressStart(LongPressStartDetails details) async {
     // Find out what was under the user's finger.
     final entry = _getHitTestEntryForOffset(details.localPosition);
+
+    if (entry is VerseNumberHitTestEntry) {
+      if (onVerseNumberLongPress != null) {
+        onVerseNumberLongPress!(entry.verseNumber);
+      }
+      return;
+    }
+
     if (onWordLongPress == null) return;
     if (entry is HebrewGreekWordHitTestEntry) {
       _dismissPopup();

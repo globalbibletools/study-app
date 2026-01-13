@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:studyapp/common/book_name.dart';
 import 'package:studyapp/common/word.dart';
 import 'package:studyapp/l10n/app_localizations.dart';
@@ -165,6 +166,9 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter>
                         verse: verse,
                       ).dispatch(context);
                     },
+                    onVerseNumberLongPress: (verse) {
+                      _copyVerseToClipboard(context, verse);
+                    },
                     popupBackgroundColor: Theme.of(
                       context,
                     ).colorScheme.inverseSurface,
@@ -252,6 +256,20 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter>
       builder: (context) => WordDetailsDialog(
         wordId: wordId,
         isRtl: manager.isRtl(widget.bookId),
+      ),
+    );
+  }
+
+  void _copyVerseToClipboard(BuildContext context, int verse) {
+    final text = manager.getVerseText(verse);
+    if (text.isEmpty) return;
+
+    Clipboard.setData(ClipboardData(text: text));
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Verse copied to clipboard'),
+        duration: Durations.extralong1,
       ),
     );
   }
