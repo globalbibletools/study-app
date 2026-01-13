@@ -97,11 +97,7 @@ class DownloadProgressDialog extends StatelessWidget {
             ),
             const SizedBox(width: 16),
             // Cancel Button (X)
-            IconButton(
-              onPressed: onCancel,
-              icon: const Icon(Icons.close),
-              tooltip: 'Cancel',
-            ),
+            IconButton(onPressed: onCancel, icon: const Icon(Icons.close)),
           ],
         ),
       ),

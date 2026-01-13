@@ -107,9 +107,6 @@ class _SearchPageState extends State<SearchPage> {
                   ? Icons.keyboard_hide_outlined
                   : Icons.keyboard_alt_outlined,
             ),
-            tooltip: _useSystemKeyboard
-                ? AppLocalizations.of(context)!.useInAppKeyboard
-                : AppLocalizations.of(context)!.useSystemKeyboard,
             onPressed: () {
               _toggleKeyboardType();
               manager.setUseSystemKeyboard(_useSystemKeyboard);

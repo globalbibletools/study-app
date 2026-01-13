@@ -86,17 +86,19 @@ class _SettingsPageState extends State<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
-      appBar: AppBar(title: Text(AppLocalizations.of(context)!.settings)),
+      appBar: AppBar(title: Text(l10n.settings)),
       body: ListenableBuilder(
         listenable: manager,
         builder: (context, widget) {
           return ListView(
             children: [
               ListTile(
-                title: Text(AppLocalizations.of(context)!.language),
+                title: Text(l10n.language),
                 trailing: Text(
-                  AppLocalizations.of(context)!.currentLanguage,
+                  l10n.currentLanguage,
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
                 onTap: () async {
@@ -114,14 +116,52 @@ class _SettingsPageState extends State<SettingsPage> {
                   });
                 },
               ),
+              // Hebrew / Greek Font Size
               ListTile(
-                title: Text(AppLocalizations.of(context)!.hebrewGreekTextSize),
+                title: Text(l10n.hebrewGreekTextSize),
                 trailing: Text(
-                  '${manager.textSize}',
+                  '${manager.hebrewTextSize.toInt()}',
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
                 onTap: () {
-                  _showFontSizeDialog(context);
+                  _showFontSizeDialog(
+                    context,
+                    currentValue: manager.hebrewTextSize,
+                    onChanged: manager.setHebrewTextSize,
+                    previewText: 'א α',
+                  );
+                },
+              ),
+              // Bible Panel Font Size
+              ListTile(
+                title: Text(l10n.secondPanelTextSize),
+                trailing: Text(
+                  '${manager.bibleTextSize.toInt()}',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                onTap: () {
+                  _showFontSizeDialog(
+                    context,
+                    currentValue: manager.bibleTextSize,
+                    onChanged: manager.setBibleTextSize,
+                    previewText: 'A a',
+                  );
+                },
+              ),
+              // Word Details / Lexicon Font Size
+              ListTile(
+                title: Text(l10n.lexiconTextSize),
+                trailing: Text(
+                  '${manager.lexiconTextSize.toInt()}',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                onTap: () {
+                  _showFontSizeDialog(
+                    context,
+                    currentValue: manager.lexiconTextSize,
+                    onChanged: manager.setLexiconTextSize,
+                    previewText: 'A a',
+                  );
                 },
               ),
             ],
@@ -131,40 +171,51 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  Future<dynamic> _showFontSizeDialog(BuildContext context) {
+  Future<dynamic> _showFontSizeDialog(
+    BuildContext context, {
+    required double currentValue,
+    required Function(double) onChanged,
+    required String previewText,
+  }) {
     return showDialog(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            content: SizedBox(
-              height: 150,
-              child: StatefulBuilder(
-                builder:
-                    (context, setState) => Column(
-                      children: [
-                        const Spacer(),
-                        Text(
-                          'א α',
-                          style: TextStyle(fontSize: manager.textSize),
-                        ),
-                        const Spacer(),
-                        Slider(
-                          value: manager.textSize,
-                          min: manager.minFontSize,
-                          max: manager.maxFontSize,
-                          divisions: manager.fontSizeDivisions,
-                          label: manager.textSize.toStringAsFixed(1),
-                          onChanged: (value) {
-                            setState(() {
-                              manager.setTextSize(value);
-                            });
-                          },
-                        ),
-                      ],
-                    ),
-              ),
-            ),
+      builder: (context) => AlertDialog(
+        content: SizedBox(
+          height: 150,
+          child: StatefulBuilder(
+            builder: (context, setState) {
+              return Column(
+                children: [
+                  const Spacer(),
+                  Text(
+                    previewText,
+                    // Use the value from the manager (via parent rebuild)
+                    // or the local currentValue if you want instant preview without parent rebuilds.
+                    // Since ListenableBuilder wraps the ListView, manager updates reflect immediately.
+                    style: TextStyle(fontSize: currentValue),
+                  ),
+                  const Spacer(),
+                  Slider(
+                    value: currentValue,
+                    min: manager.minFontSize,
+                    max: manager.maxFontSize,
+                    divisions: manager.fontSizeDivisions,
+                    label: currentValue.toStringAsFixed(1),
+                    onChanged: (value) {
+                      // Update the manager (which rebuilds the Page)
+                      onChanged(value);
+                      // Update local dialog state to move the slider
+                      setState(() {
+                        currentValue = value;
+                      });
+                    },
+                  ),
+                ],
+              );
+            },
           ),
+        ),
+      ),
     );
   }
 }

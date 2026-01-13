@@ -267,8 +267,8 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter>
     Clipboard.setData(ClipboardData(text: text));
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Verse copied to clipboard'),
+      SnackBar(
+        content: Text(AppLocalizations.of(context)!.verseCopied),
         duration: Durations.extralong1,
       ),
     );

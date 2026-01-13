@@ -202,7 +202,6 @@ class _WordDetailsDialogState extends State<WordDetailsDialog> {
       children: [
         IconButton(
           icon: Icon(Icons.list, color: iconColor),
-          tooltip: AppLocalizations.of(context)!.similarVerses,
           onPressed: () {
             Navigator.push(
               context,
@@ -225,7 +224,6 @@ class _WordDetailsDialogState extends State<WordDetailsDialog> {
               color: _isCopied ? Colors.green : iconColor,
             ),
           ),
-          tooltip: 'Copy word',
           onPressed: () => _handleCopy(wordDetails.word),
         ),
       ],

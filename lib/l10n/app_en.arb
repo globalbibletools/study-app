@@ -32,6 +32,14 @@
   "@hebrewGreekTextSize": {
     "description": "Settings option to change the display size of the Hebrew or Greek font"
   },
+  "secondPanelTextSize": "Second panel text size",
+  "@secondPanelTextSize": {
+    "description": "Settings option to change the text size in the second panel"
+  },
+  "lexiconTextSize": "Lexicon text size",
+  "@lexiconTextSize": {
+    "description": "Settings option to change the text size in the Lexicon popup"
+  },
   "downloadGlossesMessage": "To show word meanings in English, the data needs to be downloaded. Would you like to download it now?",
   "@downloadGlossesMessage": {
     "description": "Message asking user to download glosses for a specific language."
@@ -64,10 +72,6 @@
   "@nextChapter": {
     "description": "Tool tip for button that advances to the next chapter in the Bible"
   },
-  "similarVerses": "See uses",
-  "@similarVerses": {
-    "description": "Show list of verses with the same Strong's number"
-  },
   "root": "Root",
   "@root": {
     "description": "The root grammatical form (lemma) of a Hebrew or Greek word"
@@ -80,14 +84,6 @@
   "@search": {
     "description": "The title of the Search screen"
   },
-  "useInAppKeyboard": "Use In-App Keyboard",
-  "@useInAppKeyboard": {
-    "description": "Tool tip for system vs in-app keyboard switcher button"
-  },
-  "useSystemKeyboard": "Use System Keyboard",
-  "@useSystemKeyboard": {
-    "description": "Tool tip for system vs in-app keyboard switcher button"
-  },
   "resultsCount": "{count, plural, =0{No results} =1{1 result} other{{count} results}}",
   "@resultsCount": {
     "description": "The message to display when returning the number of results for a search. This should properly handle any possible number for a given language: 'No results', '1 result', '27 results'",
@@ -97,35 +93,15 @@
       }
     }
   },
-  "actionSplitScreen": "Split Screen",
-  "@actionSplitScreen": {
-    "description": "Menu item name to change between one or two panels"
-  },
-  "actionPlayAudio": "Play Audio",
-  "@actionPlayAudio": {
-    "description": "Menu item name to start the audio player"
-  },
-  "audioSettings": "Audio Settings",
-  "@audioSettings": {
-    "description": "Audio settings panel title"
-  },
-  "audioPlaybackSpeed": "Playback Speed",
-  "@audioPlaybackSpeed": {
-    "description": "Bottom popup panel title for changing the audio speed"
-  },
-  "audioRepeatMode": "Repeat Mode",
-  "@audioRepeatMode": {
-    "description": "Audio settings: Repeat mode setting"
-  },
   "repeatNone": "None",
   "@repeatNone": {
     "description": "Audio setting: Repeat node"
   },
-  "repeatVerse": "Verse",
+  "repeatVerse": "Repeat verse",
   "@repeatVerse": {
     "description": "Audio setting: Repeat verse"
   },
-  "repeatChapter": "Chapter",
+  "repeatChapter": "Repeat chapter",
   "@repeatChapter": {
     "description": "Audio setting: Repeat chapter"
   },
@@ -133,13 +109,33 @@
   "@audioRecordingSource": {
     "description": "Audio settings: Recording source"
   },
-  "sourceHEB": "Abraham Shmueloff",
+  "sourceHEB": "Shmueloff",
   "@sourceHEB": {
     "description": "Audio recording source setting: Abraham Shmueloff"
   },
-  "sourceRDB": "Rabbi Dan Beeri",
+  "sourceRDB": "Dan Beeri",
   "@sourceRDB": {
     "description": "Audio recording source setting: Rabbi Dan Beeri"
+  },
+  "downloadAudio": "Download Audio",
+  "@downloadAudio": {
+    "description": "Title of the download audio dialog"
+  },
+  "audioNotDownloaded": "Audio for {book} {chapter} is not on your device.",
+  "@audioNotDownloaded": {
+    "description": "Message shown when audio is missing",
+    "placeholders": {
+      "book": {
+        "type": "String"
+      },
+      "chapter": {
+        "type": "int"
+      }
+    }
+  },
+  "verseCopied": "Verse copied to clipboard",
+  "@verseCopied": {
+    "description": "Snackbar message when a verse is copied"
   },
   "bookGenesis": "Genesis",
   "@bookGenesis": {

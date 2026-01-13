@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:studyapp/l10n/app_localizations.dart';
 import 'package:studyapp/l10n/book_names.dart';
 import 'package:studyapp/services/download/cancel_token.dart';
 import 'package:studyapp/ui/common/download_progress_dialog.dart';
@@ -275,24 +276,23 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _showDownloadAudioDialog(BuildContext context) async {
     final bookName = bookNameFromId(context, displayBookId);
+    final l10n = AppLocalizations.of(context)!;
 
     // 1. Ask for confirmation
     final shouldDownload = await showDialog<bool>(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text("Download Audio"),
-          content: Text(
-            "Audio for $bookName $displayChapter is not on your device.",
-          ),
+          title: Text(l10n.downloadAudio),
+          content: Text(l10n.audioNotDownloaded(bookName, displayChapter)),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text("Cancel"),
+              child: Text(l10n.cancel),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text("Download"),
+              child: Text(l10n.download),
             ),
           ],
         );

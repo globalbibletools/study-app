@@ -32,18 +32,39 @@ class SettingsManager extends ChangeNotifier {
     }
   }
 
-  double get textSize =>
-      (_settings.baseFontSize * _settings.hebrewGreekFontScale).roundToDouble();
+  // --- Font Sizes ---
 
   double get minFontSize => 10;
-
   double get maxFontSize => 60;
-
   int get fontSizeDivisions => 50;
 
-  Future<void> setTextSize(double fontSize) async {
+  // Hebrew/Greek
+  double get hebrewTextSize =>
+      (_settings.baseFontSize * _settings.hebrewGreekFontScale).roundToDouble();
+
+  Future<void> setHebrewTextSize(double fontSize) async {
     final scale = fontSize / _settings.baseFontSize;
     await _settings.setHebrewGreekFontScale(scale);
+    notifyListeners();
+  }
+
+  // Bible (English/Translation)
+  double get bibleTextSize =>
+      (_settings.baseFontSize * _settings.bibleFontScale).roundToDouble();
+
+  Future<void> setBibleTextSize(double fontSize) async {
+    final scale = fontSize / _settings.baseFontSize;
+    await _settings.setBibleFontScale(scale);
+    notifyListeners();
+  }
+
+  // Word Details (Lexicon/Popup)
+  double get lexiconTextSize =>
+      (_settings.baseFontSize * _settings.wordDetailsFontScale).roundToDouble();
+
+  Future<void> setLexiconTextSize(double fontSize) async {
+    final scale = fontSize / _settings.baseFontSize;
+    await _settings.setWordDetailsFontScale(scale);
     notifyListeners();
   }
 }

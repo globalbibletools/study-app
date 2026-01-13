@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:studyapp/l10n/app_localizations.dart';
 import 'package:studyapp/l10n/book_names.dart';
 import 'reference_chooser.dart';
 
@@ -40,16 +39,8 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
         onVerseSelected: onVerseSelected,
       ),
       actions: [
-        IconButton(
-          onPressed: onPlayAudio,
-          icon: Icon(Icons.play_arrow),
-          tooltip: AppLocalizations.of(context)!.actionPlayAudio,
-        ),
-        IconButton(
-          onPressed: onTogglePanel,
-          icon: Icon(Icons.splitscreen),
-          tooltip: AppLocalizations.of(context)!.actionSplitScreen,
-        ),
+        IconButton(onPressed: onPlayAudio, icon: Icon(Icons.play_arrow)),
+        IconButton(onPressed: onTogglePanel, icon: Icon(Icons.splitscreen)),
       ],
     );
   }

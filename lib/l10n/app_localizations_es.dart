@@ -33,6 +33,12 @@ class AppLocalizationsEs extends AppLocalizations {
   String get hebrewGreekTextSize => 'Tamaño del texto en hebreo/griego';
 
   @override
+  String get secondPanelTextSize => 'Tamaño de texto del segundo panel';
+
+  @override
+  String get lexiconTextSize => 'Tamaño de texto del léxico';
+
+  @override
   String get downloadGlossesMessage =>
       'Para mostrar los significados en Español (glosas) de las palabras hebreas, es necesario descargar los datos. ¿Desea descargarlos ahora?';
 
@@ -60,9 +66,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get nextChapter => 'Siguiente capítulo';
 
   @override
-  String get similarVerses => 'Ver usos';
-
-  @override
   String get root => 'Raíz';
 
   @override
@@ -70,12 +73,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get search => 'Buscar';
-
-  @override
-  String get useInAppKeyboard => 'Usar teclado de la aplicación';
-
-  @override
-  String get useSystemKeyboard => 'Usar teclado del sistema';
 
   @override
   String resultsCount(int count) {
@@ -90,28 +87,13 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get actionSplitScreen => 'Pantalla Dividida';
-
-  @override
-  String get actionPlayAudio => 'Reproducir Audio';
-
-  @override
-  String get audioSettings => 'Configuración de audio';
-
-  @override
-  String get audioPlaybackSpeed => 'Velocidad de Reproducción';
-
-  @override
-  String get audioRepeatMode => 'Modo de repetición';
-
-  @override
   String get repeatNone => 'Ninguno';
 
   @override
-  String get repeatVerse => 'Versículo';
+  String get repeatVerse => 'Repetir versículo';
 
   @override
-  String get repeatChapter => 'Capítulo';
+  String get repeatChapter => 'Repetir capítulo';
 
   @override
   String get audioRecordingSource => 'Fuente de grabación';
@@ -121,6 +103,17 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get sourceRDB => 'Rabbi Dan Beeri';
+
+  @override
+  String get downloadAudio => 'Descargar Audio';
+
+  @override
+  String audioNotDownloaded(String book, int chapter) {
+    return 'El audio de $book $chapter no está en su dispositivo.';
+  }
+
+  @override
+  String get verseCopied => 'Versículo copiado al portapapeles';
 
   @override
   String get bookGenesis => 'Génesis';

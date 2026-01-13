@@ -176,7 +176,6 @@ class _VoiceMenuButton extends StatelessWidget {
       builder: (context, currentSource, _) {
         return PopupMenuButton<AudioSourceType>(
           icon: const Icon(Icons.person_outline),
-          tooltip: 'Voice',
           offset: const Offset(0, 40),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -195,13 +194,13 @@ class _VoiceMenuButton extends StatelessWidget {
               CheckedPopupMenuItem<AudioSourceType>(
                 value: AudioSourceType.heb,
                 checked: currentSource == AudioSourceType.heb,
-                child: const Text("Shmueloff"),
+                child: Text(AppLocalizations.of(context)!.sourceHEB),
               ),
               // Dan Beeri
               CheckedPopupMenuItem<AudioSourceType>(
                 value: AudioSourceType.rdb,
                 checked: currentSource == AudioSourceType.rdb,
-                child: const Text("Dan Beeri"),
+                child: Text(AppLocalizations.of(context)!.sourceRDB),
               ),
             ];
           },
@@ -231,20 +230,16 @@ class _RepeatMenuButton extends StatelessWidget {
             iconData = Icons.repeat;
             // Primary color with alpha to indicate "Off" / Disabled state
             iconColor = theme.colorScheme.primary.withValues(alpha: 0.3);
-            break;
           case AudioRepeatMode.verse:
             iconData = Icons.repeat_one_rounded;
             iconColor = theme.colorScheme.primary;
-            break;
           case AudioRepeatMode.chapter:
             iconData = Icons.repeat_rounded;
             iconColor = theme.colorScheme.primary;
-            break;
         }
 
         return PopupMenuButton<AudioRepeatMode>(
           icon: Icon(iconData, color: iconColor),
-          tooltip: 'Repeat Mode',
           offset: const Offset(0, -120),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -292,7 +287,6 @@ class _SpeedMenuButton extends StatelessWidget {
         String label = "${currentSpeed}x";
 
         return PopupMenuButton<double>(
-          tooltip: 'Playback Speed',
           offset: const Offset(0, -220),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -314,7 +308,7 @@ class _SpeedMenuButton extends StatelessWidget {
               label,
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
                 fontWeight: FontWeight.bold,
-                color: colorScheme.primary, // Primary color for text
+                color: colorScheme.primary,
               ),
             ),
           ),

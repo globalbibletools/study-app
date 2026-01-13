@@ -33,6 +33,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get hebrewGreekTextSize => 'Hebrew/Greek text size';
 
   @override
+  String get secondPanelTextSize => 'Second panel text size';
+
+  @override
+  String get lexiconTextSize => 'Lexicon text size';
+
+  @override
   String get downloadGlossesMessage =>
       'To show word meanings in English, the data needs to be downloaded. Would you like to download it now?';
 
@@ -60,9 +66,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get nextChapter => 'Next chapter';
 
   @override
-  String get similarVerses => 'See uses';
-
-  @override
   String get root => 'Root';
 
   @override
@@ -70,12 +73,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get search => 'Search';
-
-  @override
-  String get useInAppKeyboard => 'Use In-App Keyboard';
-
-  @override
-  String get useSystemKeyboard => 'Use System Keyboard';
 
   @override
   String resultsCount(int count) {
@@ -90,37 +87,33 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get actionSplitScreen => 'Split Screen';
-
-  @override
-  String get actionPlayAudio => 'Play Audio';
-
-  @override
-  String get audioSettings => 'Audio Settings';
-
-  @override
-  String get audioPlaybackSpeed => 'Playback Speed';
-
-  @override
-  String get audioRepeatMode => 'Repeat Mode';
-
-  @override
   String get repeatNone => 'None';
 
   @override
-  String get repeatVerse => 'Verse';
+  String get repeatVerse => 'Repeat verse';
 
   @override
-  String get repeatChapter => 'Chapter';
+  String get repeatChapter => 'Repeat chapter';
 
   @override
   String get audioRecordingSource => 'Recording Source';
 
   @override
-  String get sourceHEB => 'Abraham Shmueloff';
+  String get sourceHEB => 'Shmueloff';
 
   @override
-  String get sourceRDB => 'Rabbi Dan Beeri';
+  String get sourceRDB => 'Dan Beeri';
+
+  @override
+  String get downloadAudio => 'Download Audio';
+
+  @override
+  String audioNotDownloaded(String book, int chapter) {
+    return 'Audio for $book $chapter is not on your device.';
+  }
+
+  @override
+  String get verseCopied => 'Verse copied to clipboard';
 
   @override
   String get bookGenesis => 'Genesis';

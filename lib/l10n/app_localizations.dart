@@ -146,6 +146,18 @@ abstract class AppLocalizations {
   /// **'Hebrew/Greek text size'**
   String get hebrewGreekTextSize;
 
+  /// Settings option to change the text size in the second panel
+  ///
+  /// In en, this message translates to:
+  /// **'Second panel text size'**
+  String get secondPanelTextSize;
+
+  /// Settings option to change the text size in the Lexicon popup
+  ///
+  /// In en, this message translates to:
+  /// **'Lexicon text size'**
+  String get lexiconTextSize;
+
   /// Message asking user to download glosses for a specific language.
   ///
   /// In en, this message translates to:
@@ -194,12 +206,6 @@ abstract class AppLocalizations {
   /// **'Next chapter'**
   String get nextChapter;
 
-  /// Show list of verses with the same Strong's number
-  ///
-  /// In en, this message translates to:
-  /// **'See uses'**
-  String get similarVerses;
-
   /// The root grammatical form (lemma) of a Hebrew or Greek word
   ///
   /// In en, this message translates to:
@@ -218,53 +224,11 @@ abstract class AppLocalizations {
   /// **'Search'**
   String get search;
 
-  /// Tool tip for system vs in-app keyboard switcher button
-  ///
-  /// In en, this message translates to:
-  /// **'Use In-App Keyboard'**
-  String get useInAppKeyboard;
-
-  /// Tool tip for system vs in-app keyboard switcher button
-  ///
-  /// In en, this message translates to:
-  /// **'Use System Keyboard'**
-  String get useSystemKeyboard;
-
   /// The message to display when returning the number of results for a search. This should properly handle any possible number for a given language: 'No results', '1 result', '27 results'
   ///
   /// In en, this message translates to:
   /// **'{count, plural, =0{No results} =1{1 result} other{{count} results}}'**
   String resultsCount(int count);
-
-  /// Menu item name to change between one or two panels
-  ///
-  /// In en, this message translates to:
-  /// **'Split Screen'**
-  String get actionSplitScreen;
-
-  /// Menu item name to start the audio player
-  ///
-  /// In en, this message translates to:
-  /// **'Play Audio'**
-  String get actionPlayAudio;
-
-  /// Audio settings panel title
-  ///
-  /// In en, this message translates to:
-  /// **'Audio Settings'**
-  String get audioSettings;
-
-  /// Bottom popup panel title for changing the audio speed
-  ///
-  /// In en, this message translates to:
-  /// **'Playback Speed'**
-  String get audioPlaybackSpeed;
-
-  /// Audio settings: Repeat mode setting
-  ///
-  /// In en, this message translates to:
-  /// **'Repeat Mode'**
-  String get audioRepeatMode;
 
   /// Audio setting: Repeat node
   ///
@@ -275,13 +239,13 @@ abstract class AppLocalizations {
   /// Audio setting: Repeat verse
   ///
   /// In en, this message translates to:
-  /// **'Verse'**
+  /// **'Repeat verse'**
   String get repeatVerse;
 
   /// Audio setting: Repeat chapter
   ///
   /// In en, this message translates to:
-  /// **'Chapter'**
+  /// **'Repeat chapter'**
   String get repeatChapter;
 
   /// Audio settings: Recording source
@@ -293,14 +257,32 @@ abstract class AppLocalizations {
   /// Audio recording source setting: Abraham Shmueloff
   ///
   /// In en, this message translates to:
-  /// **'Abraham Shmueloff'**
+  /// **'Shmueloff'**
   String get sourceHEB;
 
   /// Audio recording source setting: Rabbi Dan Beeri
   ///
   /// In en, this message translates to:
-  /// **'Rabbi Dan Beeri'**
+  /// **'Dan Beeri'**
   String get sourceRDB;
+
+  /// Title of the download audio dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Download Audio'**
+  String get downloadAudio;
+
+  /// Message shown when audio is missing
+  ///
+  /// In en, this message translates to:
+  /// **'Audio for {book} {chapter} is not on your device.'**
+  String audioNotDownloaded(String book, int chapter);
+
+  /// Snackbar message when a verse is copied
+  ///
+  /// In en, this message translates to:
+  /// **'Verse copied to clipboard'**
+  String get verseCopied;
 
   /// The name of the first book of the Bible
   ///
