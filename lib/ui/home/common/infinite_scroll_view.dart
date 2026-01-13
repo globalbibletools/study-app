@@ -6,6 +6,8 @@ import 'package:studyapp/common/bible_navigation.dart';
 
 import 'scroll_sync_controller.dart';
 
+const _topScrollOffset = 16.0;
+
 typedef ChapterBuilder =
     Widget Function(BuildContext context, int bookId, int chapter);
 
@@ -381,7 +383,8 @@ class _InfiniteScrollViewState extends State<InfiniteScrollView> {
           await _scrollToAbsolutePosition(
             actualState!.context,
             verseOffset,
-            animate: target.isAuto, // <--- Animate if triggered by audio
+            animate: target.isAuto,
+            verseNumber: target.verse,
           );
 
           if (mounted) {
@@ -400,6 +403,7 @@ class _InfiniteScrollViewState extends State<InfiniteScrollView> {
     BuildContext chapterContext,
     double offsetInsideChapter, {
     required bool animate,
+    required int verseNumber,
   }) async {
     // Calculate absolute scroll position
     final renderObject = chapterContext.findRenderObject();
@@ -410,6 +414,12 @@ class _InfiniteScrollViewState extends State<InfiniteScrollView> {
 
     // Add the verse's internal offset
     double targetPixels = revealedOffset.offset + offsetInsideChapter;
+
+    // Subtract 16 pixels so the verse isn't glued to the top of the viewport,
+    // unless it's verse 1 (which has the chapter title above it).
+    if (verseNumber > 1) {
+      targetPixels -= _topScrollOffset;
+    }
 
     // Clamp to bounds
     targetPixels = targetPixels.clamp(
