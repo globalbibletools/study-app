@@ -3,6 +3,7 @@ import 'package:studyapp/l10n/app_localizations.dart';
 import 'package:studyapp/l10n/book_names.dart';
 import 'package:studyapp/services/download/cancel_token.dart';
 import 'package:studyapp/ui/common/download_progress_dialog.dart';
+import 'package:studyapp/ui/home/audio/audio_logic.dart';
 import 'package:studyapp/ui/home/audio/audio_manager.dart';
 import 'package:studyapp/ui/home/audio/audio_player.dart';
 import 'package:studyapp/ui/home/bible_panel/bible_panel.dart';
@@ -249,6 +250,16 @@ class _HomeScreenState extends State<HomeScreen> {
     // If already open, close it (Toggle behavior)
     if (manager.audioManager.isVisibleNotifier.value) {
       manager.audioManager.stopAndClose();
+      return;
+    }
+
+    // Check if audio is actually available for this book/chapter
+    if (!AudioLogic.isAudioAvailable(displayBookId, displayChapter)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.audioNotAvailable),
+        ),
+      );
       return;
     }
 

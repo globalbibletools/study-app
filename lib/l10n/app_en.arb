@@ -137,6 +137,10 @@
       }
     }
   },
+  "audioNotAvailable": "Audio is not available for this chapter.",
+  "@audioNotAvailable": {
+    "description": "Message shown when the user tries to play audio for a chapter that does not exist on the server."
+  },
   "verseCopied": "Verse copied to clipboard",
   "@verseCopied": {
     "description": "Snackbar message when a verse is copied"

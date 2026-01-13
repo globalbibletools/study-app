@@ -284,6 +284,12 @@ abstract class AppLocalizations {
   /// **'Audio for {book} {chapter} is not on your device.'**
   String audioNotDownloaded(String book, int chapter);
 
+  /// Message shown when the user tries to play audio for a chapter that does not exist on the server.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio is not available for this chapter.'**
+  String get audioNotAvailable;
+
   /// Snackbar message when a verse is copied
   ///
   /// In en, this message translates to:

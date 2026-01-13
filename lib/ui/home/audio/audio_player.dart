@@ -389,6 +389,18 @@ class _PlayButton extends StatelessWidget {
             color: primaryColor,
             padding: EdgeInsets.zero,
             onPressed: () async {
+              // Check availability before attempting play
+              if (!AudioLogic.isAudioAvailable(bookId, chapter)) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      AppLocalizations.of(context)!.audioNotAvailable,
+                    ),
+                  ),
+                );
+                return;
+              }
+
               try {
                 await audioManager.play(
                   checkBookId: bookId,

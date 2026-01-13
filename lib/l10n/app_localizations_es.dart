@@ -116,6 +116,10 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String get audioNotAvailable =>
+      'El audio no está disponible para este capítulo.';
+
+  @override
   String get verseCopied => 'Versículo copiado al portapapeles';
 
   @override

@@ -116,6 +116,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get audioNotAvailable => 'Audio is not available for this chapter.';
+
+  @override
   String get verseCopied => 'Verse copied to clipboard';
 
   @override
