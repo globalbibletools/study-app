@@ -13,6 +13,7 @@ class UserSettings {
   static const _currentBookIdKey = 'currentBookId';
   static const _hebrewGreekFontScaleKey = 'hebrewGreekFontScale';
   static const _bibleFontScaleKey = 'bibleFontScale';
+  static const _wordDetailsFontScaleKey = 'wordDetailsFontScale';
   static const _localeKey = 'locale';
   static const _isHebrewSearchKey = 'isHebrewSearch';
   static const _useSystemKeyboardKey = 'useSystemKeyboard';
@@ -42,6 +43,13 @@ class UserSettings {
 
   Future<void> setBibleFontScale(double scale) async {
     await _prefs.setDouble(_bibleFontScaleKey, scale);
+  }
+
+  double get wordDetailsFontScale =>
+      _prefs.getDouble(_wordDetailsFontScaleKey) ?? 1.0;
+
+  Future<void> setWordDetailsFontScale(double scale) async {
+    await _prefs.setDouble(_wordDetailsFontScaleKey, scale);
   }
 
   Locale get locale {

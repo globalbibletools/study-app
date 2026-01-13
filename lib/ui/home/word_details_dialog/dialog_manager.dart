@@ -6,11 +6,13 @@ import 'package:studyapp/services/gloss/gloss_service.dart';
 import 'package:studyapp/services/hebrew_greek/database.dart';
 import 'package:studyapp/services/lexicon/database.dart';
 import 'package:studyapp/services/service_locator.dart';
+import 'package:studyapp/services/user_settings.dart';
 
 class WordDetailsDialogManager extends ChangeNotifier {
   final _hebrewGreekDb = getIt<HebrewGreekDatabase>();
   final _glossService = getIt<GlossService>();
   final _lexiconDb = getIt<LexiconsDatabase>();
+  final _settings = getIt<UserSettings>();
 
   WordDetails? wordDetails;
   List<LexiconMeaning> lexiconMeanings = [];
@@ -37,6 +39,12 @@ class WordDetailsDialogManager extends ChangeNotifier {
       strongsCode: strongs,
       grammar: grammar,
     );
+  }
+
+  double get initialFontScale => _settings.wordDetailsFontScale;
+
+  Future<void> saveFontScale(double scale) async {
+    await _settings.setWordDetailsFontScale(scale);
   }
 
   String expandGrammar(String grammar) {

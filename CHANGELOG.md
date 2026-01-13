@@ -7,6 +7,8 @@
 - Fix navigation when in repeat verse audio mode.
 - Fix live swapping audio voices.
 - Copy verse text when verse number is long pressed.
+- Add Copy Word button to word lexicon popup.
+- Pinch to zoom font size for lexicon popup.
 
 ## 0.14.0 - January 10, 2025
 
