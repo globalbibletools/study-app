@@ -10,6 +10,18 @@ import 'package:studyapp/ui/home/hebrew_greek_panel/text.dart';
 import 'package:studyapp/ui/home/home.dart';
 import 'package:studyapp/ui/home/word_details_dialog/word_details_dialog.dart';
 
+class VerseNumberTapNotification extends Notification {
+  final int bookId;
+  final int chapter;
+  final int verse;
+
+  const VerseNumberTapNotification({
+    required this.bookId,
+    required this.chapter,
+    required this.verse,
+  });
+}
+
 /// Manages fetching data and alerts for a single chapter.
 class HebrewGreekChapter extends StatefulWidget {
   const HebrewGreekChapter({
@@ -146,6 +158,13 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter>
                       color: Theme.of(context).colorScheme.primary,
                       fontSize: widget.fontSize * 0.7,
                     ),
+                    onVerseNumberTap: (verse) {
+                      VerseNumberTapNotification(
+                        bookId: widget.bookId,
+                        chapter: widget.chapter,
+                        verse: verse,
+                      ).dispatch(context);
+                    },
                     popupBackgroundColor: Theme.of(
                       context,
                     ).colorScheme.inverseSurface,

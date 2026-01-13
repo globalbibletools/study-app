@@ -98,6 +98,7 @@ class HebrewGreekText extends LeafRenderObjectWidget {
     this.flashColor,
     this.highlightedVerse,
     this.highlightColor,
+    this.onVerseNumberTap,
   });
 
   /// The words that will rendered in the text layout
@@ -144,6 +145,9 @@ class HebrewGreekText extends LeafRenderObjectWidget {
   /// The background color to use for a highlighted verse
   final Color? highlightColor;
 
+  /// Callback when a verse number is tapped
+  final ValueChanged<int>? onVerseNumberTap;
+
   @override
   RenderHebrewGreekText createRenderObject(BuildContext context) {
     final defaultTextStyle = DefaultTextStyle.of(context);
@@ -170,6 +174,7 @@ class HebrewGreekText extends LeafRenderObjectWidget {
       popupTextStyle: effectivePopupTextStyle,
       onPopupShown: onPopupShown,
       onWordLongPress: onWordLongPress,
+      onVerseNumberTap: onVerseNumberTap,
       flashColor:
           flashColor ??
           effectiveVerseNumberStyle?.color?.withValues(alpha: 0.4) ??
@@ -212,6 +217,7 @@ class HebrewGreekText extends LeafRenderObjectWidget {
       ..popupTextStyle = effectivePopupTextStyle
       ..onPopupShown = onPopupShown
       ..onWordLongPress = onWordLongPress
+      ..onVerseNumberTap = onVerseNumberTap
       ..flashColor =
           flashColor ??
           effectiveVerseNumberStyle?.color?.withValues(alpha: 0.4) ??
@@ -254,6 +260,12 @@ class HebrewGreekText extends LeafRenderObjectWidget {
         onWordLongPress,
       ),
     );
+    properties.add(
+      ObjectFlagProperty<ValueChanged<int>>.has(
+        'onVerseNumberTap',
+        onVerseNumberTap,
+      ),
+    );
     properties.add(ColorProperty('flashColor', flashColor));
     properties.add(IntProperty('highlightedVerse', highlightedVerse));
     properties.add(ColorProperty('highlightColor', highlightColor));
@@ -274,6 +286,7 @@ class RenderHebrewGreekText extends RenderBox {
     required TextStyle popupTextStyle,
     ValueChanged<Rect>? onPopupShown,
     AsyncWordActionCallback? onWordLongPress,
+    ValueChanged<int>? onVerseNumberTap,
     required Color flashColor,
     int? highlightedVerse,
     Color? highlightColor,
@@ -287,6 +300,7 @@ class RenderHebrewGreekText extends RenderBox {
        _popupTextStyle = popupTextStyle,
        _onPopupShown = onPopupShown,
        _onWordLongPress = onWordLongPress,
+       _onVerseNumberTap = onVerseNumberTap,
        _flashColor = flashColor,
        _highlightedVerse = highlightedVerse,
        _highlightColor = highlightColor {
@@ -405,6 +419,13 @@ class RenderHebrewGreekText extends RenderBox {
   set onWordLongPress(AsyncWordActionCallback? value) {
     if (_onWordLongPress == value) return;
     _onWordLongPress = value;
+  }
+
+  ValueChanged<int>? _onVerseNumberTap;
+  ValueChanged<int>? get onVerseNumberTap => _onVerseNumberTap;
+  set onVerseNumberTap(ValueChanged<int>? value) {
+    if (_onVerseNumberTap == value) return;
+    _onVerseNumberTap = value;
   }
 
   Color _flashColor;
@@ -835,6 +856,7 @@ class RenderHebrewGreekText extends RenderBox {
 
     if (entry is VerseNumberHitTestEntry) {
       debugPrint('Tapped on verse number: ${entry.verseNumber}');
+      _onVerseNumberTap?.call(entry.verseNumber);
       _dismissPopup();
       return;
     }

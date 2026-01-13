@@ -6,6 +6,7 @@ import 'package:studyapp/ui/home/audio/audio_manager.dart';
 import 'package:studyapp/ui/home/audio/audio_player.dart';
 import 'package:studyapp/ui/home/bible_panel/bible_panel.dart';
 import 'package:studyapp/ui/home/appbar/drawer.dart';
+import 'package:studyapp/ui/home/hebrew_greek_panel/chapter.dart';
 import 'package:studyapp/ui/home/hebrew_greek_panel/panel.dart';
 
 import 'appbar/appbar.dart';
@@ -131,31 +132,47 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Stack(
             children: [
               // The main content (Bible Panels)
-              ValueListenableBuilder<bool>(
-                valueListenable: manager.isSinglePanelNotifier,
-                builder: (context, isSinglePanel, _) {
-                  return Column(
-                    children: [
-                      Expanded(
-                        child: HebrewGreekPanel(
-                          bookId: panelBookId,
-                          chapter: panelChapter,
-                          syncController: syncController,
-                        ),
+              NotificationListener<VerseNumberTapNotification>(
+                onNotification: (notification) {
+                  if (manager.audioManager.isVisibleNotifier.value) {
+                    manager.audioManager.play(
+                      checkBookId: notification.bookId,
+                      checkChapter: notification.chapter,
+                      checkBookName: bookNameFromId(
+                        context,
+                        notification.bookId,
                       ),
-                      if (!isSinglePanel) ...[
-                        const SizedBox(height: 16),
+                      startVerse: notification.verse,
+                    );
+                  }
+                  return true;
+                },
+                child: ValueListenableBuilder<bool>(
+                  valueListenable: manager.isSinglePanelNotifier,
+                  builder: (context, isSinglePanel, _) {
+                    return Column(
+                      children: [
                         Expanded(
-                          child: BiblePanel(
+                          child: HebrewGreekPanel(
                             bookId: panelBookId,
                             chapter: panelChapter,
                             syncController: syncController,
                           ),
                         ),
+                        if (!isSinglePanel) ...[
+                          const SizedBox(height: 16),
+                          Expanded(
+                            child: BiblePanel(
+                              bookId: panelBookId,
+                              chapter: panelChapter,
+                              syncController: syncController,
+                            ),
+                          ),
+                        ],
                       ],
-                    ],
-                  );
-                },
+                    );
+                  },
+                ),
               ),
 
               // The Audio Player sliding up from the bottom
