@@ -228,17 +228,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _onPlayAudio(BuildContext context) async {
-    // If already open, force a restart from current verse position
+    // If already open, close it (Toggle behavior)
     if (manager.audioManager.isVisibleNotifier.value) {
-      try {
-        await manager.playAudioForCurrentChapter(
-          bookNameFromId(context, displayBookId),
-          displayChapter,
-          startVerse: displayVerse,
-        );
-      } catch (e) {
-        debugPrint(e.toString());
-      }
+      manager.audioManager.stopAndClose();
       return;
     }
 

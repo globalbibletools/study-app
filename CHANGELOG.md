@@ -2,6 +2,7 @@
 
 - Update design of audio player to remove need for settings panel.
 - Download rather than stream audio.
+- Start playing audio from current verse.
 
 ## 0.14.0 - January 10, 2025
 
