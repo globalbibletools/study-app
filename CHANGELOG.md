@@ -1,4 +1,4 @@
-## 0.15.0 
+## 0.15.0 - January 13, 2026
 
 - Update design of audio player to remove need for settings panel.
 - Download rather than stream audio.
@@ -10,6 +10,7 @@
 - Add Copy Word button to word lexicon popup.
 - Pinch to zoom font size for lexicon popup.
 - Text size settings: Hebrew/Greek panel, second panel, and lexicon.
+- Add NT audio for some chapters and books. (no timing data available)
 
 ## 0.14.0 - January 10, 2025
 
