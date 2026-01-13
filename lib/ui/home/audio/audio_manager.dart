@@ -430,7 +430,19 @@ class AudioManager {
 
     // Reload if currently playing
     if (isVisibleNotifier.value && _loadedBookId != null) {
-      await loadAndPlay(_loadedBookId!, _loadedChapter!, _loadedBookName!);
+      // Capture current verse before stopping
+      final currentVerse = _lastSyncedVerse > 0 ? _lastSyncedVerse : 1;
+
+      // Stop playback explicitly before loading the new source.
+      await audioHandler.stop();
+
+      // Attempt to load the new source with the captured verse.
+      await loadAndPlay(
+        _loadedBookId!,
+        _loadedChapter!,
+        _loadedBookName!,
+        startVerse: currentVerse,
+      );
     }
   }
 

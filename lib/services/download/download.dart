@@ -90,8 +90,14 @@ class DownloadService {
 
         await inputStream.close();
       } else {
+        debugPrint('Attempting to rename temp file to: $localPath');
+
         // Rename .part to actual file name
         await tempFile.rename(localPath);
+
+        final exists = await File(localPath).exists(); // <--- ADD THIS
+        debugPrint('File renamed. Exists at $localPath? $exists');
+
         // tempFile is now invalid, but that's okay as we renamed it
         tempFile = null;
       }

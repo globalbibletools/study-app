@@ -13,10 +13,6 @@ import 'package:studyapp/services/user_settings.dart';
 import 'package:studyapp/ui/home/audio/audio_manager.dart';
 import 'package:studyapp/ui/home/common/scroll_sync_controller.dart';
 
-enum AudioRepeatMode { none, chapter, verse }
-
-enum AudioSourceType { heb, rdb }
-
 class HomeManager {
   final currentBookNotifier = ValueNotifier<String>('');
   final currentChapterNotifier = ValueNotifier<int>(1);

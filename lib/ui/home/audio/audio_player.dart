@@ -49,7 +49,10 @@ class BottomAudioPlayer extends StatelessWidget {
           Row(
             children: [
               // Voice Source Button (Person Head)
-              _VoiceMenuButton(audioManager: audioManager),
+              _VoiceMenuButton(
+                audioManager: audioManager,
+                onAudioMissing: onAudioMissing,
+              ),
 
               const SizedBox(width: 8),
 
@@ -162,8 +165,9 @@ class BottomAudioPlayer extends StatelessWidget {
 
 class _VoiceMenuButton extends StatelessWidget {
   final AudioManager audioManager;
+  final VoidCallback? onAudioMissing;
 
-  const _VoiceMenuButton({required this.audioManager});
+  const _VoiceMenuButton({required this.audioManager, this.onAudioMissing});
 
   @override
   Widget build(BuildContext context) {
@@ -177,7 +181,14 @@ class _VoiceMenuButton extends StatelessWidget {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          onSelected: audioManager.setAudioSource,
+          onSelected: (AudioSourceType source) async {
+            try {
+              await audioManager.setAudioSource(source);
+            } on AudioMissingException {
+              // If the new voice file is missing, trigger the download dialog
+              onAudioMissing?.call();
+            }
+          },
           itemBuilder: (BuildContext context) {
             return [
               // Shmueloff

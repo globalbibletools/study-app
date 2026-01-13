@@ -1,3 +1,4 @@
+import 'dart:developer';
 import 'dart:io';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
@@ -30,7 +31,14 @@ class FileService {
   /// Checks if a file exists locally.
   Future<bool> checkFileExists(FileType type, String relativePath) async {
     final path = await getLocalPath(type, relativePath);
-    return File(path).exists();
+    final exists = File(path).exists(); // Note: check sync or await async
+
+    // Check if it exists (awaiting the result if you use async exists, or File(path).existsSync())
+    final doesExist = await File(path).exists();
+
+    log('Checking existence for: $path -> $doesExist'); // <--- ADD THIS
+
+    return doesExist;
   }
 
   /// Ensures the directory for a file exists (crucial before downloading).
