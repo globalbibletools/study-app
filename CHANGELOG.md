@@ -6,6 +6,7 @@
 - Play verse when verse number tapped (if audio player is visible).
 - Fix navigation when in repeat verse audio mode.
 - Fix live swapping audio voices.
+- Copy verse text when verse number is long pressed.
 
 ## 0.14.0 - January 10, 2025
 

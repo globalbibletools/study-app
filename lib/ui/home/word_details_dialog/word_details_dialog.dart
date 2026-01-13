@@ -1,5 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:studyapp/l10n/app_localizations.dart';
 import 'package:studyapp/ui/home/word_details_dialog/similar_verses/similar_verses_page.dart';
 import 'package:studyapp/ui/home/word_details_dialog/dialog_manager.dart';
@@ -27,6 +28,7 @@ class _WordDetailsDialogState extends State<WordDetailsDialog> {
   TextStyle? lexiconStyle;
 
   static const fontSize = 30.0;
+  bool _isCopied = false;
 
   @override
   void didChangeDependencies() {
@@ -67,8 +69,8 @@ class _WordDetailsDialogState extends State<WordDetailsDialog> {
                     children: [
                       _buildHebrewGreekWord(wordDetails),
                       _buildGrammar(wordDetails),
-                      const SizedBox(height: 16),
-                      _buildSimilarVersesButton(context, wordDetails),
+                      const SizedBox(height: 8),
+                      _buildActionButtons(context, wordDetails),
                       const SizedBox(height: 16),
                       _buildGloss(wordDetails),
                       ..._buildLexicon(),
@@ -146,24 +148,62 @@ class _WordDetailsDialogState extends State<WordDetailsDialog> {
     );
   }
 
-  OutlinedButton _buildSimilarVersesButton(
-    BuildContext context,
-    WordDetails wordDetails,
-  ) {
-    return OutlinedButton(
-      child: Text(
-        AppLocalizations.of(context)!.similarVerses,
-        style: defaultStyle,
-      ),
-      onPressed: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => SimilarVersesPage(word: wordDetails),
+  Widget _buildActionButtons(BuildContext context, WordDetails wordDetails) {
+    final theme = Theme.of(context);
+    final iconColor = theme.colorScheme.primary;
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        // Similar Verses Button
+        IconButton(
+          icon: Icon(Icons.list, color: iconColor),
+          tooltip: AppLocalizations.of(context)!.similarVerses,
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => SimilarVersesPage(word: wordDetails),
+              ),
+            );
+          },
+        ),
+        const SizedBox(width: 24),
+        // Copy Button
+        IconButton(
+          icon: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            transitionBuilder: (Widget child, Animation<double> animation) {
+              return ScaleTransition(scale: animation, child: child);
+            },
+            child: Icon(
+              _isCopied ? Icons.check : Icons.copy,
+              key: ValueKey<bool>(_isCopied),
+              color: _isCopied ? Colors.green : iconColor,
+            ),
           ),
-        );
-      },
+          tooltip: 'Copy word',
+          onPressed: () => _handleCopy(wordDetails.word),
+        ),
+      ],
     );
+  }
+
+  Future<void> _handleCopy(String text) async {
+    await Clipboard.setData(ClipboardData(text: text));
+
+    if (!mounted) return;
+    setState(() {
+      _isCopied = true;
+    });
+
+    // Reset back to copy icon after 2 seconds
+    await Future.delayed(const Duration(seconds: 2));
+
+    if (!mounted) return;
+    setState(() {
+      _isCopied = false;
+    });
   }
 
   Widget _buildCloseButton(BuildContext context) {
