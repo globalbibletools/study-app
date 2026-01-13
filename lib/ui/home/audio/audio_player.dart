@@ -10,6 +10,7 @@ class BottomAudioPlayer extends StatelessWidget {
   final AudioManager audioManager;
   final int currentBookId;
   final int currentChapter;
+  final int currentVerse;
   final String currentBookName;
   final VoidCallback? onAudioMissing;
 
@@ -18,6 +19,7 @@ class BottomAudioPlayer extends StatelessWidget {
     required this.audioManager,
     required this.currentBookId,
     required this.currentChapter,
+    required this.currentVerse,
     required this.currentBookName,
     this.onAudioMissing,
   });
@@ -26,7 +28,6 @@ class BottomAudioPlayer extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final l10n = AppLocalizations.of(context)!;
 
     return Container(
       decoration: BoxDecoration(
@@ -125,6 +126,7 @@ class BottomAudioPlayer extends StatelessWidget {
                     audioManager: audioManager,
                     bookId: currentBookId,
                     chapter: currentChapter,
+                    verse: currentVerse,
                     bookName: currentBookName,
                     onAudioMissing: onAudioMissing,
                   ),
@@ -316,6 +318,7 @@ class _PlayButton extends StatelessWidget {
     required this.audioManager,
     required this.bookId,
     required this.chapter,
+    required this.verse,
     required this.bookName,
     this.onAudioMissing,
   });
@@ -323,6 +326,7 @@ class _PlayButton extends StatelessWidget {
   final AudioManager audioManager;
   final int bookId;
   final int chapter;
+  final int verse;
   final String bookName;
   final VoidCallback? onAudioMissing;
 
@@ -361,6 +365,7 @@ class _PlayButton extends StatelessWidget {
                   checkBookId: bookId,
                   checkChapter: chapter,
                   checkBookName: bookName,
+                  startVerse: verse,
                 );
               } on AudioMissingException catch (_) {
                 onAudioMissing?.call();

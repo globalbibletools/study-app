@@ -51,72 +51,61 @@ class AudioManager {
     _syncController = controller;
   }
 
-  Future<void> loadAndPlay(int bookId, int chapter, String bookName) async {
-    // 1. Determine IDs
+  Future<void> loadAndPlay(
+    int bookId,
+    int chapter,
+    String bookName, {
+    int? startVerse,
+  }) async {
     final recordingId = audioSourceNotifier.value == AudioSourceType.heb
         ? 'HEB'
         : 'RDB';
 
-    // 2. Get the Relative Path
     final relativePath = AudioUrlHelper.getLocalRelativePath(
       bookId: bookId,
       chapter: chapter,
       recordingId: recordingId,
     );
 
-    // 3. Check if file exists locally
     final exists = await _fileService.checkFileExists(
       FileType.audio,
       relativePath,
     );
 
     if (!exists) {
-      // 4. If not, stop everything and throw exception for UI to handle
       stopAndClose();
       throw AudioMissingException(bookId, chapter);
     }
 
-    // 5. If exists, get the absolute path
     final localFullPath = await _fileService.getLocalPath(
       FileType.audio,
       relativePath,
     );
 
-    // Save state for reloading
     _loadedBookId = bookId;
     _loadedChapter = chapter;
     _loadedBookName = bookName;
     isVisibleNotifier.value = true;
 
-    // Fetch timings
     _currentTimings = await _audioDb.getTimingsForChapter(
       bookId,
       chapter,
       recordingId,
     );
 
-    // --- FIX: Sanitize bad data for the last verse ---
+    // Sanitize bad data for the last verse
     if (_currentTimings.isNotEmpty) {
       final last = _currentTimings.last;
-
-      // If the end time is smaller than the start time (e.g. 0.324 < 353.277)
-      // We assume it means "play until the end".
-      // We set the end time to a very large number (e.g. 10 hours).
       if (last.end <= last.start) {
         _currentTimings.removeLast();
         _currentTimings.add(
-          AudioTiming(
-            verseId: last.verseId,
-            start: last.start,
-            end: 36000.0, // Arbitrary large number (10 hours)
-          ),
+          AudioTiming(verseId: last.verseId, start: last.start, end: 36000.0),
         );
       }
     }
 
     _lastSyncedVerse = -1;
 
-    // 6. Initialize Player with LOCAL FILE URI
     await audioHandler.setUrl(
       Uri.file(localFullPath).toString(),
       title: "$bookName $chapter",
@@ -125,6 +114,21 @@ class AudioManager {
 
     await audioHandler.setSpeed(playbackSpeedNotifier.value);
     _startSyncListener();
+
+    // --- SEEK TO START VERSE LOGIC ---
+    if (startVerse != null && startVerse > 1 && _currentTimings.isNotEmpty) {
+      // Find the timing that corresponds to the startVerse
+      // Using 'orElse' to be safe, though startVerse usually exists if validated by UI
+      final timing = _currentTimings.firstWhere(
+        (t) => t.verseNumber == startVerse,
+        orElse: () => _currentTimings.first,
+      );
+      // Seek to the start of the verse
+      await audioHandler.seek(
+        Duration(milliseconds: (timing.start * 1000).toInt()),
+      );
+    }
+
     audioHandler.play();
   }
 
@@ -241,18 +245,6 @@ class AudioManager {
 
   // --- Controls ---
 
-  // void stopAndClose() {
-  //   if (isVisibleNotifier.value) {
-  //     isVisibleNotifier.value = false;
-  //     audioHandler.stop();
-  //     _positionSubscription?.cancel();
-  //     _playerStateSubscription?.cancel();
-  //     _currentTimings = [];
-  //     _clearHighlight();
-  //     _loadedBookId = null;
-  //   }
-  // }
-
   void stopAndClose() {
     if (isVisibleNotifier.value) {
       // Trigger UI animation immediately
@@ -351,18 +343,34 @@ class AudioManager {
     int? checkBookId,
     int? checkChapter,
     String? checkBookName,
+    int? startVerse,
   }) async {
     // Check if the user has scrolled to a new chapter while paused/stopped
     if (checkBookId != null && checkChapter != null && checkBookName != null) {
       if (checkBookId != _loadedBookId || checkChapter != _loadedChapter) {
-        // User is looking at a different chapter than what is loaded.
-        // Load the new chapter and start playing.
-        await loadAndPlay(checkBookId, checkChapter, checkBookName);
+        // User is looking at a different chapter. Load it, starting at the specific verse.
+        await loadAndPlay(
+          checkBookId,
+          checkChapter,
+          checkBookName,
+          startVerse: startVerse,
+        );
         return;
       }
     }
 
-    // Otherwise, resume existing audio
+    // Resuming existing audio.
+    // If a specific verse is requested (e.g. from Play button while scrolled elsewhere), seek to it.
+    if (startVerse != null && _currentTimings.isNotEmpty) {
+      final timing = _currentTimings.firstWhere(
+        (t) => t.verseNumber == startVerse,
+        orElse: () => _currentTimings.first,
+      );
+      await audioHandler.seek(
+        Duration(milliseconds: (timing.start * 1000).toInt()),
+      );
+    }
+
     audioHandler.play();
   }
 

@@ -358,13 +358,6 @@ class _InfiniteScrollViewState extends State<InfiniteScrollView> {
       final verseOffset = scrollableState!.getOffsetForVerse(target.verse);
 
       if (verseOffset != null) {
-        // If it's an auto-jump (audio) and the verse is already visible, don't scroll.
-        if (target.isAuto) {
-          if (_isVerseVisible(actualState!.context, verseOffset)) {
-            return;
-          }
-        }
-
         _isProgrammaticScroll = true;
         widget.syncController?.setActiveSource(_panelId);
 
@@ -391,7 +384,6 @@ class _InfiniteScrollViewState extends State<InfiniteScrollView> {
             animate: target.isAuto, // <--- Animate if triggered by audio
           );
 
-          // 4. CLEANUP
           if (mounted) {
             _isProgrammaticScroll = false;
             if (widget.syncController != null &&
@@ -402,36 +394,6 @@ class _InfiniteScrollViewState extends State<InfiniteScrollView> {
         }();
       }
     }
-  }
-
-  /// Helper to check if a specific offset inside a chapter is currently within the viewport.
-  bool _isVerseVisible(
-    BuildContext chapterContext,
-    double offsetInsideChapter,
-  ) {
-    final renderObject = chapterContext.findRenderObject();
-    if (renderObject is! RenderBox) return false;
-
-    // Calculate where the Chapter starts relative to the ScrollView
-    final viewport = RenderAbstractViewport.of(renderObject);
-    final revealedOffset = viewport.getOffsetToReveal(renderObject, 0.0);
-
-    // Calculate the absolute pixel position of the verse in the scroll view
-    final double absoluteVersePosition =
-        revealedOffset.offset + offsetInsideChapter;
-
-    // Get current viewport bounds
-    final double currentScroll = _scrollController.offset;
-    final double viewportHeight = _scrollController.position.viewportDimension;
-    final double viewportBottom = currentScroll + viewportHeight;
-
-    // Logic: Is the verse top between the Scroll Top and Scroll Bottom?
-    // We add a buffer (e.g., 50px) to viewportBottom so we don't count a verse
-    // that is half-cut-off at the bottom as "visible".
-    const double bottomBuffer = 100.0;
-
-    return absoluteVersePosition >= currentScroll &&
-        absoluteVersePosition < (viewportBottom - bottomBuffer);
   }
 
   Future<void> _scrollToAbsolutePosition(

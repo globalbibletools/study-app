@@ -75,27 +75,6 @@ class AudioPlayerHandler {
 
   Stream<SequenceState?> get sequenceStateStream => player.sequenceStateStream;
 
-  // Future<void> playUrl(
-  //   String url, {
-  //   required String title,
-  //   required String subtitle,
-  // }) async {
-  //   try {
-  //     final source = AudioSource.uri(
-  //       Uri.parse(url),
-  //       tag: MediaItem(
-  //         id: url,
-  //         album: subtitle, // We use album for Book Name
-  //         title: title, // We use title for "Chapter X"
-  //       ),
-  //     );
-  //     await _player.setAudioSource(source);
-  //     await _player.play();
-  //   } catch (e) {
-  //     debugPrint("Error loading audio: $e");
-  //   }
-  // }
-
   Future<void> play() => player.play();
   Future<void> pause() => player.pause();
   Future<void> seek(Duration position) => player.seek(position);

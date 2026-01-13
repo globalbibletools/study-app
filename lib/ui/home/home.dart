@@ -173,6 +173,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         audioManager: manager.audioManager,
                         currentBookId: displayBookId,
                         currentChapter: displayChapter,
+                        currentVerse: displayVerse,
                         currentBookName: bookNameFromId(context, displayBookId),
                         onAudioMissing: () => _showDownloadAudioDialog(context),
                       ),
@@ -227,8 +228,17 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _onPlayAudio(BuildContext context) async {
+    // If already open, force a restart from current verse position
     if (manager.audioManager.isVisibleNotifier.value) {
-      manager.audioManager.stopAndClose();
+      try {
+        await manager.playAudioForCurrentChapter(
+          bookNameFromId(context, displayBookId),
+          displayChapter,
+          startVerse: displayVerse,
+        );
+      } catch (e) {
+        debugPrint(e.toString());
+      }
       return;
     }
 
@@ -236,6 +246,7 @@ class _HomeScreenState extends State<HomeScreen> {
       await manager.playAudioForCurrentChapter(
         bookNameFromId(context, displayBookId),
         displayChapter,
+        startVerse: displayVerse,
       );
     } on AudioMissingException catch (_) {
       // Catch the specific missing audio error

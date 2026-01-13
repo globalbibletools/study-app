@@ -78,8 +78,17 @@ class HomeManager {
     currentChapterNotifier.value = chapter;
   }
 
-  Future<void> playAudioForCurrentChapter(String bookName, int chapter) async {
-    await audioManager.loadAndPlay(_currentBookId, chapter, bookName);
+  Future<void> playAudioForCurrentChapter(
+    String bookName,
+    int chapter, {
+    int? startVerse,
+  }) async {
+    await audioManager.loadAndPlay(
+      _currentBookId,
+      chapter,
+      bookName,
+      startVerse: startVerse,
+    );
   }
 
   /// Returns a Future that completes when download is done.
