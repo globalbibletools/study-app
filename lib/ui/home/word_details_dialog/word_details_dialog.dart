@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:studyapp/l10n/app_localizations.dart';
 import 'package:studyapp/ui/home/common/zoom_wrapper.dart';
 import 'package:studyapp/ui/home/word_details_dialog/similar_verses/similar_verses_page.dart';
 import 'package:studyapp/ui/home/word_details_dialog/dialog_manager.dart';

@@ -30,13 +30,16 @@ class AppLocalizationsEs extends AppLocalizations {
   String get currentLanguage => 'Español';
 
   @override
-  String get hebrewGreekTextSize => 'Tamaño del texto en hebreo/griego';
+  String get textSize => 'Tamaño del texto';
 
   @override
-  String get secondPanelTextSize => 'Tamaño de texto del segundo panel';
+  String get hebrewGreekTextSize => 'Hebreo/Griego';
 
   @override
-  String get lexiconTextSize => 'Tamaño de texto del léxico';
+  String get secondPanelTextSize => 'Segundo panel';
+
+  @override
+  String get lexiconTextSize => 'Léxico';
 
   @override
   String get downloadGlossesMessage =>

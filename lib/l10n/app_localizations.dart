@@ -140,22 +140,28 @@ abstract class AppLocalizations {
   /// **'English'**
   String get currentLanguage;
 
+  /// Menu item for text size settings
+  ///
+  /// In en, this message translates to:
+  /// **'Text size'**
+  String get textSize;
+
   /// Settings option to change the display size of the Hebrew or Greek font
   ///
   /// In en, this message translates to:
-  /// **'Hebrew/Greek text size'**
+  /// **'Hebrew/Greek'**
   String get hebrewGreekTextSize;
 
   /// Settings option to change the text size in the second panel
   ///
   /// In en, this message translates to:
-  /// **'Second panel text size'**
+  /// **'Second panel'**
   String get secondPanelTextSize;
 
   /// Settings option to change the text size in the Lexicon popup
   ///
   /// In en, this message translates to:
-  /// **'Lexicon text size'**
+  /// **'Lexicon'**
   String get lexiconTextSize;
 
   /// Message asking user to download glosses for a specific language.

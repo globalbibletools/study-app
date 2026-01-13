@@ -28,15 +28,19 @@
   "@currentLanguage": {
     "description": "The name of the language for this locale"
   },
-  "hebrewGreekTextSize": "Hebrew/Greek text size",
+  "textSize": "Text size",
+  "@textSize": {
+    "description": "Menu item for text size settings"
+  },
+  "hebrewGreekTextSize": "Hebrew/Greek",
   "@hebrewGreekTextSize": {
     "description": "Settings option to change the display size of the Hebrew or Greek font"
   },
-  "secondPanelTextSize": "Second panel text size",
+  "secondPanelTextSize": "Second panel",
   "@secondPanelTextSize": {
     "description": "Settings option to change the text size in the second panel"
   },
-  "lexiconTextSize": "Lexicon text size",
+  "lexiconTextSize": "Lexicon",
   "@lexiconTextSize": {
     "description": "Settings option to change the text size in the Lexicon popup"
   },

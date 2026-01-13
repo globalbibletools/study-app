@@ -116,53 +116,54 @@ class _SettingsPageState extends State<SettingsPage> {
                   });
                 },
               ),
-              // Hebrew / Greek Font Size
-              ListTile(
-                title: Text(l10n.hebrewGreekTextSize),
-                trailing: Text(
-                  '${manager.hebrewTextSize.toInt()}',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-                onTap: () {
-                  _showFontSizeDialog(
-                    context,
-                    currentValue: manager.hebrewTextSize,
-                    onChanged: manager.setHebrewTextSize,
-                    previewText: 'א α',
-                  );
-                },
-              ),
-              // Bible Panel Font Size
-              ListTile(
-                title: Text(l10n.secondPanelTextSize),
-                trailing: Text(
-                  '${manager.bibleTextSize.toInt()}',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-                onTap: () {
-                  _showFontSizeDialog(
-                    context,
-                    currentValue: manager.bibleTextSize,
-                    onChanged: manager.setBibleTextSize,
-                    previewText: 'A a',
-                  );
-                },
-              ),
-              // Word Details / Lexicon Font Size
-              ListTile(
-                title: Text(l10n.lexiconTextSize),
-                trailing: Text(
-                  '${manager.lexiconTextSize.toInt()}',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-                onTap: () {
-                  _showFontSizeDialog(
-                    context,
-                    currentValue: manager.lexiconTextSize,
-                    onChanged: manager.setLexiconTextSize,
-                    previewText: 'A a',
-                  );
-                },
+
+              // EXPANDABLE TEXT SIZE SECTION
+              ExpansionTile(
+                title: Text(l10n.textSize),
+                children: [
+                  // 1. Hebrew/Greek
+                  ListTile(
+                    title: Text(l10n.hebrewGreekTextSize),
+                    trailing: Text('${manager.hebrewTextSize.toInt()}'),
+                    contentPadding: const EdgeInsets.only(left: 32, right: 16),
+                    onTap: () {
+                      _showFontSizeDialog(
+                        context,
+                        previewText: 'א α',
+                        currentValue: manager.hebrewTextSize,
+                        onChanged: manager.setHebrewTextSize,
+                      );
+                    },
+                  ),
+                  // 2. Second Panel
+                  ListTile(
+                    title: Text(l10n.secondPanelTextSize),
+                    trailing: Text('${manager.bibleTextSize.toInt()}'),
+                    contentPadding: const EdgeInsets.only(left: 32, right: 16),
+                    onTap: () {
+                      _showFontSizeDialog(
+                        context,
+                        previewText: 'A a',
+                        currentValue: manager.bibleTextSize,
+                        onChanged: manager.setBibleTextSize,
+                      );
+                    },
+                  ),
+                  // 3. Lexicon
+                  ListTile(
+                    title: Text(l10n.lexiconTextSize),
+                    trailing: Text('${manager.lexiconTextSize.toInt()}'),
+                    contentPadding: const EdgeInsets.only(left: 32, right: 16),
+                    onTap: () {
+                      _showFontSizeDialog(
+                        context,
+                        previewText: 'A a',
+                        currentValue: manager.lexiconTextSize,
+                        onChanged: manager.setLexiconTextSize,
+                      );
+                    },
+                  ),
+                ],
               ),
             ],
           );
