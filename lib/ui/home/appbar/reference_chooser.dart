@@ -54,7 +54,6 @@ class _ReferenceChooserState extends State<ReferenceChooser> {
 
   void _handleFocusChange(FocusNode node, Function(bool) setter) {
     if (!node.hasFocus) {
-      // Delay reverting to button to allow taps (like picking a book) to finish
       Future.delayed(const Duration(milliseconds: 200), () {
         if (mounted && !node.hasFocus) {
           setState(() {
@@ -93,6 +92,7 @@ class _ReferenceChooserState extends State<ReferenceChooser> {
           fit: FlexFit.loose,
           child: _BookSelector(
             currentBookName: widget.currentBookName,
+            currentBookId: widget.currentBookId,
             isActive: _isSelectingBook,
             focusNode: _bookFocus,
             onTap: () {
@@ -102,7 +102,8 @@ class _ReferenceChooserState extends State<ReferenceChooser> {
                 _isSelectingVerse = false;
               });
             },
-            onBookSelected: (id) {
+            onChanged: (id) => widget.onBookSelected(id),
+            onSubmitted: (id) {
               widget.onBookSelected(id);
               setState(() {
                 _isSelectingBook = false;
@@ -118,10 +119,11 @@ class _ReferenceChooserState extends State<ReferenceChooser> {
 
         // --- CHAPTER SELECTOR ---
         _NumberSelector(
-          label: '${widget.currentChapter}',
+          currentValue: widget.currentChapter,
           isActive: _isSelectingChapter,
           focusNode: _chapterFocus,
           maxValue: BibleNavigation.getChapterCount(widget.currentBookId),
+          enableSwipe: true, // Enabled
           onTap: () {
             setState(() {
               _isSelectingBook = false;
@@ -129,14 +131,55 @@ class _ReferenceChooserState extends State<ReferenceChooser> {
               _isSelectingVerse = false;
             });
           },
-          onChanged: (val) {
-            // Do NOTHING here. Changing the text should not load the chapter yet.
+          // --- CHAPTER SWIPE LOGIC (With Book Overflow) ---
+          onPeekNext: () {
+            final maxChapters = BibleNavigation.getChapterCount(
+              widget.currentBookId,
+            );
+            if (widget.currentChapter < maxChapters) {
+              return (widget.currentChapter + 1).toString();
+            } else if (widget.currentBookId < 66) {
+              return "1"; // Next Book, Chapter 1
+            }
+            return null; // End of Bible
           },
+          onNextInvoked: () {
+            final maxChapters = BibleNavigation.getChapterCount(
+              widget.currentBookId,
+            );
+            if (widget.currentChapter < maxChapters) {
+              widget.onChapterSelected(widget.currentChapter + 1);
+            } else if (widget.currentBookId < 66) {
+              // Overflow to next book
+              widget.onBookSelected(widget.currentBookId + 1);
+              widget.onChapterSelected(1);
+            }
+          },
+          onPeekPrevious: () {
+            if (widget.currentChapter > 1) {
+              return (widget.currentChapter - 1).toString();
+            } else if (widget.currentBookId > 1) {
+              // Previous Book, Last Chapter
+              final prevBookId = widget.currentBookId - 1;
+              return BibleNavigation.getChapterCount(prevBookId).toString();
+            }
+            return null; // Start of Bible
+          },
+          onPreviousInvoked: () {
+            if (widget.currentChapter > 1) {
+              widget.onChapterSelected(widget.currentChapter - 1);
+            } else if (widget.currentBookId > 1) {
+              // Overflow to previous book
+              final prevBookId = widget.currentBookId - 1;
+              widget.onBookSelected(prevBookId);
+              widget.onChapterSelected(
+                BibleNavigation.getChapterCount(prevBookId),
+              );
+            }
+          },
+          // --- TEXT INPUT LOGIC ---
           onSubmitted: (val) {
-            // 1. Notify Parent to load text
             widget.onChapterSelected(val);
-
-            // 2. Move to Verse Selection
             setState(() {
               _isSelectingChapter = false;
               _isSelectingVerse = true;
@@ -150,10 +193,11 @@ class _ReferenceChooserState extends State<ReferenceChooser> {
 
         // --- VERSE SELECTOR ---
         _NumberSelector(
-          label: '${widget.currentVerse}',
+          currentValue: widget.currentVerse,
           isActive: _isSelectingVerse,
           focusNode: _verseFocus,
-          maxValue: 200, // Safe upper bound
+          maxValue: 200, // Safe upper bound for text input
+          enableSwipe: false, // DISABLED for Verse
           onTap: () {
             setState(() {
               _isSelectingBook = false;
@@ -161,12 +205,14 @@ class _ReferenceChooserState extends State<ReferenceChooser> {
               _isSelectingVerse = true;
             });
           },
-          onChanged: (val) {
-            // Verse changes trigger IMMEDIATE scrolling
-            widget.onVerseSelected(val);
-          },
+          // Callbacks are ignored when enableSwipe is false, but required by constructor
+          onPeekNext: () => null,
+          onNextInvoked: () {},
+          onPeekPrevious: () => null,
+          onPreviousInvoked: () {},
+          // --- TEXT INPUT LOGIC ---
           onSubmitted: (val) {
-            // Pressing enter on verse just closes the inputs
+            widget.onVerseSelected(val);
             _resetAll();
           },
           onCancel: _resetAll,
@@ -176,34 +222,239 @@ class _ReferenceChooserState extends State<ReferenceChooser> {
   }
 }
 
-class _CompactSelectorButton extends StatelessWidget {
+// -----------------------------------------------------------------------------
+// SWIPEABLE BUTTON WIDGET
+// -----------------------------------------------------------------------------
+
+class _SwipeableSelectorButton extends StatefulWidget {
   final String label;
   final VoidCallback onTap;
+  final bool enableSwipe; // Controls if gesture is detected
+  final String? Function() onPeekNext;
+  final String? Function() onPeekPrevious;
+  final VoidCallback onNextInvoked;
+  final VoidCallback onPreviousInvoked;
 
-  const _CompactSelectorButton({required this.label, required this.onTap});
+  const _SwipeableSelectorButton({
+    required this.label,
+    required this.onTap,
+    this.enableSwipe = true,
+    required this.onPeekNext,
+    required this.onPeekPrevious,
+    required this.onNextInvoked,
+    required this.onPreviousInvoked,
+  });
+
+  @override
+  State<_SwipeableSelectorButton> createState() =>
+      _SwipeableSelectorButtonState();
+}
+
+class _SwipeableSelectorButtonState extends State<_SwipeableSelectorButton>
+    with TickerProviderStateMixin {
+  late AnimationController _slideController;
+  late Animation<Offset> _currentTextSlide;
+  late Animation<Offset> _incomingTextSlide;
+
+  late AnimationController _bounceController;
+  late Animation<Offset> _bounceAnimation;
+
+  String? _incomingLabel;
+  String? _animatingCurrentLabel;
+  bool _isSwipingUp = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _slideController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+
+    _bounceController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+
+    _currentTextSlide = Tween<Offset>(
+      begin: Offset.zero,
+      end: Offset.zero,
+    ).animate(_slideController);
+    _incomingTextSlide = Tween<Offset>(
+      begin: Offset.zero,
+      end: Offset.zero,
+    ).animate(_slideController);
+
+    // Initial placeholder
+    _bounceAnimation = Tween<Offset>(
+      begin: Offset.zero,
+      end: Offset.zero,
+    ).animate(_bounceController);
+
+    _slideController.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        _onSlideComplete();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _slideController.dispose();
+    _bounceController.dispose();
+    super.dispose();
+  }
+
+  void _handleSwipeUp() {
+    if (!widget.enableSwipe) return;
+    if (_slideController.isAnimating || _bounceController.isAnimating) return;
+
+    final nextLabel = widget.onPeekNext();
+    if (nextLabel != null) {
+      setState(() {
+        _isSwipingUp = true;
+        _animatingCurrentLabel = widget.label;
+        _incomingLabel = nextLabel;
+      });
+
+      _currentTextSlide =
+          Tween<Offset>(begin: Offset.zero, end: const Offset(0, -1)).animate(
+            CurvedAnimation(parent: _slideController, curve: Curves.easeOut),
+          );
+
+      _incomingTextSlide =
+          Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero).animate(
+            CurvedAnimation(parent: _slideController, curve: Curves.easeOut),
+          );
+
+      _slideController.forward(from: 0);
+    } else {
+      _triggerBounce(const Offset(0, -0.2));
+    }
+  }
+
+  void _handleSwipeDown() {
+    if (!widget.enableSwipe) return;
+    if (_slideController.isAnimating || _bounceController.isAnimating) return;
+
+    final prevLabel = widget.onPeekPrevious();
+    if (prevLabel != null) {
+      setState(() {
+        _isSwipingUp = false;
+        _animatingCurrentLabel = widget.label;
+        _incomingLabel = prevLabel;
+      });
+
+      _currentTextSlide =
+          Tween<Offset>(begin: Offset.zero, end: const Offset(0, 1)).animate(
+            CurvedAnimation(parent: _slideController, curve: Curves.easeOut),
+          );
+
+      _incomingTextSlide =
+          Tween<Offset>(begin: const Offset(0, -1), end: Offset.zero).animate(
+            CurvedAnimation(parent: _slideController, curve: Curves.easeOut),
+          );
+
+      _slideController.forward(from: 0);
+    } else {
+      _triggerBounce(const Offset(0, 0.2));
+    }
+  }
+
+  void _triggerBounce(Offset targetOffset) {
+    _bounceController.reset();
+
+    _bounceAnimation = TweenSequence<Offset>([
+      TweenSequenceItem(
+        tween: Tween<Offset>(
+          begin: Offset.zero,
+          end: targetOffset,
+        ).chain(CurveTween(curve: Curves.easeOutCubic)),
+        weight: 35,
+      ),
+      TweenSequenceItem(
+        tween: Tween<Offset>(
+          begin: targetOffset,
+          end: Offset.zero,
+        ).chain(CurveTween(curve: Curves.elasticOut)),
+        weight: 65,
+      ),
+    ]).animate(_bounceController);
+
+    _bounceController.forward(from: 0);
+  }
+
+  void _onSlideComplete() {
+    if (_isSwipingUp) {
+      widget.onNextInvoked();
+    } else {
+      widget.onPreviousInvoked();
+    }
+    _slideController.reset();
+    setState(() {
+      _incomingLabel = null;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final textStyle = theme.textTheme.labelLarge?.copyWith(
+      color: colorScheme.primary,
+    );
 
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
+    final currentText = _slideController.isAnimating
+        ? (_animatingCurrentLabel ?? widget.label)
+        : widget.label;
+
+    return GestureDetector(
+      onTap: widget.onTap,
+      // If swipe is disabled, pass null to prevent gesture capture
+      onVerticalDragEnd: widget.enableSwipe
+          ? (details) {
+              if (details.primaryVelocity! < 0) {
+                _handleSwipeUp();
+              } else if (details.primaryVelocity! > 0) {
+                _handleSwipeDown();
+              }
+            }
+          : null,
       child: Container(
+        constraints: const BoxConstraints(minWidth: 40),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           border: Border.all(color: colorScheme.outline),
           borderRadius: BorderRadius.circular(8),
+          color: Colors.transparent,
         ),
-        // Ensure text doesn't overflow internally
-        child: Text(
-          label,
-          style: theme.textTheme.labelLarge?.copyWith(
-            color: colorScheme.primary,
+        child: ClipRect(
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              SlideTransition(
+                position: _slideController.isAnimating
+                    ? _currentTextSlide
+                    : _bounceAnimation,
+                child: Text(
+                  currentText,
+                  style: textStyle,
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                ),
+              ),
+              if (_slideController.isAnimating && _incomingLabel != null)
+                SlideTransition(
+                  position: _incomingTextSlide,
+                  child: Text(
+                    _incomingLabel!,
+                    style: textStyle,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                ),
+            ],
           ),
-          overflow: TextOverflow.ellipsis,
-          maxLines: 1,
         ),
       ),
     );
@@ -216,18 +467,22 @@ class _CompactSelectorButton extends StatelessWidget {
 
 class _BookSelector extends StatefulWidget {
   final String currentBookName;
+  final int currentBookId;
   final bool isActive;
   final FocusNode focusNode;
   final VoidCallback onTap;
-  final Function(int) onBookSelected;
+  final Function(int) onChanged;
+  final Function(int) onSubmitted;
   final VoidCallback onCancel;
 
   const _BookSelector({
     required this.currentBookName,
+    required this.currentBookId,
     required this.isActive,
     required this.focusNode,
     required this.onTap,
-    required this.onBookSelected,
+    required this.onChanged,
+    required this.onSubmitted,
     required this.onCancel,
   });
 
@@ -289,7 +544,6 @@ class _BookSelectorState extends State<_BookSelector> {
     _overlayEntry = null;
   }
 
-  // Pre-calculate the search keys
   void _loadBookData() {
     _allBooks = List.generate(66, (index) {
       final id = index + 1;
@@ -304,55 +558,38 @@ class _BookSelectorState extends State<_BookSelector> {
     _filteredBooks = List.from(_allBooks);
   }
 
-  // Filter logic
   void _onTextChanged() {
-    // Normalize user input (e.g., input "Ex" matches searchKey "exodo")
     final input = SearchUtilities.normalize(_controller.text);
-
     setState(() {
       _filteredBooks = _filter(input);
     });
-
     _overlayEntry?.markNeedsBuild();
 
-    // Auto-accept if only 1 match remains
     if (_filteredBooks.length == 1) {
       final match = _filteredBooks.first;
       _selectBook(match.id);
     }
   }
 
-  // Fuzzy matching algorithm using searchKey
   List<_BookSearchModel> _filter(String normalizedInput) {
     if (normalizedInput.isEmpty) return _allBooks;
-
     int minScore = 999999;
     List<_BookSearchModel> bestMatches = [];
 
     for (var book in _allBooks) {
       final searchKey = book.searchKey;
-
-      // Rule 1: The book must start with the first letter of the input
-      if (!searchKey.startsWith(normalizedInput[0])) {
-        continue;
-      }
-
-      // Rule 2 & 3: Check for subsequence and calculate score
+      if (!searchKey.startsWith(normalizedInput[0])) continue;
       int currentScore = 0;
       int lastIndex = -1;
       bool isMatch = true;
 
       for (int i = 0; i < normalizedInput.length; i++) {
         final char = normalizedInput[i];
-
-        // Find char in searchKey after the previous char's position
         final index = searchKey.indexOf(char, lastIndex + 1);
-
         if (index == -1) {
           isMatch = false;
           break;
         }
-
         currentScore += index;
         lastIndex = index;
       }
@@ -366,19 +603,17 @@ class _BookSelectorState extends State<_BookSelector> {
         }
       }
     }
-
     return bestMatches;
   }
 
   void _selectBook(int id) {
     _removeOverlay();
     _controller.clear();
-    widget.onBookSelected(id);
+    widget.onSubmitted(id);
   }
 
   void _showOverlay() {
     if (_overlayEntry != null) return;
-
     final renderBox = context.findRenderObject() as RenderBox;
     final size = renderBox.size;
 
@@ -411,7 +646,6 @@ class _BookSelectorState extends State<_BookSelector> {
         ),
       ),
     );
-
     Overlay.of(context).insert(_overlayEntry!);
   }
 
@@ -443,35 +677,55 @@ class _BookSelectorState extends State<_BookSelector> {
                 },
               ),
             )
-          : _CompactSelectorButton(
+          : _SwipeableSelectorButton(
               label: widget.currentBookName,
               onTap: widget.onTap,
+              enableSwipe: true, // Always swipeable
+              onPeekNext: () {
+                if (widget.currentBookId >= 66) return null;
+                return bookNameFromId(context, widget.currentBookId + 1);
+              },
+              onNextInvoked: () => widget.onChanged(widget.currentBookId + 1),
+              onPeekPrevious: () {
+                if (widget.currentBookId <= 1) return null;
+                return bookNameFromId(context, widget.currentBookId - 1);
+              },
+              onPreviousInvoked: () =>
+                  widget.onChanged(widget.currentBookId - 1),
             ),
     );
   }
 }
 
 // -----------------------------------------------------------------------------
-// NUMBER SELECTOR WIDGET (Chapter / Verse)
+// NUMBER SELECTOR WIDGET
 // -----------------------------------------------------------------------------
 
 class _NumberSelector extends StatefulWidget {
-  final String label;
+  final int currentValue;
   final bool isActive;
   final FocusNode focusNode;
   final int maxValue;
+  final bool enableSwipe; // Controls if swipe is allowed
   final VoidCallback onTap;
-  final Function(int) onChanged;
+  final String? Function() onPeekNext;
+  final String? Function() onPeekPrevious;
+  final VoidCallback onNextInvoked;
+  final VoidCallback onPreviousInvoked;
   final Function(int) onSubmitted;
   final VoidCallback onCancel;
 
   const _NumberSelector({
-    required this.label,
+    required this.currentValue,
     required this.isActive,
     required this.focusNode,
     required this.maxValue,
     required this.onTap,
-    required this.onChanged,
+    required this.enableSwipe,
+    required this.onPeekNext,
+    required this.onPeekPrevious,
+    required this.onNextInvoked,
+    required this.onPreviousInvoked,
     required this.onSubmitted,
     required this.onCancel,
   });
@@ -506,23 +760,13 @@ class _NumberSelectorState extends State<_NumberSelector> {
   void _onTextChanged() {
     final text = _controller.text;
     if (text.isEmpty) return;
-
     final value = int.tryParse(text);
     if (value == null) return;
 
-    // 1. Report the change (e.g. for Verse scrolling)
-    widget.onChanged(value);
-
-    // 2. Disambiguation Logic (Auto-Submit)
     bool shouldAutoSubmit = false;
-
-    // Case A: Exact match of max value (e.g. max 50, typed 50)
     if (value == widget.maxValue) {
       shouldAutoSubmit = true;
-    }
-    // Case B: Typing next digit would exceed max
-    // (e.g. max 50. Typed '6'. '60' > 50. So '6' is final)
-    else if (value * 10 > widget.maxValue) {
+    } else if (value * 10 > widget.maxValue) {
       shouldAutoSubmit = true;
     }
 
@@ -565,16 +809,21 @@ class _NumberSelectorState extends State<_NumberSelector> {
               },
             ),
           )
-        : _CompactSelectorButton(label: widget.label, onTap: widget.onTap);
+        : _SwipeableSelectorButton(
+            label: widget.currentValue.toString(),
+            onTap: widget.onTap,
+            enableSwipe: widget.enableSwipe,
+            onPeekNext: widget.onPeekNext,
+            onNextInvoked: widget.onNextInvoked,
+            onPeekPrevious: widget.onPeekPrevious,
+            onPreviousInvoked: widget.onPreviousInvoked,
+          );
   }
 }
 
-/// A container to hold the book data and its pre-computed search key.
 class _BookSearchModel {
   final int id;
   final String displayName;
-
-  /// The normalized, lower-case, diacritic-free name
   final String searchKey;
 
   _BookSearchModel({
@@ -584,27 +833,14 @@ class _BookSearchModel {
   });
 }
 
-/// Centralized logic for text normalization.
 class SearchUtilities {
-  // Unicode Block: Combining Diacritical Marks (U+0300 to U+036F)
   static final _combiningMarks = RegExp(r'[\u0300-\u036f]');
 
   static String normalize(String input) {
     if (input.isEmpty) return '';
-
-    // 1. Decompose (NFD):
-    //    "É" (U+00C9) -> "E" (U+0045) + "´" (U+0301)
     String normalized = unorm.nfd(input);
-
-    // 2. Remove combining marks (accents)
     normalized = normalized.replaceAll(_combiningMarks, '');
-
-    // 3. Lowercase
     normalized = normalized.toLowerCase();
-
-    // 4. Future Extension:
-    // if (isChinese(input)) { return PinyinHelper.convertToPinyin(input); }
-
     return normalized;
   }
 }

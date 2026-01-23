@@ -1,3 +1,7 @@
+## 0.16.0
+
+- Swipe up/down shortcut on Book and Chapter buttons.
+
 ## 0.15.0 - January 13, 2026
 
 - Update design of audio player to remove need for settings panel.
