@@ -40,4 +40,20 @@ class FileService {
       await directory.create(recursive: true);
     }
   }
+
+  Future<void> deleteFile(FileType type, String relativePath) async {
+    final path = await getLocalPath(type, relativePath);
+    final file = File(path);
+    if (await file.exists()) {
+      await file.delete();
+    }
+  }
+
+  /// Used to delete a whole chapter if needed, or check specific logic
+  Future<bool> directoryHasFiles(FileType type, String relativeSubDir) async {
+    // This is a bit complex because files are stored as .../HEB/Gen/001.mp3
+    // We will check individual files in the UI logic for precision,
+    // but this helper helps clean up empty directories if you wanted to implement strict cleanup.
+    return false;
+  }
 }

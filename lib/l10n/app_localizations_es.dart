@@ -102,10 +102,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get audioRecordingSource => 'Fuente de grabación';
 
   @override
-  String get sourceHEB => 'Abraham Shmueloff';
+  String get sourceHEB => 'Shmueloff';
 
   @override
-  String get sourceRDB => 'Rabbi Dan Beeri';
+  String get sourceRDB => 'Dan Beeri';
 
   @override
   String get downloadAudio => 'Descargar Audio';
@@ -121,6 +121,40 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get verseCopied => 'Versículo copiado al portapapeles';
+
+  @override
+  String get downloads => 'Descargas';
+
+  @override
+  String get audio => 'Audio';
+
+  @override
+  String get bibles => 'Biblias';
+
+  @override
+  String get lexicons => 'Léxicos';
+
+  @override
+  String get oldTestament => 'Antiguo Testamento';
+
+  @override
+  String deleteAudioConfirmation(String book) {
+    return '¿Eliminar todo el audio de $book?';
+  }
+
+  @override
+  String get delete => 'Eliminar';
+
+  @override
+  String downloadAudioConfirmation(int count, String book) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '¿Descargar $count capítulos faltantes de $book?',
+      one: '¿Descargar 1 capítulo faltante de $book?',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get bookGenesis => 'Génesis';

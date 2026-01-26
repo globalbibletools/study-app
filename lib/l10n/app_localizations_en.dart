@@ -122,6 +122,40 @@ class AppLocalizationsEn extends AppLocalizations {
   String get verseCopied => 'Verse copied to clipboard';
 
   @override
+  String get downloads => 'Downloads';
+
+  @override
+  String get audio => 'Audio';
+
+  @override
+  String get bibles => 'Bibles';
+
+  @override
+  String get lexicons => 'Lexicons';
+
+  @override
+  String get oldTestament => 'Old Testament';
+
+  @override
+  String deleteAudioConfirmation(String book) {
+    return 'Delete all audio for $book?';
+  }
+
+  @override
+  String get delete => 'Delete';
+
+  @override
+  String downloadAudioConfirmation(int count, String book) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Download $count missing chapters for $book?',
+      one: 'Download 1 missing chapter for $book?',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get bookGenesis => 'Genesis';
 
   @override

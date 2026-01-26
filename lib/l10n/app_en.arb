@@ -145,6 +145,51 @@
   "@verseCopied": {
     "description": "Snackbar message when a verse is copied"
   },
+  "downloads": "Downloads",
+  "@downloads": {
+    "description": "Title for the Download Manager screen"
+  },
+  "audio": "Audio",
+  "@audio": {
+    "description": "Section header for Audio downloads"
+  },
+  "bibles": "Bibles",
+  "@bibles": {
+    "description": "Section header for Bible downloads"
+  },
+  "lexicons": "Lexicons",
+  "@lexicons": {
+    "description": "Section header for Lexicon downloads"
+  },
+  "oldTestament": "Old Testament",
+  "@oldTestament": {
+    "description": "Label for Old Testament audio selection"
+  },
+  "deleteAudioConfirmation": "Delete all audio for {book}?",
+  "@deleteAudioConfirmation": {
+    "description": "Confirmation dialog content when deleting a book",
+    "placeholders": {
+      "book": {
+        "type": "String"
+      }
+    }
+  },
+  "delete": "Delete",
+  "@delete": {
+    "description": "Confirm Delete button"
+  },
+  "downloadAudioConfirmation": "{count, plural, =1{Download 1 missing chapter for {book}?} other{Download {count} missing chapters for {book}?}}",
+  "@downloadAudioConfirmation": {
+    "description": "Confirmation dialog content when downloading a book",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "book": {
+        "type": "String"
+      }
+    }
+  },
   "bookGenesis": "Genesis",
   "@bookGenesis": {
     "description": "The name of the first book of the Bible"

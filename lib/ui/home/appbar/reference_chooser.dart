@@ -680,7 +680,7 @@ class _BookSelectorState extends State<_BookSelector> {
           : _SwipeableSelectorButton(
               label: widget.currentBookName,
               onTap: widget.onTap,
-              enableSwipe: true, // Always swipeable
+              enableSwipe: true,
               onPeekNext: () {
                 if (widget.currentBookId >= 66) return null;
                 return bookNameFromId(context, widget.currentBookId + 1);
@@ -706,7 +706,7 @@ class _NumberSelector extends StatefulWidget {
   final bool isActive;
   final FocusNode focusNode;
   final int maxValue;
-  final bool enableSwipe; // Controls if swipe is allowed
+  final bool enableSwipe;
   final VoidCallback onTap;
   final String? Function() onPeekNext;
   final String? Function() onPeekPrevious;

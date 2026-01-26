@@ -296,6 +296,54 @@ abstract class AppLocalizations {
   /// **'Verse copied to clipboard'**
   String get verseCopied;
 
+  /// Title for the Download Manager screen
+  ///
+  /// In en, this message translates to:
+  /// **'Downloads'**
+  String get downloads;
+
+  /// Section header for Audio downloads
+  ///
+  /// In en, this message translates to:
+  /// **'Audio'**
+  String get audio;
+
+  /// Section header for Bible downloads
+  ///
+  /// In en, this message translates to:
+  /// **'Bibles'**
+  String get bibles;
+
+  /// Section header for Lexicon downloads
+  ///
+  /// In en, this message translates to:
+  /// **'Lexicons'**
+  String get lexicons;
+
+  /// Label for Old Testament audio selection
+  ///
+  /// In en, this message translates to:
+  /// **'Old Testament'**
+  String get oldTestament;
+
+  /// Confirmation dialog content when deleting a book
+  ///
+  /// In en, this message translates to:
+  /// **'Delete all audio for {book}?'**
+  String deleteAudioConfirmation(String book);
+
+  /// Confirm Delete button
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get delete;
+
+  /// Confirmation dialog content when downloading a book
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Download 1 missing chapter for {book}?} other{Download {count} missing chapters for {book}?}}'**
+  String downloadAudioConfirmation(int count, String book);
+
   /// The name of the first book of the Bible
   ///
   /// In en, this message translates to:

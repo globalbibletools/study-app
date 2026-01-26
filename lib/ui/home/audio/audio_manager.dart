@@ -74,28 +74,43 @@ class AudioManager {
       relativePath,
     );
 
-    if (!exists) {
-      stopAndClose();
-      throw AudioMissingException(bookId, chapter);
-    }
+    String uriPath;
 
-    final localFullPath = await _fileService.getLocalPath(
-      FileType.audio,
-      relativePath,
-    );
+    if (exists) {
+      uriPath = await _fileService.getLocalPath(FileType.audio, relativePath);
+      // Prepend file:// scheme for local files if not handled by just_audio automatically
+      uriPath = Uri.file(uriPath).toString();
+    } else {
+      // Check if valid audio exists on server to stream
+      if (!AudioLogic.isAudioAvailable(bookId, chapter)) {
+        stopAndClose();
+        // This will be caught by the UI to show "Download/Not Available" dialog
+        // But since we are streaming, we might want to distinguish "Not Existent" vs "Not Downloaded"
+        // For now, keep existing exception behavior if completely unavailable.
+        throw AudioMissingException(bookId, chapter);
+      }
+
+      // Use Remote URL
+      uriPath = AudioUrlHelper.getAudioUrl(
+        bookId: bookId,
+        chapter: chapter,
+        recordingId: recordingId,
+      );
+    }
 
     _loadedBookId = bookId;
     _loadedChapter = chapter;
     _loadedBookName = bookName;
     isVisibleNotifier.value = true;
 
+    // Load Timings (These are always local in the SQLite DB)
     _currentTimings = await _audioDb.getTimingsForChapter(
       bookId,
       chapter,
       recordingId,
     );
 
-    // Sanitize bad data for the last verse
+    // Sanitize bad data
     if (_currentTimings.isNotEmpty) {
       final last = _currentTimings.last;
       if (last.end <= last.start) {
@@ -108,28 +123,29 @@ class AudioManager {
 
     _lastSyncedVerse = -1;
 
-    await audioHandler.setUrl(
-      Uri.file(localFullPath).toString(),
-      title: "$bookName $chapter",
-      subtitle: bookName,
-    );
+    // Set Audio Source
+    try {
+      await audioHandler.setUrl(
+        uriPath,
+        title: "$bookName $chapter",
+        subtitle: bookName,
+      );
+    } catch (e) {
+      // Handle network errors for streaming
+      stopAndClose();
+      rethrow;
+    }
 
     await audioHandler.setSpeed(playbackSpeedNotifier.value);
     _startSyncListener();
 
-    // --- SEEK TO START VERSE LOGIC ---
+    // Seek logic
     if (startVerse != null && startVerse > 1 && _currentTimings.isNotEmpty) {
-      // Find the timing that corresponds to the startVerse
-      // Using 'orElse' to be safe, though startVerse usually exists if validated by UI
       final timing = _currentTimings.firstWhere(
         (t) => t.verseNumber == startVerse,
         orElse: () => _currentTimings.first,
       );
-
-      // Update state immediately so repeat logic knows where we are
       _updateCurrentVerse(timing.verseNumber);
-
-      // Seek to the start of the verse
       await audioHandler.seek(
         Duration(milliseconds: (timing.start * 1000).toInt()),
       );
