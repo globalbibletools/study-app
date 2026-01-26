@@ -117,6 +117,31 @@ class _SettingsPageState extends State<SettingsPage> {
                 },
               ),
 
+              // Theme mode
+              ListTile(
+                title: Text(l10n.theme),
+                subtitle: Text(
+                  manager.currentThemeMode == ThemeMode.light
+                      ? l10n.lightTheme
+                      : manager.currentThemeMode == ThemeMode.dark
+                      ? l10n.darkTheme
+                      : l10n.systemDefault,
+                ),
+                trailing: Icon(
+                  manager.currentThemeMode == ThemeMode.light
+                      ? Icons.light_mode
+                      : manager.currentThemeMode == ThemeMode.dark
+                      ? Icons.dark_mode
+                      : Icons.smartphone,
+                ),
+                onTap: () async {
+                  final selectedMode = await _chooseThemeMode();
+                  if (selectedMode != null) {
+                    manager.setThemeMode(selectedMode);
+                  }
+                },
+              ),
+
               // EXPANDABLE TEXT SIZE SECTION
               ExpansionTile(
                 title: Text(l10n.textSize),
@@ -168,6 +193,36 @@ class _SettingsPageState extends State<SettingsPage> {
             ],
           );
         },
+      ),
+    );
+  }
+
+  Future<ThemeMode?> _chooseThemeMode() async {
+    return await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        content: SegmentedButton<ThemeMode>(
+          showSelectedIcon: false,
+          segments: const [
+            ButtonSegment<ThemeMode>(
+              value: ThemeMode.light,
+              icon: Icon(Icons.light_mode),
+            ),
+            ButtonSegment<ThemeMode>(
+              value: ThemeMode.system,
+              icon: Icon(Icons.smartphone),
+            ),
+            ButtonSegment<ThemeMode>(
+              value: ThemeMode.dark,
+              icon: Icon(Icons.dark_mode),
+            ),
+          ],
+          selected: {manager.currentThemeMode},
+          onSelectionChanged: (Set<ThemeMode> selection) {
+            manager.setThemeMode(selection.first);
+            Navigator.of(context).pop();
+          },
+        ),
       ),
     );
   }

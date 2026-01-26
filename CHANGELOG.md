@@ -3,6 +3,7 @@
 - Swipe up/down shortcut on Book and Chapter buttons.
 - Add an audio download manager.
 - Stream audio by if no download exists.
+- Add light theme.
 
 ## 0.15.0 - January 13, 2026
 

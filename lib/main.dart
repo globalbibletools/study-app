@@ -57,7 +57,9 @@ class _GbtStudyAppState extends State<GbtStudyApp> {
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           locale: appState.locale,
-          theme: appTheme,
+          theme: lightTheme,
+          darkTheme: darkTheme,
+          themeMode: appState.themeMode,
           home: const HomeScreen(),
           debugShowCheckedModeBanner: false,
         );

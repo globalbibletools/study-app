@@ -9,6 +9,7 @@ class UserSettings {
     _prefs = await SharedPreferences.getInstance();
   }
 
+  static const _themeModeKey = 'themeMode';
   static const _currentChapterKey = 'currentChapter';
   static const _currentBookIdKey = 'currentBookId';
   static const _hebrewGreekFontScaleKey = 'hebrewGreekFontScale';
@@ -18,6 +19,18 @@ class UserSettings {
   static const _isHebrewSearchKey = 'isHebrewSearch';
   static const _useSystemKeyboardKey = 'useSystemKeyboard';
   static const _currentBible = 'currentBible';
+
+  String? get themeMode {
+    return _prefs.getString(_themeModeKey);
+  }
+
+  Future<void> setThemeMode(String? value) async {
+    if (value == null) {
+      await _prefs.remove(_themeModeKey);
+      return;
+    }
+    await _prefs.setString(_themeModeKey, value);
+  }
 
   (int, int) get currentBookChapter {
     final bookId = _prefs.getInt(_currentBookIdKey) ?? 1;

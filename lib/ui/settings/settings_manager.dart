@@ -11,6 +11,13 @@ class SettingsManager extends ChangeNotifier {
   final appState = getIt<AppState>();
   final _glossService = getIt<GlossService>();
 
+  ThemeMode get currentThemeMode => appState.themeMode;
+
+  void setThemeMode(ThemeMode mode) {
+    appState.updateThemeMode(mode);
+    notifyListeners();
+  }
+
   Locale get currentLocale => _settings.locale;
 
   Future<void> setLocale(Locale selectedLocale) async {

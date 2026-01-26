@@ -9,6 +9,18 @@ class AppLocalizationsEs extends AppLocalizations {
   AppLocalizationsEs([String locale = 'es']) : super(locale);
 
   @override
+  String get theme => 'Tema';
+
+  @override
+  String get systemDefault => 'Predeterminado del sistema';
+
+  @override
+  String get lightTheme => 'Claro';
+
+  @override
+  String get darkTheme => 'Oscuro';
+
+  @override
   String get about => 'Acerca de';
 
   @override

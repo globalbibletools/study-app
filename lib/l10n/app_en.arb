@@ -1,5 +1,21 @@
 {
   "@@locale": "en",
+  "theme": "Theme",
+  "@theme": {
+    "description": "The label for the theme settings menu"
+  },
+  "systemDefault": "System Default",
+  "@systemDefault": {
+    "description": "Option to use the system's current theme mode"
+  },
+  "lightTheme": "Light",
+  "@lightTheme": {
+    "description": "Option to select the light theme"
+  },
+  "darkTheme": "Dark",
+  "@darkTheme": {
+    "description": "Option to select the dark theme"
+  },
   "about": "About",
   "@about": {
     "description": "The title of the About screen"

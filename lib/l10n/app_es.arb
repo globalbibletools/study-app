@@ -1,5 +1,9 @@
 {
     "@@locale": "es",
+    "theme": "Tema",
+    "systemDefault": "Predeterminado del sistema",
+    "lightTheme": "Claro",
+    "darkTheme": "Oscuro",
     "about": "Acerca de",
     "appName": "Herramientas Bíblicas Globales",
     "sourceCode": "Código fuente",

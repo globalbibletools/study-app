@@ -98,6 +98,30 @@ abstract class AppLocalizations {
     Locale('es'),
   ];
 
+  /// The label for the theme settings menu
+  ///
+  /// In en, this message translates to:
+  /// **'Theme'**
+  String get theme;
+
+  /// Option to use the system's current theme mode
+  ///
+  /// In en, this message translates to:
+  /// **'System Default'**
+  String get systemDefault;
+
+  /// Option to select the light theme
+  ///
+  /// In en, this message translates to:
+  /// **'Light'**
+  String get lightTheme;
+
+  /// Option to select the dark theme
+  ///
+  /// In en, this message translates to:
+  /// **'Dark'**
+  String get darkTheme;
+
   /// The title of the About screen
   ///
   /// In en, this message translates to:
