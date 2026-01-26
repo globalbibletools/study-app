@@ -75,7 +75,9 @@ class _BibleChapterState extends State<BibleChapter> {
               UsfmWidget(
                 verseLines: verseLines,
                 selectionController: ScriptureSelectionController(),
-                onFootnoteTapped: (footnote) {},
+                onFootnoteTapped: (footnote) {
+                  _showFootnoteDialog(footnote);
+                },
                 onWordTapped: (id) => log("Tapped word $id"),
                 onSelectionRequested: (wordId) {},
                 showHeadings: false,
@@ -94,6 +96,25 @@ class _BibleChapterState extends State<BibleChapter> {
                 },
               ),
             ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _showFootnoteDialog(String footnote) async {
+    return await showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: SingleChildScrollView(
+              child: Text(
+                footnote,
+                style: TextStyle(fontSize: widget.fontSize),
+              ),
+            ),
           ),
         );
       },

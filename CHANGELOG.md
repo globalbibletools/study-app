@@ -4,6 +4,7 @@
 - Add an audio download manager.
 - Stream audio by if no download exists.
 - Add light theme.
+- Show BSB footnotes.
 
 ## 0.15.0 - January 13, 2026
 
