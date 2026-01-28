@@ -4,3 +4,5 @@
 pubspec.lock
 *.db
 *.zip
+
+data/

@@ -19,8 +19,7 @@ class AudioLogic {
   };
 
   // NT Books that have audio content (GNT)
-  // 41 (Mark), 51 (Col), 57 (Phm), 59 (Jas), 62 (1Jn)
-  static const Set<int> _availableNtBooks = {41, 51, 57, 59, 62};
+  static const Set<int> _availableNtBooks = {40, 41, 51, 57, 59, 62};
 
   static bool isNewTestament(int bookId) {
     return bookId >= _firstNtBook;
@@ -44,9 +43,9 @@ class AudioLogic {
     if (!isNewTestament(bookId)) return true;
 
     // Matthew (40) only has chapters 1-19
-    if (bookId == 40) {
-      return chapter <= 19;
-    }
+    // if (bookId == 40) {
+    //   return chapter <= 19;
+    // }
 
     // Other NT books check the whitelist
     return _availableNtBooks.contains(bookId);

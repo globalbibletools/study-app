@@ -50,6 +50,8 @@ class BibleDatabase {
 
     final parentheses = RegExp(r'[()]');
 
+    beginTransaction();
+
     for (String bookFilename in bibleBooks) {
       print('Processing: $bookFilename');
       final file = File('lib/src/bible/data/$databaseName/$bookFilename');
@@ -57,8 +59,6 @@ class BibleDatabase {
       if (!file.existsSync()) {
         throw Exception('${file.path} does not exist');
       }
-
-      _database.execute('BEGIN TRANSACTION;');
 
       final lines = await file.readAsLines();
       String oldMarker = '';
@@ -75,7 +75,10 @@ class BibleDatabase {
           case 'h': // book title
           case 'toc1': // book title
           case 'toc2': // book title
+          case 'toc3': // short book title
           case 'mt1': // book title
+          case 'ide': // encoding
+          case 'cl': // chapter label
             // ignore
             continue;
           case 'c': // chapter
@@ -106,6 +109,21 @@ class BibleDatabase {
               continue;
             }
             text = remainder;
+          case 'p': // paragraph
+            if (oldMarker == 'v') {
+              insertBreak(bookId: bookId, chapter: chapter, verse: verse);
+            }
+            format = ParagraphFormat.p;
+            if (remainder.isEmpty) {
+              continue;
+            }
+            text = remainder;
+          case 'nb': // No Break (continuation of text from previous chapter)
+            format = ParagraphFormat.m; // Use 'm' (no indent)
+            if (remainder.isEmpty) {
+              continue;
+            }
+            text = remainder;
           case 'v': // verse
             (verse, text) = _getVerse(remainder);
           case 'd': // descriptive title
@@ -123,19 +141,12 @@ class BibleDatabase {
             format = ParagraphFormat.b;
             text = '';
           case 'pc': // centered
-            const habakkuk = 35;
-            if (bookId == habakkuk && chapter == 3 && verse == 19) {
-              // This should really be fixed in the original USFM file,
-              // but we need to make it centered and italic like TextType.d.
-              format = ParagraphFormat.d;
-              text = _removeItalicMarkers(remainder);
-            } else {
-              format = ParagraphFormat.pc;
-              if (remainder.isEmpty) {
-                continue;
-              }
-              text = remainder;
+          case 'qc': // centered quote/poetry
+            format = ParagraphFormat.pc;
+            if (remainder.isEmpty) {
+              continue;
             }
+            text = remainder;
           default:
             throw Exception(
               'Unknown marker: $marker (chapter: $chapter, verse: $verse)',
@@ -147,22 +158,56 @@ class BibleDatabase {
           return;
         }
 
-        final reference = _packReference(bookId, chapter, verse);
-        _insertVerseLine.execute([reference, text, format.id]);
+        insertVerseLine(
+          bookId: bookId,
+          chapter: chapter,
+          verse: verse,
+          text: text,
+          format: format.id,
+        );
 
         text = null;
         oldMarker = marker;
       }
-
-      _database.execute('COMMIT;');
     }
+
+    commitTransaction();
   }
 
-  String _removeItalicMarkers(String text) {
-    // Original: \it For the choirmaster. With stringed instruments. \it*
-    // Desired: For the choirmaster. With stringed instruments.
-    final modifiedText = text.replaceAll(r'\it*', '').replaceAll(r'\it', '');
-    return modifiedText.trim();
+  void beginTransaction() {
+    _database.execute('BEGIN TRANSACTION;');
+  }
+
+  void commitTransaction() {
+    _database.execute('COMMIT;');
+  }
+
+  void insertBreak({
+    required int bookId,
+    required int chapter,
+    required int verse,
+  }) {
+    insertVerseLine(
+      bookId: bookId,
+      chapter: chapter,
+      verse: verse,
+      text: '',
+      format: 'b',
+    );
+  }
+
+  void insertVerseLine({
+    required int bookId,
+    required int chapter,
+    required int verse,
+    required String text,
+    required String format,
+  }) {
+    if (text.isEmpty && format != 'b') {
+      throw Exception('Empty text for $bookId, $chapter, $verse');
+    }
+    final reference = _packReference(bookId, chapter, verse);
+    _insertVerseLine.execute([reference, text, format]);
   }
 
   // BBCCCVVV packed int
@@ -172,7 +217,17 @@ class BibleDatabase {
 
   int _getBookId(String textAfterMarker) {
     final index = textAfterMarker.indexOf(' ');
-    final bookName = textAfterMarker.substring(0, index);
+    String bookName;
+    if (index == -1) {
+      // No space found, the whole string is the book name (e.g., "GEN")
+      bookName = textAfterMarker;
+    } else {
+      // Space found, take the substring before it
+      bookName = textAfterMarker.substring(0, index);
+    }
+    if (!_bookAbbreviationToIdMap.containsKey(bookName)) {
+      throw Exception('Unknown book abbreviation: "$bookName"');
+    }
     return _bookAbbreviationToIdMap[bookName]!;
   }
 

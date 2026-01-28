@@ -10,9 +10,9 @@ dependencies:
   path: ^1.9.1
   sqlite3: ^2.5.0
   unorm_dart: ^0.3.1+1
-  scripture: ^0.1.1
-  # scripture:
-  #   path: ../../../scripture
+  # scripture: ^0.2.0
+  scripture:
+    path: ../../../scripture
     
 
 dev_dependencies:
