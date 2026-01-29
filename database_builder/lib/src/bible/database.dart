@@ -54,6 +54,9 @@ class BibleDatabase {
 
     for (String bookFilename in bibleBooks) {
       print('Processing: $bookFilename');
+      chapter = 0;
+      verse = 0;
+
       final file = File('lib/src/bible/data/$databaseName/$bookFilename');
 
       if (!file.existsSync()) {
@@ -77,6 +80,25 @@ class BibleDatabase {
           case 'toc2': // book title
           case 'toc3': // short book title
           case 'mt1': // book title
+          case 'mt2': // book title
+          case 'imt1': // Introduction Major Title
+          case 'imt2': // Introduction Major Title 2
+          case 'imt3': // Introduction Major Title 3
+          case 'ip': // Introduction Paragraph
+          case 'ipi': // Introduction Paragraph Indented
+          case 'ie': // Introduction End
+          case 'is': // Introduction Section heading
+          case 'is1': // Introduction Section heading 1
+          case 'ib': // Introduction break
+          case 'io1': // Introduction outline 1
+          case 'io2': // Introduction outline 2
+          case 'tr': // Table Row
+          case 'th1': // Table column heading 1
+          case 'th2': // Table column heading 2
+          case 'tc1': // Table cell 1
+          case 'tc2': // Table cell 2
+          case 'tc3': // Table cell 3
+          case 'rem': // Remarks/Comments
           case 'ide': // encoding
           case 'cl': // chapter label
             // ignore
@@ -95,6 +117,8 @@ class BibleDatabase {
           case 's1': // section heading level 1
           case 's2': // section heading level 2
           case 'ms': // major section (Psalms)
+          case 'ms1': // major section 1
+          case 'ms2': // major section 2
           case 'mr': // major section range (Psalms)
           case 'qa': // Acrostic heading (Psalm 119)
           case 'm': // margin
@@ -110,10 +134,11 @@ class BibleDatabase {
             }
             text = remainder;
           case 'p': // paragraph
-            if (oldMarker == 'v') {
+          case 'pi1': // indented paragraph level 1
+            if (oldMarker == 'v' || oldMarker == 'r') {
               insertBreak(bookId: bookId, chapter: chapter, verse: verse);
             }
-            format = ParagraphFormat.p;
+            format = ParagraphFormat.fromJson(marker);
             if (remainder.isEmpty) {
               continue;
             }

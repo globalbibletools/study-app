@@ -11,7 +11,7 @@ Future<void> main(List<String> arguments) async {
   // await _createHebrewGreekDatabase();
   // await _createLexiconDatabases();
   // await _createGlossDatabase('spa');
-  await _createBibleDatabase('arb_vdv');
+  await _createBibleDatabase('fra_lsg');
   // await _createAudioDatabase();
 }
 
