@@ -42,6 +42,7 @@ class BibleDatabase {
   }
 
   Future<void> populateTable() async {
+    _ignoredTags.clear();
     int bookId = 0;
     int chapter = 0;
     int verse = 0;
@@ -183,6 +184,10 @@ class BibleDatabase {
           return;
         }
 
+        if (text.isNotEmpty) {
+          text = _cleanText(text, bookId, chapter, verse);
+        }
+
         insertVerseLine(
           bookId: bookId,
           chapter: chapter,
@@ -197,6 +202,21 @@ class BibleDatabase {
     }
 
     commitTransaction();
+    _printIgnoredTagsReport();
+  }
+
+  void _printIgnoredTagsReport() {
+    if (_ignoredTags.isEmpty) return;
+
+    print('\n--- Ignored Inline Markers Report ---');
+    // Sort by count descending
+    final sortedKeys = _ignoredTags.keys.toList()
+      ..sort((a, b) => _ignoredTags[b]!.compareTo(_ignoredTags[a]!));
+
+    for (final key in sortedKeys) {
+      print('${key.padRight(10)} : ${_ignoredTags[key]}');
+    }
+    print('-------------------------------------\n');
   }
 
   void beginTransaction() {
@@ -267,50 +287,74 @@ class BibleDatabase {
     return (verseNumber, remainder);
   }
 
-  /// Extracts the footnote from the text.
-  ///
-  /// The text may contain multiple footnotes. Each footnote is separated
-  /// by a \n newline. The index and the footnote text are separated by a #.
-  /// Example: "But springs \f + \fr 2:6 \ft Or mist\f* welled up from the earth \f + \fr 2:6 \ft Or land\f* and watered the whole surface of the ground. "
-  /// New text: "But springs welled up from the earth and watered the whole surface of the ground. "
-  /// The output will be:
-  /// footnote: 11#Or mist\n36#Or land
-  /// The indexes are exclusive, meaning the footnote text should be inserted before the index.
-  (String outputText, String? footnote) extractFootnote(String text) {
-    if (!text.contains('\\f')) {
-      return (text, null);
+  final Map<String, int> _ignoredTags = {};
+
+  String _cleanText(String input, int bookId, int chapter, int verse) {
+    var text = input;
+
+    // Helper to track counts
+    void track(String marker) {
+      // We strip the '*' to group opening (\wj) and closing (\wj*) tags together
+      final key = marker.replaceAll('*', '');
+      _ignoredTags[key] = (_ignoredTags[key] ?? 0) + 1;
     }
 
-    final footnotes = <String>[];
-    var modifiedText = text;
+    // Remove Cross References (\x ... \x*) - Remove content entirely
+    text = text.replaceAllMapped(RegExp(r'(\\x) .*?(\\x\*)'), (match) {
+      track(match.group(1)!); // track \x
+      track(match.group(2)!); // track \x*
+      return ''; // remove entirely
+    });
 
-    while (modifiedText.contains('\\f')) {
-      final startIndex = modifiedText.indexOf('\\f');
-      final endIndex = modifiedText.indexOf('\\f*', startIndex) + 3;
+    // Remove Word Attributes (\w word|attributes\w*) - Keep word, remove attrs
+    text = text.replaceAllMapped(RegExp(r'(\\\+?w) (.*?)\|.*?(\\\+?w\*)'), (
+      match,
+    ) {
+      track(match.group(1)!); // track \w or \+w
+      track(match.group(3)!); // track \w* or \+w*
+      return match.group(2) ?? ''; // keep the word
+    });
 
-      if (endIndex == -1) {
-        throw Exception('Malformed footnote: missing closing tag');
+    // Remove Simple Word Tags (\w or \+w word\w*)
+    text = text.replaceAllMapped(RegExp(r'(\\\+?w) (.*?)(\\\+?w\*)'), (match) {
+      track(match.group(1)!);
+      track(match.group(3)!);
+      return match.group(2) ?? '';
+    });
+
+    // Remove generic styling tags (keep the text inside)
+    // wj: words of Jesus
+    // qs: Selah
+    // it: italic
+    text = text.replaceAllMapped(RegExp(r'\\(wj|qs|it)\*?'), (match) {
+      final marker = match.group(0)!;
+      track(marker);
+      return ''; // remove tag, keep text
+    });
+
+    // Clean up any double spaces created by removals
+    text = text.replaceAll(RegExp(r'\s+'), ' ').trim();
+
+    // Detect Unknown Markers
+    if (text.contains('\\')) {
+      final matches = RegExp(r'\\[a-z]+\d?(\*)?').allMatches(text);
+      for (final m in matches) {
+        final marker = m.group(0);
+
+        // whitelist allowed markers (like footnotes)
+        const allowed = ['\\f', '\\fr', '\\ft', '\\f*', '\\fq'];
+
+        if (!allowed.contains(marker)) {
+          track(marker!);
+          print(
+            '⚠️ WARNING: Unhandled inline marker "$marker" found at '
+            'Book: $bookId, Ch: $chapter, V: $verse\n'
+            '   Text: "$text"',
+          );
+        }
       }
-
-      final footnote = modifiedText.substring(startIndex, endIndex);
-      final ftIndex = footnote.indexOf('\\ft');
-      var footnoteIndex = modifiedText.indexOf('\\f', startIndex);
-      // if a footnote comes after a space, the index is shifted by one to the left.
-      // This is so that footnote markers may be inserted directly after a word.
-      if (footnoteIndex > 0 && modifiedText[footnoteIndex - 1] == ' ') {
-        footnoteIndex--;
-      }
-      final footnoteText = footnote
-          .substring(ftIndex + 4, footnote.length - 3)
-          .trim();
-      footnotes.add('$footnoteIndex#$footnoteText');
-      // Remove footnote from text
-      modifiedText = modifiedText
-          .replaceRange(startIndex, endIndex, '')
-          .replaceAll('  ', ' ');
     }
-
-    return (modifiedText.trim(), footnotes.join('\n'));
+    return text;
   }
 
   void dispose() {
