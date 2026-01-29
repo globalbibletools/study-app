@@ -49,7 +49,7 @@ class BibleDatabase {
     String? text;
     ParagraphFormat? format;
 
-    final parentheses = RegExp(r'[()]');
+    // final parentheses = RegExp(r'[()]');
 
     beginTransaction();
 
@@ -109,12 +109,14 @@ class BibleDatabase {
             verse = 0;
             continue;
           case 'r': // cross reference
-            format = ParagraphFormat.r;
-            if (remainder.isEmpty) {
-              continue;
-            }
-            // Strip parentheses from reference
-            text = remainder.replaceAll(parentheses, '');
+            // ignore
+            continue;
+          // format = ParagraphFormat.r;
+          // if (remainder.isEmpty) {
+          //   continue;
+          // }
+          // // Strip parentheses from reference
+          // text = remainder.replaceAll(parentheses, '');
           case 's1': // section heading level 1
           case 's2': // section heading level 2
           case 'ms': // major section (Psalms)
@@ -306,6 +308,13 @@ class BibleDatabase {
       return ''; // remove entirely
     });
 
+    // 1. Remove Quote References (\rq... \rq*)
+    text = text.replaceAllMapped(RegExp(r'(\\rq) .*?(\\rq\*)'), (match) {
+      track(match.group(1)!); // track opening
+      track(match.group(2)!); // track closing
+      return ''; // remove entirely
+    });
+
     // Remove Word Attributes (\w word|attributes\w*) - Keep word, remove attrs
     text = text.replaceAllMapped(RegExp(r'(\\\+?w) (.*?)\|.*?(\\\+?w\*)'), (
       match,
@@ -326,7 +335,8 @@ class BibleDatabase {
     // wj: words of Jesus
     // qs: Selah
     // it: italic
-    text = text.replaceAllMapped(RegExp(r'\\(wj|qs|it)\*?'), (match) {
+    // add: added word
+    text = text.replaceAllMapped(RegExp(r'\\(wj|qs|it|add)\*?'), (match) {
       final marker = match.group(0)!;
       track(marker);
       return ''; // remove tag, keep text
