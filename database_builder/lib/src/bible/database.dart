@@ -82,6 +82,7 @@ class BibleDatabase {
           case 'toc3': // short book title
           case 'mt1': // book title
           case 'mt2': // book title
+          case 'mt3': // book title
           case 'imt1': // Introduction Major Title
           case 'imt2': // Introduction Major Title 2
           case 'imt3': // Introduction Major Title 3
@@ -125,12 +126,14 @@ class BibleDatabase {
           case 'mr': // major section range (Psalms)
           case 'qa': // Acrostic heading (Psalm 119)
           case 'm': // margin
+          case 'mi': // indented flush left paragraph
           case 'pmo': // indented paragraph margin opening
           case 'li1': // list item level 1
           case 'li2': // list item level 2
           case 'q1': // poetry indentation level 1
           case 'q2': // poetry indentation level 2
           case 'qr': // right aligned
+          case 'sp': // speaker identification (Song of Solomon / Job)
             format = ParagraphFormat.fromJson(marker);
             if (remainder.isEmpty) {
               continue;
@@ -308,7 +311,7 @@ class BibleDatabase {
       return ''; // remove entirely
     });
 
-    // 1. Remove Quote References (\rq... \rq*)
+    // Remove Quote References (\rq... \rq*)
     text = text.replaceAllMapped(RegExp(r'(\\rq) .*?(\\rq\*)'), (match) {
       track(match.group(1)!); // track opening
       track(match.group(2)!); // track closing
@@ -336,7 +339,8 @@ class BibleDatabase {
     // qs: Selah
     // it: italic
     // add: added word
-    text = text.replaceAllMapped(RegExp(r'\\(wj|qs|it|add)\*?'), (match) {
+    // bk: quoted book title
+    text = text.replaceAllMapped(RegExp(r'\\(wj|qs|it|add|bk)\*?'), (match) {
       final marker = match.group(0)!;
       track(marker);
       return ''; // remove tag, keep text
@@ -352,7 +356,7 @@ class BibleDatabase {
         final marker = m.group(0);
 
         // whitelist allowed markers (like footnotes)
-        const allowed = ['\\f', '\\fr', '\\ft', '\\f*', '\\fq'];
+        const allowed = ['\\f', '\\fr', '\\ft', '\\f*', '\\fq', '\\fqa'];
 
         if (!allowed.contains(marker)) {
           track(marker!);
