@@ -152,25 +152,49 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: ValueListenableBuilder<bool>(
                   valueListenable: manager.isSinglePanelNotifier,
                   builder: (context, isSinglePanel, _) {
-                    return Column(
+                    return Stack(
+                      fit: StackFit.expand,
                       children: [
-                        Expanded(
-                          child: HebrewGreekPanel(
-                            bookId: panelBookId,
-                            chapter: panelChapter,
-                            syncController: syncController,
-                          ),
+                        Column(
+                          children: [
+                            Expanded(
+                              child: HebrewGreekPanel(
+                                bookId: panelBookId,
+                                chapter: panelChapter,
+                                syncController: syncController,
+                              ),
+                            ),
+                            if (!isSinglePanel) ...[
+                              const SizedBox(height: 16),
+                              Expanded(
+                                child: BiblePanel(
+                                  bookId: panelBookId,
+                                  chapter: panelChapter,
+                                  syncController: syncController,
+                                  // translationId: translationId,
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
-                        if (!isSinglePanel) ...[
-                          const SizedBox(height: 16),
-                          Expanded(
-                            child: BiblePanel(
-                              bookId: panelBookId,
-                              chapter: panelChapter,
-                              syncController: syncController,
+
+                        if (!isSinglePanel)
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: Padding(
+                              padding: const EdgeInsets.only(right: 16.0),
+                              child: FloatingActionButton.small(
+                                heroTag: 'translation_switcher',
+                                backgroundColor: Theme.of(
+                                  context,
+                                ).scaffoldBackgroundColor,
+                                foregroundColor: Theme.of(context).primaryColor,
+                                elevation: 0,
+                                onPressed: () => _showTranslationSelector(),
+                                child: const Icon(Icons.menu_book_rounded),
+                              ),
                             ),
                           ),
-                        ],
                       ],
                     );
                   },
@@ -205,6 +229,36 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _showTranslationSelector() async {
+    final availableTranslations = await manager.getAvailableTranslations();
+
+    if (!mounted) return;
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      clipBehavior: Clip.hardEdge,
+      builder: (context) {
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ...availableTranslations.map(
+              (id) => ListTile(
+                title: Text(id),
+                trailing: manager.currentTranslationNotifier.value == id
+                    ? Icon(Icons.check, color: Theme.of(context).primaryColor)
+                    : null,
+                onTap: () => Navigator.pop(context, id),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (selected != null) {
+      manager.changeTranslation(selected);
+    }
   }
 
   /// Handles explicit user navigation (selecting from menus)
