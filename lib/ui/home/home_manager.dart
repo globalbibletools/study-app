@@ -19,7 +19,6 @@ class HomeManager {
   final currentChapterNotifier = ValueNotifier<int>(1);
   final isSinglePanelNotifier = ValueNotifier(true);
   final textParagraphNotifier = ValueNotifier<List<UsfmLine>>([]);
-  final currentTranslationNotifier = ValueNotifier<String>('BSB');
 
   final audioManager = AudioManager();
   final _bibleDb = getIt<BibleDatabase>();
@@ -56,20 +55,6 @@ class HomeManager {
 
   void togglePanelState() {
     isSinglePanelNotifier.value = !isSinglePanelNotifier.value;
-  }
-
-  void changeTranslation(String translationId) {
-    currentTranslationNotifier.value = translationId;
-  }
-
-  Future<dynamic> getAvailableTranslations() async {
-    return [
-      'Arabic (VDV)',
-      'English (BSB)',
-      'French (LSG)',
-      'Portuguese (BLJ)',
-      'Spanish (BLM)',
-    ];
   }
 
   Future<void> requestText() async {
@@ -143,6 +128,5 @@ class HomeManager {
     currentChapterNotifier.dispose();
     isSinglePanelNotifier.dispose();
     textParagraphNotifier.dispose();
-    currentTranslationNotifier.dispose();
   }
 }
