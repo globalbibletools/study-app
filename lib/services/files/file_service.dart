@@ -1,27 +1,26 @@
 import 'dart:io';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:sqflite/sqflite.dart';
 
 enum FileType { bible, audio, gloss }
 
 class FileService {
   /// Returns the full local path for a given file type and relative path.
-  ///
-  /// [relativePath] example:
-  /// - Audio: 'HEB/Gen/001.mp3'
-  /// - Database: 'eng_bsb.db'
   Future<String> getLocalPath(FileType type, String relativePath) async {
-    String basePath;
+    final docDir = await getApplicationDocumentsDirectory();
+
+    late final String basePath;
 
     switch (type) {
       case FileType.bible:
+        basePath = join(docDir.path, 'bibles');
+        break;
       case FileType.gloss:
-        // SQFLite expects databases here
-        basePath = await getDatabasesPath();
+        basePath = join(docDir.path, 'glosses');
+        break;
       case FileType.audio:
-        final docDir = await getApplicationDocumentsDirectory();
         basePath = join(docDir.path, 'audio');
+        break;
     }
 
     return join(basePath, relativePath);

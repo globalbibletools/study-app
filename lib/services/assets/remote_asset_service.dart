@@ -27,7 +27,7 @@ class RemoteAssetService {
 
     return RemoteAsset(
       remoteUrl: '$_baseHost/bibles/$filename.zip',
-      localRelativePath: 'bibles/$filename',
+      localRelativePath: filename,
       fileType: FileType.bible,
       isZip: true,
     );
@@ -41,7 +41,7 @@ class RemoteAssetService {
 
     return RemoteAsset(
       remoteUrl: '$_baseHost/glosses/$filename.zip',
-      localRelativePath: 'glosses/$filename',
+      localRelativePath: filename,
       fileType: FileType.gloss,
       isZip: true,
     );
@@ -137,7 +137,7 @@ class RemoteAssetService {
 
     return RemoteAsset(
       remoteUrl: '$_baseHost/audio/$relativePath',
-      localRelativePath: 'audio/$relativePath',
+      localRelativePath: '$recordingId/$bookKey/$filename',
       fileType: FileType.audio,
       isZip: false,
     );
