@@ -8,7 +8,7 @@ import 'package:sqflite/sqflite.dart';
 
 class EnglishDatabase {
   static const _databaseName = 'eng.db';
-  static const _databaseVersion = 1;
+  static const _databaseVersion = 2;
   late Database _database;
 
   Future<void> init() async {

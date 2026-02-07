@@ -35,8 +35,13 @@ class RemoteAssetService {
   String _getBibleFilename(String langCode) {
     switch (langCode) {
       case 'es':
-        return 'spa_blm.db';
-      // Add other mappings
+        return 'spa_blm.db'; // Spanish
+      case 'fr':
+        return 'fra_lsg.db'; // French
+      case 'pt':
+        return 'por_blj.db'; // Portuguese
+      case 'ar':
+        return 'arb_vdv.db'; // Arabic
       default:
         return '$langCode.db';
     }
@@ -59,7 +64,13 @@ class RemoteAssetService {
   String _getGlossFilename(String langCode) {
     switch (langCode) {
       case 'es':
-        return 'spa.db';
+        return 'spa.db'; // Spanish
+      case 'fr':
+        return 'fra.db'; // French
+      case 'pt':
+        return 'por.db'; // Portuguese
+      case 'ar':
+        return 'are.db'; // Arabic
       default:
         return '$langCode.db';
     }

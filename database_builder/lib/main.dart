@@ -10,13 +10,18 @@ import 'src/lexicon/database.dart';
 Future<void> main(List<String> arguments) async {
   // await _createHebrewGreekDatabase();
   // await _createLexiconDatabases();
+
+  // await _createGlossDatabase('are');
+  await _createGlossDatabase('eng');
+  // await _createGlossDatabase('fra');
   // await _createGlossDatabase('spa');
+  // await _createGlossDatabase('por');
 
   // await _createBibleDatabase('fra_lsg');
   // await _createBibleDatabase('por_blj');
   // await _createBibleDatabase('spa_blm');
   // await _createBibleDatabase('arb_vdv');
-  await _createBibleDatabase('eng_bsb');
+  // await _createBibleDatabase('eng_bsb');
 
   // await _createAudioDatabase();
 }
