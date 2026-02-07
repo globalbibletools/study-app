@@ -86,11 +86,12 @@ class DownloadProgressDialog extends StatelessWidget {
                 valueListenable: progressNotifier,
                 builder: (context, value, child) {
                   return LinearProgressIndicator(
-                    backgroundColor: Colors.white,
-                    // valueColor: Theme.of(context).colorScheme.primary,
+                    backgroundColor: Theme.of(
+                      context,
+                    ).colorScheme.primary.withValues(alpha: 0.2),
+                    color: Theme.of(context).colorScheme.primary,
                     value: value,
                     borderRadius: BorderRadius.circular(4),
-                    // minHeight: 8,
                   );
                 },
               ),

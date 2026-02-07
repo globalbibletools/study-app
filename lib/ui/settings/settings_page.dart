@@ -38,7 +38,8 @@ class _SettingsPageState extends State<SettingsPage> {
     Locale previousLocale,
     Locale newLocale,
   ) async {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = await AppLocalizations.delegate.load(newLocale);
+    if (!mounted) return;
 
     final shouldDownload =
         await showDialog<bool>(
@@ -92,6 +93,7 @@ class _SettingsPageState extends State<SettingsPage> {
         // Revert language selection
         await manager.setLocale(previousLocale);
 
+        if (!mounted) return;
         if (e is! DownloadCanceledException) {
           ScaffoldMessenger.of(
             context,
