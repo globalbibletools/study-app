@@ -20,11 +20,11 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   intl: ^0.20.2
-  connectivity_plus: ^6.1.4
+  connectivity_plus: ^7.0.0
   archive: ^4.0.7
   http: ^1.4.0
   path_provider: ^2.1.5
-  package_info_plus: ^8.3.0
+  package_info_plus: ^9.0.0
   url_launcher: ^6.3.1
   unorm_dart: ^0.3.1+1
   scripture: ^0.3.0
