@@ -3,11 +3,10 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 import 'package:scripture/scripture.dart';
 import 'package:studyapp/l10n/book_names.dart';
-import 'package:studyapp/services/audio/audio_url_helper.dart';
+import 'package:studyapp/services/assets/remote_asset_service.dart';
 import 'package:studyapp/services/bible/bible_service.dart';
 import 'package:studyapp/services/download/cancel_token.dart';
 import 'package:studyapp/services/download/download.dart';
-import 'package:studyapp/services/files/file_service.dart';
 import 'package:studyapp/services/service_locator.dart';
 import 'package:studyapp/services/user_settings.dart';
 import 'package:studyapp/ui/home/audio/audio_logic.dart';
@@ -24,6 +23,7 @@ class HomeManager {
   final _bibleService = getIt<BibleService>();
   final _settings = getIt<UserSettings>();
   final _downloadService = getIt<DownloadService>();
+  final _assetService = getIt<RemoteAssetService>();
 
   late int _currentBookId;
   int get currentBookId => _currentBookId;
@@ -101,22 +101,14 @@ class HomeManager {
       bookId,
       audioManager.audioSourceNotifier.value,
     );
-
-    final url = AudioUrlHelper.getAudioUrl(
+    final asset = _assetService.getAudioChapterAsset(
       bookId: bookId,
       chapter: chapter,
       recordingId: recordingId,
     );
-    final relativePath = AudioUrlHelper.getLocalRelativePath(
-      bookId: bookId,
-      chapter: chapter,
-      recordingId: recordingId,
-    );
-
-    await _downloadService.downloadFile(
-      url: url,
-      type: FileType.audio,
-      relativePath: relativePath,
+    if (asset == null) return;
+    await _downloadService.downloadAsset(
+      asset: asset,
       cancelToken: cancelToken,
       onProgress: (p) => progressNotifier.value = p,
     );

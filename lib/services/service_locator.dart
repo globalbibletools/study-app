@@ -1,5 +1,6 @@
 import 'package:get_it/get_it.dart';
 import 'package:studyapp/app_state.dart';
+import 'package:studyapp/services/assets/remote_asset_service.dart';
 import 'package:studyapp/services/audio/audio_database.dart';
 import 'package:studyapp/services/bible/bible_service.dart';
 import 'package:studyapp/services/download/download.dart';
@@ -14,6 +15,7 @@ final getIt = GetIt.instance;
 
 void setupServiceLocator() {
   getIt.registerLazySingleton<FileService>(() => FileService());
+  getIt.registerLazySingleton<RemoteAssetService>(() => RemoteAssetService());
   getIt.registerLazySingleton<HebrewGreekDatabase>(() => HebrewGreekDatabase());
   getIt.registerLazySingleton<GlossService>(() => GlossService());
   getIt.registerLazySingleton<LexiconsDatabase>(() => LexiconsDatabase());

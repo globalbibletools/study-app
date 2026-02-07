@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:archive/archive_io.dart';
 import 'package:flutter/foundation.dart';
+import 'package:studyapp/services/assets/remote_asset_service.dart';
 import 'package:studyapp/services/download/cancel_token.dart'; // Import this
 import 'package:studyapp/services/files/file_service.dart';
 import 'package:studyapp/services/service_locator.dart';
@@ -11,27 +12,30 @@ class DownloadService {
   final HttpClient _httpClient = HttpClient();
   final _fileService = getIt<FileService>();
 
-  Future<void> downloadFile({
-    required String url,
-    required FileType type,
-    required String relativePath,
-    bool isZip = false,
+  Future<void> downloadAsset({
+    required RemoteAsset asset,
     ValueChanged<double>? onProgress,
-    CancelToken? cancelToken, // Add this parameter
+    CancelToken? cancelToken,
   }) async {
     File? tempFile;
 
     try {
-      final localPath = await _fileService.getLocalPath(type, relativePath);
+      final localPath = await _fileService.getLocalPath(
+        asset.fileType,
+        asset.localRelativePath,
+      );
+
       await _fileService.ensureDirectoryExists(localPath);
 
-      final downloadTarget = isZip ? '$localPath.temp.zip' : '$localPath.part';
+      final downloadTarget = asset.isZip
+          ? '$localPath.temp.zip'
+          : '$localPath.part';
       tempFile = File(downloadTarget);
 
       // Check cancellation before starting
       if (cancelToken?.isCancelled ?? false) throw DownloadCanceledException();
 
-      final request = await _httpClient.getUrl(Uri.parse(url));
+      final request = await _httpClient.getUrl(Uri.parse(asset.remoteUrl));
       final response = await request.close();
 
       if (response.statusCode != HttpStatus.ok) {
@@ -77,9 +81,10 @@ class DownloadService {
       await completer.future;
 
       // Unzipping / Finalizing
-      if (isZip) {
-        if (cancelToken?.isCancelled ?? false)
+      if (asset.isZip) {
+        if (cancelToken?.isCancelled ?? false) {
           throw DownloadCanceledException();
+        }
 
         debugPrint('Extracting archive...');
         final inputStream = InputFileStream(downloadTarget);
@@ -108,7 +113,7 @@ class DownloadService {
       }
       rethrow;
     } finally {
-      if (isZip && tempFile != null && await tempFile.exists()) {
+      if (asset.isZip && tempFile != null && await tempFile.exists()) {
         await tempFile.delete();
       }
     }

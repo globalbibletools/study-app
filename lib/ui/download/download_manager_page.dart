@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:studyapp/common/bible_navigation.dart';
 import 'package:studyapp/common/book_name.dart';
 import 'package:studyapp/l10n/app_localizations.dart';
-import 'package:studyapp/services/audio/audio_url_helper.dart';
+import 'package:studyapp/services/assets/remote_asset_service.dart';
 import 'package:studyapp/services/download/cancel_token.dart';
 import 'package:studyapp/services/download/download.dart';
 import 'package:studyapp/services/files/file_service.dart';
@@ -140,6 +140,7 @@ class _BookDownloadTile extends StatefulWidget {
 class _BookDownloadTileState extends State<_BookDownloadTile> {
   final _fileService = getIt<FileService>();
   final _downloadService = getIt<DownloadService>();
+  final _assetService = getIt<RemoteAssetService>();
 
   late Future<List<int>> _missingChaptersFuture;
   late int _totalChapters;
@@ -153,18 +154,22 @@ class _BookDownloadTileState extends State<_BookDownloadTile> {
 
   Future<List<int>> _checkMissingChapters() async {
     final missing = <int>[];
+    final recId = AudioLogic.getRecordingId(widget.bookId, widget.sourceType);
+
     for (int c = 1; c <= _totalChapters; c++) {
       if (!AudioLogic.isAudioAvailable(widget.bookId, c)) continue;
 
-      final recId = AudioLogic.getRecordingId(widget.bookId, widget.sourceType);
-      final relPath = AudioUrlHelper.getLocalRelativePath(
+      final asset = _assetService.getAudioChapterAsset(
         bookId: widget.bookId,
         chapter: c,
         recordingId: recId,
       );
+
+      if (asset == null) continue;
+
       final exists = await _fileService.checkFileExists(
-        FileType.audio,
-        relPath,
+        asset.fileType,
+        asset.localRelativePath,
       );
       if (!exists) missing.add(c);
     }
@@ -250,29 +255,21 @@ class _BookDownloadTileState extends State<_BookDownloadTile> {
   }
 
   Future<void> _downloadChapter(int chapter) async {
+    final recId = AudioLogic.getRecordingId(widget.bookId, widget.sourceType);
+    final asset = _assetService.getAudioChapterAsset(
+      bookId: widget.bookId,
+      chapter: chapter,
+      recordingId: recId,
+    );
+
+    if (asset == null) return;
+
     try {
       await DownloadProgressDialog.show(
         context: context,
         task: (progress, cancelToken) async {
-          final recId = AudioLogic.getRecordingId(
-            widget.bookId,
-            widget.sourceType,
-          );
-          final url = AudioUrlHelper.getAudioUrl(
-            bookId: widget.bookId,
-            chapter: chapter,
-            recordingId: recId,
-          );
-          final relPath = AudioUrlHelper.getLocalRelativePath(
-            bookId: widget.bookId,
-            chapter: chapter,
-            recordingId: recId,
-          );
-
-          await _downloadService.downloadFile(
-            url: url,
-            type: FileType.audio,
-            relativePath: relPath,
+          await _downloadService.downloadAsset(
+            asset: asset,
             onProgress: (p) => progress.value = p,
             cancelToken: cancelToken,
           );
@@ -290,13 +287,16 @@ class _BookDownloadTileState extends State<_BookDownloadTile> {
 
   Future<void> _deleteChapter(int chapter) async {
     final recId = AudioLogic.getRecordingId(widget.bookId, widget.sourceType);
-    final relPath = AudioUrlHelper.getLocalRelativePath(
+    final asset = _assetService.getAudioChapterAsset(
       bookId: widget.bookId,
       chapter: chapter,
       recordingId: recId,
     );
-    await _fileService.deleteFile(FileType.audio, relPath);
-    _reload();
+
+    if (asset != null) {
+      await _fileService.deleteFile(asset.fileType, asset.localRelativePath);
+      _reload();
+    }
   }
 
   Future<void> _confirmDeleteBook(AppLocalizations l10n) async {
@@ -322,12 +322,17 @@ class _BookDownloadTileState extends State<_BookDownloadTile> {
     if (confirm == true) {
       final recId = AudioLogic.getRecordingId(widget.bookId, widget.sourceType);
       for (int c = 1; c <= _totalChapters; c++) {
-        final relPath = AudioUrlHelper.getLocalRelativePath(
+        final asset = _assetService.getAudioChapterAsset(
           bookId: widget.bookId,
           chapter: c,
           recordingId: recId,
         );
-        await _fileService.deleteFile(FileType.audio, relPath);
+        if (asset != null) {
+          await _fileService.deleteFile(
+            asset.fileType,
+            asset.localRelativePath,
+          );
+        }
       }
       _reload();
     }
@@ -340,7 +345,6 @@ class _BookDownloadTileState extends State<_BookDownloadTile> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        // title: const Text("Download All?"),
         content: Text(
           l10n.downloadAudioConfirmation(
             missingChapters.length,
@@ -377,23 +381,19 @@ class _BookDownloadTileState extends State<_BookDownloadTile> {
 
             final chapter = missingChapters[i];
 
-            final url = AudioUrlHelper.getAudioUrl(
-              bookId: widget.bookId,
-              chapter: chapter,
-              recordingId: recId,
-            );
-            final relPath = AudioUrlHelper.getLocalRelativePath(
+            final asset = _assetService.getAudioChapterAsset(
               bookId: widget.bookId,
               chapter: chapter,
               recordingId: recId,
             );
 
-            await _downloadService.downloadFile(
-              url: url,
-              type: FileType.audio,
-              relativePath: relPath,
+            if (asset == null) continue;
+
+            await _downloadService.downloadAsset(
+              asset: asset,
               cancelToken: cancelToken,
               onProgress: (fileProgress) {
+                // Calculate overall progress across multiple files
                 final overall = (i / total) + (fileProgress / total);
                 progress.value = overall;
               },

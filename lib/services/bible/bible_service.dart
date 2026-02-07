@@ -2,24 +2,21 @@ import 'dart:developer';
 import 'dart:ui';
 
 import 'package:scripture/scripture.dart';
+import 'package:studyapp/services/assets/remote_asset_service.dart';
 import 'package:studyapp/services/bible/english_bible_database.dart';
 import 'package:studyapp/services/bible/localized_bible_database.dart';
 import 'package:studyapp/services/download/download.dart';
-import 'package:studyapp/services/files/file_service.dart';
 import 'package:studyapp/services/service_locator.dart';
 import 'package:studyapp/services/user_settings.dart';
 
 class BibleService {
   final _settings = getIt<UserSettings>();
   final _downloadService = getIt<DownloadService>();
+  final _assetService = getIt<RemoteAssetService>();
 
   // The two data sources
   final _englishDb = EnglishBibleDatabase();
   final _localizedDb = LocalizedBibleDatabase();
-
-  // Base URL for bible repositories (Update to your actual URL)
-  static const _baseUrl =
-      'https://github.com/globalbibletools/study-app/raw/refs/heads/main/temp';
 
   Future<void> init() async {
     await _englishDb.init();
@@ -34,25 +31,15 @@ class BibleService {
   /// Downloads the bible database for the given locale.
   Future<void> downloadBible(Locale locale) async {
     final langCode = locale.languageCode;
-    final filename = _localizedDb.getDbFilename(langCode);
+    final asset = _assetService.getBibleAsset(langCode);
 
-    final url = '$_baseUrl/$filename.zip';
-
-    log('Downloading bible for $langCode from $url');
-
+    log('Downloading bible for $langCode from ${asset.remoteUrl}');
     try {
-      await _downloadService.downloadFile(
-        url: url,
-        type: FileType.bible, // Ensure this exists in your FileType enum
-        relativePath: filename,
-        isZip: true,
-      );
-
-      // Initialize immediately after download
+      await _downloadService.downloadAsset(asset: asset);
       await _localizedDb.initDb(langCode);
-      log('Bible download and initialization successful.');
+      log('Bible download successful.');
     } catch (e) {
-      log('Bible download failed for $langCode: $e');
+      log('Bible download failed: $e');
       rethrow;
     }
   }

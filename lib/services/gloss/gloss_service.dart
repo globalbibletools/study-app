@@ -2,8 +2,8 @@ import 'dart:developer';
 import 'dart:ui';
 
 import 'package:studyapp/l10n/app_localizations.dart';
+import 'package:studyapp/services/assets/remote_asset_service.dart';
 import 'package:studyapp/services/download/download.dart';
-import 'package:studyapp/services/files/file_service.dart';
 import 'package:studyapp/services/gloss/english_database.dart';
 import 'package:studyapp/services/gloss/gloss_database.dart';
 import 'package:studyapp/services/service_locator.dart';
@@ -12,13 +12,10 @@ import 'package:studyapp/services/user_settings.dart';
 class GlossService {
   final _settings = getIt<UserSettings>();
   final _downloadService = getIt<DownloadService>();
+  final _assetService = getIt<RemoteAssetService>();
 
   final _englishGlossDb = EnglishDatabase();
-  final _glossDb = GlossDatabase(); // Note: GlossDatabase is now much lighter
-
-  // Base URL for gloss repositories
-  static const _baseUrl =
-      'https://github.com/globalbibletools/study-app/raw/refs/heads/main/temp';
+  final _glossDb = GlossDatabase();
 
   Future<void> init() async {
     await _englishGlossDb.init();
@@ -31,27 +28,18 @@ class GlossService {
   /// Downloads the gloss database for the given locale.
   Future<void> downloadGlosses(Locale locale) async {
     final langCode = locale.languageCode;
-    final filename = _glossDb.getDbFilename(langCode); // e.g., 'spa.db'
 
-    // Construct URL: e.g., .../temp/spa.db.zip
-    final url = '$_baseUrl/$filename.zip';
+    final asset = _assetService.getGlossAsset(langCode);
 
-    log('Downloading glosses for $langCode from $url');
+    log('Downloading glosses for $langCode from ${asset.remoteUrl}');
 
     try {
-      await _downloadService.downloadFile(
-        url: url,
-        type: FileType.gloss, // This ensures it goes to sqflite's folder
-        relativePath: filename, // The final filename we want
-        isZip: true, // DownloadService handles the unzipping
-      );
-
-      // Initialize immediately after download so it's ready to use
+      await _downloadService.downloadAsset(asset: asset);
       await _glossDb.initDb(langCode);
-      log('Gloss download and initialization successful.');
+      log('Gloss download successful.');
     } catch (e) {
-      log('Gloss download failed for $langCode: $e');
-      rethrow; // Pass error up to UI
+      log('Bible download failed: $e');
+      rethrow;
     }
   }
 

@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:studyapp/services/assets/remote_asset_service.dart';
 import 'package:studyapp/services/audio/audio_database.dart';
 import 'package:studyapp/services/audio/audio_player_handler.dart';
 import 'package:studyapp/services/audio/audio_timing.dart';
-import 'package:studyapp/services/audio/audio_url_helper.dart';
 import 'package:studyapp/services/files/file_service.dart';
 import 'package:studyapp/services/service_locator.dart';
 import 'package:studyapp/ui/home/audio/audio_logic.dart';
@@ -24,6 +24,7 @@ class AudioManager {
   final AudioPlayerHandler audioHandler = AudioPlayerHandler();
   final _audioDb = getIt<AudioDatabase>();
   final _fileService = getIt<FileService>();
+  final _assetService = getIt<RemoteAssetService>();
 
   // --- State Notifiers ---
   final isVisibleNotifier = ValueNotifier<bool>(false);
@@ -63,39 +64,41 @@ class AudioManager {
       audioSourceNotifier.value,
     );
 
-    final relativePath = AudioUrlHelper.getLocalRelativePath(
+    // Get the Asset Configuration
+    final asset = _assetService.getAudioChapterAsset(
       bookId: bookId,
       chapter: chapter,
       recordingId: recordingId,
     );
 
+    if (asset == null) {
+      throw AudioMissingException(bookId, chapter);
+    }
+
+    // Check for local file using Asset config
     final exists = await _fileService.checkFileExists(
-      FileType.audio,
-      relativePath,
+      asset.fileType,
+      asset.localRelativePath,
     );
 
     String uriPath;
 
     if (exists) {
-      uriPath = await _fileService.getLocalPath(FileType.audio, relativePath);
-      // Prepend file:// scheme for local files if not handled by just_audio automatically
+      // Get absolute path for local playback
+      uriPath = await _fileService.getLocalPath(
+        asset.fileType,
+        asset.localRelativePath,
+      );
       uriPath = Uri.file(uriPath).toString();
     } else {
-      // Check if valid audio exists on server to stream
+      // Check if audio is theoretically available (Business Logic)
       if (!AudioLogic.isAudioAvailable(bookId, chapter)) {
         stopAndClose();
-        // This will be caught by the UI to show "Download/Not Available" dialog
-        // But since we are streaming, we might want to distinguish "Not Existent" vs "Not Downloaded"
-        // For now, keep existing exception behavior if completely unavailable.
         throw AudioMissingException(bookId, chapter);
       }
 
-      // Use Remote URL
-      uriPath = AudioUrlHelper.getAudioUrl(
-        bookId: bookId,
-        chapter: chapter,
-        recordingId: recordingId,
-      );
+      // Stream from Remote URL
+      uriPath = asset.remoteUrl;
     }
 
     _loadedBookId = bookId;
