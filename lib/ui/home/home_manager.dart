@@ -4,7 +4,7 @@ import 'package:flutter/widgets.dart';
 import 'package:scripture/scripture.dart';
 import 'package:studyapp/l10n/book_names.dart';
 import 'package:studyapp/services/audio/audio_url_helper.dart';
-import 'package:studyapp/services/bible/bible_database.dart';
+import 'package:studyapp/services/bible/bible_service.dart';
 import 'package:studyapp/services/download/cancel_token.dart';
 import 'package:studyapp/services/download/download.dart';
 import 'package:studyapp/services/files/file_service.dart';
@@ -21,7 +21,7 @@ class HomeManager {
   final textParagraphNotifier = ValueNotifier<List<UsfmLine>>([]);
 
   final audioManager = AudioManager();
-  final _bibleDb = getIt<BibleDatabase>();
+  final _bibleService = getIt<BibleService>();
   final _settings = getIt<UserSettings>();
   final _downloadService = getIt<DownloadService>();
 
@@ -58,7 +58,7 @@ class HomeManager {
   }
 
   Future<void> requestText() async {
-    final content = await _bibleDb.getChapter(
+    final content = await _bibleService.getChapter(
       _currentBookId,
       currentChapterNotifier.value,
     );

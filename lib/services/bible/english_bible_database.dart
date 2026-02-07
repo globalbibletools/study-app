@@ -8,7 +8,7 @@ import 'package:scripture/scripture.dart';
 import 'package:scripture/scripture_core.dart';
 import 'package:sqflite/sqflite.dart';
 
-class BibleDatabase {
+class EnglishBibleDatabase {
   static const _databaseName = 'eng_bsb.db';
   static const _databaseVersion = 2;
   late Database _database;
