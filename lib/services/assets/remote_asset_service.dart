@@ -1,3 +1,4 @@
+import 'package:studyapp/l10n/app_languages.dart';
 import 'package:studyapp/services/files/file_service.dart'; // Import your FileType enum
 
 class RemoteAsset {
@@ -22,7 +23,7 @@ class RemoteAssetService {
   /// Returns the asset config for a specific language bible database.
   /// Example: remote: .../bibles/spa_blm.db.zip -> local: spa_blm.db
   RemoteAsset getBibleAsset(String langCode) {
-    final filename = _getBibleFilename(langCode);
+    final filename = AppLanguages.getConfig(langCode).bibleFilename;
 
     return RemoteAsset(
       remoteUrl: '$_baseHost/bibles/$filename.zip',
@@ -32,26 +33,11 @@ class RemoteAssetService {
     );
   }
 
-  String _getBibleFilename(String langCode) {
-    switch (langCode) {
-      case 'es':
-        return 'spa_blm.db'; // Spanish
-      case 'fr':
-        return 'fra_lsg.db'; // French
-      case 'pt':
-        return 'por_blj.db'; // Portuguese
-      case 'ar':
-        return 'arb_vdv.db'; // Arabic
-      default:
-        return '$langCode.db';
-    }
-  }
-
   // --- GLOSS ASSETS ---
 
   /// Returns the asset config for a gloss database.
   RemoteAsset getGlossAsset(String langCode) {
-    final filename = _getGlossFilename(langCode);
+    final filename = AppLanguages.getConfig(langCode).glossFilename;
 
     return RemoteAsset(
       remoteUrl: '$_baseHost/glosses/$filename.zip',
@@ -59,21 +45,6 @@ class RemoteAssetService {
       fileType: FileType.gloss,
       isZip: true,
     );
-  }
-
-  String _getGlossFilename(String langCode) {
-    switch (langCode) {
-      case 'es':
-        return 'spa.db'; // Spanish
-      case 'fr':
-        return 'fra.db'; // French
-      case 'pt':
-        return 'por.db'; // Portuguese
-      case 'ar':
-        return 'are.db'; // Arabic
-      default:
-        return '$langCode.db';
-    }
   }
 
   // --- AUDIO ASSETS ---

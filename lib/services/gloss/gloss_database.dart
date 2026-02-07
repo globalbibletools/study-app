@@ -1,6 +1,7 @@
 import 'dart:developer';
 import 'package:database_builder/database_builder.dart'; // Assuming this is where GlossSchema lives
 import 'package:sqflite/sqflite.dart';
+import 'package:studyapp/l10n/app_languages.dart';
 import 'package:studyapp/services/files/file_service.dart';
 import 'package:studyapp/services/service_locator.dart';
 
@@ -10,17 +11,8 @@ class GlossDatabase {
   Database? _database;
   String _currentLangCode = '';
 
-  /// Maps language codes (e.g., 'es') to filename (e.g., 'spa.db').
-  /// Only needed if the file name on disk differs from the ISO code.
   String getDbFilename(String langCode) {
-    switch (langCode) {
-      case 'es':
-        return 'spa.db';
-      // Add other mappings here as you support more languages
-      default:
-        // Default to the lang code (e.g., 'fr' -> 'fr.db')
-        return '$langCode.db';
-    }
+    return AppLanguages.getConfig(langCode).glossFilename;
   }
 
   Future<bool> glossDbExists(String langCode) async {

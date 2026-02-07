@@ -4,6 +4,7 @@ import 'package:database_builder/database_builder.dart';
 import 'package:scripture/scripture.dart';
 import 'package:scripture/scripture_core.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:studyapp/l10n/app_languages.dart';
 import 'package:studyapp/services/files/file_service.dart';
 import 'package:studyapp/services/service_locator.dart';
 
@@ -13,18 +14,8 @@ class LocalizedBibleDatabase {
   Database? _database;
   String _currentLangCode = '';
 
-  /// Maps language codes to filenames.
-  /// Update this map as you add support for more languages/versions.
   String getDbFilename(String langCode) {
-    switch (langCode) {
-      case 'es':
-        return 'spa_blm.db';
-      // case 'fr':
-      //   return 'fra_lsg.db';
-      // Default fallback
-      default:
-        return '$langCode.db';
-    }
+    return AppLanguages.getConfig(langCode).bibleFilename;
   }
 
   Future<bool> bibleDbExists(String langCode) async {
