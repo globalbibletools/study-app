@@ -1,10 +1,12 @@
 import 'dart:developer';
 import 'dart:ui';
 
+import 'package:flutter/foundation.dart';
 import 'package:scripture/scripture.dart';
 import 'package:studyapp/services/assets/remote_asset_service.dart';
 import 'package:studyapp/services/bible/english_bible_database.dart';
 import 'package:studyapp/services/bible/localized_bible_database.dart';
+import 'package:studyapp/services/download/cancel_token.dart';
 import 'package:studyapp/services/download/download.dart';
 import 'package:studyapp/services/service_locator.dart';
 import 'package:studyapp/services/user_settings.dart';
@@ -28,18 +30,35 @@ class BibleService {
     }
   }
 
+  /// Checks if the bible database for the specific locale exists.
+  Future<bool> bibleExists(Locale locale) async {
+    final langCode = locale.languageCode;
+    if (langCode == 'en') return true;
+    return await _localizedDb.bibleDbExists(langCode);
+  }
+
   /// Downloads the bible database for the given locale.
-  Future<void> downloadBible(Locale locale) async {
+  Future<void> downloadBible(
+    Locale locale, {
+    ValueChanged<double>? onProgress,
+    CancelToken? cancelToken,
+  }) async {
     final langCode = locale.languageCode;
     final asset = _assetService.getBibleAsset(langCode);
 
     log('Downloading bible for $langCode from ${asset.remoteUrl}');
+
     try {
-      await _downloadService.downloadAsset(asset: asset);
+      await _downloadService.downloadAsset(
+        asset: asset,
+        onProgress: onProgress,
+        cancelToken: cancelToken,
+      );
+
       await _localizedDb.initDb(langCode);
-      log('Bible download successful.');
+      log('Bible download and initialization successful.');
     } catch (e) {
-      log('Bible download failed: $e');
+      log('Bible download failed for $langCode: $e');
       rethrow;
     }
   }

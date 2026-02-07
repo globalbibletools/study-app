@@ -188,11 +188,11 @@ abstract class AppLocalizations {
   /// **'Lexicon'**
   String get lexiconTextSize;
 
-  /// Message asking user to download glosses for a specific language.
+  /// Content for the dialog asking to download Bible and Gloss data
   ///
   /// In en, this message translates to:
-  /// **'To show word meanings in English, the data needs to be downloaded. Would you like to download it now?'**
-  String get downloadGlossesMessage;
+  /// **'To use this language, we need to download additional resources.'**
+  String get downloadResourcesMessage;
 
   /// Label for the dialog button to use English glosses
   ///
@@ -211,12 +211,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Cancel'**
   String get cancel;
-
-  /// Message shown while glosses are downloading.
-  ///
-  /// In en, this message translates to:
-  /// **'Downloading word meanings in English...'**
-  String get downloadingGlossesMessage;
 
   /// Message shown when glosses finish downloading.
   ///

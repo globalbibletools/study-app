@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:studyapp/l10n/app_languages.dart';
 import 'package:studyapp/l10n/app_localizations.dart';
+import 'package:studyapp/services/download/cancel_token.dart';
+import 'package:studyapp/ui/common/download_progress_dialog.dart';
 
 import 'settings_manager.dart';
 
@@ -19,16 +22,13 @@ class _SettingsPageState extends State<SettingsPage> {
       builder: (BuildContext context) {
         final textStyle = Theme.of(context).textTheme.bodyLarge;
         return SimpleDialog(
-          children: <Widget>[
-            SimpleDialogOption(
-              onPressed: () => Navigator.pop(context, const Locale('en')),
-              child: Text('English', style: textStyle),
-            ),
-            SimpleDialogOption(
-              onPressed: () => Navigator.pop(context, const Locale('es')),
-              child: Text('Español', style: textStyle),
-            ),
-          ],
+          title: Text(AppLocalizations.of(context)!.language),
+          children: AppLanguages.supported.map((config) {
+            return SimpleDialogOption(
+              onPressed: () => Navigator.pop(context, Locale(config.code)),
+              child: Text(config.nativeName, style: textStyle),
+            );
+          }).toList(),
         );
       },
     );
@@ -39,12 +39,13 @@ class _SettingsPageState extends State<SettingsPage> {
     Locale newLocale,
   ) async {
     final l10n = AppLocalizations.of(context)!;
+
     final shouldDownload =
         await showDialog<bool>(
           context: context,
           builder: (BuildContext context) {
             return AlertDialog(
-              content: Text(l10n.downloadGlossesMessage),
+              content: Text(l10n.downloadResourcesMessage),
               actions: <Widget>[
                 TextButton(
                   child: Text(l10n.cancel),
@@ -64,22 +65,38 @@ class _SettingsPageState extends State<SettingsPage> {
 
     if (!shouldDownload) {
       await manager.setLocale(previousLocale);
-    } else {
-      final messenger = ScaffoldMessenger.of(context);
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(l10n.downloadingGlossesMessage),
-          duration: const Duration(seconds: 30),
-        ),
+      return;
+    }
+
+    try {
+      await DownloadProgressDialog.show(
+        context: context,
+        task: (progressNotifier, cancelToken) async {
+          await manager.downloadResources(
+            newLocale,
+            progressNotifier: progressNotifier,
+            cancelToken: cancelToken,
+          );
+        },
       );
 
-      try {
-        await manager.downloadGlosses(newLocale);
-        messenger.hideCurrentSnackBar();
-        messenger.showSnackBar(SnackBar(content: Text(l10n.downloadComplete)));
-      } catch (e) {
-        messenger.hideCurrentSnackBar();
-        messenger.showSnackBar(SnackBar(content: Text(l10n.downloadFailed)));
+      // If we get here, download finished successfully
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.downloadComplete)));
+      }
+    } catch (e) {
+      // If cancelled or failed
+      if (mounted) {
+        // Revert language selection
+        await manager.setLocale(previousLocale);
+
+        if (e is! DownloadCanceledException) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text("${l10n.downloadFailed}: $e")));
+        }
       }
     }
   }
@@ -98,22 +115,33 @@ class _SettingsPageState extends State<SettingsPage> {
               ListTile(
                 title: Text(l10n.language),
                 trailing: Text(
-                  l10n.currentLanguage,
+                  manager.currentLanguageName,
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
                 onTap: () async {
                   final previousLocale = manager.currentLocale;
+
+                  // 1. Pick Language
                   final selectedLocale = await _chooseLocale();
                   if (selectedLocale == null) return;
+                  if (selectedLocale == previousLocale) return;
+
+                  // 2. Set Locale immediately (so UI updates)
                   await manager.setLocale(selectedLocale);
+
                   if (selectedLocale.languageCode == 'en') return;
-                  final isDownloaded = await manager.isLocaleDownloaded(
+
+                  // 3. Check for resources
+                  final isDownloaded = await manager.areResourcesDownloaded(
                     selectedLocale,
                   );
+
                   if (isDownloaded) return;
-                  WidgetsBinding.instance.addPostFrameCallback((_) async {
+
+                  // 4. Prompt Download
+                  if (context.mounted) {
                     await _showDownloadDialog(previousLocale, selectedLocale);
-                  });
+                  }
                 },
               ),
 

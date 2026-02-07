@@ -1,8 +1,10 @@
 import 'dart:developer';
 import 'dart:ui';
 
+import 'package:flutter/foundation.dart';
 import 'package:studyapp/l10n/app_localizations.dart';
 import 'package:studyapp/services/assets/remote_asset_service.dart';
+import 'package:studyapp/services/download/cancel_token.dart';
 import 'package:studyapp/services/download/download.dart';
 import 'package:studyapp/services/gloss/english_database.dart';
 import 'package:studyapp/services/gloss/gloss_database.dart';
@@ -26,19 +28,27 @@ class GlossService {
   }
 
   /// Downloads the gloss database for the given locale.
-  Future<void> downloadGlosses(Locale locale) async {
+  Future<void> downloadGlosses(
+    Locale locale, {
+    ValueChanged<double>? onProgress,
+    CancelToken? cancelToken,
+  }) async {
     final langCode = locale.languageCode;
-
     final asset = _assetService.getGlossAsset(langCode);
 
     log('Downloading glosses for $langCode from ${asset.remoteUrl}');
 
     try {
-      await _downloadService.downloadAsset(asset: asset);
+      await _downloadService.downloadAsset(
+        asset: asset,
+        onProgress: onProgress,
+        cancelToken: cancelToken,
+      );
+
       await _glossDb.initDb(langCode);
-      log('Gloss download successful.');
+      log('Gloss download and initialization successful.');
     } catch (e) {
-      log('Bible download failed: $e');
+      log('Gloss download failed for $langCode: $e');
       rethrow;
     }
   }

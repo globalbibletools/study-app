@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:studyapp/app_state.dart';
 import 'package:studyapp/common/word.dart';
+import 'package:studyapp/services/bible/bible_service.dart';
+import 'package:studyapp/services/download/cancel_token.dart';
 import 'package:studyapp/services/gloss/gloss_service.dart';
 import 'package:studyapp/services/hebrew_greek/database.dart';
 import 'package:studyapp/services/service_locator.dart';
@@ -9,6 +11,7 @@ import 'package:studyapp/services/user_settings.dart';
 class HebrewGreekChapterManager {
   final _hebrewGreekDb = getIt<HebrewGreekDatabase>();
   final _glossService = getIt<GlossService>();
+  final _bibleService = getIt<BibleService>();
   final _settings = getIt<UserSettings>();
 
   final textNotifier = ValueNotifier<List<HebrewGreekWord>>([]);
@@ -36,8 +39,53 @@ class HebrewGreekChapterManager {
   }
 
   // Called from the UI when user agrees to download.
-  Future<void> downloadGlosses(Locale locale) async {
-    await _glossService.downloadGlosses(locale);
+  Future<void> downloadResources(
+    Locale locale, {
+    required ValueNotifier<double> progressNotifier,
+    required CancelToken cancelToken,
+  }) async {
+    // Reuse the exact same logic as SettingsManager
+    // 1. Determine tasks
+    final needGloss = !await _glossService.glossesExists(locale);
+    final needBible = !await _bibleService.bibleExists(locale);
+
+    int tasksToRun = (needGloss ? 1 : 0) + (needBible ? 1 : 0);
+    int tasksCompleted = 0;
+
+    void updateProgress(double fileProgress) {
+      if (tasksToRun == 0) {
+        progressNotifier.value = 1.0;
+        return;
+      }
+      final overall =
+          (tasksCompleted / tasksToRun) + (fileProgress / tasksToRun);
+      progressNotifier.value = overall;
+    }
+
+    // 2. Glosses
+    if (needGloss) {
+      if (cancelToken.isCancelled) return;
+      await _glossService.downloadGlosses(
+        locale,
+        cancelToken: cancelToken,
+        onProgress: updateProgress,
+      );
+      tasksCompleted++;
+    }
+
+    // 3. Bible
+    if (needBible) {
+      if (cancelToken.isCancelled) return;
+      updateProgress(0.0);
+      await _bibleService.downloadBible(
+        locale,
+        cancelToken: cancelToken,
+        onProgress: updateProgress,
+      );
+      tasksCompleted++;
+    }
+
+    progressNotifier.value = 1.0;
   }
 
   // Called from the UI when user wants to use English instead of downloading.

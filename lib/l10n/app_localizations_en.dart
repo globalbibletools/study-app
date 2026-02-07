@@ -54,8 +54,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get lexiconTextSize => 'Lexicon';
 
   @override
-  String get downloadGlossesMessage =>
-      'To show word meanings in English, the data needs to be downloaded. Would you like to download it now?';
+  String get downloadResourcesMessage =>
+      'To use this language, we need to download additional resources.';
 
   @override
   String get useEnglish => 'Use English';
@@ -65,10 +65,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cancel => 'Cancel';
-
-  @override
-  String get downloadingGlossesMessage =>
-      'Downloading word meanings in English...';
 
   @override
   String get downloadComplete => 'Download complete.';

@@ -54,8 +54,8 @@ class AppLocalizationsEs extends AppLocalizations {
   String get lexiconTextSize => 'Léxico';
 
   @override
-  String get downloadGlossesMessage =>
-      'Para mostrar los significados en Español (glosas) de las palabras hebreas, es necesario descargar los datos. ¿Desea descargarlos ahora?';
+  String get downloadResourcesMessage =>
+      'Para usar este idioma, necesitamos descargar recursos adicionales.';
 
   @override
   String get useEnglish => 'Usar Inglés';
@@ -65,10 +65,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get cancel => 'Cancelar';
-
-  @override
-  String get downloadingGlossesMessage =>
-      'Descargando significados (glosas) de las palabras en Español...';
 
   @override
   String get downloadComplete => 'Descarga completa.';
