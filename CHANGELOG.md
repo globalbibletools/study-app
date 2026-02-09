@@ -2,9 +2,11 @@
 
 - Swipe up/down shortcut on Book and Chapter buttons.
 - Add an audio download manager.
-- Stream audio by if no download exists.
+- Stream audio if no download exists.
 - Add light theme.
 - Show BSB footnotes.
+- Add UI text and glosses for Arabic, French, and Portuguese.
+- Bibles for Spanish, Arabic, French, and Portuguese.
 
 ## 0.15.0 - January 13, 2026
 
