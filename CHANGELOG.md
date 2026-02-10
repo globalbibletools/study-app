@@ -1,4 +1,8 @@
-## 0.16.0
+## 0.17.0
+
+- Update `scripture` package to support RTL text for Arabic Bible.
+
+## 0.16.0 - February 9, 2026
 
 - Swipe up/down shortcut on Book and Chapter buttons.
 - Add an audio download manager.

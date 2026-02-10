@@ -11,7 +11,7 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.8
-  get_it: ^8.0.3
+  get_it: ^9.2.0
   sqflite: ^2.4.2
   path: ^1.9.1
   database_builder: 
@@ -27,7 +27,7 @@ dependencies:
   package_info_plus: ^9.0.0
   url_launcher: ^6.3.1
   unorm_dart: ^0.3.1+1
-  scripture: ^0.3.0
+  scripture: ^0.4.0
   just_audio: ^0.10.5
   just_audio_background: ^0.0.1-beta.13
   audio_video_progress_bar: ^2.0.3
