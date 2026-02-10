@@ -162,7 +162,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                         if (!isSinglePanel) ...[
-                          const SizedBox(height: 16),
+                          const Divider(height: 0, indent: 8, endIndent: 8),
                           Expanded(
                             child: BiblePanel(
                               bookId: panelBookId,

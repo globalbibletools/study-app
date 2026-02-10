@@ -1,6 +1,7 @@
 ## 0.17.0
 
 - Update `scripture` package to support RTL text for Arabic Bible.
+- Add a visual divider between panels.
 
 ## 0.16.0 - February 9, 2026
 
