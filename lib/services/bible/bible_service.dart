@@ -9,7 +9,7 @@ import 'package:studyapp/services/bible/localized_bible_database.dart';
 import 'package:studyapp/services/download/cancel_token.dart';
 import 'package:studyapp/services/download/download.dart';
 import 'package:studyapp/services/service_locator.dart';
-import 'package:studyapp/services/user_settings.dart';
+import 'package:studyapp/services/settings/user_settings.dart';
 
 class BibleService {
   final _settings = getIt<UserSettings>();

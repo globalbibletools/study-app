@@ -24,63 +24,51 @@ class ZoomWrapper extends StatefulWidget {
 }
 
 class _ZoomWrapperState extends State<ZoomWrapper> {
-  // The scale at the end of the last zoom gesture.
-  late double _baseScale;
-
-  // The current scale during a zoom gesture.
-  late double _currentScale;
-
-  // The scale at the beginning of the current zoom gesture.
-  double _gestureStartScale = 1.0;
+  // The visual scale multiplier applied via Transform.scale during a pinch
+  // gesture. Resets to 1.0 after each gesture ends.
+  double _visualScale = 1.0;
 
   // The alignment for the Transform.scale, calculated from the gesture's focal point.
   Alignment _transformAlignment = Alignment.center;
 
-  @override
-  void initState() {
-    super.initState();
-    _baseScale = widget.initialScale;
-    _currentScale = widget.initialScale;
-  }
-
-  @override
-  void didUpdateWidget(covariant ZoomWrapper oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.initialScale != oldWidget.initialScale &&
-        widget.initialScale != _baseScale) {
-      // Sync state if parent updates the scale (e.g. from settings reset)
-      _baseScale = widget.initialScale;
-      _currentScale = widget.initialScale;
-    }
-  }
+  // The absolute scale at the start of the current gesture, captured from
+  // widget.initialScale so the reported value is correct even if the active
+  // language changed since the widget was last built.
+  double _gestureStartAbsoluteScale = 1.0;
 
   Map<Type, GestureRecognizerFactory<GestureRecognizer>> get _zoomGesture {
     return {
-      // Use CustomScaleGestureRecognizer instead of the default ScaleGestureRecognizer
       CustomScaleGestureRecognizer:
           GestureRecognizerFactoryWithHandlers<CustomScaleGestureRecognizer>(
             () => CustomScaleGestureRecognizer(),
             (CustomScaleGestureRecognizer instance) {
               instance
                 ..onStart = (details) {
-                  _gestureStartScale = _baseScale;
+                  _gestureStartAbsoluteScale = widget.initialScale;
                   _updateTransformAlignment(details.localFocalPoint);
                 }
                 ..onUpdate = (details) {
                   setState(() {
-                    // Update current scale visually
-                    _currentScale = (_gestureStartScale * details.scale).clamp(
-                      0.5,
-                      5.0,
+                    _visualScale = details.scale.clamp(
+                      0.5 / _gestureStartAbsoluteScale,
+                      5.0 / _gestureStartAbsoluteScale,
                     );
                   });
                 }
                 ..onEnd = (details) {
+                  final newAbsoluteScale =
+                      (_gestureStartAbsoluteScale * _visualScale).clamp(
+                        0.5,
+                        5.0,
+                      );
+                  // Only persist if the scale actually changed (not a
+                  // single-finger scroll that produced scale ≈ 1.0).
+                  if ((_visualScale - 1.0).abs() > 0.01) {
+                    widget.onScaleChanged(newAbsoluteScale);
+                  }
                   setState(() {
-                    _baseScale = _currentScale;
+                    _visualScale = 1.0;
                   });
-                  // Persist the change
-                  widget.onScaleChanged(_baseScale);
                 };
             },
           ),
@@ -113,26 +101,48 @@ class _ZoomWrapperState extends State<ZoomWrapper> {
       gestures: _zoomGesture,
       behavior: HitTestBehavior.translucent,
       child: Transform.scale(
-        // While zooming, we scale the visual layer.
-        // When not zooming (_baseScale == _currentScale), scale is 1.0,
-        // but the child is rebuilt with the new font size.
-        scale: _baseScale > 0 ? _currentScale / _baseScale : 1.0,
+        // During a pinch gesture, _visualScale != 1.0 provides the live
+        // preview.  Between gestures it is always 1.0, so no transform is
+        // applied and the children render at their natural font size.
+        scale: _visualScale,
         alignment: _transformAlignment,
-        child: widget.builder(context, _baseScale),
+        child: widget.builder(context, widget.initialScale),
       ),
     );
   }
 }
 
 /// Custom recognizer that listens only for scaling (pinch) gestures.
-/// It overrides rejectGesture to forcefully accept the gesture even if
-/// the scroll view thinks it won the arena.
+/// It overrides rejectGesture to forcefully accept the gesture only when
+/// two or more pointers are down (an actual pinch). For single-finger
+/// scrolls the gesture is rejected normally so the scroll view wins.
 class CustomScaleGestureRecognizer extends ScaleGestureRecognizer {
   CustomScaleGestureRecognizer({super.debugOwner});
 
+  int _pointerCount = 0;
+
+  @override
+  void addAllowedPointer(PointerDownEvent event) {
+    super.addAllowedPointer(event);
+    _pointerCount++;
+  }
+
+  @override
+  void handleEvent(PointerEvent event) {
+    super.handleEvent(event);
+    if (event is PointerUpEvent || event is PointerCancelEvent) {
+      _pointerCount--;
+    }
+  }
+
   @override
   void rejectGesture(int pointer) {
-    // Don't reject just because another gesture (e.g., scroll) won
-    acceptGesture(pointer);
+    if (_pointerCount >= 2) {
+      // Two-finger pinch: force-accept so zoom wins over scroll
+      acceptGesture(pointer);
+    } else {
+      // Single-finger: let scroll gesture win normally
+      super.rejectGesture(pointer);
+    }
   }
 }

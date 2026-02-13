@@ -6,7 +6,7 @@ import 'package:studyapp/services/download/cancel_token.dart';
 import 'package:studyapp/services/gloss/gloss_service.dart';
 import 'package:studyapp/services/hebrew_greek/database.dart';
 import 'package:studyapp/services/service_locator.dart';
-import 'package:studyapp/services/user_settings.dart';
+import 'package:studyapp/services/settings/user_settings.dart';
 
 class HebrewGreekChapterManager {
   final _hebrewGreekDb = getIt<HebrewGreekDatabase>();

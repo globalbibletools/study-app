@@ -26,6 +26,23 @@ class HebrewGreekPanel extends StatefulWidget {
 
 class _HebrewGreekPanelState extends State<HebrewGreekPanel> {
   final _manager = HebrewGreekPanelManager();
+  late int _activeBookId;
+
+  @override
+  void initState() {
+    super.initState();
+    _activeBookId = widget.bookId;
+    _manager.currentBookId = _activeBookId;
+  }
+
+  @override
+  void didUpdateWidget(covariant HebrewGreekPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.bookId != oldWidget.bookId) {
+      _activeBookId = widget.bookId;
+      _manager.currentBookId = _activeBookId;
+    }
+  }
 
   @override
   void dispose() {
@@ -33,28 +50,51 @@ class _HebrewGreekPanelState extends State<HebrewGreekPanel> {
     super.dispose();
   }
 
+  void _onVisibleBookChanged(int bookId) {
+    // Update the manager immediately so pinch-to-zoom saves to the right
+    // language, but do NOT call setState. Rebuilding the tree while the user
+    // is scrolling would change ZoomWrapper.initialScale, causing a visual
+    // scale jump and scroll-position disruption at the Hebrew/Greek boundary.
+    // The per-chapter fontSize is already correct because each chapter picks
+    // its own scale in the chapterBuilder closure.
+    _activeBookId = bookId;
+    _manager.currentBookId = bookId;
+  }
+
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<double>(
-      valueListenable: _manager.fontScaleNotifier,
-      builder: (context, currentScale, child) {
-        return ZoomWrapper(
-          initialScale: currentScale,
-          onScaleChanged: (newScale) => _manager.saveFontScale(newScale),
-          builder: (context, scale) {
-            final fontSize = _manager.baseFontSize * scale;
+      valueListenable: _manager.hebrewScaleNotifier,
+      builder: (context, hebrewScale, child) {
+        return ValueListenableBuilder<double>(
+          valueListenable: _manager.greekScaleNotifier,
+          builder: (context, greekScale, child) {
+            final isHebrew = _manager.isHebrew(_activeBookId);
+            final activeScale = isHebrew ? hebrewScale : greekScale;
 
-            return InfiniteScrollView(
-              bookId: widget.bookId,
-              chapter: widget.chapter,
-              syncController: widget.syncController,
-              chapterBuilder: (context, bId, ch) {
-                return HebrewGreekChapter(
-                  key: ValueKey('page-$bId-$ch'),
-                  bookId: bId,
-                  chapter: ch,
-                  fontSize: fontSize,
+            return ZoomWrapper(
+              initialScale: activeScale,
+              onScaleChanged: (newScale) => _manager.handleZoom(newScale),
+              builder: (context, scale) {
+                return InfiniteScrollView(
+                  bookId: widget.bookId,
+                  chapter: widget.chapter,
                   syncController: widget.syncController,
+                  onVisibleBookChanged: _onVisibleBookChanged,
+                  chapterBuilder: (context, bookId, chapter) {
+                    final chapterIsHebrew = _manager.isHebrew(bookId);
+                    final chapterScale = chapterIsHebrew
+                        ? hebrewScale
+                        : greekScale;
+                    final fontSize = _manager.baseFontSize * chapterScale;
+                    return HebrewGreekChapter(
+                      key: ValueKey('page-$bookId-$chapter'),
+                      bookId: bookId,
+                      chapter: chapter,
+                      fontSize: fontSize,
+                      syncController: widget.syncController,
+                    );
+                  },
                 );
               },
             );

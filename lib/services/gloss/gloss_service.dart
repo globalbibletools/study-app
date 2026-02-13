@@ -9,7 +9,7 @@ import 'package:studyapp/services/download/download.dart';
 import 'package:studyapp/services/gloss/english_database.dart';
 import 'package:studyapp/services/gloss/gloss_database.dart';
 import 'package:studyapp/services/service_locator.dart';
-import 'package:studyapp/services/user_settings.dart';
+import 'package:studyapp/services/settings/user_settings.dart';
 
 class GlossService {
   final _settings = getIt<UserSettings>();

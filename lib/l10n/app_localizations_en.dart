@@ -45,7 +45,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get textSize => 'Text size';
 
   @override
-  String get hebrewGreekTextSize => 'Hebrew/Greek';
+  String get hebrewTextSize => 'Hebrew';
+
+  @override
+  String get greekTextSize => 'Greek';
 
   @override
   String get secondPanelTextSize => 'Second panel';

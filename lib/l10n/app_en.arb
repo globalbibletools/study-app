@@ -48,9 +48,13 @@
   "@textSize": {
     "description": "Menu item for text size settings"
   },
-  "hebrewGreekTextSize": "Hebrew/Greek",
-  "@hebrewGreekTextSize": {
-    "description": "Settings option to change the display size of the Hebrew or Greek font"
+  "hebrewTextSize": "Hebrew",
+  "@hebrewTextSize": {
+    "description": "Settings option to change the display size of the Hebrew font"
+  },
+  "greekTextSize": "Greek",
+  "@hebrewTextSize": {
+    "description": "Settings option to change the display size of the Greek font"
   },
   "secondPanelTextSize": "Second panel",
   "@secondPanelTextSize": {

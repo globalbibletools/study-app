@@ -9,7 +9,7 @@ import 'package:studyapp/services/gloss/gloss_service.dart';
 import 'package:studyapp/services/hebrew_greek/database.dart';
 import 'package:studyapp/services/lexicon/database.dart';
 
-import 'user_settings.dart';
+import 'settings/user_settings.dart';
 
 final getIt = GetIt.instance;
 

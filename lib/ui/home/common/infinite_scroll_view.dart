@@ -29,6 +29,7 @@ class InfiniteScrollView extends StatefulWidget {
     required this.chapterBuilder,
     this.physics,
     this.syncController,
+    this.onVisibleBookChanged,
   });
 
   final int bookId;
@@ -36,6 +37,7 @@ class InfiniteScrollView extends StatefulWidget {
   final ChapterBuilder chapterBuilder;
   final ScrollPhysics? physics;
   final ScrollSyncController? syncController;
+  final ValueChanged<int>? onVisibleBookChanged;
 
   @override
   State<InfiniteScrollView> createState() => _InfiniteScrollViewState();
@@ -54,6 +56,7 @@ class _InfiniteScrollViewState extends State<InfiniteScrollView> {
   // Flag to prevent the scroll listener from overwriting the selected verse
   // with the geometrically visible verse during a programmatic jump.
   bool _isProgrammaticScroll = false;
+  int? _lastVisibleBookId;
 
   @override
   void initState() {
@@ -160,10 +163,41 @@ class _InfiniteScrollViewState extends State<InfiniteScrollView> {
     // the specific target verse.
     if (_isProgrammaticScroll) return;
 
+    _updateVisibleBook();
+
     // Only calculate and report sync if WE are the active source
     if (widget.syncController != null &&
         widget.syncController!.isSourceActive(_panelId)) {
       _reportSyncPosition();
+    }
+  }
+
+  void _updateVisibleBook() {
+    if (widget.onVisibleBookChanged == null) return;
+    for (final chapterId in _displayedChapters) {
+      final key = _chapterKeys[chapterId];
+      if (key == null) continue;
+      final sliverContext = key.currentContext;
+      if (sliverContext == null) continue;
+      final renderSliver = sliverContext.findRenderObject() as RenderSliver?;
+      if (renderSliver == null ||
+          !renderSliver.attached ||
+          renderSliver.geometry == null) {
+        continue;
+      }
+      final viewport = RenderAbstractViewport.of(renderSliver);
+      final revealedOffset =
+          viewport.getOffsetToReveal(renderSliver, 0.0).offset;
+      final currentScroll = _scrollController.offset;
+      final chapterHeight = renderSliver.geometry!.scrollExtent;
+      if (currentScroll >= revealedOffset &&
+          currentScroll < revealedOffset + chapterHeight) {
+        if (chapterId.bookId != _lastVisibleBookId) {
+          _lastVisibleBookId = chapterId.bookId;
+          widget.onVisibleBookChanged!(chapterId.bookId);
+        }
+        break;
+      }
     }
   }
 

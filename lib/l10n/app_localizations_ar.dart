@@ -45,7 +45,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get textSize => 'حجم النص';
 
   @override
-  String get hebrewGreekTextSize => 'العبرية/اليونانية';
+  String get hebrewTextSize => 'العبرية';
+
+  @override
+  String get greekTextSize => 'اليونانية';
 
   @override
   String get secondPanelTextSize => 'اللوحة الثانية';

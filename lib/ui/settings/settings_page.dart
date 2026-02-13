@@ -176,21 +176,35 @@ class _SettingsPageState extends State<SettingsPage> {
               ExpansionTile(
                 title: Text(l10n.textSize),
                 children: [
-                  // 1. Hebrew/Greek
+                  // 1. Hebrew
                   ListTile(
-                    title: Text(l10n.hebrewGreekTextSize),
+                    title: Text(l10n.hebrewTextSize),
                     trailing: Text('${manager.hebrewTextSize.toInt()}'),
                     contentPadding: const EdgeInsets.only(left: 32, right: 16),
                     onTap: () {
                       _showFontSizeDialog(
                         context,
-                        previewText: 'א α',
+                        previewText: 'א',
                         currentValue: manager.hebrewTextSize,
                         onChanged: manager.setHebrewTextSize,
                       );
                     },
                   ),
-                  // 2. Second Panel
+                  // 2. Greek
+                  ListTile(
+                    title: Text(l10n.greekTextSize),
+                    trailing: Text('${manager.greekTextSize.toInt()}'),
+                    contentPadding: const EdgeInsets.only(left: 32, right: 16),
+                    onTap: () {
+                      _showFontSizeDialog(
+                        context,
+                        previewText: 'α',
+                        currentValue: manager.greekTextSize,
+                        onChanged: manager.setGreekTextSize,
+                      );
+                    },
+                  ),
+                  // 3. Second Panel
                   ListTile(
                     title: Text(l10n.secondPanelTextSize),
                     trailing: Text('${manager.bibleTextSize.toInt()}'),
@@ -204,7 +218,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       );
                     },
                   ),
-                  // 3. Lexicon
+                  // 4. Lexicon
                   ListTile(
                     title: Text(l10n.lexiconTextSize),
                     trailing: Text('${manager.lexiconTextSize.toInt()}'),

@@ -8,7 +8,7 @@ import 'package:studyapp/services/bible/bible_service.dart';
 import 'package:studyapp/services/download/cancel_token.dart';
 import 'package:studyapp/services/download/download.dart';
 import 'package:studyapp/services/service_locator.dart';
-import 'package:studyapp/services/user_settings.dart';
+import 'package:studyapp/services/settings/user_settings.dart';
 import 'package:studyapp/ui/home/audio/audio_logic.dart';
 import 'package:studyapp/ui/home/audio/audio_manager.dart';
 import 'package:studyapp/ui/home/common/scroll_sync_controller.dart';

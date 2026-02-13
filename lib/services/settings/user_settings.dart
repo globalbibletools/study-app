@@ -12,7 +12,8 @@ class UserSettings {
   static const _themeModeKey = 'themeMode';
   static const _currentChapterKey = 'currentChapter';
   static const _currentBookIdKey = 'currentBookId';
-  static const _hebrewGreekFontScaleKey = 'hebrewGreekFontScale';
+  static const _hebrewFontScaleKey = 'hebrewFontScale';
+  static const _greekFontScaleKey = 'greekFontScale';
   static const _bibleFontScaleKey = 'bibleFontScale';
   static const _wordDetailsFontScaleKey = 'wordDetailsFontScale';
   static const _localeKey = 'locale';
@@ -45,11 +46,16 @@ class UserSettings {
 
   double get baseFontSize => 20.0;
 
-  double get hebrewGreekFontScale =>
-      _prefs.getDouble(_hebrewGreekFontScaleKey) ?? 1.0;
+  double get hebrewFontScale => _prefs.getDouble(_hebrewFontScaleKey) ?? 1.0;
 
-  Future<void> setHebrewGreekFontScale(double scale) async {
-    await _prefs.setDouble(_hebrewGreekFontScaleKey, scale);
+  Future<void> setHebrewFontScale(double scale) async {
+    await _prefs.setDouble(_hebrewFontScaleKey, scale);
+  }
+
+  double get greekFontScale => _prefs.getDouble(_greekFontScaleKey) ?? 1.0;
+
+  Future<void> setGreekFontScale(double scale) async {
+    await _prefs.setDouble(_greekFontScaleKey, scale);
   }
 
   double get bibleFontScale => _prefs.getDouble(_bibleFontScaleKey) ?? 1.0;

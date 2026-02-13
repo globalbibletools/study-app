@@ -7,7 +7,7 @@ import 'package:studyapp/services/bible/bible_service.dart';
 import 'package:studyapp/services/download/cancel_token.dart';
 import 'package:studyapp/services/gloss/gloss_service.dart';
 import 'package:studyapp/services/service_locator.dart';
-import 'package:studyapp/services/user_settings.dart';
+import 'package:studyapp/services/settings/user_settings.dart';
 
 class SettingsManager extends ChangeNotifier {
   final _settings = getIt<UserSettings>();
@@ -112,13 +112,23 @@ class SettingsManager extends ChangeNotifier {
   double get maxFontSize => 60;
   int get fontSizeDivisions => 50;
 
-  // Hebrew/Greek
+  // Hebrew
   double get hebrewTextSize =>
-      (_settings.baseFontSize * _settings.hebrewGreekFontScale).roundToDouble();
+      (_settings.baseFontSize * _settings.hebrewFontScale).roundToDouble();
 
   Future<void> setHebrewTextSize(double fontSize) async {
     final scale = fontSize / _settings.baseFontSize;
-    await _settings.setHebrewGreekFontScale(scale);
+    await _settings.setHebrewFontScale(scale);
+    notifyListeners();
+  }
+
+  // Greek
+  double get greekTextSize =>
+      (_settings.baseFontSize * _settings.greekFontScale).roundToDouble();
+
+  Future<void> setGreekTextSize(double fontSize) async {
+    final scale = fontSize / _settings.baseFontSize;
+    await _settings.setGreekFontScale(scale);
     notifyListeners();
   }
 

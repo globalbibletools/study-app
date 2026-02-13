@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:studyapp/services/service_locator.dart';
-import 'package:studyapp/services/user_settings.dart';
+import 'package:studyapp/services/settings/user_settings.dart';
 
 class AppState extends ChangeNotifier {
   final _settings = getIt<UserSettings>();
