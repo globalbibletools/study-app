@@ -176,13 +176,13 @@ abstract class AppLocalizations {
   /// **'Text size'**
   String get textSize;
 
-  /// Settings option to change the display size of the Greek font
+  /// Settings option to change the display size of the Hebrew font
   ///
   /// In en, this message translates to:
   /// **'Hebrew'**
   String get hebrewTextSize;
 
-  /// No description provided for @greekTextSize.
+  /// Settings option to change the display size of the Greek font
   ///
   /// In en, this message translates to:
   /// **'Greek'**

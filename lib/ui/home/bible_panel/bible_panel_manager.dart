@@ -16,6 +16,12 @@ class BiblePanelManager {
     await _settings.setBibleFontScale(scale);
   }
 
+  /// Re-reads the persisted scale from UserSettings into the notifier.
+  /// Call after returning from the settings screen.
+  void refreshFromSettings() {
+    fontScaleNotifier.value = _settings.bibleFontScale;
+  }
+
   void dispose() {
     fontScaleNotifier.dispose();
   }

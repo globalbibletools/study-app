@@ -30,6 +30,13 @@ class HebrewGreekPanelManager {
     }
   }
 
+  /// Re-reads persisted scales from UserSettings into the notifiers.
+  /// Call after returning from the settings screen.
+  void refreshFromSettings() {
+    hebrewScaleNotifier.value = _settings.hebrewFontScale;
+    greekScaleNotifier.value = _settings.greekFontScale;
+  }
+
   void dispose() {
     hebrewScaleNotifier.dispose();
     greekScaleNotifier.dispose();

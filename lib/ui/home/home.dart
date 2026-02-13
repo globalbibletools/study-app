@@ -27,6 +27,8 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final manager = HomeManager();
   final syncController = ScrollSyncController();
+  final _hebrewGreekPanelKey = GlobalKey<HebrewGreekPanelState>();
+  final _biblePanelKey = GlobalKey<BiblePanelState>();
 
   // "Panel" State: Triggers infinite scroll reset only when explicitly changed by User
   late int panelBookId;
@@ -121,9 +123,8 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       drawer: AppDrawer(
         onSettingsClosed: () {
-          setState(() {
-            // _fontScale = manager.getFontScale();
-          });
+          _hebrewGreekPanelKey.currentState?.refreshFromSettings();
+          _biblePanelKey.currentState?.refreshFromSettings();
         },
       ),
       body: SafeArea(
@@ -156,6 +157,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         Expanded(
                           child: HebrewGreekPanel(
+                            key: _hebrewGreekPanelKey,
                             bookId: panelBookId,
                             chapter: panelChapter,
                             syncController: syncController,
@@ -165,6 +167,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           const Divider(height: 0, indent: 8, endIndent: 8),
                           Expanded(
                             child: BiblePanel(
+                              key: _biblePanelKey,
                               bookId: panelBookId,
                               chapter: panelChapter,
                               syncController: syncController,

@@ -53,7 +53,7 @@
     "description": "Settings option to change the display size of the Hebrew font"
   },
   "greekTextSize": "Greek",
-  "@hebrewTextSize": {
+  "@greekTextSize": {
     "description": "Settings option to change the display size of the Greek font"
   },
   "secondPanelTextSize": "Second panel",

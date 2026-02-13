@@ -21,10 +21,10 @@ class HebrewGreekPanel extends StatefulWidget {
   final ScrollSyncController? syncController;
 
   @override
-  State<HebrewGreekPanel> createState() => _HebrewGreekPanelState();
+  State<HebrewGreekPanel> createState() => HebrewGreekPanelState();
 }
 
-class _HebrewGreekPanelState extends State<HebrewGreekPanel> {
+class HebrewGreekPanelState extends State<HebrewGreekPanel> {
   final _manager = HebrewGreekPanelManager();
   late int _activeBookId;
 
@@ -42,6 +42,11 @@ class _HebrewGreekPanelState extends State<HebrewGreekPanel> {
       _activeBookId = widget.bookId;
       _manager.currentBookId = _activeBookId;
     }
+  }
+
+  /// Re-reads font scales from persisted settings into the notifiers.
+  void refreshFromSettings() {
+    _manager.refreshFromSettings();
   }
 
   @override

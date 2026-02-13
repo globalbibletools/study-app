@@ -3,6 +3,8 @@
 - Update `scripture` package to support RTL text for Arabic Bible.
 - Add a visual divider between panels.
 - Fix contrast for audio voice selector in download manager.
+- Allow separate font sizes for Hebrew and Greek.
+- Update Hebrew/Greek/Bible font sizes when changed in settings.
 
 ## 0.16.0 - February 9, 2026
 

@@ -18,11 +18,16 @@ class BiblePanel extends StatefulWidget {
   final ScrollSyncController? syncController;
 
   @override
-  State<BiblePanel> createState() => _BiblePanelState();
+  State<BiblePanel> createState() => BiblePanelState();
 }
 
-class _BiblePanelState extends State<BiblePanel> {
+class BiblePanelState extends State<BiblePanel> {
   final _manager = BiblePanelManager();
+
+  /// Re-reads the font scale from persisted settings into the notifier.
+  void refreshFromSettings() {
+    _manager.refreshFromSettings();
+  }
 
   @override
   void dispose() {
