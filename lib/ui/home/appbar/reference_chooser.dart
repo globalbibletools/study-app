@@ -178,6 +178,9 @@ class _ReferenceChooserState extends State<ReferenceChooser> {
             }
           },
           // --- TEXT INPUT LOGIC ---
+          onValueChanged: (val) {
+            widget.onChapterSelected(val);
+          },
           onSubmitted: (val) {
             widget.onChapterSelected(val);
             setState(() {
@@ -185,6 +188,14 @@ class _ReferenceChooserState extends State<ReferenceChooser> {
               _isSelectingVerse = true;
             });
             _verseFocus.requestFocus();
+          },
+          onBackspaceWhenEmpty: () {
+            // Go back to book selector
+            setState(() {
+              _isSelectingChapter = false;
+              _isSelectingBook = true;
+            });
+            _bookFocus.requestFocus();
           },
           onCancel: _resetAll,
         ),
@@ -214,6 +225,14 @@ class _ReferenceChooserState extends State<ReferenceChooser> {
           onSubmitted: (val) {
             widget.onVerseSelected(val);
             _resetAll();
+          },
+          onBackspaceWhenEmpty: () {
+            // Go back to chapter selector
+            setState(() {
+              _isSelectingVerse = false;
+              _isSelectingChapter = true;
+            });
+            _chapterFocus.requestFocus();
           },
           onCancel: _resetAll,
         ),
@@ -660,6 +679,7 @@ class _BookSelectorState extends State<_BookSelector> {
                 controller: _controller,
                 focusNode: widget.focusNode,
                 autofocus: true,
+                textInputAction: TextInputAction.next,
                 decoration: const InputDecoration(
                   isDense: true,
                   contentPadding: EdgeInsets.symmetric(
@@ -715,6 +735,13 @@ class _NumberSelector extends StatefulWidget {
   final Function(int) onSubmitted;
   final VoidCallback onCancel;
 
+  /// Called when the user presses backspace/delete on an empty field.
+  final VoidCallback? onBackspaceWhenEmpty;
+
+  /// Called each time the typed value changes (before auto-submit).
+  /// Allows progressive navigation (e.g. load Psalm 8 while still typing).
+  final Function(int)? onValueChanged;
+
   const _NumberSelector({
     required this.currentValue,
     required this.isActive,
@@ -728,6 +755,8 @@ class _NumberSelector extends StatefulWidget {
     required this.onPreviousInvoked,
     required this.onSubmitted,
     required this.onCancel,
+    this.onBackspaceWhenEmpty,
+    this.onValueChanged,
   });
 
   @override
@@ -741,6 +770,7 @@ class _NumberSelectorState extends State<_NumberSelector> {
   void initState() {
     super.initState();
     _controller.addListener(_onTextChanged);
+    widget.focusNode.onKeyEvent = _onKeyEvent;
   }
 
   @override
@@ -749,6 +779,8 @@ class _NumberSelectorState extends State<_NumberSelector> {
     if (!widget.isActive && oldWidget.isActive) {
       _controller.clear();
     }
+    // Re-attach in case the focus node was replaced
+    widget.focusNode.onKeyEvent = _onKeyEvent;
   }
 
   @override
@@ -757,11 +789,24 @@ class _NumberSelectorState extends State<_NumberSelector> {
     super.dispose();
   }
 
+  KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is KeyDownEvent &&
+        event.logicalKey == LogicalKeyboardKey.backspace &&
+        _controller.text.isEmpty) {
+      widget.onBackspaceWhenEmpty?.call();
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
   void _onTextChanged() {
     final text = _controller.text;
     if (text.isEmpty) return;
     final value = int.tryParse(text);
     if (value == null) return;
+
+    // Report the current value for progressive navigation
+    widget.onValueChanged?.call(value);
 
     bool shouldAutoSubmit = false;
     if (value == widget.maxValue) {
@@ -790,6 +835,7 @@ class _NumberSelectorState extends State<_NumberSelector> {
               focusNode: widget.focusNode,
               autofocus: true,
               keyboardType: TextInputType.number,
+              textInputAction: TextInputAction.done,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               decoration: const InputDecoration(
                 isDense: true,
