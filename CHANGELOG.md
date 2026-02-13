@@ -2,6 +2,7 @@
 
 - Update `scripture` package to support RTL text for Arabic Bible.
 - Add a visual divider between panels.
+- Fix contrast for audio voice selector in download manager.
 
 ## 0.16.0 - February 9, 2026
 

@@ -69,6 +69,14 @@ class _DownloadManagerPageState extends State<DownloadManagerPage> {
               ),
               const SizedBox(height: 8),
               SegmentedButton<AudioSourceType>(
+                style: SegmentedButton.styleFrom(
+                  selectedBackgroundColor: Theme.of(
+                    context,
+                  ).colorScheme.primary,
+                  selectedForegroundColor: Theme.of(
+                    context,
+                  ).colorScheme.onPrimary,
+                ),
                 segments: [
                   ButtonSegment(
                     value: AudioSourceType.rdb,
