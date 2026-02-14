@@ -63,7 +63,7 @@ class ReferenceChooserState extends State<ReferenceChooser> {
 
     bool needsUpdate = false;
 
-    // 1. Update Chapter Controller (suppress listener to prevent synchronous setState loop)
+    // 1. Update Chapter Controller
     if (widget.currentChapter != oldWidget.currentChapter &&
         _currentMode != ReferenceInputMode.chapter) {
       _chapterController.removeListener(_updateAvailableDigits);
@@ -72,7 +72,7 @@ class ReferenceChooserState extends State<ReferenceChooser> {
       needsUpdate = true;
     }
 
-    // 2. Update Verse Controller (suppress listener)
+    // 2. Update Verse Controller
     if (widget.currentVerse != oldWidget.currentVerse &&
         _currentMode != ReferenceInputMode.verse) {
       _verseController.removeListener(_updateAvailableDigits);
@@ -81,7 +81,7 @@ class ReferenceChooserState extends State<ReferenceChooser> {
       needsUpdate = true;
     }
 
-    // 3. Schedule the digit calculation for AFTER the build phase
+    // 3. Schedule the digit calculation
     if (widget.currentBookId != oldWidget.currentBookId ||
         widget.currentChapter != oldWidget.currentChapter ||
         needsUpdate) {
@@ -92,11 +92,9 @@ class ReferenceChooserState extends State<ReferenceChooser> {
   }
 
   void _onFocusChange() {
-    // If we lost all focus (user tapped outside), reset mode
     if (!_bookFocus.hasFocus &&
         !_chapterFocus.hasFocus &&
         !_verseFocus.hasFocus) {
-      // Small delay to allow focus to move between our own fields
       Future.delayed(const Duration(milliseconds: 100), () {
         if (mounted &&
             !_bookFocus.hasFocus &&
@@ -122,6 +120,15 @@ class ReferenceChooserState extends State<ReferenceChooser> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _updateAvailableDigits();
     });
+  }
+
+  void _resetAllInternal() {
+    if (!mounted) return;
+    setState(() {
+      _currentMode = ReferenceInputMode.none;
+    });
+    widget.onInputModeChanged(ReferenceInputMode.none);
+    widget.onAvailableDigitsChanged?.call({0, 1, 2, 3, 4, 5, 6, 7, 8, 9});
   }
 
   void _updateAvailableDigits() {
@@ -159,17 +166,6 @@ class ReferenceChooserState extends State<ReferenceChooser> {
     widget.onAvailableDigitsChanged!(allowed);
   }
 
-  void _resetAllInternal() {
-    if (!mounted) return;
-    setState(() {
-      _currentMode = ReferenceInputMode.none;
-    });
-    widget.onInputModeChanged(ReferenceInputMode.none);
-    // Reset keys to all allowed or none, depending on preference
-    widget.onAvailableDigitsChanged?.call({0, 1, 2, 3, 4, 5, 6, 7, 8, 9});
-  }
-
-  // PUBLIC: Called by HomeScreen to close keypad
   void resetAll() {
     FocusManager.instance.primaryFocus?.unfocus();
     _resetAllInternal();
@@ -206,15 +202,14 @@ class ReferenceChooserState extends State<ReferenceChooser> {
       String newText = activeController.text + digit.toString();
       int? newValue = int.tryParse(newText);
 
-      // 1. Validate and Update Text
       if (newValue != null && newValue <= maxValue && newValue > 0) {
         activeController.text = newText;
         if (_currentMode == ReferenceInputMode.chapter) {
           widget.onChapterSelected(newValue);
+        } else if (_currentMode == ReferenceInputMode.verse) {
+          widget.onVerseSelected(newValue);
         }
 
-        // 2. Check for Auto-Accept (Problem 1)
-        // If no further digits (0-9) can form a valid number, submit automatically.
         bool canAppend = false;
         for (int i = 0; i <= 9; i++) {
           int? nextVal = int.tryParse(newText + i.toString());
@@ -231,7 +226,6 @@ class ReferenceChooserState extends State<ReferenceChooser> {
     }
   }
 
-  // PUBLIC: Called by HomeScreen Keypad
   void handleBackspace() {
     TextEditingController? activeController;
     if (_currentMode == ReferenceInputMode.chapter) {
@@ -245,14 +239,19 @@ class ReferenceChooserState extends State<ReferenceChooser> {
       if (text.isNotEmpty) {
         activeController.text = text.substring(0, text.length - 1);
 
-        // If chapter, update live view if valid
-        if (activeController.text.isNotEmpty &&
-            _currentMode == ReferenceInputMode.chapter) {
+        // Update live view if valid after backspace
+        if (activeController.text.isNotEmpty) {
           int? val = int.tryParse(activeController.text);
-          if (val != null) widget.onChapterSelected(val);
+          if (val != null) {
+            if (_currentMode == ReferenceInputMode.chapter) {
+              widget.onChapterSelected(val);
+            } else if (_currentMode == ReferenceInputMode.verse) {
+              // Trigger live jump for verses
+              widget.onVerseSelected(val);
+            }
+          }
         }
       } else {
-        // Text is empty, navigate back
         if (_currentMode == ReferenceInputMode.verse) {
           _activateMode(ReferenceInputMode.chapter);
         } else if (_currentMode == ReferenceInputMode.chapter) {
@@ -262,7 +261,6 @@ class ReferenceChooserState extends State<ReferenceChooser> {
     }
   }
 
-  // PUBLIC: Called by HomeScreen Keypad
   void handleSubmit() {
     if (_currentMode == ReferenceInputMode.chapter) {
       int val = int.tryParse(_chapterController.text) ?? 1;
@@ -281,7 +279,6 @@ class ReferenceChooserState extends State<ReferenceChooser> {
       mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.start,
       children: [
-        // --- BOOK SELECTOR ---
         Flexible(
           fit: FlexFit.loose,
           child: _BookSelector(
@@ -293,7 +290,7 @@ class ReferenceChooserState extends State<ReferenceChooser> {
             onChanged: widget.onBookSelected,
             onSubmitted: (id) {
               widget.onBookSelected(id);
-              // If the book has only 1 chapter, skip asking for it.
+
               int chapterCount = BibleNavigation.getChapterCount(id);
               if (chapterCount == 1) {
                 widget.onChapterSelected(1);
@@ -305,10 +302,7 @@ class ReferenceChooserState extends State<ReferenceChooser> {
             onCancel: resetAll,
           ),
         ),
-
         const SizedBox(width: 8),
-
-        // --- CHAPTER SELECTOR ---
         _NumberSelector(
           controller: _chapterController,
           currentValue: widget.currentChapter,
@@ -320,8 +314,9 @@ class ReferenceChooserState extends State<ReferenceChooser> {
             final maxChapters = BibleNavigation.getChapterCount(
               widget.currentBookId,
             );
-            if (widget.currentChapter < maxChapters)
+            if (widget.currentChapter < maxChapters) {
               return (widget.currentChapter + 1).toString();
+            }
             if (widget.currentBookId < 66) return "1";
             return null;
           },
@@ -337,8 +332,9 @@ class ReferenceChooserState extends State<ReferenceChooser> {
             }
           },
           onPeekPrevious: () {
-            if (widget.currentChapter > 1)
+            if (widget.currentChapter > 1) {
               return (widget.currentChapter - 1).toString();
+            }
             if (widget.currentBookId > 1) {
               final prev = widget.currentBookId - 1;
               return BibleNavigation.getChapterCount(prev).toString();
@@ -355,10 +351,7 @@ class ReferenceChooserState extends State<ReferenceChooser> {
             }
           },
         ),
-
         const SizedBox(width: 8),
-
-        // --- VERSE SELECTOR ---
         _NumberSelector(
           controller: _verseController,
           currentValue: widget.currentVerse,
@@ -383,7 +376,7 @@ class ReferenceChooserState extends State<ReferenceChooser> {
 class _SwipeableSelectorButton extends StatefulWidget {
   final String label;
   final VoidCallback onTap;
-  final bool enableSwipe; // Controls if gesture is detected
+  final bool enableSwipe;
   final String? Function() onPeekNext;
   final String? Function() onPeekPrevious;
   final VoidCallback onNextInvoked;
@@ -439,7 +432,6 @@ class _SwipeableSelectorButtonState extends State<_SwipeableSelectorButton>
       end: Offset.zero,
     ).animate(_slideController);
 
-    // Initial placeholder
     _bounceAnimation = Tween<Offset>(
       begin: Offset.zero,
       end: Offset.zero,
@@ -564,7 +556,6 @@ class _SwipeableSelectorButtonState extends State<_SwipeableSelectorButton>
 
     return GestureDetector(
       onTap: widget.onTap,
-      // If swipe is disabled, pass null to prevent gesture capture
       onVerticalDragEnd: widget.enableSwipe
           ? (details) {
               if (details.primaryVelocity! < 0) {
@@ -853,7 +844,7 @@ class _BookSelectorState extends State<_BookSelector> {
 }
 
 // -----------------------------------------------------------------------------
-// NUMBER SELECTOR WIDGET (Stateless - Driven by Parent Controller)
+// NUMBER SELECTOR WIDGET
 // -----------------------------------------------------------------------------
 
 class _NumberSelector extends StatelessWidget {
@@ -892,7 +883,6 @@ class _NumberSelector extends StatelessWidget {
           controller: controller,
           focusNode: focusNode,
           autofocus: true,
-          // MAGIC SAUCE: ReadOnly + ShowCursor prevents system keyboard
           readOnly: true,
           showCursor: true,
           textAlign: TextAlign.center,

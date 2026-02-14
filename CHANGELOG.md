@@ -5,6 +5,8 @@
 - Fix contrast for audio voice selector in download manager.
 - Allow separate font sizes for Hebrew and Greek.
 - Update Hebrew/Greek/Bible font sizes when changed in settings.
+- Create a custom numeric keyboard for chapter/verse input.
+- Improve chapter/verse chooser logic.
 
 ## 0.16.0 - February 9, 2026
 
