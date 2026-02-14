@@ -3,7 +3,7 @@ import 'package:studyapp/l10n/app_localizations.dart';
 import 'package:studyapp/l10n/book_names.dart';
 import 'package:studyapp/services/download/cancel_token.dart';
 import 'package:studyapp/ui/common/download_progress_dialog.dart';
-import 'package:studyapp/ui/home/appbar/reference_chooser.dart';
+import 'package:studyapp/ui/home/appbar/reference_chooser/reference_chooser.dart';
 import 'package:studyapp/ui/home/appbar/reference_chooser/numeric_keypad.dart';
 import 'package:studyapp/ui/home/audio/audio_logic.dart';
 import 'package:studyapp/ui/home/audio/audio_manager.dart';
@@ -33,6 +33,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final _biblePanelKey = GlobalKey<BiblePanelState>();
   final GlobalKey<ReferenceChooserState> _chooserKey = GlobalKey();
   ReferenceInputMode _inputMode = ReferenceInputMode.none;
+  Set<int> _enabledKeypadDigits = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
 
   // "Panel" State: Triggers infinite scroll reset only when explicitly changed by User
   late int panelBookId;
@@ -129,6 +130,14 @@ class _HomeScreenState extends State<HomeScreen> {
         },
         onPlayAudio: () {
           _onPlayAudio(context);
+        },
+        onAvailableDigitsChanged: (digits) {
+          // Use addPostFrameCallback to avoid setState during build
+          if (mounted) {
+            setState(() {
+              _enabledKeypadDigits = digits;
+            });
+          }
         },
       ),
       drawer: AppDrawer(
@@ -232,6 +241,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   color: Theme.of(context).scaffoldBackgroundColor,
                   child: NumericKeypad(
                     isLastInput: _inputMode == ReferenceInputMode.verse,
+                    enabledDigits: _enabledKeypadDigits,
                     onDigit: (d) => _chooserKey.currentState?.handleDigit(d),
                     onBackspace: () =>
                         _chooserKey.currentState?.handleBackspace(),

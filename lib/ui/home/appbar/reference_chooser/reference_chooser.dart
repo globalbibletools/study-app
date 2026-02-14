@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:studyapp/common/bible_navigation.dart';
 import 'package:studyapp/l10n/book_names.dart';
 import 'package:unorm_dart/unorm_dart.dart' as unorm;
@@ -15,6 +14,7 @@ class ReferenceChooser extends StatefulWidget {
   final Function(int chapter) onChapterSelected;
   final Function(int verse) onVerseSelected;
   final ValueChanged<ReferenceInputMode> onInputModeChanged;
+  final ValueChanged<Set<int>>? onAvailableDigitsChanged;
 
   const ReferenceChooser({
     super.key,
@@ -26,6 +26,7 @@ class ReferenceChooser extends StatefulWidget {
     required this.onChapterSelected,
     required this.onVerseSelected,
     required this.onInputModeChanged,
+    this.onAvailableDigitsChanged,
   });
 
   @override
@@ -48,23 +49,45 @@ class ReferenceChooserState extends State<ReferenceChooser> {
     _chapterController.text = widget.currentChapter.toString();
     _verseController.text = widget.currentVerse.toString();
 
-    // We only listen to focus to detect when the user taps "Done" or clicks outside
     _bookFocus.addListener(_onFocusChange);
     _chapterFocus.addListener(_onFocusChange);
     _verseFocus.addListener(_onFocusChange);
+
+    _chapterController.addListener(_updateAvailableDigits);
+    _verseController.addListener(_updateAvailableDigits);
   }
 
   @override
   void didUpdateWidget(covariant ReferenceChooser oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Keep controllers in sync if external props change (e.g. user scrolled)
+
+    bool needsUpdate = false;
+
+    // 1. Update Chapter Controller (suppress listener to prevent synchronous setState loop)
     if (widget.currentChapter != oldWidget.currentChapter &&
         _currentMode != ReferenceInputMode.chapter) {
+      _chapterController.removeListener(_updateAvailableDigits);
       _chapterController.text = widget.currentChapter.toString();
+      _chapterController.addListener(_updateAvailableDigits);
+      needsUpdate = true;
     }
+
+    // 2. Update Verse Controller (suppress listener)
     if (widget.currentVerse != oldWidget.currentVerse &&
         _currentMode != ReferenceInputMode.verse) {
+      _verseController.removeListener(_updateAvailableDigits);
       _verseController.text = widget.currentVerse.toString();
+      _verseController.addListener(_updateAvailableDigits);
+      needsUpdate = true;
+    }
+
+    // 3. Schedule the digit calculation for AFTER the build phase
+    if (widget.currentBookId != oldWidget.currentBookId ||
+        widget.currentChapter != oldWidget.currentChapter ||
+        needsUpdate) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _updateAvailableDigits();
+      });
     }
   }
 
@@ -93,12 +116,47 @@ class ReferenceChooserState extends State<ReferenceChooser> {
     });
     widget.onInputModeChanged(mode);
 
-    // Auto-clear logic when entering a mode
     if (mode == ReferenceInputMode.chapter) _chapterController.clear();
     if (mode == ReferenceInputMode.verse) _verseController.clear();
 
-    // NOTE: We rely on 'autofocus: true' in the child widgets to grab focus
-    // once the UI rebuilds with the active TextField.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _updateAvailableDigits();
+    });
+  }
+
+  void _updateAvailableDigits() {
+    if (widget.onAvailableDigitsChanged == null) return;
+
+    if (_currentMode == ReferenceInputMode.none ||
+        _currentMode == ReferenceInputMode.book) {
+      widget.onAvailableDigitsChanged!({0, 1, 2, 3, 4, 5, 6, 7, 8, 9});
+      return;
+    }
+
+    int maxValue = 999;
+    String currentText = "";
+
+    if (_currentMode == ReferenceInputMode.chapter) {
+      maxValue = BibleNavigation.getChapterCount(widget.currentBookId);
+      currentText = _chapterController.text;
+    } else if (_currentMode == ReferenceInputMode.verse) {
+      maxValue = BibleNavigation.getVerseCount(
+        widget.currentBookId,
+        widget.currentChapter,
+      );
+      currentText = _verseController.text;
+    }
+
+    final Set<int> allowed = {};
+    for (int i = 0; i <= 9; i++) {
+      String potential = currentText + i.toString();
+      int? val = int.tryParse(potential);
+      if (val != null && val <= maxValue && val > 0) {
+        allowed.add(i);
+      }
+    }
+
+    widget.onAvailableDigitsChanged!(allowed);
   }
 
   void _resetAllInternal() {
@@ -107,6 +165,8 @@ class ReferenceChooserState extends State<ReferenceChooser> {
       _currentMode = ReferenceInputMode.none;
     });
     widget.onInputModeChanged(ReferenceInputMode.none);
+    // Reset keys to all allowed or none, depending on preference
+    widget.onAvailableDigitsChanged?.call({0, 1, 2, 3, 4, 5, 6, 7, 8, 9});
   }
 
   // PUBLIC: Called by HomeScreen to close keypad
@@ -117,6 +177,8 @@ class ReferenceChooserState extends State<ReferenceChooser> {
 
   @override
   void dispose() {
+    _chapterController.removeListener(_updateAvailableDigits);
+    _verseController.removeListener(_updateAvailableDigits);
     _bookFocus.dispose();
     _chapterFocus.dispose();
     _verseFocus.dispose();
@@ -125,7 +187,6 @@ class ReferenceChooserState extends State<ReferenceChooser> {
     super.dispose();
   }
 
-  // PUBLIC: Called by HomeScreen Keypad
   void handleDigit(int digit) {
     TextEditingController? activeController;
     int maxValue = 999;
@@ -135,19 +196,36 @@ class ReferenceChooserState extends State<ReferenceChooser> {
       maxValue = BibleNavigation.getChapterCount(widget.currentBookId);
     } else if (_currentMode == ReferenceInputMode.verse) {
       activeController = _verseController;
-      maxValue = 200;
+      maxValue = BibleNavigation.getVerseCount(
+        widget.currentBookId,
+        widget.currentChapter,
+      );
     }
 
     if (activeController != null) {
       String newText = activeController.text + digit.toString();
       int? newValue = int.tryParse(newText);
 
-      // Simple validation
-      if (newValue != null && newValue <= maxValue * 10) {
+      // 1. Validate and Update Text
+      if (newValue != null && newValue <= maxValue && newValue > 0) {
         activeController.text = newText;
-        // Live update for chapters (so panels scroll while typing)
         if (_currentMode == ReferenceInputMode.chapter) {
           widget.onChapterSelected(newValue);
+        }
+
+        // 2. Check for Auto-Accept (Problem 1)
+        // If no further digits (0-9) can form a valid number, submit automatically.
+        bool canAppend = false;
+        for (int i = 0; i <= 9; i++) {
+          int? nextVal = int.tryParse(newText + i.toString());
+          if (nextVal != null && nextVal <= maxValue && nextVal > 0) {
+            canAppend = true;
+            break;
+          }
+        }
+
+        if (!canAppend) {
+          handleSubmit();
         }
       }
     }
@@ -215,7 +293,14 @@ class ReferenceChooserState extends State<ReferenceChooser> {
             onChanged: widget.onBookSelected,
             onSubmitted: (id) {
               widget.onBookSelected(id);
-              _activateMode(ReferenceInputMode.chapter);
+              // If the book has only 1 chapter, skip asking for it.
+              int chapterCount = BibleNavigation.getChapterCount(id);
+              if (chapterCount == 1) {
+                widget.onChapterSelected(1);
+                _activateMode(ReferenceInputMode.verse);
+              } else {
+                _activateMode(ReferenceInputMode.chapter);
+              }
             },
             onCancel: resetAll,
           ),
@@ -785,13 +870,6 @@ class _NumberSelector extends StatelessWidget {
   final String? Function() onPeekPrevious;
   final VoidCallback onPreviousInvoked;
 
-  // Unused but kept for swipe logic or future expansion
-  final int? maxValue;
-  final Function(int)? onSubmitted;
-  final VoidCallback? onCancel;
-  final VoidCallback? onBackspaceWhenEmpty;
-  final Function(int)? onValueChanged;
-
   const _NumberSelector({
     required this.controller,
     required this.currentValue,
@@ -803,12 +881,6 @@ class _NumberSelector extends StatelessWidget {
     required this.onNextInvoked,
     required this.onPeekPrevious,
     required this.onPreviousInvoked,
-    // Optional parameters (nullable)
-    this.maxValue,
-    this.onSubmitted,
-    this.onCancel,
-    this.onBackspaceWhenEmpty,
-    this.onValueChanged,
   });
 
   @override

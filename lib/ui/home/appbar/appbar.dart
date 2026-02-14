@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:studyapp/l10n/book_names.dart';
-import 'reference_chooser.dart';
+import 'reference_chooser/reference_chooser.dart';
 
 class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
   final int displayBookId;
@@ -13,6 +13,7 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback onPlayAudio;
   final GlobalKey<ReferenceChooserState> referenceChooserKey;
   final ValueChanged<ReferenceInputMode> onInputModeChanged;
+  final ValueChanged<Set<int>>? onAvailableDigitsChanged;
 
   const HomeAppBar({
     super.key,
@@ -26,6 +27,7 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
     required this.onPlayAudio,
     required this.referenceChooserKey,
     required this.onInputModeChanged,
+    this.onAvailableDigitsChanged,
   });
 
   @override
@@ -43,6 +45,7 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
         onChapterSelected: onChapterSelected,
         onVerseSelected: onVerseSelected,
         onInputModeChanged: onInputModeChanged,
+        onAvailableDigitsChanged: onAvailableDigitsChanged,
       ),
       actions: [
         IconButton(onPressed: onPlayAudio, icon: Icon(Icons.play_arrow)),
