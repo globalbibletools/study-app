@@ -4,6 +4,8 @@ import 'package:studyapp/common/bible_navigation.dart';
 import 'package:studyapp/l10n/book_names.dart';
 import 'package:unorm_dart/unorm_dart.dart' as unorm;
 
+enum ReferenceInputMode { none, book, chapter, verse }
+
 class ReferenceChooser extends StatefulWidget {
   final String currentBookName;
   final int currentBookId;
@@ -12,6 +14,7 @@ class ReferenceChooser extends StatefulWidget {
   final Function(int bookId) onBookSelected;
   final Function(int chapter) onChapterSelected;
   final Function(int verse) onVerseSelected;
+  final ValueChanged<ReferenceInputMode> onInputModeChanged;
 
   const ReferenceChooser({
     super.key,
@@ -22,46 +25,94 @@ class ReferenceChooser extends StatefulWidget {
     required this.onBookSelected,
     required this.onChapterSelected,
     required this.onVerseSelected,
+    required this.onInputModeChanged,
   });
 
   @override
-  State<ReferenceChooser> createState() => _ReferenceChooserState();
+  State<ReferenceChooser> createState() => ReferenceChooserState();
 }
 
-class _ReferenceChooserState extends State<ReferenceChooser> {
-  final FocusNode _bookFocus = FocusNode();
-  final FocusNode _chapterFocus = FocusNode();
-  final FocusNode _verseFocus = FocusNode();
+class ReferenceChooserState extends State<ReferenceChooser> {
+  final _bookFocus = FocusNode();
+  final _chapterFocus = FocusNode();
+  final _verseFocus = FocusNode();
 
-  bool _isSelectingBook = false;
-  bool _isSelectingChapter = false;
-  bool _isSelectingVerse = false;
+  final _chapterController = TextEditingController();
+  final _verseController = TextEditingController();
+
+  ReferenceInputMode _currentMode = ReferenceInputMode.none;
 
   @override
   void initState() {
     super.initState();
-    _bookFocus.addListener(
-      () => _handleFocusChange(_bookFocus, (val) => _isSelectingBook = val),
-    );
-    _chapterFocus.addListener(
-      () =>
-          _handleFocusChange(_chapterFocus, (val) => _isSelectingChapter = val),
-    );
-    _verseFocus.addListener(
-      () => _handleFocusChange(_verseFocus, (val) => _isSelectingVerse = val),
-    );
+    _chapterController.text = widget.currentChapter.toString();
+    _verseController.text = widget.currentVerse.toString();
+
+    // We only listen to focus to detect when the user taps "Done" or clicks outside
+    _bookFocus.addListener(_onFocusChange);
+    _chapterFocus.addListener(_onFocusChange);
+    _verseFocus.addListener(_onFocusChange);
   }
 
-  void _handleFocusChange(FocusNode node, Function(bool) setter) {
-    if (!node.hasFocus) {
-      Future.delayed(const Duration(milliseconds: 200), () {
-        if (mounted && !node.hasFocus) {
-          setState(() {
-            setter(false);
-          });
+  @override
+  void didUpdateWidget(covariant ReferenceChooser oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Keep controllers in sync if external props change (e.g. user scrolled)
+    if (widget.currentChapter != oldWidget.currentChapter &&
+        _currentMode != ReferenceInputMode.chapter) {
+      _chapterController.text = widget.currentChapter.toString();
+    }
+    if (widget.currentVerse != oldWidget.currentVerse &&
+        _currentMode != ReferenceInputMode.verse) {
+      _verseController.text = widget.currentVerse.toString();
+    }
+  }
+
+  void _onFocusChange() {
+    // If we lost all focus (user tapped outside), reset mode
+    if (!_bookFocus.hasFocus &&
+        !_chapterFocus.hasFocus &&
+        !_verseFocus.hasFocus) {
+      // Small delay to allow focus to move between our own fields
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (mounted &&
+            !_bookFocus.hasFocus &&
+            !_chapterFocus.hasFocus &&
+            !_verseFocus.hasFocus) {
+          _resetAllInternal();
         }
       });
     }
+  }
+
+  void _activateMode(ReferenceInputMode mode) {
+    if (_currentMode == mode) return;
+
+    setState(() {
+      _currentMode = mode;
+    });
+    widget.onInputModeChanged(mode);
+
+    // Auto-clear logic when entering a mode
+    if (mode == ReferenceInputMode.chapter) _chapterController.clear();
+    if (mode == ReferenceInputMode.verse) _verseController.clear();
+
+    // NOTE: We rely on 'autofocus: true' in the child widgets to grab focus
+    // once the UI rebuilds with the active TextField.
+  }
+
+  void _resetAllInternal() {
+    if (!mounted) return;
+    setState(() {
+      _currentMode = ReferenceInputMode.none;
+    });
+    widget.onInputModeChanged(ReferenceInputMode.none);
+  }
+
+  // PUBLIC: Called by HomeScreen to close keypad
+  void resetAll() {
+    FocusManager.instance.primaryFocus?.unfocus();
+    _resetAllInternal();
   }
 
   @override
@@ -69,16 +120,81 @@ class _ReferenceChooserState extends State<ReferenceChooser> {
     _bookFocus.dispose();
     _chapterFocus.dispose();
     _verseFocus.dispose();
+    _chapterController.dispose();
+    _verseController.dispose();
     super.dispose();
   }
 
-  void _resetAll() {
-    setState(() {
-      _isSelectingBook = false;
-      _isSelectingChapter = false;
-      _isSelectingVerse = false;
-    });
-    FocusManager.instance.primaryFocus?.unfocus();
+  // PUBLIC: Called by HomeScreen Keypad
+  void handleDigit(int digit) {
+    TextEditingController? activeController;
+    int maxValue = 999;
+
+    if (_currentMode == ReferenceInputMode.chapter) {
+      activeController = _chapterController;
+      maxValue = BibleNavigation.getChapterCount(widget.currentBookId);
+    } else if (_currentMode == ReferenceInputMode.verse) {
+      activeController = _verseController;
+      maxValue = 200;
+    }
+
+    if (activeController != null) {
+      String newText = activeController.text + digit.toString();
+      int? newValue = int.tryParse(newText);
+
+      // Simple validation
+      if (newValue != null && newValue <= maxValue * 10) {
+        activeController.text = newText;
+        // Live update for chapters (so panels scroll while typing)
+        if (_currentMode == ReferenceInputMode.chapter) {
+          widget.onChapterSelected(newValue);
+        }
+      }
+    }
+  }
+
+  // PUBLIC: Called by HomeScreen Keypad
+  void handleBackspace() {
+    TextEditingController? activeController;
+    if (_currentMode == ReferenceInputMode.chapter) {
+      activeController = _chapterController;
+    } else if (_currentMode == ReferenceInputMode.verse) {
+      activeController = _verseController;
+    }
+
+    if (activeController != null) {
+      final text = activeController.text;
+      if (text.isNotEmpty) {
+        activeController.text = text.substring(0, text.length - 1);
+
+        // If chapter, update live view if valid
+        if (activeController.text.isNotEmpty &&
+            _currentMode == ReferenceInputMode.chapter) {
+          int? val = int.tryParse(activeController.text);
+          if (val != null) widget.onChapterSelected(val);
+        }
+      } else {
+        // Text is empty, navigate back
+        if (_currentMode == ReferenceInputMode.verse) {
+          _activateMode(ReferenceInputMode.chapter);
+        } else if (_currentMode == ReferenceInputMode.chapter) {
+          _activateMode(ReferenceInputMode.book);
+        }
+      }
+    }
+  }
+
+  // PUBLIC: Called by HomeScreen Keypad
+  void handleSubmit() {
+    if (_currentMode == ReferenceInputMode.chapter) {
+      int val = int.tryParse(_chapterController.text) ?? 1;
+      widget.onChapterSelected(val);
+      _activateMode(ReferenceInputMode.verse);
+    } else if (_currentMode == ReferenceInputMode.verse) {
+      int val = int.tryParse(_verseController.text) ?? 1;
+      widget.onVerseSelected(val);
+      resetAll();
+    }
   }
 
   @override
@@ -93,25 +209,15 @@ class _ReferenceChooserState extends State<ReferenceChooser> {
           child: _BookSelector(
             currentBookName: widget.currentBookName,
             currentBookId: widget.currentBookId,
-            isActive: _isSelectingBook,
+            isActive: _currentMode == ReferenceInputMode.book,
             focusNode: _bookFocus,
-            onTap: () {
-              setState(() {
-                _isSelectingBook = true;
-                _isSelectingChapter = false;
-                _isSelectingVerse = false;
-              });
-            },
-            onChanged: (id) => widget.onBookSelected(id),
+            onTap: () => _activateMode(ReferenceInputMode.book),
+            onChanged: widget.onBookSelected,
             onSubmitted: (id) {
               widget.onBookSelected(id);
-              setState(() {
-                _isSelectingBook = false;
-                _isSelectingChapter = true;
-              });
-              _chapterFocus.requestFocus();
+              _activateMode(ReferenceInputMode.chapter);
             },
-            onCancel: _resetAll,
+            onCancel: resetAll,
           ),
         ),
 
@@ -119,29 +225,20 @@ class _ReferenceChooserState extends State<ReferenceChooser> {
 
         // --- CHAPTER SELECTOR ---
         _NumberSelector(
+          controller: _chapterController,
           currentValue: widget.currentChapter,
-          isActive: _isSelectingChapter,
+          isActive: _currentMode == ReferenceInputMode.chapter,
           focusNode: _chapterFocus,
-          maxValue: BibleNavigation.getChapterCount(widget.currentBookId),
-          enableSwipe: true, // Enabled
-          onTap: () {
-            setState(() {
-              _isSelectingBook = false;
-              _isSelectingChapter = true;
-              _isSelectingVerse = false;
-            });
-          },
-          // --- CHAPTER SWIPE LOGIC (With Book Overflow) ---
+          enableSwipe: true,
+          onTap: () => _activateMode(ReferenceInputMode.chapter),
           onPeekNext: () {
             final maxChapters = BibleNavigation.getChapterCount(
               widget.currentBookId,
             );
-            if (widget.currentChapter < maxChapters) {
+            if (widget.currentChapter < maxChapters)
               return (widget.currentChapter + 1).toString();
-            } else if (widget.currentBookId < 66) {
-              return "1"; // Next Book, Chapter 1
-            }
-            return null; // End of Bible
+            if (widget.currentBookId < 66) return "1";
+            return null;
           },
           onNextInvoked: () {
             final maxChapters = BibleNavigation.getChapterCount(
@@ -150,91 +247,44 @@ class _ReferenceChooserState extends State<ReferenceChooser> {
             if (widget.currentChapter < maxChapters) {
               widget.onChapterSelected(widget.currentChapter + 1);
             } else if (widget.currentBookId < 66) {
-              // Overflow to next book
               widget.onBookSelected(widget.currentBookId + 1);
               widget.onChapterSelected(1);
             }
           },
           onPeekPrevious: () {
-            if (widget.currentChapter > 1) {
+            if (widget.currentChapter > 1)
               return (widget.currentChapter - 1).toString();
-            } else if (widget.currentBookId > 1) {
-              // Previous Book, Last Chapter
-              final prevBookId = widget.currentBookId - 1;
-              return BibleNavigation.getChapterCount(prevBookId).toString();
+            if (widget.currentBookId > 1) {
+              final prev = widget.currentBookId - 1;
+              return BibleNavigation.getChapterCount(prev).toString();
             }
-            return null; // Start of Bible
+            return null;
           },
           onPreviousInvoked: () {
             if (widget.currentChapter > 1) {
               widget.onChapterSelected(widget.currentChapter - 1);
             } else if (widget.currentBookId > 1) {
-              // Overflow to previous book
-              final prevBookId = widget.currentBookId - 1;
-              widget.onBookSelected(prevBookId);
-              widget.onChapterSelected(
-                BibleNavigation.getChapterCount(prevBookId),
-              );
+              final prev = widget.currentBookId - 1;
+              widget.onBookSelected(prev);
+              widget.onChapterSelected(BibleNavigation.getChapterCount(prev));
             }
           },
-          // --- TEXT INPUT LOGIC ---
-          onValueChanged: (val) {
-            widget.onChapterSelected(val);
-          },
-          onSubmitted: (val) {
-            widget.onChapterSelected(val);
-            setState(() {
-              _isSelectingChapter = false;
-              _isSelectingVerse = true;
-            });
-            _verseFocus.requestFocus();
-          },
-          onBackspaceWhenEmpty: () {
-            // Go back to book selector
-            setState(() {
-              _isSelectingChapter = false;
-              _isSelectingBook = true;
-            });
-            _bookFocus.requestFocus();
-          },
-          onCancel: _resetAll,
         ),
 
         const SizedBox(width: 8),
 
         // --- VERSE SELECTOR ---
         _NumberSelector(
+          controller: _verseController,
           currentValue: widget.currentVerse,
-          isActive: _isSelectingVerse,
+          isActive: _currentMode == ReferenceInputMode.verse,
           focusNode: _verseFocus,
-          maxValue: 200, // Safe upper bound for text input
-          enableSwipe: false, // DISABLED for Verse
-          onTap: () {
-            setState(() {
-              _isSelectingBook = false;
-              _isSelectingChapter = false;
-              _isSelectingVerse = true;
-            });
-          },
-          // Callbacks are ignored when enableSwipe is false, but required by constructor
+          enableSwipe: false,
+          onTap: () => _activateMode(ReferenceInputMode.verse),
           onPeekNext: () => null,
           onNextInvoked: () {},
           onPeekPrevious: () => null,
           onPreviousInvoked: () {},
-          // --- TEXT INPUT LOGIC ---
-          onSubmitted: (val) {
-            widget.onVerseSelected(val);
-            _resetAll();
-          },
-          onBackspaceWhenEmpty: () {
-            // Go back to chapter selector
-            setState(() {
-              _isSelectingVerse = false;
-              _isSelectingChapter = true;
-            });
-            _chapterFocus.requestFocus();
-          },
-          onCancel: _resetAll,
         ),
       ],
     );
@@ -718,152 +768,80 @@ class _BookSelectorState extends State<_BookSelector> {
 }
 
 // -----------------------------------------------------------------------------
-// NUMBER SELECTOR WIDGET
+// NUMBER SELECTOR WIDGET (Stateless - Driven by Parent Controller)
 // -----------------------------------------------------------------------------
 
-class _NumberSelector extends StatefulWidget {
+class _NumberSelector extends StatelessWidget {
+  final TextEditingController controller;
   final int currentValue;
   final bool isActive;
   final FocusNode focusNode;
-  final int maxValue;
   final bool enableSwipe;
   final VoidCallback onTap;
+
+  // Swipe callbacks
   final String? Function() onPeekNext;
-  final String? Function() onPeekPrevious;
   final VoidCallback onNextInvoked;
+  final String? Function() onPeekPrevious;
   final VoidCallback onPreviousInvoked;
-  final Function(int) onSubmitted;
-  final VoidCallback onCancel;
 
-  /// Called when the user presses backspace/delete on an empty field.
+  // Unused but kept for swipe logic or future expansion
+  final int? maxValue;
+  final Function(int)? onSubmitted;
+  final VoidCallback? onCancel;
   final VoidCallback? onBackspaceWhenEmpty;
-
-  /// Called each time the typed value changes (before auto-submit).
-  /// Allows progressive navigation (e.g. load Psalm 8 while still typing).
   final Function(int)? onValueChanged;
 
   const _NumberSelector({
+    required this.controller,
     required this.currentValue,
     required this.isActive,
     required this.focusNode,
-    required this.maxValue,
-    required this.onTap,
     required this.enableSwipe,
+    required this.onTap,
     required this.onPeekNext,
-    required this.onPeekPrevious,
     required this.onNextInvoked,
+    required this.onPeekPrevious,
     required this.onPreviousInvoked,
-    required this.onSubmitted,
-    required this.onCancel,
+    // Optional parameters (nullable)
+    this.maxValue,
+    this.onSubmitted,
+    this.onCancel,
     this.onBackspaceWhenEmpty,
     this.onValueChanged,
   });
 
   @override
-  State<_NumberSelector> createState() => _NumberSelectorState();
-}
-
-class _NumberSelectorState extends State<_NumberSelector> {
-  final TextEditingController _controller = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    _controller.addListener(_onTextChanged);
-    widget.focusNode.onKeyEvent = _onKeyEvent;
-  }
-
-  @override
-  void didUpdateWidget(covariant _NumberSelector oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (!widget.isActive && oldWidget.isActive) {
-      _controller.clear();
-    }
-    // Re-attach in case the focus node was replaced
-    widget.focusNode.onKeyEvent = _onKeyEvent;
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event) {
-    if (event is KeyDownEvent &&
-        event.logicalKey == LogicalKeyboardKey.backspace &&
-        _controller.text.isEmpty) {
-      widget.onBackspaceWhenEmpty?.call();
-      return KeyEventResult.handled;
-    }
-    return KeyEventResult.ignored;
-  }
-
-  void _onTextChanged() {
-    final text = _controller.text;
-    if (text.isEmpty) return;
-    final value = int.tryParse(text);
-    if (value == null) return;
-
-    // Report the current value for progressive navigation
-    widget.onValueChanged?.call(value);
-
-    bool shouldAutoSubmit = false;
-    if (value == widget.maxValue) {
-      shouldAutoSubmit = true;
-    } else if (value * 10 > widget.maxValue) {
-      shouldAutoSubmit = true;
-    }
-
-    if (shouldAutoSubmit) {
-      _submit(value);
-    }
-  }
-
-  void _submit(int value) {
-    _controller.clear();
-    widget.onSubmitted(value);
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return widget.isActive
-        ? SizedBox(
-            width: 50,
-            child: TextField(
-              controller: _controller,
-              focusNode: widget.focusNode,
-              autofocus: true,
-              keyboardType: TextInputType.number,
-              textInputAction: TextInputAction.done,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              decoration: const InputDecoration(
-                isDense: true,
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 8,
-                ),
-                border: OutlineInputBorder(),
-              ),
-              onSubmitted: (val) {
-                final intVal = int.tryParse(val);
-                if (intVal != null) {
-                  _submit(intVal);
-                } else {
-                  widget.onCancel();
-                }
-              },
-            ),
-          )
-        : _SwipeableSelectorButton(
-            label: widget.currentValue.toString(),
-            onTap: widget.onTap,
-            enableSwipe: widget.enableSwipe,
-            onPeekNext: widget.onPeekNext,
-            onNextInvoked: widget.onNextInvoked,
-            onPeekPrevious: widget.onPeekPrevious,
-            onPreviousInvoked: widget.onPreviousInvoked,
-          );
+    if (isActive) {
+      return SizedBox(
+        width: 50,
+        child: TextField(
+          controller: controller,
+          focusNode: focusNode,
+          autofocus: true,
+          // MAGIC SAUCE: ReadOnly + ShowCursor prevents system keyboard
+          readOnly: true,
+          showCursor: true,
+          textAlign: TextAlign.center,
+          decoration: const InputDecoration(
+            isDense: true,
+            contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+            border: OutlineInputBorder(),
+          ),
+        ),
+      );
+    }
+
+    return _SwipeableSelectorButton(
+      label: currentValue.toString(),
+      onTap: onTap,
+      enableSwipe: enableSwipe,
+      onPeekNext: onPeekNext,
+      onNextInvoked: onNextInvoked,
+      onPeekPrevious: onPeekPrevious,
+      onPreviousInvoked: onPreviousInvoked,
+    );
   }
 }
 

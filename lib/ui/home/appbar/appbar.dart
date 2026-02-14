@@ -11,6 +11,8 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
   final Function(int verse) onVerseSelected;
   final VoidCallback onTogglePanel;
   final VoidCallback onPlayAudio;
+  final GlobalKey<ReferenceChooserState> referenceChooserKey;
+  final ValueChanged<ReferenceInputMode> onInputModeChanged;
 
   const HomeAppBar({
     super.key,
@@ -22,6 +24,8 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
     required this.onVerseSelected,
     required this.onTogglePanel,
     required this.onPlayAudio,
+    required this.referenceChooserKey,
+    required this.onInputModeChanged,
   });
 
   @override
@@ -30,6 +34,7 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
       centerTitle: false,
       titleSpacing: 0,
       title: ReferenceChooser(
+        key: referenceChooserKey,
         currentBookName: bookNameFromId(context, displayBookId),
         currentBookId: displayBookId,
         currentChapter: displayChapter,
@@ -37,6 +42,7 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
         onBookSelected: onBookSelected,
         onChapterSelected: onChapterSelected,
         onVerseSelected: onVerseSelected,
+        onInputModeChanged: onInputModeChanged,
       ),
       actions: [
         IconButton(onPressed: onPlayAudio, icon: Icon(Icons.play_arrow)),

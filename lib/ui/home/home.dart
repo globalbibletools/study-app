@@ -3,6 +3,8 @@ import 'package:studyapp/l10n/app_localizations.dart';
 import 'package:studyapp/l10n/book_names.dart';
 import 'package:studyapp/services/download/cancel_token.dart';
 import 'package:studyapp/ui/common/download_progress_dialog.dart';
+import 'package:studyapp/ui/home/appbar/reference_chooser.dart';
+import 'package:studyapp/ui/home/appbar/reference_chooser/numeric_keypad.dart';
 import 'package:studyapp/ui/home/audio/audio_logic.dart';
 import 'package:studyapp/ui/home/audio/audio_manager.dart';
 import 'package:studyapp/ui/home/audio/audio_player.dart';
@@ -29,6 +31,8 @@ class _HomeScreenState extends State<HomeScreen> {
   final syncController = ScrollSyncController();
   final _hebrewGreekPanelKey = GlobalKey<HebrewGreekPanelState>();
   final _biblePanelKey = GlobalKey<BiblePanelState>();
+  final GlobalKey<ReferenceChooserState> _chooserKey = GlobalKey();
+  ReferenceInputMode _inputMode = ReferenceInputMode.none;
 
   // "Panel" State: Triggers infinite scroll reset only when explicitly changed by User
   late int panelBookId;
@@ -100,6 +104,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: HomeAppBar(
+        referenceChooserKey: _chooserKey,
         displayBookId: displayBookId,
         displayChapter: displayChapter,
         displayVerse: displayVerse,
@@ -111,6 +116,11 @@ class _HomeScreenState extends State<HomeScreen> {
         },
         onVerseSelected: (verse) {
           _scrollToVerse(verse);
+        },
+        onInputModeChanged: (mode) {
+          setState(() {
+            _inputMode = mode;
+          });
         },
         onTogglePanel: () {
           manager.togglePanelState();
@@ -128,14 +138,15 @@ class _HomeScreenState extends State<HomeScreen> {
         },
       ),
       body: SafeArea(
-        child: Listener(
-          onPointerDown: (_) {
-            FocusManager.instance.primaryFocus?.unfocus();
-          },
-          child: Stack(
-            children: [
-              // The main content (Bible Panels)
-              NotificationListener<VerseNumberTapNotification>(
+        child: Stack(
+          children: [
+            // The main content (Bible Panels)
+            Listener(
+              onPointerDown: (_) {
+                FocusManager.instance.primaryFocus?.unfocus();
+              },
+              behavior: HitTestBehavior.translucent,
+              child: NotificationListener<VerseNumberTapNotification>(
                 onNotification: (notification) {
                   if (manager.audioManager.isVisibleNotifier.value) {
                     manager.audioManager.play(
@@ -179,32 +190,57 @@ class _HomeScreenState extends State<HomeScreen> {
                   },
                 ),
               ),
+            ),
 
-              // The Audio Player sliding up from the bottom
-              Align(
-                alignment: Alignment.bottomCenter,
-                child: ValueListenableBuilder<bool>(
-                  valueListenable: manager.audioManager.isVisibleNotifier,
-                  builder: (context, isVisible, _) {
-                    // Change 2: Use AnimatedSlide to move it in/out
-                    return AnimatedSlide(
-                      offset: isVisible ? Offset.zero : const Offset(0, 1),
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeInOut,
-                      child: BottomAudioPlayer(
-                        audioManager: manager.audioManager,
-                        currentBookId: displayBookId,
-                        currentChapter: displayChapter,
-                        currentVerse: displayVerse,
-                        currentBookName: bookNameFromId(context, displayBookId),
-                        onAudioMissing: () => _showDownloadAudioDialog(context),
-                      ),
-                    );
-                  },
+            // The Audio Player sliding up from the bottom
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: ValueListenableBuilder<bool>(
+                valueListenable: manager.audioManager.isVisibleNotifier,
+                builder: (context, isVisible, _) {
+                  // Change 2: Use AnimatedSlide to move it in/out
+                  return AnimatedSlide(
+                    offset: isVisible ? Offset.zero : const Offset(0, 1),
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                    child: BottomAudioPlayer(
+                      audioManager: manager.audioManager,
+                      currentBookId: displayBookId,
+                      currentChapter: displayChapter,
+                      currentVerse: displayVerse,
+                      currentBookName: bookNameFromId(context, displayBookId),
+                      onAudioMissing: () => _showDownloadAudioDialog(context),
+                    ),
+                  );
+                },
+              ),
+            ),
+
+            // The Numeric Keypad
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: AnimatedSlide(
+                offset:
+                    (_inputMode == ReferenceInputMode.chapter ||
+                        _inputMode == ReferenceInputMode.verse)
+                    ? Offset.zero
+                    : const Offset(0, 1),
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeOutCubic,
+                child: Material(
+                  elevation: 16, // Add shadow so it stands out
+                  color: Theme.of(context).scaffoldBackgroundColor,
+                  child: NumericKeypad(
+                    isLastInput: _inputMode == ReferenceInputMode.verse,
+                    onDigit: (d) => _chooserKey.currentState?.handleDigit(d),
+                    onBackspace: () =>
+                        _chooserKey.currentState?.handleBackspace(),
+                    onSubmit: () => _chooserKey.currentState?.handleSubmit(),
+                  ),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
