@@ -22,26 +22,25 @@ class NumericKeypad extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _buildRow([1, 2, 3]),
-          const SizedBox(height: 16),
-          _buildRow([4, 5, 6]),
-          const SizedBox(height: 16),
-          _buildRow([7, 8, 9]),
-          const SizedBox(height: 16),
+          _buildRow(context, [1, 2, 3]),
+          const SizedBox(height: 8),
+          _buildRow(context, [4, 5, 6]),
+          const SizedBox(height: 8),
+          _buildRow(context, [7, 8, 9]),
+          const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _buildActionButton(
+              _buildKey(
+                context,
                 icon: Icons.backspace_outlined,
                 onTap: onBackspace,
-                color: Theme.of(context).colorScheme.error,
               ),
-              _buildDigitButton(0),
-              _buildActionButton(
+              _buildKey(context, digit: 0, onTap: () => onDigit(0)),
+              _buildKey(
+                context,
                 icon: isLastInput ? Icons.check : Icons.arrow_forward,
                 onTap: onSubmit,
-                color: Theme.of(context).colorScheme.primary,
-                isFilled: true,
               ),
             ],
           ),
@@ -50,64 +49,58 @@ class NumericKeypad extends StatelessWidget {
     );
   }
 
-  Widget _buildRow(List<int> digits) {
+  Widget _buildRow(BuildContext context, List<int> digits) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: digits.map((d) => _buildDigitButton(d)).toList(),
+      children: digits
+          .map((d) => _buildKey(context, digit: d, onTap: () => onDigit(d)))
+          .toList(),
     );
   }
 
-  Widget _buildDigitButton(int digit) {
-    return Expanded(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4),
-        child: InkWell(
-          onTap: () => onDigit(digit),
-          borderRadius: BorderRadius.circular(8),
-          child: Container(
-            height: 50,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.withOpacity(0.3)),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              digit.toString(),
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildActionButton({
-    required IconData icon,
+  Widget _buildKey(
+    BuildContext context, {
+    int? digit,
+    IconData? icon,
     required VoidCallback onTap,
-    required Color color,
-    bool isFilled = false,
   }) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Expanded(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 4),
         child: Material(
-          color: isFilled ? color : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
+          color: Colors.transparent,
+          shape: (icon == null)
+              ? RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  side: BorderSide(
+                    color: colorScheme.onSurface.withValues(alpha: 0.5),
+                  ),
+                )
+              : null,
           child: InkWell(
             onTap: onTap,
             borderRadius: BorderRadius.circular(8),
             child: Container(
               height: 50,
               alignment: Alignment.center,
-              decoration: BoxDecoration(
-                border: isFilled ? null : Border.all(color: color),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                icon,
-                color: isFilled ? Colors.white : color,
-                size: 24,
-              ),
+              child: digit != null
+                  ? Text(
+                      digit.toString(),
+                      style:
+                          theme.textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: colorScheme.onSurface,
+                          ) ??
+                          TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: colorScheme.onSurface,
+                          ),
+                    )
+                  : Icon(icon, size: 24, color: colorScheme.onSurface),
             ),
           ),
         ),
