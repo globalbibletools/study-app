@@ -50,9 +50,6 @@ class ReferenceChooserState extends State<ReferenceChooser> {
     _chapterController.text = widget.currentChapter.toString();
     _verseController.text = widget.currentVerse.toString();
 
-    // _bookFocus.addListener(_onFocusChange);
-    // _chapterFocus.addListener(_onFocusChange);
-    // _verseFocus.addListener(_onFocusChange);
     _chapterFocus = FocusNode(onKeyEvent: _handlePhysicalKey);
     _verseFocus = FocusNode(onKeyEvent: _handlePhysicalKey);
 
@@ -153,21 +150,6 @@ class ReferenceChooserState extends State<ReferenceChooser> {
       });
     }
   }
-
-  // void _onFocusChange() {
-  //   if (!_bookFocus.hasFocus &&
-  //       !_chapterFocus.hasFocus &&
-  //       !_verseFocus.hasFocus) {
-  //     Future.delayed(const Duration(milliseconds: 100), () {
-  //       if (mounted &&
-  //           !_bookFocus.hasFocus &&
-  //           !_chapterFocus.hasFocus &&
-  //           !_verseFocus.hasFocus) {
-  //         _resetAllInternal();
-  //       }
-  //     });
-  //   }
-  // }
 
   void _activateMode(ReferenceInputMode mode) {
     if (_currentMode == mode) return;
@@ -615,7 +597,7 @@ class _SwipeableSelectorButtonState extends State<_SwipeableSelectorButton>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final textStyle = theme.textTheme.labelLarge?.copyWith(
+    final textStyle = theme.textTheme.bodyLarge?.copyWith(
       color: colorScheme.primary,
     );
 

@@ -9,6 +9,7 @@
 - Improve chapter/verse chooser logic.
 - Fix safe area issues (audio player showing at the bottom even when not active)
 - Additions to the About page.
+- Increase font size in reference chooser.
 
 ## 0.16.0 - February 9, 2026
 
