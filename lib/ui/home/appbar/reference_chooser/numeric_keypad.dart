@@ -20,40 +20,45 @@ class NumericKeypad extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       color: Theme.of(context).scaffoldBackgroundColor,
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _buildRow(context, [1, 2, 3]),
-          const SizedBox(height: 8),
-          _buildRow(context, [4, 5, 6]),
-          const SizedBox(height: 8),
-          _buildRow(context, [7, 8, 9]),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              _buildKey(
-                context,
-                icon: Icons.backspace_outlined,
-                onTap: onBackspace,
-                isEnabled: true,
-              ),
-              _buildKey(
-                context,
-                digit: 0,
-                onTap: () => onDigit(0),
-                isEnabled: enabledDigits.contains(0),
-              ),
-              _buildKey(
-                context,
-                icon: isLastInput ? Icons.check : Icons.arrow_forward,
-                onTap: onSubmit,
-                isEnabled: true,
+              _buildRow(context, [1, 2, 3]),
+              const SizedBox(height: 8),
+              _buildRow(context, [4, 5, 6]),
+              const SizedBox(height: 8),
+              _buildRow(context, [7, 8, 9]),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildKey(
+                    context,
+                    icon: Icons.backspace_outlined,
+                    onTap: onBackspace,
+                    isEnabled: true,
+                  ),
+                  _buildKey(
+                    context,
+                    digit: 0,
+                    onTap: () => onDigit(0),
+                    isEnabled: enabledDigits.contains(0),
+                  ),
+                  _buildKey(
+                    context,
+                    icon: isLastInput ? Icons.check : Icons.arrow_forward,
+                    onTap: onSubmit,
+                    isEnabled: true,
+                  ),
+                ],
               ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -79,7 +84,7 @@ class NumericKeypad extends StatelessWidget {
     int? digit,
     IconData? icon,
     required VoidCallback onTap,
-    required bool isEnabled, // New Param
+    required bool isEnabled,
   }) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
@@ -87,11 +92,11 @@ class NumericKeypad extends StatelessWidget {
     // Visual styling for disabled state
     final Color textColor = isEnabled
         ? colorScheme.onSurface
-        : colorScheme.onSurface.withOpacity(0.3);
+        : colorScheme.onSurface.withValues(alpha: 0.3);
 
     final Color borderColor = isEnabled
-        ? colorScheme.onSurface.withOpacity(0.5)
-        : colorScheme.onSurface.withOpacity(0.1);
+        ? colorScheme.onSurface.withValues(alpha: 0.5)
+        : colorScheme.onSurface.withValues(alpha: 0.1);
 
     return Expanded(
       child: Padding(
@@ -105,7 +110,7 @@ class NumericKeypad extends StatelessWidget {
                 )
               : null,
           child: InkWell(
-            onTap: isEnabled ? onTap : null, // Disable click
+            onTap: isEnabled ? onTap : null,
             borderRadius: BorderRadius.circular(8),
             child: Container(
               height: 50,

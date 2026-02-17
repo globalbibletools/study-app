@@ -186,8 +186,9 @@ class _InfiniteScrollViewState extends State<InfiniteScrollView> {
         continue;
       }
       final viewport = RenderAbstractViewport.of(renderSliver);
-      final revealedOffset =
-          viewport.getOffsetToReveal(renderSliver, 0.0).offset;
+      final revealedOffset = viewport
+          .getOffsetToReveal(renderSliver, 0.0)
+          .offset;
       final currentScroll = _scrollController.offset;
       final chapterHeight = renderSliver.geometry!.scrollExtent;
       if (currentScroll >= revealedOffset &&
@@ -474,25 +475,34 @@ class _InfiniteScrollViewState extends State<InfiniteScrollView> {
 
   @override
   Widget build(BuildContext context) {
+    final slivers = _displayedChapters.map((chapterId) {
+      return SliverToBoxAdapter(
+        key: _chapterKeys[chapterId],
+        child: SizeChangedLayoutNotifier(
+          child: widget.chapterBuilder(
+            context,
+            chapterId.bookId,
+            chapterId.chapter,
+          ),
+        ),
+      );
+    }).toList();
+
+    // Add extra padding only if we are at the very end of Revelation
+    if (_displayedChapters.isNotEmpty) {
+      final last = _displayedChapters.last;
+      if (last.bookId == 66 && last.chapter == 22) {
+        slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 300)));
+      }
+    }
+
     return NotificationListener<Notification>(
       onNotification: _onScrollNotification,
       child: CustomScrollView(
         controller: _scrollController,
         physics: widget.physics,
-        // keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         center: _chapterKeys[_centerChapter],
-        slivers: _displayedChapters.map((chapterId) {
-          return SliverToBoxAdapter(
-            key: _chapterKeys[chapterId],
-            child: SizeChangedLayoutNotifier(
-              child: widget.chapterBuilder(
-                context,
-                chapterId.bookId,
-                chapterId.chapter,
-              ),
-            ),
-          );
-        }).toList(),
+        slivers: slivers,
       ),
     );
   }

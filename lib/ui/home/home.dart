@@ -132,7 +132,6 @@ class _HomeScreenState extends State<HomeScreen> {
           _onPlayAudio(context);
         },
         onAvailableDigitsChanged: (digits) {
-          // Use addPostFrameCallback to avoid setState during build
           if (mounted) {
             setState(() {
               _enabledKeypadDigits = digits;
@@ -146,115 +145,110 @@ class _HomeScreenState extends State<HomeScreen> {
           _biblePanelKey.currentState?.refreshFromSettings();
         },
       ),
-      body: SafeArea(
-        child: Stack(
-          children: [
-            // The main content (Bible Panels)
-            Listener(
-              onPointerDown: (_) {
-                FocusManager.instance.primaryFocus?.unfocus();
-                if (_inputMode != ReferenceInputMode.none) {
-                  _chooserKey.currentState?.resetAll();
+      body: Stack(
+        children: [
+          // The main content (Bible Panels)
+          Listener(
+            onPointerDown: (_) {
+              FocusManager.instance.primaryFocus?.unfocus();
+              // Close keypad if tapping outside
+              if (_inputMode != ReferenceInputMode.none) {
+                _chooserKey.currentState?.resetAll();
+              }
+            },
+            behavior: HitTestBehavior.translucent,
+            child: NotificationListener<VerseNumberTapNotification>(
+              onNotification: (notification) {
+                if (manager.audioManager.isVisibleNotifier.value) {
+                  manager.audioManager.play(
+                    checkBookId: notification.bookId,
+                    checkChapter: notification.chapter,
+                    checkBookName: bookNameFromId(context, notification.bookId),
+                    startVerse: notification.verse,
+                  );
                 }
+                return true;
               },
-              behavior: HitTestBehavior.translucent,
-              child: NotificationListener<VerseNumberTapNotification>(
-                onNotification: (notification) {
-                  if (manager.audioManager.isVisibleNotifier.value) {
-                    manager.audioManager.play(
-                      checkBookId: notification.bookId,
-                      checkChapter: notification.chapter,
-                      checkBookName: bookNameFromId(
-                        context,
-                        notification.bookId,
+              child: ValueListenableBuilder<bool>(
+                valueListenable: manager.isSinglePanelNotifier,
+                builder: (context, isSinglePanel, _) {
+                  return Column(
+                    children: [
+                      Expanded(
+                        child: HebrewGreekPanel(
+                          key: _hebrewGreekPanelKey,
+                          bookId: panelBookId,
+                          chapter: panelChapter,
+                          syncController: syncController,
+                        ),
                       ),
-                      startVerse: notification.verse,
-                    );
-                  }
-                  return true;
-                },
-                child: ValueListenableBuilder<bool>(
-                  valueListenable: manager.isSinglePanelNotifier,
-                  builder: (context, isSinglePanel, _) {
-                    return Column(
-                      children: [
+                      if (!isSinglePanel) ...[
+                        const Divider(height: 0, indent: 8, endIndent: 8),
                         Expanded(
-                          child: HebrewGreekPanel(
-                            key: _hebrewGreekPanelKey,
+                          child: BiblePanel(
+                            key: _biblePanelKey,
                             bookId: panelBookId,
                             chapter: panelChapter,
                             syncController: syncController,
                           ),
                         ),
-                        if (!isSinglePanel) ...[
-                          const Divider(height: 0, indent: 8, endIndent: 8),
-                          Expanded(
-                            child: BiblePanel(
-                              key: _biblePanelKey,
-                              bookId: panelBookId,
-                              chapter: panelChapter,
-                              syncController: syncController,
-                            ),
-                          ),
-                        ],
                       ],
-                    );
-                  },
-                ),
-              ),
-            ),
-
-            // The Audio Player sliding up from the bottom
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: ValueListenableBuilder<bool>(
-                valueListenable: manager.audioManager.isVisibleNotifier,
-                builder: (context, isVisible, _) {
-                  // Change 2: Use AnimatedSlide to move it in/out
-                  return AnimatedSlide(
-                    offset: isVisible ? Offset.zero : const Offset(0, 1),
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.easeInOut,
-                    child: BottomAudioPlayer(
-                      audioManager: manager.audioManager,
-                      currentBookId: displayBookId,
-                      currentChapter: displayChapter,
-                      currentVerse: displayVerse,
-                      currentBookName: bookNameFromId(context, displayBookId),
-                      onAudioMissing: () => _showDownloadAudioDialog(context),
-                    ),
+                    ],
                   );
                 },
               ),
             ),
+          ),
 
-            // The Numeric Keypad
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: AnimatedSlide(
-                offset:
-                    (_inputMode == ReferenceInputMode.chapter ||
-                        _inputMode == ReferenceInputMode.verse)
-                    ? Offset.zero
-                    : const Offset(0, 1),
-                duration: const Duration(milliseconds: 250),
-                curve: Curves.easeOutCubic,
-                child: Material(
-                  elevation: 16, // Add shadow so it stands out
-                  color: Theme.of(context).scaffoldBackgroundColor,
-                  child: NumericKeypad(
-                    isLastInput: _inputMode == ReferenceInputMode.verse,
-                    enabledDigits: _enabledKeypadDigits,
-                    onDigit: (d) => _chooserKey.currentState?.handleDigit(d),
-                    onBackspace: () =>
-                        _chooserKey.currentState?.handleBackspace(),
-                    onSubmit: () => _chooserKey.currentState?.handleSubmit(),
+          // The Audio Player sliding up from the bottom
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: ValueListenableBuilder<bool>(
+              valueListenable: manager.audioManager.isVisibleNotifier,
+              builder: (context, isVisible, _) {
+                return AnimatedSlide(
+                  offset: isVisible ? Offset.zero : const Offset(0, 1),
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                  child: BottomAudioPlayer(
+                    audioManager: manager.audioManager,
+                    currentBookId: displayBookId,
+                    currentChapter: displayChapter,
+                    currentVerse: displayVerse,
+                    currentBookName: bookNameFromId(context, displayBookId),
+                    onAudioMissing: () => _showDownloadAudioDialog(context),
                   ),
+                );
+              },
+            ),
+          ),
+
+          // The Numeric Keypad
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: AnimatedSlide(
+              offset:
+                  (_inputMode == ReferenceInputMode.chapter ||
+                      _inputMode == ReferenceInputMode.verse)
+                  ? Offset.zero
+                  : const Offset(0, 1),
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeOutCubic,
+              child: Material(
+                elevation: 16, // Add shadow so it stands out
+                color: Theme.of(context).scaffoldBackgroundColor,
+                child: NumericKeypad(
+                  isLastInput: _inputMode == ReferenceInputMode.verse,
+                  enabledDigits: _enabledKeypadDigits,
+                  onDigit: (d) => _chooserKey.currentState?.handleDigit(d),
+                  onBackspace: () =>
+                      _chooserKey.currentState?.handleBackspace(),
+                  onSubmit: () => _chooserKey.currentState?.handleSubmit(),
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
