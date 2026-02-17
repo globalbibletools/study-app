@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:studyapp/l10n/app_localizations.dart';
-import 'package:url_launcher/url_launcher.dart';
+
+import 'markdown_viewer.dart';
 
 class AboutPage extends StatefulWidget {
   const AboutPage({super.key});
@@ -32,7 +32,7 @@ class _AboutPageState extends State<AboutPage> {
       body: Center(
         child: SingleChildScrollView(
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            // mainAxisAlignment: MainAxisAlignment.center,
             children: [
               SizedBox(
                 width: 150,
@@ -68,53 +68,10 @@ class _AboutPageState extends State<AboutPage> {
                 },
               ),
               const SizedBox(height: 32),
-              SizedBox(
-                width: 200,
-                child: OutlinedButton(
-                  onPressed: () async {
-                    final url = Uri.parse('https://globalbibletools.com');
-                    if (await canLaunchUrl(url)) {
-                      launchUrl(url, mode: LaunchMode.externalApplication);
-                    }
-                  },
-                  child: FittedBox(child: const Text('GlobalBibleTools.com')),
-                ),
-              ),
-              const SizedBox(height: 10),
-              SizedBox(
-                width: 200,
-                child: OutlinedButton(
-                  onPressed: () async {
-                    final url = Uri.parse(
-                      'https://github.com/globalbibletools/study-app',
-                    );
-                    if (await canLaunchUrl(url)) {
-                      launchUrl(url, mode: LaunchMode.externalApplication);
-                    }
-                  },
-                  child: FittedBox(
-                    child: Text(AppLocalizations.of(context)!.sourceCode),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
-              SizedBox(
-                width: 200,
-                child: OutlinedButton(
-                  onPressed: () async {
-                    await Clipboard.setData(
-                      const ClipboardData(text: 'contact@ethnos.dev'),
-                    );
-                    if (!context.mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          AppLocalizations.of(context)!.emailCopied,
-                        ),
-                      ),
-                    );
-                  },
-                  child: FittedBox(child: const Text('contact@ethnos.dev')),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                child: const LocalizedMarkdownViewer(
+                  fileName: 'about', // localized
                 ),
               ),
             ],

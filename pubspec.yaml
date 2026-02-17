@@ -31,6 +31,7 @@ dependencies:
   just_audio: ^0.10.5
   just_audio_background: ^0.0.1-beta.13
   audio_video_progress_bar: ^2.0.3
+  flutter_markdown_plus: ^1.0.7
 
 dev_dependencies:
   flutter_test:
@@ -47,3 +48,4 @@ flutter:
   assets:
     - assets/databases/
     - assets/images/logo.png
+    - assets/l10n/
