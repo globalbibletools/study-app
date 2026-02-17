@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:studyapp/common/bible_navigation.dart';
 import 'package:studyapp/l10n/book_names.dart';
 import 'package:unorm_dart/unorm_dart.dart' as unorm;
@@ -35,8 +36,8 @@ class ReferenceChooser extends StatefulWidget {
 
 class ReferenceChooserState extends State<ReferenceChooser> {
   final _bookFocus = FocusNode();
-  final _chapterFocus = FocusNode();
-  final _verseFocus = FocusNode();
+  late FocusNode _chapterFocus;
+  late FocusNode _verseFocus;
 
   final _chapterController = TextEditingController();
   final _verseController = TextEditingController();
@@ -49,12 +50,74 @@ class ReferenceChooserState extends State<ReferenceChooser> {
     _chapterController.text = widget.currentChapter.toString();
     _verseController.text = widget.currentVerse.toString();
 
-    _bookFocus.addListener(_onFocusChange);
-    _chapterFocus.addListener(_onFocusChange);
-    _verseFocus.addListener(_onFocusChange);
+    // _bookFocus.addListener(_onFocusChange);
+    // _chapterFocus.addListener(_onFocusChange);
+    // _verseFocus.addListener(_onFocusChange);
+    _chapterFocus = FocusNode(onKeyEvent: _handlePhysicalKey);
+    _verseFocus = FocusNode(onKeyEvent: _handlePhysicalKey);
 
     _chapterController.addListener(_updateAvailableDigits);
     _verseController.addListener(_updateAvailableDigits);
+  }
+
+  /// Intercepts physical keyboard events (MacOS/Windows/iPad)
+  KeyEventResult _handlePhysicalKey(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+
+    final key = event.logicalKey;
+
+    // Handle Backspace
+    if (key == LogicalKeyboardKey.backspace) {
+      handleBackspace();
+      return KeyEventResult.handled;
+    }
+
+    // Handle Enter
+    if (key == LogicalKeyboardKey.enter ||
+        key == LogicalKeyboardKey.numpadEnter) {
+      handleSubmit();
+      return KeyEventResult.handled;
+    }
+
+    // Handle Digits (0-9 and Numpad 0-9)
+    int? digit;
+    if (key == LogicalKeyboardKey.digit0 || key == LogicalKeyboardKey.numpad0) {
+      digit = 0;
+    } else if (key == LogicalKeyboardKey.digit1 ||
+        key == LogicalKeyboardKey.numpad1) {
+      digit = 1;
+    } else if (key == LogicalKeyboardKey.digit2 ||
+        key == LogicalKeyboardKey.numpad2) {
+      digit = 2;
+    } else if (key == LogicalKeyboardKey.digit3 ||
+        key == LogicalKeyboardKey.numpad3) {
+      digit = 3;
+    } else if (key == LogicalKeyboardKey.digit4 ||
+        key == LogicalKeyboardKey.numpad4) {
+      digit = 4;
+    } else if (key == LogicalKeyboardKey.digit5 ||
+        key == LogicalKeyboardKey.numpad5) {
+      digit = 5;
+    } else if (key == LogicalKeyboardKey.digit6 ||
+        key == LogicalKeyboardKey.numpad6) {
+      digit = 6;
+    } else if (key == LogicalKeyboardKey.digit7 ||
+        key == LogicalKeyboardKey.numpad7) {
+      digit = 7;
+    } else if (key == LogicalKeyboardKey.digit8 ||
+        key == LogicalKeyboardKey.numpad8) {
+      digit = 8;
+    } else if (key == LogicalKeyboardKey.digit9 ||
+        key == LogicalKeyboardKey.numpad9) {
+      digit = 9;
+    }
+
+    if (digit != null) {
+      handleDigit(digit);
+      return KeyEventResult.handled;
+    }
+
+    return KeyEventResult.ignored;
   }
 
   @override
@@ -91,20 +154,20 @@ class ReferenceChooserState extends State<ReferenceChooser> {
     }
   }
 
-  void _onFocusChange() {
-    if (!_bookFocus.hasFocus &&
-        !_chapterFocus.hasFocus &&
-        !_verseFocus.hasFocus) {
-      Future.delayed(const Duration(milliseconds: 100), () {
-        if (mounted &&
-            !_bookFocus.hasFocus &&
-            !_chapterFocus.hasFocus &&
-            !_verseFocus.hasFocus) {
-          _resetAllInternal();
-        }
-      });
-    }
-  }
+  // void _onFocusChange() {
+  //   if (!_bookFocus.hasFocus &&
+  //       !_chapterFocus.hasFocus &&
+  //       !_verseFocus.hasFocus) {
+  //     Future.delayed(const Duration(milliseconds: 100), () {
+  //       if (mounted &&
+  //           !_bookFocus.hasFocus &&
+  //           !_chapterFocus.hasFocus &&
+  //           !_verseFocus.hasFocus) {
+  //         _resetAllInternal();
+  //       }
+  //     });
+  //   }
+  // }
 
   void _activateMode(ReferenceInputMode mode) {
     if (_currentMode == mode) return;
@@ -114,8 +177,14 @@ class ReferenceChooserState extends State<ReferenceChooser> {
     });
     widget.onInputModeChanged(mode);
 
-    if (mode == ReferenceInputMode.chapter) _chapterController.clear();
-    if (mode == ReferenceInputMode.verse) _verseController.clear();
+    if (mode == ReferenceInputMode.chapter) {
+      _chapterController.clear();
+      _chapterFocus.requestFocus();
+    }
+    if (mode == ReferenceInputMode.verse) {
+      _verseController.clear();
+      _verseFocus.requestFocus();
+    }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _updateAvailableDigits();

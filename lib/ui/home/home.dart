@@ -153,6 +153,9 @@ class _HomeScreenState extends State<HomeScreen> {
             Listener(
               onPointerDown: (_) {
                 FocusManager.instance.primaryFocus?.unfocus();
+                if (_inputMode != ReferenceInputMode.none) {
+                  _chooserKey.currentState?.resetAll();
+                }
               },
               behavior: HitTestBehavior.translucent,
               child: NotificationListener<VerseNumberTapNotification>(
