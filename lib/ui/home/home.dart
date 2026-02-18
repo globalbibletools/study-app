@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:studyapp/common/reference.dart';
 import 'package:studyapp/l10n/app_localizations.dart';
 import 'package:studyapp/l10n/book_names.dart';
 import 'package:studyapp/services/download/cancel_token.dart';
@@ -35,64 +36,34 @@ class _HomeScreenState extends State<HomeScreen> {
   ReferenceInputMode _inputMode = ReferenceInputMode.none;
   Set<int> _enabledKeypadDigits = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
 
-  // "Panel" State: Triggers infinite scroll reset only when explicitly changed by User
-  late int panelBookId;
-  late int panelChapter;
-
-  // "Display" State: Updates freely while scrolling or selecting
-  late int displayBookId;
-  late int displayChapter;
-  int displayVerse = 1;
+  late int _jumpBookId;
+  late int _jumpChapter;
 
   @override
   void initState() {
     super.initState();
+    manager.init();
 
-    final (initialBook, initialChapter) = manager.getInitialBookAndChapter();
-    // Initialize both sets of state
-    panelBookId = initialBook;
-    panelChapter = initialChapter;
+    _jumpBookId = manager.currentBookId;
+    _jumpChapter = manager.currentChapter;
 
-    displayBookId = initialBook;
-    displayChapter = initialChapter;
-
-    // Listen to scroll updates
     syncController.addListener(_onScrollUpdate);
-
-    // audio syncing
     manager.setSyncController(syncController);
   }
 
   void _onScrollUpdate() {
     final newBook = syncController.bookId;
     final newChapter = syncController.chapter;
-
     if (newBook == null || newChapter == null) return;
-
-    final newVerse = syncController.verse ?? displayVerse;
-
-    final hasChanged =
-        newBook != displayBookId ||
-        newChapter != displayChapter ||
-        newVerse != displayVerse;
-
-    if (!hasChanged) return;
-
-    if (newBook != displayBookId || newChapter != displayChapter) {
-      manager.saveBookAndChapter(newBook, newChapter);
-    }
-
-    setState(() {
-      displayBookId = newBook;
-      displayChapter = newChapter;
-      displayVerse = newVerse;
-    });
+    final newVerse = syncController.verse ?? 1;
+    manager.updateReference(newBook, newChapter, newVerse);
+    manager.saveBookAndChapter(newBook, newChapter);
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    manager.init(context);
+    manager.init();
   }
 
   @override
@@ -104,40 +75,42 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: HomeAppBar(
-        referenceChooserKey: _chooserKey,
-        displayBookId: displayBookId,
-        displayChapter: displayChapter,
-        displayVerse: displayVerse,
-        onBookSelected: (bookId) async {
-          _onUserNavigation(bookId, 1, 1);
-        },
-        onChapterSelected: (newChapter) {
-          _onUserNavigation(displayBookId, newChapter, 1);
-        },
-        onVerseSelected: (verse) {
-          _scrollToVerse(verse);
-        },
-        onInputModeChanged: (mode) {
-          setState(() {
-            _inputMode = mode;
-          });
-        },
-        onTogglePanel: () {
-          manager.togglePanelState();
-          _syncManagerToDisplay();
-          _requestText();
-        },
-        onPlayAudio: () {
-          _onPlayAudio(context);
-        },
-        onAvailableDigitsChanged: (digits) {
-          if (mounted) {
-            setState(() {
-              _enabledKeypadDigits = digits;
-            });
-          }
-        },
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(kToolbarHeight),
+        child: ValueListenableBuilder<Reference>(
+          valueListenable: manager.currentReference,
+          builder: (context, ref, child) {
+            return HomeAppBar(
+              referenceChooserKey: _chooserKey,
+              displayBookId: ref.bookId,
+              displayChapter: ref.chapter,
+              displayVerse: ref.verse,
+              onBookSelected: (bookId) => _onUserNavigation(bookId, 1, 1),
+              onChapterSelected: (newChapter) =>
+                  _onUserNavigation(ref.bookId, newChapter, 1),
+              onVerseSelected: (verse) => _scrollToVerse(verse),
+              onInputModeChanged: (mode) {
+                setState(() {
+                  _inputMode = mode;
+                });
+              },
+              onTogglePanel: () {
+                manager.togglePanelState();
+                _requestText();
+              },
+              onPlayAudio: () {
+                _onPlayAudio(context);
+              },
+              onAvailableDigitsChanged: (digits) {
+                if (mounted) {
+                  setState(() {
+                    _enabledKeypadDigits = digits;
+                  });
+                }
+              },
+            );
+          },
+        ),
       ),
       drawer: AppDrawer(
         onSettingsClosed: () {
@@ -177,8 +150,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       Expanded(
                         child: HebrewGreekPanel(
                           key: _hebrewGreekPanelKey,
-                          bookId: panelBookId,
-                          chapter: panelChapter,
+                          bookId: _jumpBookId,
+                          chapter: _jumpChapter,
                           syncController: syncController,
                         ),
                       ),
@@ -187,8 +160,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         Expanded(
                           child: BiblePanel(
                             key: _biblePanelKey,
-                            bookId: panelBookId,
-                            chapter: panelChapter,
+                            bookId: _jumpBookId,
+                            chapter: _jumpChapter,
                             syncController: syncController,
                           ),
                         ),
@@ -212,10 +185,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   curve: Curves.easeInOut,
                   child: BottomAudioPlayer(
                     audioManager: manager.audioManager,
-                    currentBookId: displayBookId,
-                    currentChapter: displayChapter,
-                    currentVerse: displayVerse,
-                    currentBookName: bookNameFromId(context, displayBookId),
+                    currentBookId: manager.currentBookId,
+                    currentChapter: manager.currentChapter,
+                    currentVerse: manager.currentVerse,
+                    currentBookName: bookNameFromId(
+                      context,
+                      manager.currentBookId,
+                    ),
                     onAudioMissing: () => _showDownloadAudioDialog(context),
                   ),
                 );
@@ -256,31 +232,15 @@ class _HomeScreenState extends State<HomeScreen> {
   /// Handles explicit user navigation (selecting from menus)
   void _onUserNavigation(int bookId, int chapter, int verse) {
     manager.saveBookAndChapter(bookId, chapter);
+    manager.updateReference(bookId, chapter, verse);
 
     setState(() {
-      // 1. Update Display
-      displayBookId = bookId;
-      displayChapter = chapter;
-      displayVerse = verse;
-
-      // 2. Update Panel (Forces reset/jump)
-      panelBookId = bookId;
-      panelChapter = chapter;
+      _jumpBookId = bookId;
+      _jumpChapter = chapter;
     });
 
-    // 3. Update Manager (for single panel mode fetching)
     manager.onBookSelected(context, bookId);
-    manager.currentChapterNotifier.value = chapter;
-
-    // 4. Fetch
     _requestText();
-  }
-
-  void _syncManagerToDisplay() {
-    if (manager.currentBookId != displayBookId) {
-      manager.onBookSelected(context, displayBookId);
-    }
-    manager.currentChapterNotifier.value = displayChapter;
   }
 
   void _requestText() {
@@ -289,7 +249,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _scrollToVerse(int verse) {
-    syncController.jumpToVerse(displayBookId, displayChapter, verse);
+    syncController.jumpToVerse(
+      manager.currentBookId,
+      manager.currentChapter,
+      verse,
+    );
   }
 
   Future<void> _onPlayAudio(BuildContext context) async {
@@ -299,8 +263,12 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
+    final bookId = manager.currentBookId;
+    final chapter = manager.currentChapter;
+    final verse = manager.currentVerse;
+
     // Check if audio is actually available for this book/chapter
-    if (!AudioLogic.isAudioAvailable(displayBookId, displayChapter)) {
+    if (!AudioLogic.isAudioAvailable(bookId, chapter)) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(AppLocalizations.of(context)!.audioNotAvailable),
@@ -311,9 +279,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
     try {
       await manager.playAudioForCurrentChapter(
-        bookNameFromId(context, displayBookId),
-        displayChapter,
-        startVerse: displayVerse,
+        bookNameFromId(context, bookId),
+        chapter,
+        startVerse: verse,
       );
     } on AudioMissingException catch (_) {
       // Catch the specific missing audio error
@@ -332,16 +300,17 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _showDownloadAudioDialog(BuildContext context) async {
-    final bookName = bookNameFromId(context, displayBookId);
+    final bookName = bookNameFromId(context, manager.currentBookId);
     final l10n = AppLocalizations.of(context)!;
 
-    // 1. Ask for confirmation
     final shouldDownload = await showDialog<bool>(
       context: context,
       builder: (context) {
         return AlertDialog(
           title: Text(l10n.downloadAudio),
-          content: Text(l10n.audioNotDownloaded(bookName, displayChapter)),
+          content: Text(
+            l10n.audioNotDownloaded(bookName, manager.currentChapter),
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
@@ -362,13 +331,12 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!mounted) return;
 
     try {
-      // 2. Show Progress Dialog (Auto-closes on success)
       await DownloadProgressDialog.show(
         context: context,
         task: (progress, cancelToken) {
           return manager.downloadAudioForChapter(
-            displayBookId,
-            displayChapter,
+            manager.currentBookId,
+            manager.currentChapter,
             progress,
             cancelToken,
           );
@@ -378,8 +346,6 @@ class _HomeScreenState extends State<HomeScreen> {
       // Check mounted again after the async dialog closes
       if (!mounted) return;
 
-      // 3. Play audio (No Snackbar)
-      // We pass the context here, but since we checked !mounted above, it's safe.
       _onPlayAudio(context);
     } catch (e) {
       if (!mounted) return;

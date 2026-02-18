@@ -1,5 +1,5 @@
 class Reference {
-  Reference({
+  const Reference({
     required this.bookId,
     required this.chapter,
     required this.verse,

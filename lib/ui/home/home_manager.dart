@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/widgets.dart';
 import 'package:scripture/scripture.dart';
-import 'package:studyapp/l10n/book_names.dart';
+import 'package:studyapp/common/reference.dart';
 import 'package:studyapp/services/assets/remote_asset_service.dart';
 import 'package:studyapp/services/bible/bible_service.dart';
 import 'package:studyapp/services/download/cancel_token.dart';
@@ -14,8 +14,9 @@ import 'package:studyapp/ui/home/audio/audio_manager.dart';
 import 'package:studyapp/ui/home/common/scroll_sync_controller.dart';
 
 class HomeManager {
-  final currentBookNotifier = ValueNotifier<String>('');
-  final currentChapterNotifier = ValueNotifier<int>(1);
+  final currentReference = ValueNotifier<Reference>(
+    const Reference(bookId: 1, chapter: 1, verse: 1),
+  );
   final isSinglePanelNotifier = ValueNotifier(true);
   final textParagraphNotifier = ValueNotifier<List<UsfmLine>>([]);
 
@@ -25,31 +26,46 @@ class HomeManager {
   final _downloadService = getIt<DownloadService>();
   final _assetService = getIt<RemoteAssetService>();
 
-  late int _currentBookId;
-  int get currentBookId => _currentBookId;
+  int get currentBookId => currentReference.value.bookId;
+  int get currentChapter => currentReference.value.chapter;
+  int get currentVerse => currentReference.value.verse;
 
-  Future<void> init(BuildContext context) async {
+  Future<void> init() async {
     final (bookId, chapter) = _settings.currentBookChapter;
-    _currentBookId = bookId;
-    _updateUiForBook(context, bookId, chapter);
+    currentReference.value = Reference(
+      bookId: bookId,
+      chapter: chapter,
+      verse: 1,
+    );
   }
 
-  void _updateUiForBook(BuildContext context, int bookId, int chapter) {
-    _currentBookId = bookId;
-    currentBookNotifier.value = bookNameFromId(context, bookId);
-    currentChapterNotifier.value = chapter;
+  void updateReference(int bookId, int chapter, int verse) {
+    if (currentReference.value.bookId == bookId &&
+        currentReference.value.chapter == chapter &&
+        currentReference.value.verse == verse) {
+      return;
+    }
+    currentReference.value = Reference(
+      bookId: bookId,
+      chapter: chapter,
+      verse: verse,
+    );
   }
 
   void setSyncController(ScrollSyncController controller) {
     audioManager.setSyncController(controller);
   }
 
-  (int, int) getInitialBookAndChapter() {
-    return _settings.currentBookChapter;
-  }
+  // (int, int) getInitialBookAndChapter() {
+  //   return _settings.currentBookChapter;
+  // }
 
   Future<void> saveBookAndChapter(int bookId, int chapter) async {
-    _currentBookId = bookId;
+    if (bookId == currentReference.value.bookId &&
+        chapter == currentReference.value.chapter) {
+      return;
+    }
+    print('saving book $bookId and chapter $chapter');
     await _settings.setCurrentBookChapter(bookId, chapter);
   }
 
@@ -59,21 +75,24 @@ class HomeManager {
 
   Future<void> requestText() async {
     final content = await _bibleService.getChapter(
-      _currentBookId,
-      currentChapterNotifier.value,
+      currentBookId,
+      currentReference.value.chapter,
     );
     textParagraphNotifier.value = content;
   }
 
   void onBookSelected(BuildContext context, int bookId) {
     audioManager.stopAndClose();
-    _currentBookId = bookId;
-    _updateUiForBook(context, bookId, 1);
+    currentReference.value = Reference(bookId: bookId, chapter: 1, verse: 1);
   }
 
   void onChapterSelected(int chapter) {
     audioManager.stopAndClose();
-    currentChapterNotifier.value = chapter;
+    currentReference.value = Reference(
+      bookId: currentBookId,
+      chapter: chapter,
+      verse: 1,
+    );
   }
 
   Future<void> playAudioForCurrentChapter(
@@ -82,7 +101,7 @@ class HomeManager {
     int? startVerse,
   }) async {
     await audioManager.loadAndPlay(
-      _currentBookId,
+      currentBookId,
       chapter,
       bookName,
       startVerse: startVerse,
@@ -116,8 +135,7 @@ class HomeManager {
 
   void dispose() {
     audioManager.dispose();
-    currentBookNotifier.dispose();
-    currentChapterNotifier.dispose();
+    currentReference.dispose();
     isSinglePanelNotifier.dispose();
     textParagraphNotifier.dispose();
   }
