@@ -14,11 +14,13 @@ class HebrewGreekPanel extends StatefulWidget {
     required this.bookId,
     required this.chapter,
     this.syncController,
+    required this.settingsVersion,
   });
 
   final int bookId;
   final int chapter;
   final ScrollSyncController? syncController;
+  final int settingsVersion;
 
   @override
   State<HebrewGreekPanel> createState() => HebrewGreekPanelState();
@@ -41,6 +43,9 @@ class HebrewGreekPanelState extends State<HebrewGreekPanel> {
     if (widget.bookId != oldWidget.bookId) {
       _activeBookId = widget.bookId;
       _manager.currentBookId = _activeBookId;
+    }
+    if (widget.settingsVersion != oldWidget.settingsVersion) {
+      refreshFromSettings();
     }
   }
 

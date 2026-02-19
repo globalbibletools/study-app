@@ -13,7 +13,7 @@ class BiblePanelArea extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 1. Listen for "Hard Jumps" (Book/Chapter changes)
+    // 1. Listen for "Hard Jumps"
     return ValueListenableBuilder<Reference>(
       valueListenable: manager.panelAnchorNotifier,
       builder: (context, anchor, _) {
@@ -21,57 +21,62 @@ class BiblePanelArea extends StatelessWidget {
         return ValueListenableBuilder<bool>(
           valueListenable: manager.isSinglePanelNotifier,
           builder: (context, isSinglePanel, _) {
-            return Listener(
-              onPointerDown: (_) {
-                FocusManager.instance.primaryFocus?.unfocus();
-                // Note: We might need a callback here to close the Keypad
-                // if we want to keep that logic strictly separate.
-                // For now, simple focus unfocus is good.
-              },
-              behavior: HitTestBehavior.translucent,
-              child: NotificationListener<VerseNumberTapNotification>(
-                onNotification: (notification) {
-                  if (manager.audioManager.isVisibleNotifier.value) {
-                    manager.audioManager.play(
-                      checkBookId: notification.bookId,
-                      checkChapter: notification.chapter,
-                      checkBookName: bookNameFromId(
-                        context,
-                        notification.bookId,
-                      ),
-                      startVerse: notification.verse,
-                    );
-                  }
-                  return true;
-                },
-                child: Column(
-                  children: [
-                    Expanded(
-                      child: HebrewGreekPanel(
-                        // Important: Key changes when Book/Chapter changes
-                        // forcing a fresh start for the InfiniteScrollView
-                        key: ValueKey('hg-${anchor.bookId}-${anchor.chapter}'),
-                        bookId: anchor.bookId,
-                        chapter: anchor.chapter,
-                        syncController: manager.syncController,
-                      ),
-                    ),
-                    if (!isSinglePanel) ...[
-                      const Divider(height: 0, indent: 8, endIndent: 8),
-                      Expanded(
-                        child: BiblePanel(
-                          key: ValueKey(
-                            'bi-${anchor.bookId}-${anchor.chapter}',
+            // 3. NEW: Listen for Settings Updates
+            return ValueListenableBuilder<int>(
+              valueListenable: manager.settingsVersionNotifier,
+              builder: (context, settingsVersion, _) {
+                return Listener(
+                  onPointerDown: (_) {
+                    FocusManager.instance.primaryFocus?.unfocus();
+                  },
+                  behavior: HitTestBehavior.translucent,
+                  child: NotificationListener<VerseNumberTapNotification>(
+                    onNotification: (notification) {
+                      if (manager.audioManager.isVisibleNotifier.value) {
+                        manager.audioManager.play(
+                          checkBookId: notification.bookId,
+                          checkChapter: notification.chapter,
+                          checkBookName: bookNameFromId(
+                            context,
+                            notification.bookId,
                           ),
-                          bookId: anchor.bookId,
-                          chapter: anchor.chapter,
-                          syncController: manager.syncController,
+                          startVerse: notification.verse,
+                        );
+                      }
+                      return true;
+                    },
+                    child: Column(
+                      children: [
+                        Expanded(
+                          child: HebrewGreekPanel(
+                            key: ValueKey(
+                              'hg-${anchor.bookId}-${anchor.chapter}',
+                            ),
+                            bookId: anchor.bookId,
+                            chapter: anchor.chapter,
+                            syncController: manager.syncController,
+                            settingsVersion: settingsVersion,
+                          ),
                         ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
+                        if (!isSinglePanel) ...[
+                          const Divider(height: 0, indent: 8, endIndent: 8),
+                          Expanded(
+                            child: BiblePanel(
+                              key: ValueKey(
+                                'bi-${anchor.bookId}-${anchor.chapter}',
+                              ),
+                              bookId: anchor.bookId,
+                              chapter: anchor.chapter,
+                              syncController: manager.syncController,
+                              settingsVersion: settingsVersion,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                );
+              },
             );
           },
         );

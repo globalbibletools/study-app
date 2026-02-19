@@ -10,8 +10,9 @@ import 'package:studyapp/ui/home/common/infinite_scroll_view.dart';
 import 'package:studyapp/ui/home/common/scroll_sync_controller.dart';
 import 'package:studyapp/ui/home/hebrew_greek_panel/chapter_manager.dart';
 import 'package:studyapp/ui/home/hebrew_greek_panel/text.dart';
-import 'package:studyapp/ui/home/home.dart';
 import 'package:studyapp/ui/home/word_details_dialog/word_details_dialog.dart';
+
+enum DownloadDialogChoice { useEnglish, download }
 
 class VerseNumberTapNotification extends Notification {
   final int bookId;

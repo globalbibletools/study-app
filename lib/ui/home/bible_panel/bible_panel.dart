@@ -11,11 +11,13 @@ class BiblePanel extends StatefulWidget {
     required this.bookId,
     required this.chapter,
     this.syncController,
+    required this.settingsVersion,
   });
 
   final int bookId;
   final int chapter;
   final ScrollSyncController? syncController;
+  final int settingsVersion;
 
   @override
   State<BiblePanel> createState() => BiblePanelState();
@@ -27,6 +29,16 @@ class BiblePanelState extends State<BiblePanel> {
   /// Re-reads the font scale from persisted settings into the notifier.
   void refreshFromSettings() {
     _manager.refreshFromSettings();
+  }
+
+  @override
+  void didUpdateWidget(covariant BiblePanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    // Check if settings version changed
+    if (widget.settingsVersion != oldWidget.settingsVersion) {
+      refreshFromSettings();
+    }
   }
 
   @override
