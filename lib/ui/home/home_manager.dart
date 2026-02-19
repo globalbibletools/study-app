@@ -19,6 +19,10 @@ class HomeManager {
   );
   final isSinglePanelNotifier = ValueNotifier(true);
   final textParagraphNotifier = ValueNotifier<List<UsfmLine>>([]);
+  final syncController = ScrollSyncController();
+  final panelAnchorNotifier = ValueNotifier<Reference>(
+    const Reference(bookId: 1, chapter: 1, verse: 1),
+  );
 
   final audioManager = AudioManager();
   final _bibleService = getIt<BibleService>();
@@ -32,11 +36,24 @@ class HomeManager {
 
   Future<void> init() async {
     final (bookId, chapter) = _settings.currentBookChapter;
-    currentReference.value = Reference(
-      bookId: bookId,
-      chapter: chapter,
-      verse: 1,
-    );
+    final ref = Reference(bookId: bookId, chapter: chapter, verse: 1);
+
+    currentReference.value = ref;
+    panelAnchorNotifier.value = ref;
+
+    syncController.addListener(_onSyncUpdate);
+    audioManager.setSyncController(syncController);
+  }
+
+  void _onSyncUpdate() {
+    final newBook = syncController.bookId;
+    final newChapter = syncController.chapter;
+    if (newBook == null || newChapter == null) return;
+    final newVerse = syncController.verse ?? 1;
+
+    // Updates the AppBar, but NOT panelAnchorNotifier
+    updateReference(newBook, newChapter, newVerse);
+    saveBookAndChapter(newBook, newChapter);
   }
 
   void updateReference(int bookId, int chapter, int verse) {
@@ -52,9 +69,9 @@ class HomeManager {
     );
   }
 
-  void setSyncController(ScrollSyncController controller) {
-    audioManager.setSyncController(controller);
-  }
+  // void setSyncController(ScrollSyncController controller) {
+  //   audioManager.setSyncController(controller);
+  // }
 
   // (int, int) getInitialBookAndChapter() {
   //   return _settings.currentBookChapter;
@@ -83,16 +100,16 @@ class HomeManager {
 
   void onBookSelected(BuildContext context, int bookId) {
     audioManager.stopAndClose();
-    currentReference.value = Reference(bookId: bookId, chapter: 1, verse: 1);
+    final ref = Reference(bookId: bookId, chapter: 1, verse: 1);
+    currentReference.value = ref;
+    panelAnchorNotifier.value = ref;
   }
 
   void onChapterSelected(int chapter) {
     audioManager.stopAndClose();
-    currentReference.value = Reference(
-      bookId: currentBookId,
-      chapter: chapter,
-      verse: 1,
-    );
+    final ref = Reference(bookId: currentBookId, chapter: chapter, verse: 1);
+    currentReference.value = ref;
+    panelAnchorNotifier.value = ref;
   }
 
   Future<void> playAudioForCurrentChapter(
@@ -134,6 +151,8 @@ class HomeManager {
   }
 
   void dispose() {
+    syncController.removeListener(_onSyncUpdate);
+    syncController.dispose();
     audioManager.dispose();
     currentReference.dispose();
     isSinglePanelNotifier.dispose();

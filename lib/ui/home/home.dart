@@ -9,13 +9,10 @@ import 'package:studyapp/ui/home/appbar/reference_chooser/numeric_keypad.dart';
 import 'package:studyapp/ui/home/audio/audio_logic.dart';
 import 'package:studyapp/ui/home/audio/audio_manager.dart';
 import 'package:studyapp/ui/home/audio/audio_player.dart';
-import 'package:studyapp/ui/home/bible_panel/bible_panel.dart';
 import 'package:studyapp/ui/home/appbar/drawer.dart';
-import 'package:studyapp/ui/home/hebrew_greek_panel/chapter.dart';
-import 'package:studyapp/ui/home/hebrew_greek_panel/panel.dart';
+import 'package:studyapp/ui/home/bible_panel_area.dart';
 
 import 'appbar/appbar.dart';
-import 'common/scroll_sync_controller.dart';
 import 'home_manager.dart';
 
 enum DownloadDialogChoice { useEnglish, download }
@@ -29,36 +26,11 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final manager = HomeManager();
-  final syncController = ScrollSyncController();
-  final _hebrewGreekPanelKey = GlobalKey<HebrewGreekPanelState>();
-  final _biblePanelKey = GlobalKey<BiblePanelState>();
+
+  // UI-Specific State (Overlays)
   final GlobalKey<ReferenceChooserState> _chooserKey = GlobalKey();
   ReferenceInputMode _inputMode = ReferenceInputMode.none;
   Set<int> _enabledKeypadDigits = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
-
-  late int _jumpBookId;
-  late int _jumpChapter;
-
-  @override
-  void initState() {
-    super.initState();
-    manager.init();
-
-    _jumpBookId = manager.currentBookId;
-    _jumpChapter = manager.currentChapter;
-
-    syncController.addListener(_onScrollUpdate);
-    manager.setSyncController(syncController);
-  }
-
-  void _onScrollUpdate() {
-    final newBook = syncController.bookId;
-    final newChapter = syncController.chapter;
-    if (newBook == null || newChapter == null) return;
-    final newVerse = syncController.verse ?? 1;
-    manager.updateReference(newBook, newChapter, newVerse);
-    manager.saveBookAndChapter(newBook, newChapter);
-  }
 
   @override
   void didChangeDependencies() {
@@ -68,7 +40,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
-    syncController.dispose();
+    manager.dispose();
     super.dispose();
   }
 
@@ -85,10 +57,18 @@ class _HomeScreenState extends State<HomeScreen> {
               displayBookId: ref.bookId,
               displayChapter: ref.chapter,
               displayVerse: ref.verse,
-              onBookSelected: (bookId) => _onUserNavigation(bookId, 1, 1),
+              // Direct calls to Manager
+              onBookSelected: (bookId) =>
+                  manager.onBookSelected(context, bookId),
               onChapterSelected: (newChapter) =>
-                  _onUserNavigation(ref.bookId, newChapter, 1),
-              onVerseSelected: (verse) => _scrollToVerse(verse),
+                  manager.onChapterSelected(newChapter),
+              onVerseSelected: (verse) {
+                manager.syncController.jumpToVerse(
+                  manager.currentBookId,
+                  manager.currentChapter,
+                  verse,
+                );
+              },
               onInputModeChanged: (mode) {
                 setState(() {
                   _inputMode = mode;
@@ -96,7 +76,7 @@ class _HomeScreenState extends State<HomeScreen> {
               },
               onTogglePanel: () {
                 manager.togglePanelState();
-                _requestText();
+                // No need to request text manually; panels react to the state change
               },
               onPlayAudio: () {
                 _onPlayAudio(context);
@@ -114,66 +94,28 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       drawer: AppDrawer(
         onSettingsClosed: () {
-          _hebrewGreekPanelKey.currentState?.refreshFromSettings();
-          _biblePanelKey.currentState?.refreshFromSettings();
+          // TODO: Implement settings refresh in Step 3
+          // _hebrewGreekPanelKey.currentState?.refreshFromSettings();
+          // _biblePanelKey.currentState?.refreshFromSettings();
         },
       ),
       body: Stack(
         children: [
-          // The main content (Bible Panels)
+          // 1. The main content (Bible Panels)
+          // We wrap this in a Listener only to handle closing the Keypad
           Listener(
             onPointerDown: (_) {
               FocusManager.instance.primaryFocus?.unfocus();
-              // Close keypad if tapping outside
               if (_inputMode != ReferenceInputMode.none) {
                 _chooserKey.currentState?.resetAll();
               }
             },
             behavior: HitTestBehavior.translucent,
-            child: NotificationListener<VerseNumberTapNotification>(
-              onNotification: (notification) {
-                if (manager.audioManager.isVisibleNotifier.value) {
-                  manager.audioManager.play(
-                    checkBookId: notification.bookId,
-                    checkChapter: notification.chapter,
-                    checkBookName: bookNameFromId(context, notification.bookId),
-                    startVerse: notification.verse,
-                  );
-                }
-                return true;
-              },
-              child: ValueListenableBuilder<bool>(
-                valueListenable: manager.isSinglePanelNotifier,
-                builder: (context, isSinglePanel, _) {
-                  return Column(
-                    children: [
-                      Expanded(
-                        child: HebrewGreekPanel(
-                          key: _hebrewGreekPanelKey,
-                          bookId: _jumpBookId,
-                          chapter: _jumpChapter,
-                          syncController: syncController,
-                        ),
-                      ),
-                      if (!isSinglePanel) ...[
-                        const Divider(height: 0, indent: 8, endIndent: 8),
-                        Expanded(
-                          child: BiblePanel(
-                            key: _biblePanelKey,
-                            bookId: _jumpBookId,
-                            chapter: _jumpChapter,
-                            syncController: syncController,
-                          ),
-                        ),
-                      ],
-                    ],
-                  );
-                },
-              ),
-            ),
+            // The BiblePanelArea is now isolated
+            child: BiblePanelArea(manager: manager),
           ),
 
-          // The Audio Player sliding up from the bottom
+          // 2. The Audio Player sliding up from the bottom
           Align(
             alignment: Alignment.bottomCenter,
             child: ValueListenableBuilder<bool>(
@@ -199,7 +141,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
-          // The Numeric Keypad
+          // 3. The Numeric Keypad
           Align(
             alignment: Alignment.bottomCenter,
             child: AnimatedSlide(
@@ -211,7 +153,7 @@ class _HomeScreenState extends State<HomeScreen> {
               duration: const Duration(milliseconds: 250),
               curve: Curves.easeOutCubic,
               child: Material(
-                elevation: 16, // Add shadow so it stands out
+                elevation: 16,
                 color: Theme.of(context).scaffoldBackgroundColor,
                 child: NumericKeypad(
                   isLastInput: _inputMode == ReferenceInputMode.verse,
@@ -229,35 +171,8 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// Handles explicit user navigation (selecting from menus)
-  void _onUserNavigation(int bookId, int chapter, int verse) {
-    manager.saveBookAndChapter(bookId, chapter);
-    manager.updateReference(bookId, chapter, verse);
-
-    setState(() {
-      _jumpBookId = bookId;
-      _jumpChapter = chapter;
-    });
-
-    manager.onBookSelected(context, bookId);
-    _requestText();
-  }
-
-  void _requestText() {
-    if (manager.isSinglePanelNotifier.value) return;
-    manager.requestText();
-  }
-
-  void _scrollToVerse(int verse) {
-    syncController.jumpToVerse(
-      manager.currentBookId,
-      manager.currentChapter,
-      verse,
-    );
-  }
-
   Future<void> _onPlayAudio(BuildContext context) async {
-    // If already open, close it (Toggle behavior)
+    // Toggle behavior
     if (manager.audioManager.isVisibleNotifier.value) {
       manager.audioManager.stopAndClose();
       return;
@@ -267,7 +182,6 @@ class _HomeScreenState extends State<HomeScreen> {
     final chapter = manager.currentChapter;
     final verse = manager.currentVerse;
 
-    // Check if audio is actually available for this book/chapter
     if (!AudioLogic.isAudioAvailable(bookId, chapter)) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -284,12 +198,10 @@ class _HomeScreenState extends State<HomeScreen> {
         startVerse: verse,
       );
     } on AudioMissingException catch (_) {
-      // Catch the specific missing audio error
       if (context.mounted) {
         _showDownloadAudioDialog(context);
       }
     } catch (e) {
-      // Handle other errors
       if (context.mounted) {
         showDialog(
           context: context,
@@ -326,8 +238,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     if (shouldDownload != true) return;
-
-    // Check mounted before showing the next dialog
     if (!mounted) return;
 
     try {
@@ -343,14 +253,10 @@ class _HomeScreenState extends State<HomeScreen> {
         },
       );
 
-      // Check mounted again after the async dialog closes
       if (!mounted) return;
-
       _onPlayAudio(context);
     } catch (e) {
       if (!mounted) return;
-
-      // Ignore cancel exceptions, show errors for everything else
       if (e is! DownloadCanceledException) {
         ScaffoldMessenger.of(
           context,
