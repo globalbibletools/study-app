@@ -99,7 +99,11 @@ class HomeManager {
   }
 
   // Connects Keypad buttons to the AppBar
-  void handleDigit(int digit) => chooserKey.currentState?.handleDigit(digit);
+  void handleDigit(int digit) {
+    chooserKey.currentState?.handleDigit(digit);
+    print("DEBUG: Manager handleDigit: $digit");
+  }
+
   void handleBackspace() => chooserKey.currentState?.handleBackspace();
   void handleSubmit() => chooserKey.currentState?.handleSubmit();
 
