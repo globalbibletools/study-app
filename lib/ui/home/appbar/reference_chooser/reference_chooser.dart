@@ -51,14 +51,8 @@ class ReferenceChooserState extends State<ReferenceChooser> {
     _chapterController.text = widget.currentChapter.toString();
     _verseController.text = widget.currentVerse.toString();
 
-    _chapterFocus = FocusNode(
-      debugLabel: 'Chapter Node',
-      onKeyEvent: _handlePhysicalKey,
-    );
-    _verseFocus = FocusNode(
-      debugLabel: 'Verse Node',
-      onKeyEvent: _handlePhysicalKey,
-    );
+    _chapterFocus = FocusNode(onKeyEvent: _handlePhysicalKey);
+    _verseFocus = FocusNode(onKeyEvent: _handlePhysicalKey);
 
     _chapterController.addListener(_updateAvailableDigits);
     _verseController.addListener(_updateAvailableDigits);
@@ -128,30 +122,25 @@ class ReferenceChooserState extends State<ReferenceChooser> {
   void didUpdateWidget(covariant ReferenceChooser oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    bool needsUpdate = false;
-
-    // 1. Update Chapter Controller
-    if (widget.currentChapter != oldWidget.currentChapter &&
+    // 1. Update Chapter Controller only if value changed externally
+    // AND we aren't currently editing it.
+    final chapterStr = widget.currentChapter.toString();
+    if (_chapterController.text != chapterStr &&
         _currentMode != ReferenceInputMode.chapter) {
-      _chapterController.removeListener(_updateAvailableDigits);
-      _chapterController.text = widget.currentChapter.toString();
-      _chapterController.addListener(_updateAvailableDigits);
-      needsUpdate = true;
+      _chapterController.text = chapterStr;
     }
 
-    // 2. Update Verse Controller
-    if (widget.currentVerse != oldWidget.currentVerse &&
+    // 2. Update Verse Controller only if value changed externally
+    // AND we aren't currently editing it.
+    final verseStr = widget.currentVerse.toString();
+    if (_verseController.text != verseStr &&
         _currentMode != ReferenceInputMode.verse) {
-      _verseController.removeListener(_updateAvailableDigits);
-      _verseController.text = widget.currentVerse.toString();
-      _verseController.addListener(_updateAvailableDigits);
-      needsUpdate = true;
+      _verseController.text = verseStr;
     }
 
-    // 3. Schedule the digit calculation
+    // 3. If book or chapter changed, recalculate allowed digits for the virtual keyboard
     if (widget.currentBookId != oldWidget.currentBookId ||
-        widget.currentChapter != oldWidget.currentChapter ||
-        needsUpdate) {
+        widget.currentChapter != oldWidget.currentChapter) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _updateAvailableDigits();
       });
@@ -190,38 +179,47 @@ class ReferenceChooserState extends State<ReferenceChooser> {
   }
 
   void _updateAvailableDigits() {
-    if (widget.onAvailableDigitsChanged == null) return;
+    if (widget.onAvailableDigitsChanged == null || !mounted) return;
+
+    // 1. Calculate the allowed digits (this part is fine to do sync)
+    final Set<int> allowed;
 
     if (_currentMode == ReferenceInputMode.none ||
         _currentMode == ReferenceInputMode.book) {
-      widget.onAvailableDigitsChanged!({0, 1, 2, 3, 4, 5, 6, 7, 8, 9});
-      return;
-    }
+      allowed = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+    } else {
+      int maxValue;
+      String currentText;
 
-    int maxValue = 999;
-    String currentText = "";
-
-    if (_currentMode == ReferenceInputMode.chapter) {
-      maxValue = BibleNavigation.getChapterCount(widget.currentBookId);
-      currentText = _chapterController.text;
-    } else if (_currentMode == ReferenceInputMode.verse) {
-      maxValue = BibleNavigation.getVerseCount(
-        widget.currentBookId,
-        widget.currentChapter,
-      );
-      currentText = _verseController.text;
-    }
-
-    final Set<int> allowed = {};
-    for (int i = 0; i <= 9; i++) {
-      String potential = currentText + i.toString();
-      int? val = int.tryParse(potential);
-      if (val != null && val <= maxValue && val > 0) {
-        allowed.add(i);
+      if (_currentMode == ReferenceInputMode.chapter) {
+        maxValue = BibleNavigation.getChapterCount(widget.currentBookId);
+        currentText = _chapterController.text;
+      } else {
+        maxValue = BibleNavigation.getVerseCount(
+          widget.currentBookId,
+          widget.currentChapter,
+        );
+        currentText = _verseController.text;
       }
+
+      final Set<int> result = {};
+      for (int i = 0; i <= 9; i++) {
+        String potential = currentText + i.toString();
+        int? val = int.tryParse(potential);
+        if (val != null && val <= maxValue && val > 0) {
+          result.add(i);
+        }
+      }
+      allowed = result;
     }
 
-    widget.onAvailableDigitsChanged!(allowed);
+    // 2. Schedule the notification for the NEXT frame.
+    // This prevents the "setState() called during build" error.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        widget.onAvailableDigitsChanged?.call(allowed);
+      }
+    });
   }
 
   void resetAll() {
@@ -231,8 +229,6 @@ class ReferenceChooserState extends State<ReferenceChooser> {
 
   @override
   void dispose() {
-    _chapterController.removeListener(_updateAvailableDigits);
-    _verseController.removeListener(_updateAvailableDigits);
     _bookFocus.dispose();
     _chapterFocus.dispose();
     _verseFocus.dispose();
