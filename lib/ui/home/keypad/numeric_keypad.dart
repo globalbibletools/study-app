@@ -18,45 +18,52 @@ class NumericKeypad extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: Theme.of(context).scaffoldBackgroundColor,
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildRow(context, [1, 2, 3]),
-              const SizedBox(height: 8),
-              _buildRow(context, [4, 5, 6]),
-              const SizedBox(height: 8),
-              _buildRow(context, [7, 8, 9]),
-              const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+    return ExcludeFocus(
+      excluding: true,
+      child: GestureDetector(
+        onTap: () {},
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          child: SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  _buildKey(
-                    context,
-                    icon: Icons.backspace_outlined,
-                    onTap: onBackspace,
-                    isEnabled: true,
-                  ),
-                  _buildKey(
-                    context,
-                    digit: 0,
-                    onTap: () => onDigit(0),
-                    isEnabled: enabledDigits.contains(0),
-                  ),
-                  _buildKey(
-                    context,
-                    icon: isLastInput ? Icons.check : Icons.arrow_forward,
-                    onTap: onSubmit,
-                    isEnabled: true,
+                  _buildRow(context, [1, 2, 3]),
+                  const SizedBox(height: 8),
+                  _buildRow(context, [4, 5, 6]),
+                  const SizedBox(height: 8),
+                  _buildRow(context, [7, 8, 9]),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildKey(
+                        context,
+                        icon: Icons.backspace_outlined,
+                        onTap: onBackspace,
+                        isEnabled: true,
+                      ),
+                      _buildKey(
+                        context,
+                        digit: 0,
+                        onTap: () => onDigit(0),
+                        isEnabled: enabledDigits.contains(0),
+                      ),
+                      _buildKey(
+                        context,
+                        icon: isLastInput ? Icons.check : Icons.arrow_forward,
+                        onTap: onSubmit,
+                        isEnabled: true,
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
+            ),
           ),
         ),
       ),
@@ -111,6 +118,7 @@ class NumericKeypad extends StatelessWidget {
               : null,
           child: InkWell(
             onTap: isEnabled ? onTap : null,
+            canRequestFocus: false,
             borderRadius: BorderRadius.circular(8),
             child: Container(
               height: 50,

@@ -63,6 +63,17 @@ class HomeManager {
   int get currentVerse => currentReference.value.verse;
 
   Future<void> init() async {
+    FocusManager.instance.addListener(() {
+      final node = FocusManager.instance.primaryFocus;
+      if (node == null) {
+        print("🔍 FOCUS DEBUG: Focus lost (became null)");
+      } else {
+        print(
+          "🔍 FOCUS DEBUG: Focus moved to: ${node.debugLabel ?? node.toString()}",
+        );
+      }
+    });
+
     final (bookId, chapter) = _settings.currentBookChapter;
     _lastSavedBook = bookId;
     _lastSavedChapter = chapter;

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:studyapp/common/bible_navigation.dart';
 import 'package:studyapp/l10n/book_names.dart';
+import 'package:studyapp/ui/home/appbar/reference_chooser/reference_input_field.dart';
 import 'package:unorm_dart/unorm_dart.dart' as unorm;
 
 enum ReferenceInputMode { none, book, chapter, verse }
@@ -50,8 +51,14 @@ class ReferenceChooserState extends State<ReferenceChooser> {
     _chapterController.text = widget.currentChapter.toString();
     _verseController.text = widget.currentVerse.toString();
 
-    _chapterFocus = FocusNode(onKeyEvent: _handlePhysicalKey);
-    _verseFocus = FocusNode(onKeyEvent: _handlePhysicalKey);
+    _chapterFocus = FocusNode(
+      debugLabel: 'Chapter Node',
+      onKeyEvent: _handlePhysicalKey,
+    );
+    _verseFocus = FocusNode(
+      debugLabel: 'Verse Node',
+      onKeyEvent: _handlePhysicalKey,
+    );
 
     _chapterController.addListener(_updateAvailableDigits);
     _verseController.addListener(_updateAvailableDigits);
@@ -254,7 +261,10 @@ class ReferenceChooserState extends State<ReferenceChooser> {
       int? newValue = int.tryParse(newText);
 
       if (newValue != null && newValue <= maxValue && newValue > 0) {
-        activeController.text = newText;
+        setState(() {
+          activeController!.text = newText;
+        });
+
         if (_currentMode == ReferenceInputMode.chapter) {
           widget.onChapterSelected(newValue);
         } else if (_currentMode == ReferenceInputMode.verse) {
@@ -288,16 +298,16 @@ class ReferenceChooserState extends State<ReferenceChooser> {
     if (activeController != null) {
       final text = activeController.text;
       if (text.isNotEmpty) {
-        activeController.text = text.substring(0, text.length - 1);
+        setState(() {
+          activeController!.text = text.substring(0, text.length - 1);
+        });
 
-        // Update live view if valid after backspace
         if (activeController.text.isNotEmpty) {
           int? val = int.tryParse(activeController.text);
           if (val != null) {
             if (_currentMode == ReferenceInputMode.chapter) {
               widget.onChapterSelected(val);
             } else if (_currentMode == ReferenceInputMode.verse) {
-              // Trigger live jump for verses
               widget.onVerseSelected(val);
             }
           }
@@ -361,6 +371,7 @@ class ReferenceChooserState extends State<ReferenceChooser> {
           focusNode: _chapterFocus,
           enableSwipe: true,
           onTap: () => _activateMode(ReferenceInputMode.chapter),
+          onKeyEvent: (event) => _handlePhysicalKey(_chapterFocus, event),
           onPeekNext: () {
             final maxChapters = BibleNavigation.getChapterCount(
               widget.currentBookId,
@@ -410,6 +421,7 @@ class ReferenceChooserState extends State<ReferenceChooser> {
           focusNode: _verseFocus,
           enableSwipe: false,
           onTap: () => _activateMode(ReferenceInputMode.verse),
+          onKeyEvent: (event) => _handlePhysicalKey(_verseFocus, event),
           onPeekNext: () => null,
           onNextInvoked: () {},
           onPeekPrevious: () => null,
@@ -911,6 +923,7 @@ class _NumberSelector extends StatelessWidget {
   final VoidCallback onNextInvoked;
   final String? Function() onPeekPrevious;
   final VoidCallback onPreviousInvoked;
+  final Function(KeyEvent) onKeyEvent;
 
   const _NumberSelector({
     required this.controller,
@@ -923,26 +936,18 @@ class _NumberSelector extends StatelessWidget {
     required this.onNextInvoked,
     required this.onPeekPrevious,
     required this.onPreviousInvoked,
+    required this.onKeyEvent,
   });
 
   @override
   Widget build(BuildContext context) {
     if (isActive) {
-      return SizedBox(
-        width: 50,
-        child: TextField(
-          controller: controller,
-          focusNode: focusNode,
-          autofocus: true,
-          readOnly: true,
-          showCursor: true,
-          textAlign: TextAlign.center,
-          decoration: const InputDecoration(
-            isDense: true,
-            contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-            border: OutlineInputBorder(),
-          ),
-        ),
+      return ReferenceInputField(
+        text: controller.text,
+        focusNode: focusNode,
+        isActive: true,
+        onTap: onTap,
+        onKeyEvent: onKeyEvent,
       );
     }
 

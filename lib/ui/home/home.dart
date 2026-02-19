@@ -73,11 +73,9 @@ class _HomeScreenState extends State<HomeScreen> {
           // 1. Content Area
           Listener(
             onPointerDown: (_) {
-              print(
-                "DEBUG: Background Listener HIT (Should not happen when typing)",
-              );
+              print("🔍 FOCUS DEBUG: Background Listener HIT!");
               FocusManager.instance.primaryFocus?.unfocus();
-              // 3. Check manager state to close keypad
+              // Check manager state to close keypad
               if (manager.inputModeNotifier.value != ReferenceInputMode.none) {
                 manager.resetKeypad();
               }
