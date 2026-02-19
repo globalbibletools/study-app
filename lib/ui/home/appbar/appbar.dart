@@ -32,7 +32,6 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
-    print("DEBUG: HomeAppBar Rebuild");
     return AppBar(
       centerTitle: false,
       titleSpacing: 0,

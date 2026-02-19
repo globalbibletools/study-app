@@ -85,7 +85,7 @@ class _ReferenceInputFieldState extends State<ReferenceInputField>
         onTap: widget.onTap,
         behavior: HitTestBehavior.opaque,
         child: Container(
-          width: 40, // FIXED CONSTANT WIDTH
+          width: 40,
           height: 40,
           alignment: Alignment.center,
           decoration: BoxDecoration(
@@ -95,8 +95,7 @@ class _ReferenceInputFieldState extends State<ReferenceInputField>
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment:
-                MainAxisAlignment.center, // Keep text + cursor centered
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
                 widget.text,
@@ -105,7 +104,6 @@ class _ReferenceInputFieldState extends State<ReferenceInputField>
                       ? colorScheme.primary
                       : colorScheme.onSurface,
                   fontWeight: isFocused ? FontWeight.bold : FontWeight.normal,
-                  fontSize: 18,
                 ),
               ),
               if (isFocused)
