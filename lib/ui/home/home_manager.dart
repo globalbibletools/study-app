@@ -131,6 +131,7 @@ class HomeManager {
   }
 
   void togglePanelState() {
+    panelAnchorNotifier.value = currentReference.value;
     isSinglePanelNotifier.value = !isSinglePanelNotifier.value;
   }
 
