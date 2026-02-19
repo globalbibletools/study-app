@@ -55,14 +55,19 @@ class HomeManager {
   final _downloadService = getIt<DownloadService>();
   final _assetService = getIt<RemoteAssetService>();
 
+  int? _lastSavedBook;
+  int? _lastSavedChapter;
+
   int get currentBookId => currentReference.value.bookId;
   int get currentChapter => currentReference.value.chapter;
   int get currentVerse => currentReference.value.verse;
 
   Future<void> init() async {
     final (bookId, chapter) = _settings.currentBookChapter;
-    final ref = Reference(bookId: bookId, chapter: chapter, verse: 1);
+    _lastSavedBook = bookId;
+    _lastSavedChapter = chapter;
 
+    final ref = Reference(bookId: bookId, chapter: chapter, verse: 1);
     currentReference.value = ref;
     panelAnchorNotifier.value = ref;
 
@@ -115,11 +120,10 @@ class HomeManager {
   }
 
   Future<void> saveBookAndChapter(int bookId, int chapter) async {
-    if (bookId == currentReference.value.bookId &&
-        chapter == currentReference.value.chapter) {
-      return;
-    }
+    if (_lastSavedBook == bookId && _lastSavedChapter == chapter) return;
     print('saving book $bookId and chapter $chapter');
+    _lastSavedBook = bookId;
+    _lastSavedChapter = chapter;
     await _settings.setCurrentBookChapter(bookId, chapter);
   }
 
