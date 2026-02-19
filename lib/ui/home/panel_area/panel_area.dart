@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:studyapp/l10n/book_names.dart';
-import 'package:studyapp/ui/home/bible_panel/bible_panel.dart';
-import 'package:studyapp/ui/home/hebrew_greek_panel/chapter.dart';
-import 'package:studyapp/ui/home/hebrew_greek_panel/panel.dart';
+import 'package:studyapp/ui/home/panel_area/bible_panel/bible_panel.dart';
+import 'package:studyapp/ui/home/panel_area/hebrew_greek_panel/chapter.dart';
+import 'package:studyapp/ui/home/panel_area/hebrew_greek_panel/panel.dart';
 import 'package:studyapp/ui/home/home_manager.dart';
 import 'package:studyapp/common/reference.dart';
 

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:studyapp/ui/home/common/infinite_scroll_view.dart';
+import 'package:studyapp/ui/home/panel_area/common/infinite_scroll_view.dart';
 import 'package:studyapp/ui/home/common/scroll_sync_controller.dart';
 import 'package:studyapp/ui/home/common/zoom_wrapper.dart';
 import 'bible_chapter.dart';

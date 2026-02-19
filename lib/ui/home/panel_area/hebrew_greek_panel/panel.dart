@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:studyapp/ui/home/common/infinite_scroll_view.dart';
+import 'package:studyapp/ui/home/panel_area/common/infinite_scroll_view.dart';
 import 'package:studyapp/ui/home/common/scroll_sync_controller.dart';
 import 'package:studyapp/ui/home/common/zoom_wrapper.dart';
-import 'package:studyapp/ui/home/hebrew_greek_panel/chapter.dart';
-import 'package:studyapp/ui/home/hebrew_greek_panel/panel_manager.dart';
+import 'package:studyapp/ui/home/panel_area/hebrew_greek_panel/chapter.dart';
+import 'package:studyapp/ui/home/panel_area/hebrew_greek_panel/panel_manager.dart';
 
 /// Handles infinite scrolling and zooming for multiple chapters, all contained
 /// within a panel. This panel is meant to be separate but adjacent to a

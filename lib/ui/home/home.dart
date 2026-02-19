@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:studyapp/common/reference.dart';
 import 'package:studyapp/ui/home/appbar/reference_chooser/reference_chooser.dart';
 import 'package:studyapp/ui/home/appbar/drawer.dart';
-import 'package:studyapp/ui/home/bible_panel_area.dart';
+import 'package:studyapp/ui/home/panel_area/panel_area.dart';
 import 'package:studyapp/ui/home/audio/audio_layer.dart';
-import 'package:studyapp/ui/home/keypad_layer.dart';
+import 'package:studyapp/ui/home/keypad/keypad_layer.dart';
 
 import 'appbar/appbar.dart';
 import 'home_manager.dart';

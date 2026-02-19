@@ -6,10 +6,10 @@ import 'package:studyapp/common/word.dart';
 import 'package:studyapp/l10n/app_localizations.dart';
 import 'package:studyapp/services/download/cancel_token.dart';
 import 'package:studyapp/ui/common/download_progress_dialog.dart';
-import 'package:studyapp/ui/home/common/infinite_scroll_view.dart';
+import 'package:studyapp/ui/home/panel_area/common/infinite_scroll_view.dart';
 import 'package:studyapp/ui/home/common/scroll_sync_controller.dart';
-import 'package:studyapp/ui/home/hebrew_greek_panel/chapter_manager.dart';
-import 'package:studyapp/ui/home/hebrew_greek_panel/text.dart';
+import 'package:studyapp/ui/home/panel_area/hebrew_greek_panel/chapter_manager.dart';
+import 'package:studyapp/ui/home/panel_area/hebrew_greek_panel/text.dart';
 import 'package:studyapp/ui/home/word_details_dialog/word_details_dialog.dart';
 
 enum DownloadDialogChoice { useEnglish, download }

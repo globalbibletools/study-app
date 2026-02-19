@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:studyapp/common/bible_navigation.dart';
 
-import 'scroll_sync_controller.dart';
+import '../../common/scroll_sync_controller.dart';
 
 const _topScrollOffset = 16.0;
 
