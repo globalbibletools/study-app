@@ -19,9 +19,6 @@ class DownloadManagerPage extends StatefulWidget {
 }
 
 class _DownloadManagerPageState extends State<DownloadManagerPage> {
-  // We use this to rebuild the UI when downloads finish
-  int _refreshKey = 0;
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -38,14 +35,6 @@ class _DownloadManagerPageState extends State<DownloadManagerPage> {
     );
   }
 
-  // Widget _buildPlaceholderSection(String title, IconData icon) {
-  //   return ExpansionTile(
-  //     leading: Icon(icon),
-  //     title: Text(title),
-  //     children: const [ListTile(title: Text("Coming soon..."), enabled: false)],
-  //   );
-  // }
-
   // --- AUDIO SECTION ---
 
   // Default to Dan Beeri as requested
@@ -53,6 +42,7 @@ class _DownloadManagerPageState extends State<DownloadManagerPage> {
 
   Widget _buildAudioSection(BuildContext context, AppLocalizations l10n) {
     return ExpansionTile(
+      key: const PageStorageKey('audio_section_main'),
       leading: const Icon(Icons.headphones),
       title: Text(l10n.audio),
       initiallyExpanded: true,
@@ -91,7 +81,6 @@ class _DownloadManagerPageState extends State<DownloadManagerPage> {
                 onSelectionChanged: (Set<AudioSourceType> newSelection) {
                   setState(() {
                     _selectedSource = newSelection.first;
-                    _refreshKey++; // Reload list status
                   });
                 },
               ),
@@ -118,10 +107,9 @@ class _DownloadManagerPageState extends State<DownloadManagerPage> {
           if (!hasAnyAudio) return const SizedBox.shrink();
 
           return _BookDownloadTile(
-            key: ValueKey("${bookId}_${_selectedSource}_$_refreshKey"),
+            key: PageStorageKey("book_${bookId}_$_selectedSource"),
             bookId: bookId,
             sourceType: _selectedSource,
-            onChanged: () => setState(() => _refreshKey++),
           );
         }),
       ],
@@ -132,13 +120,11 @@ class _DownloadManagerPageState extends State<DownloadManagerPage> {
 class _BookDownloadTile extends StatefulWidget {
   final int bookId;
   final AudioSourceType sourceType;
-  final VoidCallback onChanged;
 
   const _BookDownloadTile({
     super.key,
     required this.bookId,
     required this.sourceType,
-    required this.onChanged,
   });
 
   @override
@@ -158,6 +144,15 @@ class _BookDownloadTileState extends State<_BookDownloadTile> {
     super.initState();
     _totalChapters = BibleNavigation.getChapterCount(widget.bookId);
     _missingChaptersFuture = _checkMissingChapters();
+  }
+
+  @override
+  void didUpdateWidget(_BookDownloadTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // If the source (RDB/HEB) changed, we must refresh the data!
+    if (oldWidget.sourceType != widget.sourceType) {
+      _reload();
+    }
   }
 
   Future<List<int>> _checkMissingChapters() async {
@@ -424,6 +419,5 @@ class _BookDownloadTileState extends State<_BookDownloadTile> {
     setState(() {
       _missingChaptersFuture = _checkMissingChapters();
     });
-    widget.onChanged();
   }
 }

@@ -11,6 +11,7 @@
 - Additions to the About page.
 - Increase font size in reference chooser.
 - Fix scroll to new chapter then show Bible panel sync mismatch bug.
+- Continue playing audio for next chapter if it has been downloaded.
 
 ## 0.16.0 - February 9, 2026
 

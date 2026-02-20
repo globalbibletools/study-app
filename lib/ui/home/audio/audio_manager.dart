@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:studyapp/common/bible_navigation.dart';
 import 'package:studyapp/services/assets/remote_asset_service.dart';
 import 'package:studyapp/services/audio/audio_database.dart';
 import 'package:studyapp/services/audio/audio_player_handler.dart';
@@ -175,46 +176,95 @@ class AudioManager {
     _positionSubscription?.cancel();
     _playerStateSubscription?.cancel();
 
-    // If no timings (NT), we just want basic playback without sync logic
-    if (_currentTimings.isEmpty) {
-      return;
-    }
-
-    // Handle End of Chapter
-    _playerStateSubscription = audioHandler.playerStateStream.listen((state) {
+    // Handle End of Chapter for ALL books (even if NT has no timings)
+    _playerStateSubscription = audioHandler.playerStateStream.listen((
+      state,
+    ) async {
       if (state.processingState == ProcessingState.completed) {
         // --- CHECK REPEAT MODE ---
         if (repeatModeNotifier.value == AudioRepeatMode.chapter) {
           // REPEAT CHAPTER:
           _lastSyncedVerse = -1;
-          // Seek to beginning (Audio stays 'playing' automatically)
           audioHandler.seek(Duration.zero);
         } else if (repeatModeNotifier.value == AudioRepeatMode.verse) {
-          // EDGE CASE: If repeating the LAST verse, the file finishes before
-          // the timestamp check triggers (due to the 36000s fix).
-          // So if we hit 'completed' in verse mode, repeat the last verse.
+          // EDGE CASE: If repeating the LAST verse...
           if (_currentTimings.isNotEmpty) {
             _seekToTiming(_currentTimings.last);
           }
         } else {
-          // NO REPEAT (Standard Stop Logic):
+          // NO REPEAT (Auto-Play Next Chapter or Standard Stop Logic)
+          bool playedNext = false;
 
-          // Clear UI Highlight
-          if (_loadedBookId != null && _loadedChapter != null) {
-            _syncController?.setHighlight(
-              _loadedBookId!,
-              _loadedChapter!,
-              null,
-            );
+          // 1. Check if we can play the next chapter
+          if (_loadedBookId != null &&
+              _loadedChapter != null &&
+              _loadedBookName != null) {
+            final maxChapters = BibleNavigation.getChapterCount(_loadedBookId!);
+
+            // If we aren't at the end of the book
+            if (_loadedChapter! < maxChapters) {
+              final nextChapter = _loadedChapter! + 1;
+              final recordingId = AudioLogic.getRecordingId(
+                _loadedBookId!,
+                audioSourceNotifier.value,
+              );
+
+              final asset = _assetService.getAudioChapterAsset(
+                bookId: _loadedBookId!,
+                chapter: nextChapter,
+                recordingId: recordingId,
+              );
+
+              // 2. Check if the file is actually downloaded locally
+              if (asset != null) {
+                final exists = await _fileService.checkFileExists(
+                  asset.fileType,
+                  asset.localRelativePath,
+                );
+
+                if (exists) {
+                  try {
+                    // 3. Play next chapter automatically
+                    await loadAndPlay(
+                      _loadedBookId!,
+                      nextChapter,
+                      _loadedBookName!,
+                    );
+                    _updateCurrentVerse(1); // Jump UI to verse 1
+                    playedNext = true;
+                  } catch (e) {
+                    debugPrint("Error auto-playing next chapter: $e");
+                  }
+                }
+              }
+            }
           }
-          _lastSyncedVerse = -1;
 
-          // Reset Player (Pause & Rewind)
-          audioHandler.pause();
-          audioHandler.seek(Duration.zero);
+          // 4. If we didn't play the next chapter (streaming, or end of book), stop normally
+          if (!playedNext) {
+            // Clear UI Highlight
+            if (_loadedBookId != null && _loadedChapter != null) {
+              _syncController?.setHighlight(
+                _loadedBookId!,
+                _loadedChapter!,
+                null,
+              );
+            }
+            _lastSyncedVerse = -1;
+
+            // Reset Player (Pause & Rewind)
+            audioHandler.pause();
+            audioHandler.seek(Duration.zero);
+          }
         }
       }
     });
+
+    // If no timings (NT), we just want basic playback without sync logic.
+    // We put this HERE so the end-of-chapter listener above still works for NT.
+    if (_currentTimings.isEmpty) {
+      return;
+    }
 
     _positionSubscription = audioHandler.positionDataStream.listen((
       positionData,
