@@ -455,10 +455,9 @@ class AudioManager {
     String? checkBookName,
     int? startVerse,
   }) async {
-    // Check if the user has scrolled to a new chapter while paused/stopped
+    // Check if the user has navigated to a DIFFERENT chapter while paused
     if (checkBookId != null && checkChapter != null && checkBookName != null) {
       if (checkBookId != _loadedBookId || checkChapter != _loadedChapter) {
-        // User is looking at a different chapter. Load it, starting at the specific verse.
         await loadAndPlay(
           checkBookId,
           checkChapter,
@@ -470,8 +469,11 @@ class AudioManager {
     }
 
     // Resuming existing audio.
-    // If a specific verse is requested (e.g. from Play button while scrolled elsewhere), seek to it.
-    if (startVerse != null && _currentTimings.isNotEmpty) {
+    // Only seek to startVerse if it's DIFFERENT from our current position.
+    // If we just scrubbed, startVerse will equal _lastSyncedVerse, so we DON'T seek.
+    if (startVerse != null &&
+        startVerse != _lastSyncedVerse &&
+        _currentTimings.isNotEmpty) {
       final timing = _currentTimings.firstWhere(
         (t) => t.verseNumber == startVerse,
         orElse: () => _currentTimings.first,
