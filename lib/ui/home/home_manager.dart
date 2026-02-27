@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:scripture/scripture.dart';
 import 'package:studyapp/common/reference.dart';
 import 'package:studyapp/l10n/app_localizations.dart';

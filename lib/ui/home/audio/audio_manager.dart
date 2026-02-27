@@ -19,7 +19,7 @@ class AudioMissingException implements Exception {
 
 enum AudioRepeatMode { none, chapter, verse }
 
-enum AudioSourceType { heb, rdb }
+enum AudioSourceType { heb, rdb, tk, jh }
 
 class AudioManager {
   final AudioPlayerHandler audioHandler = AudioPlayerHandler();
@@ -65,69 +65,86 @@ class AudioManager {
       audioSourceNotifier.value,
     );
 
-    // Get the Asset Configuration
-    final asset = _assetService.getAudioChapterAsset(
-      bookId: bookId,
-      chapter: chapter,
-      recordingId: recordingId,
-    );
-
-    if (asset == null) {
-      throw AudioMissingException(bookId, chapter);
-    }
-
-    // Check for local file using Asset config
-    final exists = await _fileService.checkFileExists(
-      asset.fileType,
-      asset.localRelativePath,
-    );
-
-    String uriPath;
-
-    if (exists) {
-      // Get absolute path for local playback
-      uriPath = await _fileService.getLocalPath(
-        asset.fileType,
-        asset.localRelativePath,
-      );
-      uriPath = Uri.file(uriPath).toString();
-    } else {
-      // Check if audio is theoretically available (Business Logic)
-      if (!AudioLogic.isAudioAvailable(bookId, chapter)) {
-        stopAndClose();
-        throw AudioMissingException(bookId, chapter);
-      }
-
-      // Stream from Remote URL
-      uriPath = asset.remoteUrl;
-    }
-
-    _loadedBookId = bookId;
-    _loadedChapter = chapter;
-    _loadedBookName = bookName;
-    isVisibleNotifier.value = true;
-
-    // Load Timings (These are always local in the SQLite DB)
+    // 1. LOAD TIMINGS FIRST
+    // We need to know the required version from the DB before looking for the file.
     _currentTimings = await _audioDb.getTimingsForChapter(
       bookId,
       chapter,
       recordingId,
     );
 
-    // Sanitize bad data
+    // 2. DETERMINE REQUIRED VERSION
+    // Default to 1 if no timings exist (e.g. for some NT chapters yet to be added)
+    final int requiredVersion = _currentTimings.isNotEmpty
+        ? _currentTimings.first.version
+        : 1;
+
+    // 3. GET ASSET CONFIG
+    // This now uses the version to determine if it should look for "001.mp3" or "001_v2.mp3"
+    final asset = _assetService.getAudioChapterAsset(
+      bookId: bookId,
+      chapter: chapter,
+      recordingId: recordingId,
+      version: requiredVersion,
+    );
+
+    if (asset == null) {
+      throw AudioMissingException(bookId, chapter);
+    }
+
+    // 4. CLEANUP OLD VERSIONS
+    // If the DB says we need v2, and we have v1 on disk, v1 is now "stale"
+    // because its timings won't match the new data. We delete it.
+    await _cleanupOldVersions(bookId, chapter, recordingId, requiredVersion);
+
+    // 5. CHECK FOR LOCAL FILE
+    final exists = await _fileService.checkFileExists(
+      asset.fileType,
+      asset.localRelativePath,
+    );
+
+    String uriPath;
+    if (exists) {
+      uriPath = await _fileService.getLocalPath(
+        asset.fileType,
+        asset.localRelativePath,
+      );
+      uriPath = Uri.file(uriPath).toString();
+    } else {
+      // Check if audio is theoretically available
+      if (!AudioLogic.isAudioAvailable(bookId, chapter)) {
+        stopAndClose();
+        throw AudioMissingException(bookId, chapter);
+      }
+      // Stream from Remote URL
+      uriPath = asset.remoteUrl;
+    }
+
+    // --- State Setup ---
+    _loadedBookId = bookId;
+    _loadedChapter = chapter;
+    _loadedBookName = bookName;
+    isVisibleNotifier.value = true;
+
+    // Sanitize bad data using Option 2 (double.infinity)
     if (_currentTimings.isNotEmpty) {
       final last = _currentTimings.last;
       if (last.end <= last.start) {
         _currentTimings.removeLast();
         _currentTimings.add(
-          AudioTiming(verseId: last.verseId, start: last.start, end: 36000.0),
+          AudioTiming(
+            verseId: last.verseId,
+            start: last.start,
+            end: double.infinity,
+            version: last.version,
+          ),
         );
       }
     }
 
     _lastSyncedVerse = -1;
 
-    // Set Audio Source
+    // --- Set Audio Source and Play ---
     try {
       await audioHandler.setUrl(
         uriPath,
@@ -135,7 +152,6 @@ class AudioManager {
         subtitle: bookName,
       );
     } catch (e) {
-      // Handle network errors for streaming
       stopAndClose();
       rethrow;
     }
@@ -146,16 +162,54 @@ class AudioManager {
     // Seek logic
     if (startVerse != null && startVerse > 1 && _currentTimings.isNotEmpty) {
       final timing = _currentTimings.firstWhere(
-        (t) => t.verseNumber == startVerse,
+        (t) => t.verseId == startVerse,
         orElse: () => _currentTimings.first,
       );
-      _updateCurrentVerse(timing.verseNumber);
+      _updateCurrentVerse(timing.verseId);
       await audioHandler.seek(
         Duration(milliseconds: (timing.start * 1000).toInt()),
       );
     }
 
     audioHandler.play();
+  }
+
+  /// Looks for any local audio files that are older than the current required version
+  /// and deletes them to prevent playing audio that is out of sync with timings.
+  Future<void> _cleanupOldVersions(
+    int bookId,
+    int chapter,
+    String recordingId,
+    int currentVersion,
+  ) async {
+    // Only need to clean up if the version is 2 or higher
+    if (currentVersion <= 1) return;
+
+    for (int v = 1; v < currentVersion; v++) {
+      final oldAsset = _assetService.getAudioChapterAsset(
+        bookId: bookId,
+        chapter: chapter,
+        recordingId: recordingId,
+        version: v,
+      );
+
+      if (oldAsset != null) {
+        final oldFileExists = await _fileService.checkFileExists(
+          oldAsset.fileType,
+          oldAsset.localRelativePath,
+        );
+
+        if (oldFileExists) {
+          debugPrint(
+            "Deleting stale audio version: ${oldAsset.localRelativePath}",
+          );
+          await _fileService.deleteFile(
+            oldAsset.fileType,
+            oldAsset.localRelativePath,
+          );
+        }
+      }
+    }
   }
 
   /// Updates internal state and UI immediately during manual navigation
@@ -278,7 +332,7 @@ class AudioManager {
         AudioTiming? currentMatch;
         // Find the timing object for the verse we are supposedly in
         for (var t in _currentTimings) {
-          if (t.verseNumber == _lastSyncedVerse) {
+          if (t.verseId == _lastSyncedVerse) {
             currentMatch = t;
             break;
           }
@@ -305,7 +359,7 @@ class AudioManager {
         return;
       }
 
-      final verseNum = match.verseNumber;
+      final verseNum = match.verseId;
 
       // Update Highlight
       if (_loadedBookId != null && _loadedChapter != null) {
@@ -430,7 +484,7 @@ class AudioManager {
   }
 
   void _seekToTiming(AudioTiming t) {
-    _updateCurrentVerse(t.verseNumber);
+    _updateCurrentVerse(t.verseId);
     audioHandler.seek(Duration(milliseconds: (t.start * 1000).toInt()));
   }
 
@@ -441,7 +495,7 @@ class AudioManager {
         final match = _currentTimings.firstWhere(
           (t) => seconds >= t.start && seconds < t.end,
         );
-        _updateCurrentVerse(match.verseNumber);
+        _updateCurrentVerse(match.verseId);
       } catch (_) {
         // Seeking to a gap or end; let the listener handle it normally
       }
@@ -475,10 +529,10 @@ class AudioManager {
         startVerse != _lastSyncedVerse &&
         _currentTimings.isNotEmpty) {
       final timing = _currentTimings.firstWhere(
-        (t) => t.verseNumber == startVerse,
+        (t) => t.verseId == startVerse,
         orElse: () => _currentTimings.first,
       );
-      _updateCurrentVerse(timing.verseNumber);
+      _updateCurrentVerse(timing.verseId);
       await audioHandler.seek(
         Duration(milliseconds: (timing.start * 1000).toInt()),
       );

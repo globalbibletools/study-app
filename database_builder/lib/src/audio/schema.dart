@@ -6,6 +6,7 @@ class AudioSchema {
   static const String colRecordingId = 'recording_id';
   static const String colStart = 'start';
   static const String colEnd = 'end';
+  static const String colVersion = 'version';
 
   static const String createTable =
       '''
@@ -14,7 +15,8 @@ class AudioSchema {
       $colVerseId INTEGER NOT NULL,
       $colRecordingId TEXT NOT NULL,
       $colStart REAL NOT NULL,
-      $colEnd REAL 
+      $colEnd REAL,
+      $colVersion INTEGER DEFAULT 1
     );
   ''';
 

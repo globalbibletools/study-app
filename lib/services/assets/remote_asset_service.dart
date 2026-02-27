@@ -124,22 +124,23 @@ class RemoteAssetService {
     required int bookId,
     required int chapter,
     String recordingId = 'HEB',
+    int version = 1,
   }) {
-    if (bookId < 1 || bookId > _bookKeys.length) return null;
-
     final bookKey = _bookKeys[bookId - 1];
     final chapterStr = chapter.toString().padLeft(3, '0');
-    final filename = '$chapterStr.mp3';
 
-    // Remote: .../audio/HEB/Gen/001.mp3
-    // Local:  .../audio/HEB/Gen/001.mp3
+    // If version is 1, filename is 001.mp3
+    // If version is 2, filename is 001_v2.mp3
+    final filename = version > 1
+        ? '${chapterStr}_v$version.mp3'
+        : '$chapterStr.mp3';
+
     final relativePath = '$recordingId/$bookKey/$filename';
 
     return RemoteAsset(
       remoteUrl: '$_baseHost/audio/$relativePath',
-      localRelativePath: '$recordingId/$bookKey/$filename',
+      localRelativePath: relativePath,
       fileType: FileType.audio,
-      isZip: false,
     );
   }
 }

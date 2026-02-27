@@ -137,6 +137,14 @@
   "@sourceRDB": {
     "description": "Audio recording source setting: Rabbi Dan Beeri"
   },
+  "sourceTK": "Modern",
+  "@sourceTK": {
+    "description": "Audio recording source setting: Modern Greek pronunciation by Theo Karvounakis (Textus Receptus recording)"
+  },
+  "sourceJH": "Lucian",
+  "@sourceJH": {
+    "description": "Audio recording source setting: Lucian Greek pronunciation by Jonathan Hohstadt (SRGNT recording)"
+  },
   "downloadAudio": "Download Audio",
   "@downloadAudio": {
     "description": "Title of the download audio dialog"
@@ -180,6 +188,10 @@
   "oldTestament": "Old Testament",
   "@oldTestament": {
     "description": "Label for Old Testament audio selection"
+  },
+  "newTestament": "New Testament",
+  "@newTestament": {
+    "description": "Label for New Testament audio selection"
   },
   "deleteAudioConfirmation": "Delete all audio for {book}?",
   "@deleteAudioConfirmation": {

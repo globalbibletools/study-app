@@ -119,6 +119,12 @@ class AppLocalizationsAr extends AppLocalizations {
   String get sourceRDB => 'دان بيري';
 
   @override
+  String get sourceTK => 'حديث';
+
+  @override
+  String get sourceJH => 'لوسيان';
+
+  @override
   String get downloadAudio => 'تنزيل الصوت';
 
   @override
@@ -146,6 +152,9 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get oldTestament => 'العهد القديم';
+
+  @override
+  String get newTestament => 'العهد الجديد';
 
   @override
   String deleteAudioConfirmation(String book) {

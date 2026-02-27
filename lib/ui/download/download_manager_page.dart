@@ -37,8 +37,9 @@ class _DownloadManagerPageState extends State<DownloadManagerPage> {
 
   // --- AUDIO SECTION ---
 
-  // Default to Dan Beeri as requested
-  AudioSourceType _selectedSource = AudioSourceType.rdb;
+  // Independent state for both Testaments
+  AudioSourceType _selectedOtSource = AudioSourceType.rdb;
+  AudioSourceType _selectedNtSource = AudioSourceType.tk;
 
   Widget _buildAudioSection(BuildContext context, AppLocalizations l10n) {
     return ExpansionTile(
@@ -47,7 +48,9 @@ class _DownloadManagerPageState extends State<DownloadManagerPage> {
       title: Text(l10n.audio),
       initiallyExpanded: true,
       children: [
-        // Source Selector
+        // ==========================================
+        // OLD TESTAMENT
+        // ==========================================
         Padding(
           padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
           child: Column(
@@ -77,10 +80,10 @@ class _DownloadManagerPageState extends State<DownloadManagerPage> {
                     label: Text(l10n.sourceHEB),
                   ),
                 ],
-                selected: {_selectedSource},
+                selected: {_selectedOtSource},
                 onSelectionChanged: (Set<AudioSourceType> newSelection) {
                   setState(() {
-                    _selectedSource = newSelection.first;
+                    _selectedOtSource = newSelection.first;
                   });
                 },
               ),
@@ -88,30 +91,89 @@ class _DownloadManagerPageState extends State<DownloadManagerPage> {
           ),
         ),
 
-        // Book List
-        ...List.generate(66, (index) {
+        // Old Testament Books (1-39)
+        ...List.generate(39, (index) {
           final bookId = index + 1;
 
-          // Filter out books that have NO audio at all
-          bool hasAnyAudio =
-              !AudioLogic.isNewTestament(bookId) ||
-              AudioLogic.isAudioAvailable(bookId, 1);
-
-          // Specific check for RDB missing books (Hide them if RDB is selected)
-          if (_selectedSource == AudioSourceType.rdb &&
-              !AudioLogic.isRdbAvailableForBook(bookId) &&
-              !AudioLogic.isNewTestament(bookId)) {
+          // Hide specific OT books if RDB is selected and missing
+          if (_selectedOtSource == AudioSourceType.rdb &&
+              !AudioLogic.isRdbAvailableForBook(bookId)) {
             return const SizedBox.shrink();
           }
 
-          if (!hasAnyAudio) return const SizedBox.shrink();
-
           return _BookDownloadTile(
-            key: PageStorageKey("book_${bookId}_$_selectedSource"),
+            key: PageStorageKey("book_${bookId}_$_selectedOtSource"),
             bookId: bookId,
-            sourceType: _selectedSource,
+            sourceType: _selectedOtSource,
           );
         }),
+
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16.0),
+          child: Divider(height: 32),
+        ),
+
+        // ==========================================
+        // NEW TESTAMENT
+        // ==========================================
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                l10n.newTestament, // <-- Assuming you have this in your .arb files!
+                style: Theme.of(context).textTheme.labelMedium,
+              ),
+              const SizedBox(height: 8),
+              SegmentedButton<AudioSourceType>(
+                style: SegmentedButton.styleFrom(
+                  selectedBackgroundColor: Theme.of(
+                    context,
+                  ).colorScheme.primary,
+                  selectedForegroundColor: Theme.of(
+                    context,
+                  ).colorScheme.onPrimary,
+                ),
+                segments: [
+                  ButtonSegment(
+                    value: AudioSourceType.tk,
+                    label: Text(l10n.sourceTK),
+                  ),
+                  ButtonSegment(
+                    value: AudioSourceType.jh,
+                    label: Text(l10n.sourceJH),
+                  ),
+                ],
+                selected: {_selectedNtSource},
+                onSelectionChanged: (Set<AudioSourceType> newSelection) {
+                  setState(() {
+                    _selectedNtSource = newSelection.first;
+                  });
+                },
+              ),
+            ],
+          ),
+        ),
+
+        // New Testament Books (40-66)
+        ...List.generate(27, (index) {
+          final bookId = index + 40;
+
+          // Hide specific NT books if JH is selected and missing
+          if (_selectedNtSource == AudioSourceType.jh &&
+              !AudioLogic.isJhAvailableForBook(bookId)) {
+            return const SizedBox.shrink();
+          }
+
+          return _BookDownloadTile(
+            key: PageStorageKey("book_${bookId}_$_selectedNtSource"),
+            bookId: bookId,
+            sourceType: _selectedNtSource,
+          );
+        }),
+
+        const SizedBox(height: 16),
       ],
     );
   }
@@ -149,7 +211,6 @@ class _BookDownloadTileState extends State<_BookDownloadTile> {
   @override
   void didUpdateWidget(_BookDownloadTile oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // If the source (RDB/HEB) changed, we must refresh the data!
     if (oldWidget.sourceType != widget.sourceType) {
       _reload();
     }
@@ -192,7 +253,6 @@ class _BookDownloadTileState extends State<_BookDownloadTile> {
         final allDownloaded = missing.isEmpty && !isLoading;
 
         return ExpansionTile(
-          // Indentation for Book Name (Level 1)
           tilePadding: const EdgeInsets.only(left: 32, right: 16),
           title: Text(bookNameForId(context, widget.bookId)),
           subtitle: isLoading
@@ -222,7 +282,6 @@ class _BookDownloadTileState extends State<_BookDownloadTile> {
                 final isMissing = missing.contains(chapter);
 
                 return ListTile(
-                  // Indentation for Chapter Name (Level 2)
                   contentPadding: const EdgeInsets.only(left: 64, right: 16),
                   title: Text(
                     "${bookNameForId(context, widget.bookId)} $chapter",
@@ -396,7 +455,6 @@ class _BookDownloadTileState extends State<_BookDownloadTile> {
               asset: asset,
               cancelToken: cancelToken,
               onProgress: (fileProgress) {
-                // Calculate overall progress across multiple files
                 final overall = (i / total) + (fileProgress / total);
                 progress.value = overall;
               },

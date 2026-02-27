@@ -302,6 +302,18 @@ abstract class AppLocalizations {
   /// **'Dan Beeri'**
   String get sourceRDB;
 
+  /// Audio recording source setting: Modern Greek pronunciation by Theo Karvounakis (Textus Receptus recording)
+  ///
+  /// In en, this message translates to:
+  /// **'Modern'**
+  String get sourceTK;
+
+  /// Audio recording source setting: Lucian Greek pronunciation by Jonathan Hohstadt (SRGNT recording)
+  ///
+  /// In en, this message translates to:
+  /// **'Lucian'**
+  String get sourceJH;
+
   /// Title of the download audio dialog
   ///
   /// In en, this message translates to:
@@ -355,6 +367,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Old Testament'**
   String get oldTestament;
+
+  /// Label for New Testament audio selection
+  ///
+  /// In en, this message translates to:
+  /// **'New Testament'**
+  String get newTestament;
 
   /// Confirmation dialog content when deleting a book
   ///

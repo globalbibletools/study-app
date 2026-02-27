@@ -119,6 +119,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get sourceRDB => 'Dan Beeri';
 
   @override
+  String get sourceTK => 'Moderne';
+
+  @override
+  String get sourceJH => 'Lucien';
+
+  @override
   String get downloadAudio => 'Télécharger l’audio';
 
   @override
@@ -147,6 +153,9 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get oldTestament => 'Ancien Testament';
+
+  @override
+  String get newTestament => 'Nouveau Testament';
 
   @override
   String deleteAudioConfirmation(String book) {

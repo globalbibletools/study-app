@@ -51,14 +51,12 @@ class BottomAudioPlayer extends StatelessWidget {
           Row(
             children: [
               // Voice Source Button (Person Head)
-              if (!AudioLogic.isNewTestament(currentBookId)) ...[
-                _VoiceMenuButton(
-                  audioManager: audioManager,
-                  onAudioMissing: onAudioMissing,
-                  currentBookId: currentBookId,
-                ),
-                const SizedBox(width: 8),
-              ],
+              _VoiceMenuButton(
+                audioManager: audioManager,
+                onAudioMissing: onAudioMissing,
+                currentBookId: currentBookId,
+              ),
+              const SizedBox(width: 8),
 
               // Progress Bar
               Expanded(
@@ -190,10 +188,17 @@ class _VoiceMenuButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return ValueListenableBuilder<AudioSourceType>(
       valueListenable: audioManager.audioSourceNotifier,
-      builder: (context, currentSource, _) {
+      builder: (context, currentSourcePref, _) {
+        // We calculate the active ID so we know which checkmark to show
+        // even if the user's preference is from the other Testament
+        final activeRecordingId = AudioLogic.getRecordingId(
+          currentBookId,
+          currentSourcePref,
+        );
+        final isNt = AudioLogic.isNewTestament(currentBookId);
+
         return PopupMenuButton<AudioSourceType>(
           icon: const Icon(Icons.person_outline),
-          // offset: const Offset(0, 40),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -201,32 +206,47 @@ class _VoiceMenuButton extends StatelessWidget {
             try {
               await audioManager.setAudioSource(source);
             } on AudioMissingException {
-              // If the new voice file is missing, trigger the download dialog
               onAudioMissing?.call();
             }
           },
           itemBuilder: (BuildContext context) {
             final l10n = AppLocalizations.of(context)!;
-            final rdbAvailable = AudioLogic.isRdbAvailableForBook(
-              currentBookId,
-            );
-            return [
-              // Shmueloff (Always available for OT)
-              CheckedPopupMenuItem<AudioSourceType>(
-                value: AudioSourceType.heb,
-                checked: currentSource == AudioSourceType.heb || !rdbAvailable,
-                // Note: If RDB isn't available, HEB is effectively checked/active
-                child: Text(l10n.sourceHEB),
-              ),
 
-              // Dan Beeri (Only if available)
-              if (rdbAvailable)
+            if (isNt) {
+              final jhAvailable = AudioLogic.isJhAvailableForBook(
+                currentBookId,
+              );
+              return [
                 CheckedPopupMenuItem<AudioSourceType>(
-                  value: AudioSourceType.rdb,
-                  checked: currentSource == AudioSourceType.rdb,
-                  child: Text(l10n.sourceRDB),
+                  value: AudioSourceType.tk,
+                  checked: activeRecordingId == 'TK',
+                  child: Text(l10n.sourceTK),
                 ),
-            ];
+                if (jhAvailable)
+                  CheckedPopupMenuItem<AudioSourceType>(
+                    value: AudioSourceType.jh,
+                    checked: activeRecordingId == 'JH',
+                    child: Text(l10n.sourceJH),
+                  ),
+              ];
+            } else {
+              final rdbAvailable = AudioLogic.isRdbAvailableForBook(
+                currentBookId,
+              );
+              return [
+                CheckedPopupMenuItem<AudioSourceType>(
+                  value: AudioSourceType.heb,
+                  checked: activeRecordingId == 'HEB',
+                  child: Text(l10n.sourceHEB),
+                ),
+                if (rdbAvailable)
+                  CheckedPopupMenuItem<AudioSourceType>(
+                    value: AudioSourceType.rdb,
+                    checked: activeRecordingId == 'RDB',
+                    child: Text(l10n.sourceRDB),
+                  ),
+              ];
+            }
           },
         );
       },
