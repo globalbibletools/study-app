@@ -12,7 +12,7 @@ Future<void> main(List<String> arguments) async {
   // await _createLexiconDatabases();
 
   // await _createGlossDatabase('are');
-  await _createGlossDatabase('eng');
+  // await _createGlossDatabase('eng');
   // await _createGlossDatabase('fra');
   // await _createGlossDatabase('spa');
   // await _createGlossDatabase('por');
@@ -23,7 +23,7 @@ Future<void> main(List<String> arguments) async {
   // await _createBibleDatabase('arb_vdv');
   // await _createBibleDatabase('eng_bsb');
 
-  // await _createAudioDatabase();
+  await _createAudioDatabase();
 }
 
 Future<void> _createLexiconDatabases() async {
@@ -113,14 +113,10 @@ Future<void> _createBibleDatabase(String name) async {
 }
 
 Future<void> _createAudioDatabase() async {
-  final dbHelper = AudioDatabase();
-
-  print('Creating new Audio Timings database');
-  dbHelper.init();
-
-  print('Populate Audio Timings table');
-  await dbHelper.populateTable();
-
-  print('Dispose Audio database resources');
-  dbHelper.dispose();
+  final db = AudioDatabase();
+  db.init();
+  await db.populateTable('lib/src/audio/timing_data/timings_ot.csv');
+  await db.populateTable('lib/src/audio/timing_data/timings_tk.csv');
+  await db.populateTable('lib/src/audio/timing_data/timings_jh.csv');
+  db.dispose();
 }

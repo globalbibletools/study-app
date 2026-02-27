@@ -9,7 +9,7 @@ The [source code](https://github.com/globalbibletools/study-app) is in the publi
 - **Lexicon**: [UBS Dictionary of Biblical Hebrew/Greek](https://github.com/ubsicap/ubs-open-license/tree/main/dictionaries)
 - **Font**: [SBL Hebrew/Greek font](https://www.sbl-site.org/resources/fonts/)
 - **Hebrew audio**: Abraham Shmueloff, Dan Beeri
-- **Greek audio**: [TODO]
+- **Greek audio**: Jonathan Hohstadt (SRGNT - Lucian), Theo Karvounakis (Textus Receptus - Modern)
 
 ### Bibles
 
