@@ -68,10 +68,6 @@
   "@downloadResourcesMessage": {
     "description": "Content for the dialog asking to download Bible and Gloss data"
   },
-  "useEnglish": "Use English",
-  "@useEnglish": {
-    "description": "Label for the dialog button to use English glosses"
-  },
   "download": "Download",
   "@download": {
     "description": "Label for the download button"

@@ -61,9 +61,6 @@ class AppLocalizationsFr extends AppLocalizations {
       'Pour utiliser cette langue, nous devons télécharger des ressources supplémentaires.';
 
   @override
-  String get useEnglish => 'Utiliser l’anglais';
-
-  @override
   String get download => 'Télécharger';
 
   @override

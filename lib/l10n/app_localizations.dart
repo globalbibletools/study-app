@@ -206,12 +206,6 @@ abstract class AppLocalizations {
   /// **'To use this language, we need to download additional resources.'**
   String get downloadResourcesMessage;
 
-  /// Label for the dialog button to use English glosses
-  ///
-  /// In en, this message translates to:
-  /// **'Use English'**
-  String get useEnglish;
-
   /// Label for the download button
   ///
   /// In en, this message translates to:

@@ -61,9 +61,6 @@ class AppLocalizationsAr extends AppLocalizations {
       'لاستخدام هذه اللغة، نحتاج إلى تنزيل موارد إضافية.';
 
   @override
-  String get useEnglish => 'استخدام الإنجليزية';
-
-  @override
   String get download => 'تنزيل';
 
   @override

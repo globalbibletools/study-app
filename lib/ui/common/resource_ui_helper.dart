@@ -32,7 +32,7 @@ class ResourceUIHelper {
             content: Text(l10n.downloadResourcesMessage),
             actions: [
               TextButton(
-                child: Text(l10n.useEnglish),
+                child: Text(l10n.cancel),
                 onPressed: () => Navigator.pop(context, false),
               ),
               FilledButton(

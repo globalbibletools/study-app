@@ -4,15 +4,12 @@ import 'package:flutter/services.dart';
 import 'package:studyapp/common/book_name.dart';
 import 'package:studyapp/common/word.dart';
 import 'package:studyapp/l10n/app_localizations.dart';
-import 'package:studyapp/services/download/cancel_token.dart';
-import 'package:studyapp/ui/common/download_progress_dialog.dart';
+import 'package:studyapp/ui/common/resource_ui_helper.dart';
 import 'package:studyapp/ui/home/panel_area/common/infinite_scroll_view.dart';
 import 'package:studyapp/ui/home/common/scroll_sync_controller.dart';
 import 'package:studyapp/ui/home/panel_area/hebrew_greek_panel/chapter_manager.dart';
 import 'package:studyapp/ui/home/panel_area/hebrew_greek_panel/text.dart';
 import 'package:studyapp/ui/home/word_details_dialog/word_details_dialog.dart';
-
-enum DownloadDialogChoice { useEnglish, download }
 
 class VerseNumberTapNotification extends Notification {
   final int bookId;
@@ -185,7 +182,7 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter>
                       return manager.getPopupTextForId(
                         locale,
                         wordId,
-                        (locale) => _showDownloadDialog(locale),
+                        (locale) => _handleMissingResources(locale),
                       );
                     },
                     onWordLongPress: _showWordDetails,
@@ -203,70 +200,18 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter>
     );
   }
 
-  Future<void> _showDownloadDialog(Locale locale) async {
-    final l10n = AppLocalizations.of(context)!;
+  Future<void> _handleMissingResources(Locale locale) async {
+    // Use the shared helper logic
+    final success = await ResourceUIHelper.ensureResources(context, locale);
 
-    // 1. Show Choice Dialog
-    final choice =
-        await showDialog<DownloadDialogChoice>(
-          context: context,
-          barrierDismissible: false,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              content: Text(l10n.downloadResourcesMessage),
-              actions: <Widget>[
-                TextButton(
-                  child: Text(l10n.useEnglish),
-                  onPressed: () => Navigator.of(
-                    context,
-                  ).pop(DownloadDialogChoice.useEnglish),
-                ),
-                FilledButton(
-                  child: Text(l10n.download),
-                  onPressed: () =>
-                      Navigator.of(context).pop(DownloadDialogChoice.download),
-                ),
-              ],
-            );
-          },
-        ) ??
-        DownloadDialogChoice.useEnglish;
-
-    if (!mounted) return;
-
-    if (choice == DownloadDialogChoice.useEnglish) {
-      await manager.setLanguageToEnglish(locale);
-    } else {
-      // 2. Show Progress Dialog
-      try {
-        await DownloadProgressDialog.show(
-          context: context,
-          task: (progressNotifier, cancelToken) async {
-            // Call the updated manager method
-            await manager.downloadResources(
-              locale,
-              progressNotifier: progressNotifier,
-              cancelToken: cancelToken,
-            );
-          },
-        );
-
-        if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(l10n.downloadComplete)));
-        }
-      } catch (e) {
-        if (mounted) {
-          if (e is! DownloadCanceledException) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text("${l10n.downloadFailed}: $e")),
-            );
-          }
-          // On cancel/fail, maybe fallback to English or just do nothing
-          // await manager.setLanguageToEnglish(locale);
-        }
-      }
+    if (!success && mounted) {
+      // If they clicked "Cancel" or download failed,
+      // tell the manager to stop trying to load localized glosses
+      // for this session so they aren't prompted on every single tap.
+      manager.setLanguageToEnglish(locale);
+    } else if (success && mounted) {
+      // Refresh the UI so the words show the newly downloaded glosses
+      setState(() {});
     }
   }
 
