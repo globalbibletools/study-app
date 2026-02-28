@@ -9,7 +9,7 @@ import 'audio_timing.dart';
 class AudioDatabase {
   static const _databaseName = 'audio_timings.db';
   // Increment this if you regenerate the DB with new data
-  static const _databaseVersion = 3;
+  static const _databaseVersion = 4;
 
   // Table and Column constants match the builder schema
   static const _tableName = 'timings';
