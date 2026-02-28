@@ -17,6 +17,7 @@
 - Remove SRGNT audio for books that need rerecording. (Only Matthew is finalized.)
 - Add audio timings for SRGNT audio.
 - Allow users to choose GNT voices where available (Modern vs Lucian).
+- Version Bibles and glosses on the server under a `v1` folder. 
 
 ## 0.16.0 - February 9, 2026
 

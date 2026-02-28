@@ -26,7 +26,7 @@ class RemoteAssetService {
     final filename = AppLanguages.getConfig(langCode).bibleFilename;
 
     return RemoteAsset(
-      remoteUrl: '$_baseHost/bibles/$filename.zip',
+      remoteUrl: '$_baseHost/bibles/v1/$filename.zip',
       localRelativePath: filename,
       fileType: FileType.bible,
       isZip: true,
@@ -40,7 +40,7 @@ class RemoteAssetService {
     final filename = AppLanguages.getConfig(langCode).glossFilename;
 
     return RemoteAsset(
-      remoteUrl: '$_baseHost/glosses/$filename.zip',
+      remoteUrl: '$_baseHost/glosses/v1/$filename.zip',
       localRelativePath: filename,
       fileType: FileType.gloss,
       isZip: true,
@@ -123,7 +123,7 @@ class RemoteAssetService {
   RemoteAsset? getAudioChapterAsset({
     required int bookId,
     required int chapter,
-    String recordingId = 'HEB',
+    required String recordingId,
   }) {
     if (bookId < 1 || bookId > _bookKeys.length) return null;
 
