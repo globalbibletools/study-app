@@ -45,6 +45,7 @@ class WordDetailsDialogManager extends ChangeNotifier {
 
   Future<void> saveFontScale(double scale) async {
     await _settings.setWordDetailsFontScale(scale);
+    notifyListeners();
   }
 
   String expandGrammar(String grammar) {
