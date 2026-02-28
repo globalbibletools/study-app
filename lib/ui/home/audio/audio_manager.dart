@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:studyapp/common/bible_navigation.dart';
-import 'package:studyapp/services/assets/remote_asset_service.dart';
+import 'package:studyapp/services/resources/remote_asset_service.dart';
 import 'package:studyapp/services/audio/audio_database.dart';
 import 'package:studyapp/services/audio/audio_player_handler.dart';
 import 'package:studyapp/services/audio/audio_timing.dart';

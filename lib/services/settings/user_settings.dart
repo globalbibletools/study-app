@@ -33,6 +33,8 @@ class UserSettings {
     await _prefs.setString(_themeModeKey, value);
   }
 
+  bool get hasSetLocale => _prefs.containsKey(_localeKey);
+
   (int, int) get currentBookChapter {
     final bookId = _prefs.getInt(_currentBookIdKey) ?? 1;
     final chapter = _prefs.getInt(_currentChapterKey) ?? 1;

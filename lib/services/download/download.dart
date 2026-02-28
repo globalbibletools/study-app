@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:archive/archive_io.dart';
 import 'package:flutter/foundation.dart';
-import 'package:studyapp/services/assets/remote_asset_service.dart';
+import 'package:studyapp/services/resources/remote_asset_service.dart';
 import 'package:studyapp/services/download/cancel_token.dart'; // Import this
 import 'package:studyapp/services/files/file_service.dart';
 import 'package:studyapp/services/service_locator.dart';

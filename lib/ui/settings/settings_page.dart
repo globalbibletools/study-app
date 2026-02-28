@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:studyapp/l10n/app_languages.dart';
 import 'package:studyapp/l10n/app_localizations.dart';
-import 'package:studyapp/services/download/cancel_token.dart';
-import 'package:studyapp/ui/common/download_progress_dialog.dart';
+import 'package:studyapp/ui/common/resource_ui_helper.dart';
 
 import 'settings_manager.dart';
 
@@ -34,75 +33,6 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  Future<void> _showDownloadDialog(
-    Locale previousLocale,
-    Locale newLocale,
-  ) async {
-    final l10n = await AppLocalizations.delegate.load(newLocale);
-    if (!mounted) return;
-
-    final shouldDownload =
-        await showDialog<bool>(
-          context: context,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              content: Text(l10n.downloadResourcesMessage),
-              actions: <Widget>[
-                TextButton(
-                  child: Text(l10n.cancel),
-                  onPressed: () => Navigator.of(context).pop(false),
-                ),
-                FilledButton(
-                  child: Text(l10n.download),
-                  onPressed: () => Navigator.of(context).pop(true),
-                ),
-              ],
-            );
-          },
-        ) ??
-        false;
-
-    if (!mounted) return;
-
-    if (!shouldDownload) {
-      await manager.setLocale(previousLocale);
-      return;
-    }
-
-    try {
-      await DownloadProgressDialog.show(
-        context: context,
-        task: (progressNotifier, cancelToken) async {
-          await manager.downloadResources(
-            newLocale,
-            progressNotifier: progressNotifier,
-            cancelToken: cancelToken,
-          );
-        },
-      );
-
-      // If we get here, download finished successfully
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(l10n.downloadComplete)));
-      }
-    } catch (e) {
-      // If cancelled or failed
-      if (mounted) {
-        // Revert language selection
-        await manager.setLocale(previousLocale);
-
-        if (!mounted) return;
-        if (e is! DownloadCanceledException) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text("${l10n.downloadFailed}: $e")));
-        }
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -122,27 +52,25 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
                 onTap: () async {
                   final previousLocale = manager.currentLocale;
-
-                  // 1. Pick Language
                   final selectedLocale = await _chooseLocale();
-                  if (selectedLocale == null) return;
-                  if (selectedLocale == previousLocale) return;
+                  if (selectedLocale == null ||
+                      selectedLocale == previousLocale) {
+                    return;
+                  }
 
-                  // 2. Set Locale immediately (so UI updates)
+                  // Immediately set locale so UI language changes
                   await manager.setLocale(selectedLocale);
 
                   if (selectedLocale.languageCode == 'en') return;
-
-                  // 3. Check for resources
-                  final isDownloaded = await manager.areResourcesDownloaded(
+                  if (!context.mounted) return;
+                  final success = await ResourceUIHelper.ensureResources(
+                    context,
                     selectedLocale,
                   );
 
-                  if (isDownloaded) return;
-
-                  // 4. Prompt Download
-                  if (context.mounted) {
-                    await _showDownloadDialog(previousLocale, selectedLocale);
+                  if (!success && context.mounted) {
+                    // Revert if they cancelled or it failed
+                    await manager.setLocale(previousLocale);
                   }
                 },
               ),
@@ -287,13 +215,7 @@ class _SettingsPageState extends State<SettingsPage> {
               return Column(
                 children: [
                   const Spacer(),
-                  Text(
-                    previewText,
-                    // Use the value from the manager (via parent rebuild)
-                    // or the local currentValue if you want instant preview without parent rebuilds.
-                    // Since ListenableBuilder wraps the ListView, manager updates reflect immediately.
-                    style: TextStyle(fontSize: currentValue),
-                  ),
+                  Text(previewText, style: TextStyle(fontSize: currentValue)),
                   const Spacer(),
                   Slider(
                     value: currentValue,
@@ -302,9 +224,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     divisions: manager.fontSizeDivisions,
                     label: currentValue.toStringAsFixed(1),
                     onChanged: (value) {
-                      // Update the manager (which rebuilds the Page)
                       onChanged(value);
-                      // Update local dialog state to move the slider
                       setState(() {
                         currentValue = value;
                       });

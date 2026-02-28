@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:studyapp/common/bible_navigation.dart';
 import 'package:studyapp/common/book_name.dart';
 import 'package:studyapp/l10n/app_localizations.dart';
-import 'package:studyapp/services/assets/remote_asset_service.dart';
+import 'package:studyapp/services/resources/remote_asset_service.dart';
 import 'package:studyapp/services/download/cancel_token.dart';
 import 'package:studyapp/services/download/download.dart';
 import 'package:studyapp/services/files/file_service.dart';

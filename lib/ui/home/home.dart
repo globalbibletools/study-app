@@ -20,6 +20,14 @@ class _HomeScreenState extends State<HomeScreen> {
   final manager = HomeManager();
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      manager.checkOnboarding(context);
+    });
+  }
+
+  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     manager.init();

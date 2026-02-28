@@ -3,7 +3,7 @@ import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
 import 'package:studyapp/l10n/app_localizations.dart';
-import 'package:studyapp/services/assets/remote_asset_service.dart';
+import 'package:studyapp/services/resources/remote_asset_service.dart';
 import 'package:studyapp/services/download/cancel_token.dart';
 import 'package:studyapp/services/download/download.dart';
 import 'package:studyapp/services/gloss/english_database.dart';

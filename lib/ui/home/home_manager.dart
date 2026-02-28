@@ -2,16 +2,19 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:scripture/scripture.dart';
+import 'package:studyapp/app_state.dart';
 import 'package:studyapp/common/reference.dart';
+import 'package:studyapp/l10n/app_languages.dart';
 import 'package:studyapp/l10n/app_localizations.dart';
 import 'package:studyapp/l10n/book_names.dart';
-import 'package:studyapp/services/assets/remote_asset_service.dart';
+import 'package:studyapp/services/resources/remote_asset_service.dart';
 import 'package:studyapp/services/bible/bible_service.dart';
 import 'package:studyapp/services/download/cancel_token.dart';
 import 'package:studyapp/services/download/download.dart';
 import 'package:studyapp/services/service_locator.dart';
 import 'package:studyapp/services/settings/user_settings.dart';
 import 'package:studyapp/ui/common/download_progress_dialog.dart';
+import 'package:studyapp/ui/common/resource_ui_helper.dart';
 import 'package:studyapp/ui/home/appbar/reference_chooser/reference_chooser.dart';
 import 'package:studyapp/ui/home/audio/audio_logic.dart';
 import 'package:studyapp/ui/home/audio/audio_manager.dart';
@@ -83,6 +86,30 @@ class HomeManager {
     // Updates the AppBar, but NOT panelAnchorNotifier
     updateReference(newBook, newChapter, newVerse);
     saveBookAndChapter(newBook, newChapter);
+  }
+
+  Future<void> checkOnboarding(BuildContext context) async {
+    final settings = getIt<UserSettings>();
+    if (settings.hasSetLocale) return;
+
+    final systemLocale = View.of(context).platformDispatcher.locale;
+    final isSupported = AppLanguages.supported.any(
+      (l) => l.code == systemLocale.languageCode,
+    );
+
+    if (isSupported && systemLocale.languageCode != 'en') {
+      final success = await ResourceUIHelper.ensureResources(
+        context,
+        systemLocale,
+      );
+
+      // Set locale based on outcome
+      await settings.setLocale(success ? systemLocale.languageCode : 'en');
+    } else {
+      await settings.setLocale('en');
+    }
+
+    getIt<AppState>().init();
   }
 
   void notifySettingsChanged() {

@@ -1,6 +1,6 @@
 import 'package:get_it/get_it.dart';
 import 'package:studyapp/app_state.dart';
-import 'package:studyapp/services/assets/remote_asset_service.dart';
+import 'package:studyapp/services/resources/remote_asset_service.dart';
 import 'package:studyapp/services/audio/audio_database.dart';
 import 'package:studyapp/services/bible/bible_service.dart';
 import 'package:studyapp/services/download/download.dart';
@@ -8,6 +8,7 @@ import 'package:studyapp/services/files/file_service.dart';
 import 'package:studyapp/services/gloss/gloss_service.dart';
 import 'package:studyapp/services/hebrew_greek/database.dart';
 import 'package:studyapp/services/lexicon/database.dart';
+import 'package:studyapp/services/resources/resource_service.dart';
 
 import 'settings/user_settings.dart';
 
@@ -24,4 +25,5 @@ void setupServiceLocator() {
   getIt.registerLazySingleton<DownloadService>(() => DownloadService());
   getIt.registerSingleton<BibleService>(BibleService());
   getIt.registerLazySingleton<AudioDatabase>(() => AudioDatabase());
+  getIt.registerLazySingleton<ResourceService>(() => ResourceService());
 }

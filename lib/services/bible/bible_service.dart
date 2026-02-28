@@ -3,7 +3,7 @@ import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
 import 'package:scripture/scripture.dart';
-import 'package:studyapp/services/assets/remote_asset_service.dart';
+import 'package:studyapp/services/resources/remote_asset_service.dart';
 import 'package:studyapp/services/bible/english_bible_database.dart';
 import 'package:studyapp/services/bible/localized_bible_database.dart';
 import 'package:studyapp/services/download/cancel_token.dart';
