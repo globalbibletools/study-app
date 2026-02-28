@@ -43,129 +43,137 @@ class BottomAudioPlayer extends StatelessWidget {
         ],
         borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // --- ROW 1: Voice Settings | Progress | Close ---
-          Row(
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              // Voice Source Button (Person Head)
-              _VoiceMenuButton(
-                audioManager: audioManager,
-                onAudioMissing: onAudioMissing,
-                currentBookId: currentBookId,
-              ),
-              const SizedBox(width: 8),
-
-              // Progress Bar
-              Expanded(
-                child: StreamBuilder<PositionData>(
-                  stream: audioManager.audioHandler.positionDataStream,
-                  builder: (context, snapshot) {
-                    final positionData = snapshot.data;
-                    return ProgressBar(
-                      progress: positionData?.position ?? Duration.zero,
-                      buffered: positionData?.bufferedPosition ?? Duration.zero,
-                      total: positionData?.duration ?? Duration.zero,
-                      onSeek: audioManager.seek,
-                      barHeight: 4.0,
-                      thumbRadius: 6.0,
-                      thumbGlowRadius: 12.0,
-                      baseBarColor: colorScheme.outlineVariant,
-                      progressBarColor: colorScheme.primary,
-                      bufferedBarColor: colorScheme.primary.withValues(
-                        alpha: 0.3,
-                      ),
-                      thumbColor: colorScheme.primary,
-                      timeLabelLocation: TimeLabelLocation.sides,
-                      timeLabelTextStyle: theme.textTheme.labelSmall,
-                      timeLabelPadding: 8.0,
-                    );
-                  },
-                ),
-              ),
-
-              const SizedBox(width: 8),
-
-              // Close Button
-              IconButton(
-                icon: const Icon(Icons.close),
-                visualDensity: VisualDensity.compact,
-                onPressed: audioManager.stopAndClose,
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 4),
-
-          // --- ROW 2: Repeat | Controls | Speed ---
-          // Using Expanded on left and right allows the center controls
-          // to stay perfectly centered regardless of button width changes.
-          Row(
-            children: [
-              // Far Left: Repeat Mode
-              Expanded(
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: hasTiming
-                      ? _RepeatMenuButton(audioManager: audioManager)
-                      : const SizedBox(),
-                ),
-              ),
-
-              // Center: Playback Controls
+              // --- ROW 1: Voice Settings | Progress | Close ---
               Row(
-                mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Previous Verse
-                  IconButton(
-                    icon: const Icon(Icons.chevron_left_rounded),
-                    iconSize: 28,
-                    color: hasTiming
-                        ? colorScheme.primary
-                        : colorScheme.onSurface.withValues(alpha: 0.3),
-                    onPressed: hasTiming
-                        ? audioManager.skipToPreviousVerse
-                        : null,
-                  ),
-
-                  const SizedBox(width: 12),
-
-                  // Play/Pause
-                  _PlayButton(
+                  // Voice Source Button (Person Head)
+                  _VoiceMenuButton(
                     audioManager: audioManager,
-                    bookId: currentBookId,
-                    chapter: currentChapter,
-                    verse: currentVerse,
-                    bookName: currentBookName,
                     onAudioMissing: onAudioMissing,
+                    currentBookId: currentBookId,
+                  ),
+                  const SizedBox(width: 8),
+
+                  // Progress Bar
+                  Expanded(
+                    child: StreamBuilder<PositionData>(
+                      stream: audioManager.audioHandler.positionDataStream,
+                      builder: (context, snapshot) {
+                        final positionData = snapshot.data;
+                        return ProgressBar(
+                          progress: positionData?.position ?? Duration.zero,
+                          buffered:
+                              positionData?.bufferedPosition ?? Duration.zero,
+                          total: positionData?.duration ?? Duration.zero,
+                          onSeek: audioManager.seek,
+                          barHeight: 4.0,
+                          thumbRadius: 6.0,
+                          thumbGlowRadius: 12.0,
+                          baseBarColor: colorScheme.outlineVariant,
+                          progressBarColor: colorScheme.primary,
+                          bufferedBarColor: colorScheme.primary.withValues(
+                            alpha: 0.3,
+                          ),
+                          thumbColor: colorScheme.primary,
+                          timeLabelLocation: TimeLabelLocation.sides,
+                          timeLabelTextStyle: theme.textTheme.labelSmall,
+                          timeLabelPadding: 8.0,
+                        );
+                      },
+                    ),
                   ),
 
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 8),
 
-                  // Next Verse
+                  // Close Button
                   IconButton(
-                    icon: const Icon(Icons.chevron_right_rounded),
-                    iconSize: 28,
-                    color: hasTiming
-                        ? colorScheme.primary
-                        : colorScheme.onSurface.withValues(alpha: 0.3),
-                    onPressed: hasTiming ? audioManager.skipToNextVerse : null,
+                    icon: const Icon(Icons.close),
+                    visualDensity: VisualDensity.compact,
+                    onPressed: audioManager.stopAndClose,
                   ),
                 ],
               ),
 
-              // Far Right: Playback Speed
-              Expanded(
-                child: Align(
-                  alignment: Alignment.centerRight,
-                  child: _SpeedMenuButton(audioManager: audioManager),
-                ),
+              const SizedBox(height: 4),
+
+              // --- ROW 2: Repeat | Controls | Speed ---
+              // Using Expanded on left and right allows the center controls
+              // to stay perfectly centered regardless of button width changes.
+              Row(
+                children: [
+                  // Far Left: Repeat Mode
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: hasTiming
+                          ? _RepeatMenuButton(audioManager: audioManager)
+                          : const SizedBox(),
+                    ),
+                  ),
+
+                  // Center: Playback Controls
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Previous Verse
+                      IconButton(
+                        icon: const Icon(Icons.chevron_left_rounded),
+                        iconSize: 28,
+                        color: hasTiming
+                            ? colorScheme.primary
+                            : colorScheme.onSurface.withValues(alpha: 0.3),
+                        onPressed: hasTiming
+                            ? audioManager.skipToPreviousVerse
+                            : null,
+                      ),
+
+                      const SizedBox(width: 12),
+
+                      // Play/Pause
+                      _PlayButton(
+                        audioManager: audioManager,
+                        bookId: currentBookId,
+                        chapter: currentChapter,
+                        verse: currentVerse,
+                        bookName: currentBookName,
+                        onAudioMissing: onAudioMissing,
+                      ),
+
+                      const SizedBox(width: 12),
+
+                      // Next Verse
+                      IconButton(
+                        icon: const Icon(Icons.chevron_right_rounded),
+                        iconSize: 28,
+                        color: hasTiming
+                            ? colorScheme.primary
+                            : colorScheme.onSurface.withValues(alpha: 0.3),
+                        onPressed: hasTiming
+                            ? audioManager.skipToNextVerse
+                            : null,
+                      ),
+                    ],
+                  ),
+
+                  // Far Right: Playback Speed
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: _SpeedMenuButton(audioManager: audioManager),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }
