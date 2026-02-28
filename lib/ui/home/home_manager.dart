@@ -150,7 +150,6 @@ class HomeManager {
 
   Future<void> saveBookAndChapter(int bookId, int chapter) async {
     if (_lastSavedBook == bookId && _lastSavedChapter == chapter) return;
-    print('saving book $bookId and chapter $chapter');
     _lastSavedBook = bookId;
     _lastSavedChapter = chapter;
     await _settings.setCurrentBookChapter(bookId, chapter);

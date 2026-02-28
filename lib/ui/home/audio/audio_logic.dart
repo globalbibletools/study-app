@@ -47,8 +47,10 @@ class AudioLogic {
     // 1. New Testament Logic
     if (isNewTestament(bookId)) {
       if (userPreference == AudioSourceType.tk) return 'TK';
-      if (userPreference == AudioSourceType.jh && isJhAvailableForBook(bookId))
+      if (userPreference == AudioSourceType.jh &&
+          isJhAvailableForBook(bookId)) {
         return 'JH';
+      }
 
       // Default for NT: JH if Matthew, otherwise TK
       return isJhAvailableForBook(bookId) ? 'JH' : 'TK';

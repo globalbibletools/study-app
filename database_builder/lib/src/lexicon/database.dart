@@ -72,7 +72,7 @@ class LexiconDatabase {
       stmt.execute([grammarText]);
       grammarMap[grammarText] = _database.lastInsertRowId;
     }
-    stmt.dispose();
+    stmt.close();
     return grammarMap;
   }
 
@@ -102,7 +102,7 @@ class LexiconDatabase {
       }
     }
 
-    stmt.dispose();
+    stmt.close();
   }
 
   void _populateMeaningTable(
@@ -162,7 +162,7 @@ class LexiconDatabase {
       print('lemmaData: $debugLemma');
       _database.execute('ROLLBACK');
     } finally {
-      stmt.dispose();
+      stmt.close();
     }
   }
 
@@ -179,7 +179,7 @@ class LexiconDatabase {
   }
 
   void dispose() {
-    _database.dispose();
+    _database.close();
   }
 }
 

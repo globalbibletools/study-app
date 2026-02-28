@@ -429,6 +429,7 @@ class _BookDownloadTileState extends State<_BookDownloadTile> {
     if (confirm != true) return;
 
     try {
+      if (!mounted) throw Exception('Context not mounted');
       await DownloadProgressDialog.show(
         context: context,
         task: (progress, cancelToken) async {

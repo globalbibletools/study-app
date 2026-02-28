@@ -230,11 +230,11 @@ class HebrewGreekDatabase {
   }
 
   void dispose() {
-    _insertVerseWord.dispose();
-    _insertText.dispose();
-    _insertGrammar.dispose();
-    _insertStrongs.dispose();
-    _database.dispose();
+    _insertVerseWord.close();
+    _insertText.close();
+    _insertGrammar.close();
+    _insertStrongs.close();
+    _database.close();
   }
 }
 

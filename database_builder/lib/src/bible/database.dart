@@ -372,8 +372,8 @@ class BibleDatabase {
   }
 
   void dispose() {
-    _insertVerseLine.dispose();
-    _database.dispose();
+    _insertVerseLine.close();
+    _database.close();
   }
 }
 

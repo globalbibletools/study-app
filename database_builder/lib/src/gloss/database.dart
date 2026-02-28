@@ -117,9 +117,9 @@ class GlossDatabase {
   }
 
   void dispose() {
-    _insertVerseGloss.dispose();
-    _insertText.dispose();
-    _database.dispose();
+    _insertVerseGloss.close();
+    _insertText.close();
+    _database.close();
   }
 }
 

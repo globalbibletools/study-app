@@ -48,6 +48,7 @@ class ResourceUIHelper {
 
     // 3. Show Download Dialog
     try {
+      if (!context.mounted) throw Exception('Context not mounted');
       await DownloadProgressDialog.show(
         context: context,
         task: (progress, token) => resourceService.downloadResources(
