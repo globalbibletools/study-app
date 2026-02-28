@@ -12,6 +12,11 @@
 - Increase font size in reference chooser.
 - Fix scroll to new chapter then show Bible panel sync mismatch bug.
 - Continue playing audio for next chapter if it has been downloaded.
+- Add Textus Receptus audio by Theo Karvounakis for whole NT.
+- Add audio timings for Theo Karvounakis audio.
+- Remove SRGNT audio for books that need rerecording. (Only Matthew is finalized.)
+- Add audio timings for SRGNT audio.
+- Allow users to choose GNT voices where available (Modern vs Lucian).
 
 ## 0.16.0 - February 9, 2026
 
