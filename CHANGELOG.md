@@ -1,6 +1,7 @@
 ## 0.17.1
 
 - Fix chapter swipe button not navigating to the next chapter.
+- Fix zooming at the Malachi-Matthew border.
 
 ## 0.17.0 - Feb 28, 2026
 
