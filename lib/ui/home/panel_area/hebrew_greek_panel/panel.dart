@@ -5,9 +5,6 @@ import 'package:studyapp/ui/home/common/zoom_wrapper.dart';
 import 'package:studyapp/ui/home/panel_area/hebrew_greek_panel/chapter.dart';
 import 'package:studyapp/ui/home/panel_area/hebrew_greek_panel/panel_manager.dart';
 
-/// Handles infinite scrolling and zooming for multiple chapters, all contained
-/// within a panel. This panel is meant to be separate but adjacent to a
-/// Bible translation panel that shows English text (or another language).
 class HebrewGreekPanel extends StatefulWidget {
   const HebrewGreekPanel({
     super.key,
@@ -29,11 +26,14 @@ class HebrewGreekPanel extends StatefulWidget {
 class HebrewGreekPanelState extends State<HebrewGreekPanel> {
   final _manager = HebrewGreekPanelManager();
   late int _activeBookId;
+  int _lockedZoomBookId = 1;
+  final GlobalKey<InfiniteScrollViewState> _scrollKey = GlobalKey();
 
   @override
   void initState() {
     super.initState();
     _activeBookId = widget.bookId;
+    _lockedZoomBookId = widget.bookId;
     _manager.currentBookId = _activeBookId;
   }
 
@@ -49,7 +49,6 @@ class HebrewGreekPanelState extends State<HebrewGreekPanel> {
     }
   }
 
-  /// Re-reads font scales from persisted settings into the notifiers.
   void refreshFromSettings() {
     _manager.refreshFromSettings();
   }
@@ -61,12 +60,6 @@ class HebrewGreekPanelState extends State<HebrewGreekPanel> {
   }
 
   void _onVisibleBookChanged(int bookId) {
-    // Update the manager immediately so pinch-to-zoom saves to the right
-    // language, but do NOT call setState. Rebuilding the tree while the user
-    // is scrolling would change ZoomWrapper.initialScale, causing a visual
-    // scale jump and scroll-position disruption at the Hebrew/Greek boundary.
-    // The per-chapter fontSize is already correct because each chapter picks
-    // its own scale in the chapterBuilder closure.
     _activeBookId = bookId;
     _manager.currentBookId = bookId;
   }
@@ -79,14 +72,27 @@ class HebrewGreekPanelState extends State<HebrewGreekPanel> {
         return ValueListenableBuilder<double>(
           valueListenable: _manager.greekScaleNotifier,
           builder: (context, greekScale, child) {
-            final isHebrew = _manager.isHebrew(_activeBookId);
-            final activeScale = isHebrew ? hebrewScale : greekScale;
-
             return ZoomWrapper(
-              initialScale: activeScale,
-              onScaleChanged: (newScale) => _manager.handleZoom(newScale),
+              initialScale: _manager.isHebrew(_activeBookId)
+                  ? hebrewScale
+                  : greekScale,
+              getInitialScale: () => _manager.isHebrew(_lockedZoomBookId)
+                  ? hebrewScale
+                  : greekScale,
+              onZoomStart: (focalPoint) {
+                final touchedBookId = _scrollKey.currentState
+                    ?.getBookIdAtViewportOffset(focalPoint.dy);
+                if (touchedBookId != null) {
+                  _lockedZoomBookId = touchedBookId;
+                } else {
+                  _lockedZoomBookId = _activeBookId;
+                }
+              },
+              onScaleChanged: (newScale) =>
+                  _manager.handleZoomForBook(_lockedZoomBookId, newScale),
               builder: (context, scale) {
                 return InfiniteScrollView(
+                  key: _scrollKey,
                   bookId: widget.bookId,
                   chapter: widget.chapter,
                   syncController: widget.syncController,

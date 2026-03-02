@@ -21,7 +21,12 @@ class HebrewGreekPanelManager {
 
   // Decide which notifier to update based on the book in view
   void handleZoom(double newScale) {
-    if (isHebrew(currentBookId)) {
+    handleZoomForBook(currentBookId, newScale);
+  }
+
+  // Updates the language specific to the targeted book
+  void handleZoomForBook(int bookId, double newScale) {
+    if (isHebrew(bookId)) {
       hebrewScaleNotifier.value = newScale;
       _settings.setHebrewFontScale(newScale);
     } else {

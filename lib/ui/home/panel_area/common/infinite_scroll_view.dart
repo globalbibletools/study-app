@@ -39,10 +39,10 @@ class InfiniteScrollView extends StatefulWidget {
   final ValueChanged<int>? onVisibleBookChanged;
 
   @override
-  State<InfiniteScrollView> createState() => _InfiniteScrollViewState();
+  State<InfiniteScrollView> createState() => InfiniteScrollViewState();
 }
 
-class _InfiniteScrollViewState extends State<InfiniteScrollView> {
+class InfiniteScrollViewState extends State<InfiniteScrollView> {
   late final ScrollController _scrollController;
   final List<ChapterIdentifier> _displayedChapters = [];
   late ChapterIdentifier _centerChapter;
@@ -143,6 +143,41 @@ class _InfiniteScrollViewState extends State<InfiniteScrollView> {
       _displayedChapters.add(_centerChapter);
       _chapterKeys[_centerChapter] = GlobalKey();
     });
+  }
+
+  int? getBookIdAtViewportOffset(double viewportY) {
+    if (!_scrollController.hasClients) return null;
+
+    // Calculate the absolute scroll coordinate of the touch
+    final absoluteOffset = _scrollController.offset + viewportY;
+
+    for (final chapterId in _displayedChapters) {
+      final key = _chapterKeys[chapterId];
+      if (key == null) continue;
+
+      final sliverContext = key.currentContext;
+      if (sliverContext == null) continue;
+
+      final renderSliver = sliverContext.findRenderObject() as RenderSliver?;
+      if (renderSliver == null ||
+          !renderSliver.attached ||
+          renderSliver.geometry == null) {
+        continue;
+      }
+
+      final viewport = RenderAbstractViewport.of(renderSliver);
+      final revealedOffset = viewport
+          .getOffsetToReveal(renderSliver, 0.0)
+          .offset;
+      final chapterHeight = renderSliver.geometry!.scrollExtent;
+
+      // Check if the touch lands inside this chapter's vertical slice
+      if (absoluteOffset >= revealedOffset &&
+          absoluteOffset < revealedOffset + chapterHeight) {
+        return chapterId.bookId;
+      }
+    }
+    return null;
   }
 
   @override
