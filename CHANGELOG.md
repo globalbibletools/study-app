@@ -1,3 +1,7 @@
+## 0.17.1
+
+- Fix chapter swipe button not navigating to the next chapter.
+
 ## 0.17.0 - Feb 28, 2026
 
 - Update `scripture` package to support RTL text for Arabic Bible.

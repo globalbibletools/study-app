@@ -75,6 +75,9 @@ class HomeManager {
 
     syncController.addListener(_onSyncUpdate);
     audioManager.setSyncController(syncController);
+
+    syncController.clearActiveSource();
+    syncController.updatePosition('manager', bookId, chapter, 0.0, verse: 1);
   }
 
   void _onSyncUpdate() {
@@ -275,6 +278,8 @@ class HomeManager {
     final ref = Reference(bookId: bookId, chapter: 1, verse: 1);
     currentReference.value = ref;
     panelAnchorNotifier.value = ref;
+    syncController.clearActiveSource();
+    syncController.updatePosition('manager', bookId, 1, 0.0, verse: 1);
   }
 
   void onChapterSelected(int chapter) {
@@ -282,6 +287,14 @@ class HomeManager {
     final ref = Reference(bookId: currentBookId, chapter: chapter, verse: 1);
     currentReference.value = ref;
     panelAnchorNotifier.value = ref;
+    syncController.clearActiveSource();
+    syncController.updatePosition(
+      'manager',
+      currentBookId,
+      chapter,
+      0.0,
+      verse: 1,
+    );
   }
 
   Future<void> playAudioForCurrentChapter(
