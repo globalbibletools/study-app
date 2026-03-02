@@ -2,6 +2,7 @@
 
 - Fix chapter swipe button not navigating to the next chapter.
 - Fix zooming at the Malachi-Matthew border.
+- Slow auto scroll between verses from 300 to 500 milliseconds.
 
 ## 0.17.0 - Feb 28, 2026
 

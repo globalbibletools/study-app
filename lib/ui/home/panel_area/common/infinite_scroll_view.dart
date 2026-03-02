@@ -499,7 +499,7 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
     if (animate) {
       await _scrollController.animateTo(
         targetPixels,
-        duration: const Duration(milliseconds: 300),
+        duration: const Duration(milliseconds: 500),
         curve: Curves.easeInOut,
       );
     } else {
