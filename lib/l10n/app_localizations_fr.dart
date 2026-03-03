@@ -12,7 +12,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get theme => 'Thème';
 
   @override
-  String get systemDefault => 'Par défaut du système';
+  String get systemDefault => 'Thème du système';
 
   @override
   String get lightTheme => 'Clair';
@@ -24,7 +24,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get about => 'À propos';
 
   @override
-  String get appName => 'Outils Bibliques Globaux';
+  String get appName => 'Outils Bibliques pour le monde';
 
   @override
   String get sourceCode => 'Code source';
@@ -51,7 +51,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get greekTextSize => 'Grec';
 
   @override
-  String get secondPanelTextSize => 'Deuxième panneau';
+  String get secondPanelTextSize => 'Texte biblique en français';
 
   @override
   String get lexiconTextSize => 'Lexique';

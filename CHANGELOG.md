@@ -1,4 +1,8 @@
-## 0.17.1
+## 0.17.2 - March 3, 2026
+
+- Fixes for French localization.
+
+## 0.17.1 - March 2, 2026
 
 - Fix chapter swipe button not navigating to the next chapter.
 - Fix zooming at the Malachi-Matthew border.
