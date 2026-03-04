@@ -45,4 +45,4 @@ We may update this Privacy Policy occasionally. We will notify you of any change
 
 If you have questions about this Privacy Policy, please contact us:
 - **Website:** https://globalbibletools.com
-- **Email:** [Insert Contact Email Address Here]
+- **Email:** andrewdcase@gmail.com
