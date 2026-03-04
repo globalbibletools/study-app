@@ -1,3 +1,7 @@
+## 1.0.0 - March 4, 2026
+
+- Bump version for 1.0 release!
+
 ## 0.17.2 - March 3, 2026
 
 - Fixes for French localization.
@@ -6,7 +10,7 @@
 
 - Fix chapter swipe button not navigating to the next chapter.
 - Fix zooming at the Malachi-Matthew border.
-- Slow auto scroll between verses from 300 to 500 milliseconds.
+- Slow down the auto scroll between verses from 300 to 500 milliseconds.
 
 ## 0.17.0 - Feb 28, 2026
 
