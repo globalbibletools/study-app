@@ -4,9 +4,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class UserSettings {
   late SharedPreferences _prefs;
+  late Map<int, int> progress = {};
 
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
+    await getBooksProgress();
   }
 
   static const _themeModeKey = 'themeMode';
@@ -20,6 +22,7 @@ class UserSettings {
   static const _isHebrewSearchKey = 'isHebrewSearch';
   static const _useSystemKeyboardKey = 'useSystemKeyboard';
   static const _currentBible = 'currentBible';
+  static const _booksProgress = 'booksProgress';
 
   String? get themeMode {
     return _prefs.getString(_themeModeKey);
@@ -44,6 +47,8 @@ class UserSettings {
   Future<void> setCurrentBookChapter(int bookId, int chapter) async {
     await _prefs.setInt(_currentBookIdKey, bookId);
     await _prefs.setInt(_currentChapterKey, chapter);
+    progress[bookId] = chapter;
+    await _prefs.setString(_booksProgress, mapToString(progress));
   }
 
   double get baseFontSize => 20.0;
@@ -116,5 +121,43 @@ class UserSettings {
     } else {
       await _prefs.setString((_currentBible), bibleCode);
     }
+  }
+
+  Future<void> getBooksProgress() async {
+    String? progressString = _prefs.getString(_booksProgress);
+    if (progressString != null) {
+      // map format : bookId1:chapterId1,bookId2:chapterId2
+      progress = parseStringToMap(progressString);
+    }
+  }
+
+  int getCurrentProgressForBook(int bookId) {
+    return progress[bookId] ?? 0;
+  }
+
+  Map<int, int> parseStringToMap(String input) {
+    final map = <int, int>{};
+
+    if (input.isEmpty) return map;
+
+    // Split by comma for each pair
+    final pairs = input.split(',');
+
+    for (var pair in pairs) {
+      final keyValue = pair.split(':');
+      if (keyValue.length == 2) {
+        final key = int.tryParse(keyValue[0].trim());
+        final value = int.tryParse(keyValue[1].trim());
+        if (key != null && value != null) {
+          map[key] = value;
+        }
+      }
+    }
+
+    return map;
+  }
+
+  String mapToString(Map<int, int> map) {
+    return map.entries.map((e) => '${e.key}:${e.value}').join(',');
   }
 }

@@ -8,7 +8,7 @@ import 'package:studyapp/services/hebrew_greek/database.dart';
 import 'package:studyapp/services/lexicon/database.dart';
 import 'package:studyapp/services/service_locator.dart';
 import 'package:studyapp/services/settings/user_settings.dart';
-import 'package:studyapp/ui/home/home.dart';
+import 'package:studyapp/ui/home/book_shelf.dart';
 
 import 'app_state.dart';
 import 'theme.dart';
@@ -60,7 +60,7 @@ class _GbtStudyAppState extends State<GbtStudyApp> {
           theme: lightTheme,
           darkTheme: darkTheme,
           themeMode: appState.themeMode,
-          home: const HomeScreen(),
+          home: const BookShelf(),
           debugShowCheckedModeBanner: false,
         );
       },

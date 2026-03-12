@@ -1,3 +1,8 @@
+## 1.0.1 - March 13, 2026
+
+- Create Bookshelf as a welcome screen
+- Track reading progress by book
+
 ## 1.0.0 - March 4, 2026
 
 - Bump version for 1.0 release!

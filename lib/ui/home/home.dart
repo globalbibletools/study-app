@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:studyapp/common/reference.dart';
 import 'package:studyapp/ui/home/appbar/reference_chooser/reference_chooser.dart';
-import 'package:studyapp/ui/home/appbar/drawer.dart';
 import 'package:studyapp/ui/home/panel_area/panel_area.dart';
 import 'package:studyapp/ui/home/audio/audio_layer.dart';
 import 'package:studyapp/ui/home/keypad/keypad_layer.dart';
@@ -10,34 +9,17 @@ import 'appbar/appbar.dart';
 import 'home_manager.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({super.key, required this.manager});
+
+  final HomeManager manager;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final manager = HomeManager();
 
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      manager.checkOnboarding(context);
-    });
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    manager.init();
-  }
-
-  @override
-  void dispose() {
-    manager.dispose();
-    super.dispose();
-  }
+ HomeManager get manager => widget.manager;
 
   @override
   Widget build(BuildContext context) {
@@ -72,9 +54,6 @@ class _HomeScreenState extends State<HomeScreen> {
             );
           },
         ),
-      ),
-      drawer: AppDrawer(
-        onSettingsClosed: () => manager.notifySettingsChanged(),
       ),
       body: Stack(
         children: [
