@@ -471,7 +471,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CURRENT_PROJECT_VERSION = 33;
-				DEVELOPMENT_TEAM = J2S2A35934;
+				DEVELOPMENT_TEAM = FRATNZWWV6;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = GBT;
@@ -480,7 +480,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.17.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.globalbibletools.gbt;
+				PRODUCT_BUNDLE_IDENTIFIER = com.globalbibletools.gbt.test;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
@@ -658,7 +658,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CURRENT_PROJECT_VERSION = 33;
-				DEVELOPMENT_TEAM = J2S2A35934;
+				DEVELOPMENT_TEAM = FRATNZWWV6;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = GBT;
@@ -667,7 +667,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.17.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.globalbibletools.gbt;
+				PRODUCT_BUNDLE_IDENTIFIER = com.globalbibletools.gbt.test;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -683,7 +683,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CURRENT_PROJECT_VERSION = 33;
-				DEVELOPMENT_TEAM = J2S2A35934;
+				DEVELOPMENT_TEAM = FRATNZWWV6;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = GBT;
@@ -692,7 +692,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.17.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.globalbibletools.gbt;
+				PRODUCT_BUNDLE_IDENTIFIER = com.globalbibletools.gbt.test;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;

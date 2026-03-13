@@ -103,11 +103,16 @@ class _BookShelfState extends State<BookShelf> {
           userSettings: _settings,
           onTap: () async {
             manager.onBookSelected(context, bookId);
-            manager.onChapterSelected(_settings.getCurrentProgressForBook(bookId));
+            manager.onChapterSelected(
+              _settings.getCurrentProgressForBook(bookId),
+            );
             await Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => HomeScreen(manager: manager),
+                builder: (context) => HomeScreen(
+                  manager: manager,
+                  verseLayout: _settings.verseLayout,
+                ),
               ),
             );
             setState(() {});

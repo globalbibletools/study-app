@@ -57,6 +57,15 @@ class AppLocalizationsAr extends AppLocalizations {
   String get lexiconTextSize => 'المعجم';
 
   @override
+  String get verseLayout => 'تخطيط الآيات';
+
+  @override
+  String get paragraph => 'مقطع';
+
+  @override
+  String get versePerLine => 'آية على كل سطر';
+
+  @override
   String get downloadResourcesMessage =>
       'لاستخدام هذه اللغة، نحتاج إلى تنزيل موارد إضافية.';
 

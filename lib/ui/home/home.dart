@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:studyapp/common/reference.dart';
+import 'package:studyapp/services/settings/user_settings.dart';
 import 'package:studyapp/ui/home/appbar/reference_chooser/reference_chooser.dart';
 import 'package:studyapp/ui/home/panel_area/panel_area.dart';
 import 'package:studyapp/ui/home/audio/audio_layer.dart';
@@ -9,17 +10,21 @@ import 'appbar/appbar.dart';
 import 'home_manager.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key, required this.manager});
+  const HomeScreen({
+    super.key,
+    required this.manager,
+    required this.verseLayout,
+  });
 
   final HomeManager manager;
+  final VerseLayout verseLayout;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-
- HomeManager get manager => widget.manager;
+  HomeManager get manager => widget.manager;
 
   @override
   Widget build(BuildContext context) {
@@ -67,7 +72,10 @@ class _HomeScreenState extends State<HomeScreen> {
               }
             },
             behavior: HitTestBehavior.translucent,
-            child: BiblePanelArea(manager: manager),
+            child: BiblePanelArea(
+              manager: manager,
+              verseLayout: widget.verseLayout,
+            ),
           ),
 
           // 2. Audio Layer
