@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:studyapp/common/book_name.dart';
 import 'package:studyapp/common/word.dart';
 import 'package:studyapp/l10n/app_localizations.dart';
+import 'package:studyapp/services/settings/user_settings.dart';
 import 'package:studyapp/ui/common/resource_ui_helper.dart';
 import 'package:studyapp/ui/home/panel_area/common/infinite_scroll_view.dart';
 import 'package:studyapp/ui/home/common/scroll_sync_controller.dart';
@@ -30,12 +31,14 @@ class HebrewGreekChapter extends StatefulWidget {
     required this.bookId,
     required this.chapter,
     required this.fontSize,
+    required this.verseLayout,
     this.syncController,
   });
 
   final int bookId;
   final int chapter;
   final double fontSize;
+  final VerseLayout verseLayout;
   final ScrollSyncController? syncController;
 
   @override
@@ -150,6 +153,7 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter>
                   HebrewGreekText(
                     key: _hebrewGreekTextKey,
                     words: words,
+                    verseLayout: widget.verseLayout,
                     controller: _textController,
                     textDirection: manager.isRtl(widget.bookId)
                         ? TextDirection.rtl
