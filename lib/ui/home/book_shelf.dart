@@ -55,12 +55,12 @@ class _BookShelfState extends State<BookShelf> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            _sectionTitle("Old Testament"),
+            _sectionTitle(l10n.oldTestament),
             _booksGrid(context, 1, 39),
 
             const SizedBox(height: 24),
 
-            _sectionTitle("New Testament"),
+            _sectionTitle(l10n.newTestament),
             _booksGrid(context, 40, 66),
           ],
         ),
