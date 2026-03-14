@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:studyapp/services/settings/user_settings.dart';
 import 'package:studyapp/ui/home/panel_area/common/infinite_scroll_view.dart';
 import 'package:studyapp/ui/home/common/scroll_sync_controller.dart';
 import 'package:studyapp/ui/home/common/zoom_wrapper.dart';
@@ -12,12 +13,14 @@ class BiblePanel extends StatefulWidget {
     required this.chapter,
     this.syncController,
     required this.settingsVersion,
+    required this.verseLayout
   });
 
   final int bookId;
   final int chapter;
   final ScrollSyncController? syncController;
   final int settingsVersion;
+  final VerseLayout verseLayout;
 
   @override
   State<BiblePanel> createState() => BiblePanelState();
@@ -69,6 +72,7 @@ class BiblePanelState extends State<BiblePanel> {
                     bookId: bId,
                     chapter: ch,
                     fontSize: fontSize,
+                    verseLayout: widget.verseLayout
                   );
                 },
               ),

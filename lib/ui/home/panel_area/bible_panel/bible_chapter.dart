@@ -3,6 +3,7 @@ import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:scripture/scripture.dart';
 import 'package:studyapp/common/book_name.dart';
+import 'package:studyapp/services/settings/user_settings.dart';
 import 'bible_chapter_manager.dart';
 
 class BibleChapter extends StatefulWidget {
@@ -10,12 +11,14 @@ class BibleChapter extends StatefulWidget {
     super.key,
     required this.bookId,
     required this.chapter,
+    required this.verseLayout,
     this.fontSize = 20.0,
   });
 
   final int bookId;
   final int chapter;
   final double fontSize;
+  final VerseLayout verseLayout;
 
   @override
   State<BibleChapter> createState() => _BibleChapterState();
@@ -58,6 +61,13 @@ class _BibleChapterState extends State<BibleChapter> {
           );
         }
 
+        final verses = widget.verseLayout == VerseLayout.versePerLine
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: verseLines.map((v) => buildUsfm([v])).toList(),
+              )
+            : buildUsfm(verseLines);
+
         return Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
@@ -72,30 +82,34 @@ class _BibleChapterState extends State<BibleChapter> {
                 ),
               ),
               const SizedBox(height: 10),
-              UsfmWidget(
-                verseLines: verseLines,
-                selectionController: ScriptureSelectionController(),
-                onFootnoteTapped: (footnote) {
-                  _showFootnoteDialog(footnote);
-                },
-                onWordTapped: (id) => log("Tapped word $id"),
-                onSelectionRequested: (wordId) {},
-                showHeadings: false,
-                styleBuilder: (format) {
-                  final baseStyle = UsfmParagraphStyle.usfmDefaults(
-                    format: format,
-                    baseStyle: Theme.of(
-                      context,
-                    ).textTheme.bodyMedium!.copyWith(fontSize: widget.fontSize),
-                  );
-                  return baseStyle.copyWith(
-                    verseNumberStyle: baseStyle.textStyle.copyWith(
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                  );
-                },
-              ),
+              verses,
             ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget buildUsfm(List<UsfmLine> verseLines) {
+    return UsfmWidget(
+      verseLines: verseLines,
+      selectionController: ScriptureSelectionController(),
+      onFootnoteTapped: (footnote) {
+        _showFootnoteDialog(footnote);
+      },
+      onWordTapped: (id) => log("Tapped word $id"),
+      onSelectionRequested: (wordId) {},
+      showHeadings: false,
+      styleBuilder: (format) {
+        final baseStyle = UsfmParagraphStyle.usfmDefaults(
+          format: format,
+          baseStyle: Theme.of(
+            context,
+          ).textTheme.bodyMedium!.copyWith(fontSize: widget.fontSize),
+        );
+        return baseStyle.copyWith(
+          verseNumberStyle: baseStyle.textStyle.copyWith(
+            color: Theme.of(context).colorScheme.primary,
           ),
         );
       },
