@@ -103,9 +103,11 @@ class _BookShelfState extends State<BookShelf> {
           userSettings: _settings,
           onTap: () async {
             manager.onBookSelected(context, bookId);
-            manager.onChapterSelected(
-              _settings.getCurrentProgressForBook(bookId),
-            );
+            var chp = _settings.getCurrentProgressForBook(bookId);
+            if (chp == 0){
+              chp = 1;
+            } 
+            manager.onChapterSelected(chp);
             await Navigator.push(
               context,
               MaterialPageRoute(
