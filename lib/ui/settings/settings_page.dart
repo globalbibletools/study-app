@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:studyapp/l10n/app_languages.dart';
 import 'package:studyapp/l10n/app_localizations.dart';
+import 'package:studyapp/services/settings/user_settings.dart';
 import 'package:studyapp/ui/common/resource_ui_helper.dart';
 
 import 'settings_manager.dart';
@@ -100,6 +101,22 @@ class _SettingsPageState extends State<SettingsPage> {
                 },
               ),
 
+              // Verse Layout
+              ListTile(
+                title: Text(l10n.verseLayout),
+                subtitle: Text(
+                  manager.verseLayout == VerseLayout.versePerLine
+                      ? l10n.versePerLine
+                      : l10n.paragraph,
+                ),
+                onTap: () async {
+                  final selectedLayout = await _chooseVerseLayout();
+                  if (selectedLayout != null) {
+                    manager.setVerseLayout(selectedLayout);
+                  }
+                },
+              ),
+
               // EXPANDABLE TEXT SIZE SECTION
               ExpansionTile(
                 title: Text(l10n.textSize),
@@ -192,6 +209,34 @@ class _SettingsPageState extends State<SettingsPage> {
           selected: {manager.currentThemeMode},
           onSelectionChanged: (Set<ThemeMode> selection) {
             manager.setThemeMode(selection.first);
+            Navigator.of(context).pop();
+          },
+        ),
+      ),
+    );
+  }
+
+  Future<VerseLayout?> _chooseVerseLayout() async {
+    final l10n = AppLocalizations.of(context)!;
+    
+    return await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        content: SegmentedButton<VerseLayout>(
+          showSelectedIcon: false,
+          segments: [
+            ButtonSegment<VerseLayout>(
+              value: VerseLayout.paragraph,
+              label: Text(l10n.paragraph),
+            ),
+            ButtonSegment<VerseLayout>(
+              value: VerseLayout.versePerLine,
+              label: Text(l10n.versePerLine),
+            ),
+          ],
+          selected: {manager.verseLayout},
+          onSelectionChanged: (Set<VerseLayout> selection) {
+            manager.setVerseLayout(selection.first);
             Navigator.of(context).pop();
           },
         ),

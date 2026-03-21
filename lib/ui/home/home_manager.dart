@@ -77,7 +77,6 @@ class HomeManager {
     audioManager.setSyncController(syncController);
 
     syncController.clearActiveSource();
-    syncController.updatePosition('manager', bookId, chapter, 0.0, verse: 1);
   }
 
   void _onSyncUpdate() {

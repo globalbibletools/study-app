@@ -200,6 +200,24 @@ abstract class AppLocalizations {
   /// **'Lexicon'**
   String get lexiconTextSize;
 
+  /// Settings option to change the verse layout
+  ///
+  /// In en, this message translates to:
+  /// **'Verse Layout'**
+  String get verseLayout;
+
+  /// Verse layout as paragraph
+  ///
+  /// In en, this message translates to:
+  /// **'Paragraph'**
+  String get paragraph;
+
+  /// Verse layout as verse per line
+  ///
+  /// In en, this message translates to:
+  /// **'Verse per line'**
+  String get versePerLine;
+
   /// Content for the dialog asking to download Bible and Gloss data
   ///
   /// In en, this message translates to:
