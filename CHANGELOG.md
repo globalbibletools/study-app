@@ -1,6 +1,7 @@
-## 1.0.1
+## 1.1.0
 
 - Fix audio source errors for missing chapters for RDB audio. (#59)
+- Keep screen on when reading app. (#54)
 
 ## 1.0.0 - March 4, 2026
 
