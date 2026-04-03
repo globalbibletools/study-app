@@ -95,7 +95,7 @@ class _DownloadManagerPageState extends State<DownloadManagerPage> {
         ...List.generate(39, (index) {
           final bookId = index + 1;
 
-          // Hide specific OT books if RDB is selected and missing
+          // Hide specific OT books if RDB is selected and missing entirely
           if (_selectedOtSource == AudioSourceType.rdb &&
               !AudioLogic.isRdbAvailableForBook(bookId)) {
             return const SizedBox.shrink();
@@ -122,7 +122,7 @@ class _DownloadManagerPageState extends State<DownloadManagerPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                l10n.newTestament, // <-- Assuming you have this in your .arb files!
+                l10n.newTestament,
                 style: Theme.of(context).textTheme.labelMedium,
               ),
               const SizedBox(height: 8),
@@ -218,10 +218,15 @@ class _BookDownloadTileState extends State<_BookDownloadTile> {
 
   Future<List<int>> _checkMissingChapters() async {
     final missing = <int>[];
-    final recId = AudioLogic.getRecordingId(widget.bookId, widget.sourceType);
 
     for (int c = 1; c <= _totalChapters; c++) {
       if (!AudioLogic.isAudioAvailable(widget.bookId, c)) continue;
+
+      final recId = AudioLogic.getRecordingId(
+        widget.bookId,
+        c,
+        widget.sourceType,
+      );
 
       final asset = _assetService.getAudioChapterAsset(
         bookId: widget.bookId,
@@ -317,7 +322,11 @@ class _BookDownloadTileState extends State<_BookDownloadTile> {
   }
 
   Future<void> _downloadChapter(int chapter) async {
-    final recId = AudioLogic.getRecordingId(widget.bookId, widget.sourceType);
+    final recId = AudioLogic.getRecordingId(
+      widget.bookId,
+      chapter,
+      widget.sourceType,
+    );
     final asset = _assetService.getAudioChapterAsset(
       bookId: widget.bookId,
       chapter: chapter,
@@ -348,7 +357,11 @@ class _BookDownloadTileState extends State<_BookDownloadTile> {
   }
 
   Future<void> _deleteChapter(int chapter) async {
-    final recId = AudioLogic.getRecordingId(widget.bookId, widget.sourceType);
+    final recId = AudioLogic.getRecordingId(
+      widget.bookId,
+      chapter,
+      widget.sourceType,
+    );
     final asset = _assetService.getAudioChapterAsset(
       bookId: widget.bookId,
       chapter: chapter,
@@ -382,8 +395,13 @@ class _BookDownloadTileState extends State<_BookDownloadTile> {
     );
 
     if (confirm == true) {
-      final recId = AudioLogic.getRecordingId(widget.bookId, widget.sourceType);
       for (int c = 1; c <= _totalChapters; c++) {
+        final recId = AudioLogic.getRecordingId(
+          widget.bookId,
+          c,
+          widget.sourceType,
+        );
+
         final asset = _assetService.getAudioChapterAsset(
           bookId: widget.bookId,
           chapter: c,
@@ -434,15 +452,17 @@ class _BookDownloadTileState extends State<_BookDownloadTile> {
         context: context,
         task: (progress, cancelToken) async {
           final total = missingChapters.length;
-          final recId = AudioLogic.getRecordingId(
-            widget.bookId,
-            widget.sourceType,
-          );
 
           for (int i = 0; i < total; i++) {
             if (cancelToken.isCancelled) throw DownloadCanceledException();
 
             final chapter = missingChapters[i];
+
+            final recId = AudioLogic.getRecordingId(
+              widget.bookId,
+              chapter,
+              widget.sourceType,
+            );
 
             final asset = _assetService.getAudioChapterAsset(
               bookId: widget.bookId,

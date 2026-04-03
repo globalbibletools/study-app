@@ -62,6 +62,7 @@ class AudioManager {
   }) async {
     final recordingId = AudioLogic.getRecordingId(
       bookId,
+      chapter,
       audioSourceNotifier.value,
     );
 
@@ -240,6 +241,7 @@ class AudioManager {
         final nextChapter = _loadedChapter! + 1;
         final recordingId = AudioLogic.getRecordingId(
           _loadedBookId!,
+          nextChapter,
           audioSourceNotifier.value,
         );
         final asset = _assetService.getAudioChapterAsset(

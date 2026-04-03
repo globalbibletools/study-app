@@ -320,6 +320,7 @@ class HomeManager {
   ) async {
     final recordingId = AudioLogic.getRecordingId(
       bookId,
+      chapter,
       audioManager.audioSourceNotifier.value,
     );
     final asset = _assetService.getAudioChapterAsset(

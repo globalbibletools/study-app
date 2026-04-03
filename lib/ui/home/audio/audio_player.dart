@@ -58,6 +58,7 @@ class BottomAudioPlayer extends StatelessWidget {
                     audioManager: audioManager,
                     onAudioMissing: onAudioMissing,
                     currentBookId: currentBookId,
+                    currentChapter: currentChapter,
                   ),
                   const SizedBox(width: 8),
 
@@ -104,8 +105,6 @@ class BottomAudioPlayer extends StatelessWidget {
               const SizedBox(height: 4),
 
               // --- ROW 2: Repeat | Controls | Speed ---
-              // Using Expanded on left and right allows the center controls
-              // to stay perfectly centered regardless of button width changes.
               Row(
                 children: [
                   // Far Left: Repeat Mode
@@ -185,10 +184,12 @@ class _VoiceMenuButton extends StatelessWidget {
   final AudioManager audioManager;
   final VoidCallback? onAudioMissing;
   final int currentBookId;
+  final int currentChapter;
 
   const _VoiceMenuButton({
     required this.audioManager,
     required this.currentBookId,
+    required this.currentChapter,
     this.onAudioMissing,
   });
 
@@ -197,10 +198,9 @@ class _VoiceMenuButton extends StatelessWidget {
     return ValueListenableBuilder<AudioSourceType>(
       valueListenable: audioManager.audioSourceNotifier,
       builder: (context, currentSourcePref, _) {
-        // We calculate the active ID so we know which checkmark to show
-        // even if the user's preference is from the other Testament
         final activeRecordingId = AudioLogic.getRecordingId(
           currentBookId,
+          currentChapter,
           currentSourcePref,
         );
         final isNt = AudioLogic.isNewTestament(currentBookId);
@@ -238,8 +238,10 @@ class _VoiceMenuButton extends StatelessWidget {
                   ),
               ];
             } else {
-              final rdbAvailable = AudioLogic.isRdbAvailableForBook(
+              // Menu option shows RDB as long as chapter is available
+              final rdbAvailable = AudioLogic.isRdbAvailable(
                 currentBookId,
+                currentChapter,
               );
               return [
                 CheckedPopupMenuItem<AudioSourceType>(

@@ -1,3 +1,7 @@
+## 1.0.1
+
+- Fix audio source errors for missing chapters for RDB audio. (#59)
+
 ## 1.0.0 - March 4, 2026
 
 - Bump version for 1.0 release!
