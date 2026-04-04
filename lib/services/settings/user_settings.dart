@@ -2,6 +2,8 @@ import 'dart:ui';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
+enum VerseLayout { paragraph, versePerLine }
+
 class UserSettings {
   late SharedPreferences _prefs;
 
@@ -20,6 +22,7 @@ class UserSettings {
   static const _isHebrewSearchKey = 'isHebrewSearch';
   static const _useSystemKeyboardKey = 'useSystemKeyboard';
   static const _currentBible = 'currentBible';
+  static const _verseLayout = "verseLayout";
 
   String? get themeMode {
     return _prefs.getString(_themeModeKey);
@@ -104,6 +107,14 @@ class UserSettings {
 
   String? get currentBible {
     return _prefs.getString(_currentBible);
+  }
+
+  VerseLayout get verseLayout {
+    return VerseLayout.values[_prefs.getInt(_verseLayout) ?? 0];
+  }
+
+  Future<void> setVerseLayout(VerseLayout value) async {
+    await _prefs.setInt(_verseLayout, value.index);
   }
 
   /// Set language and version of the currently selected Bible

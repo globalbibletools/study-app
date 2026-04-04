@@ -10,8 +10,15 @@ class SettingsManager extends ChangeNotifier {
 
   ThemeMode get currentThemeMode => appState.themeMode;
 
+  VerseLayout get verseLayout => _settings.verseLayout;
+
   void setThemeMode(ThemeMode mode) {
     appState.updateThemeMode(mode);
+    notifyListeners();
+  }
+
+  void setVerseLayout(VerseLayout value) {
+    _settings.setVerseLayout(value);
     notifyListeners();
   }
 

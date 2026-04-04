@@ -5,6 +5,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 import 'package:studyapp/common/word.dart';
+import 'package:studyapp/services/settings/user_settings.dart';
 
 /// A function that is called when a word is long-pressed.
 ///
@@ -100,6 +101,7 @@ class HebrewGreekText extends LeafRenderObjectWidget {
     this.flashColor,
     this.highlightedVerse,
     this.highlightColor,
+    required this.verseLayout,
   });
 
   /// The words that will rendered in the text layout
@@ -152,6 +154,9 @@ class HebrewGreekText extends LeafRenderObjectWidget {
   /// The background color to use for a highlighted verse
   final Color? highlightColor;
 
+  /// The verse layout to use for the text
+  final VerseLayout verseLayout;
+
   @override
   RenderHebrewGreekText createRenderObject(BuildContext context) {
     final defaultTextStyle = DefaultTextStyle.of(context);
@@ -180,6 +185,7 @@ class HebrewGreekText extends LeafRenderObjectWidget {
       onWordLongPress: onWordLongPress,
       onVerseNumberTap: onVerseNumberTap,
       onVerseNumberLongPress: onVerseNumberLongPress,
+      verseLayout: verseLayout,
       flashColor:
           flashColor ??
           effectiveVerseNumberStyle?.color?.withValues(alpha: 0.4) ??
@@ -224,6 +230,7 @@ class HebrewGreekText extends LeafRenderObjectWidget {
       ..onWordLongPress = onWordLongPress
       ..onVerseNumberTap = onVerseNumberTap
       ..onVerseNumberLongPress = onVerseNumberLongPress
+      ..verseLayout = verseLayout
       ..flashColor =
           flashColor ??
           effectiveVerseNumberStyle?.color?.withValues(alpha: 0.4) ??
@@ -303,6 +310,7 @@ class RenderHebrewGreekText extends RenderBox {
     required Color flashColor,
     int? highlightedVerse,
     Color? highlightColor,
+    required VerseLayout verseLayout,
   }) : _words = words,
        _controller = controller,
        _textDirection = textDirection,
@@ -317,7 +325,8 @@ class RenderHebrewGreekText extends RenderBox {
        _onVerseNumberLongPress = onVerseNumberLongPress,
        _flashColor = flashColor,
        _highlightedVerse = highlightedVerse,
-       _highlightColor = highlightColor {
+       _highlightColor = highlightColor,
+       _verseLayout = verseLayout {
     _updatePainters();
     _tapRecognizer = TapGestureRecognizer()..onTapUp = _handleTapUp;
     _longPressRecognizer = LongPressGestureRecognizer()
@@ -334,12 +343,21 @@ class RenderHebrewGreekText extends RenderBox {
   int? _flashedWordId;
   Timer? _flashTimer;
   final List<_LineMetrics> _lineMetrics = [];
+  VerseLayout _verseLayout;
 
   List<HebrewGreekWord> _words;
   List<HebrewGreekWord> get words => _words;
+  VerseLayout get verseLayout => _verseLayout;
   set words(List<HebrewGreekWord> value) {
     if (_words == value) return;
     _words = value;
+    _needsPaintersUpdate = true;
+    markNeedsLayout();
+  }
+
+  set verseLayout(VerseLayout value) {
+    if (_verseLayout == value) return;
+    _verseLayout = value;
     _needsPaintersUpdate = true;
     markNeedsLayout();
   }
@@ -635,9 +653,14 @@ class RenderHebrewGreekText extends RenderBox {
 
       // "No orphan" rule: Check if the verse number AND its word fit together
       final totalUnitWidth = verseNumberUnitWidth + wordSize.width;
-      final bool fitsOnLine = isLtr
+      bool fitsOnLine = isLtr
           ? mainAxisOffset + totalUnitWidth <= availableWidth
           : mainAxisOffset - totalUnitWidth >= 0;
+
+      if (i > 1 && VerseLayout.versePerLine == _verseLayout) {
+        final verseNumber = _getVerseNumber(currentWord);
+        if (null != verseNumber) fitsOnLine = false;
+      }
 
       // Line wrap logic
       if (!fitsOnLine) {
