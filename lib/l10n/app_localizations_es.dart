@@ -57,13 +57,13 @@ class AppLocalizationsEs extends AppLocalizations {
   String get lexiconTextSize => 'Léxico';
 
   @override
-  String get verseLayout => 'Disposición del verso';
+  String get verseLayout => 'Disposición de los versículos';
 
   @override
   String get paragraph => 'Párrafo';
 
   @override
-  String get versePerLine => 'Un verso por línea';
+  String get versePerLine => 'Un versículo por línea';
 
   @override
   String get downloadResourcesMessage =>

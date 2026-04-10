@@ -1,3 +1,7 @@
+## 1.1.0 
+
+- Enable line-by-line verse layout in addition to paragraph layout.
+
 ## 1.0.1 - April 3, 2026
 
 - Fix audio source errors for missing chapters for RDB audio. (#59)

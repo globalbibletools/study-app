@@ -57,13 +57,13 @@ class AppLocalizationsAr extends AppLocalizations {
   String get lexiconTextSize => 'المعجم';
 
   @override
-  String get verseLayout => 'تخطيط الآيات';
+  String get verseLayout => 'تنسيق الآيات';
 
   @override
-  String get paragraph => 'مقطع';
+  String get paragraph => 'فقرة';
 
   @override
-  String get versePerLine => 'آية على كل سطر';
+  String get versePerLine => 'آية في كل سطر';
 
   @override
   String get downloadResourcesMessage =>
