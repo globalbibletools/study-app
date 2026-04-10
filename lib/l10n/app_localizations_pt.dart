@@ -57,6 +57,15 @@ class AppLocalizationsPt extends AppLocalizations {
   String get lexiconTextSize => 'Léxico';
 
   @override
+  String get verseLayout => 'Verse Layout';
+
+  @override
+  String get paragraph => 'Paragraph';
+
+  @override
+  String get versePerLine => 'Verse per line';
+
+  @override
   String get downloadResourcesMessage =>
       'Para usar este idioma, precisamos baixar recursos adicionais.';
 

@@ -12,6 +12,9 @@ class HebrewGreekPanelManager {
   late final greekScaleNotifier = ValueNotifier<double>(
     _settings.greekFontScale,
   );
+  late final verseLayoutNotifier = ValueNotifier<VerseLayout>(
+    _settings.verseLayout,
+  );
 
   // Track the book currently in view
   int currentBookId = 1;
@@ -40,6 +43,7 @@ class HebrewGreekPanelManager {
   void refreshFromSettings() {
     hebrewScaleNotifier.value = _settings.hebrewFontScale;
     greekScaleNotifier.value = _settings.greekFontScale;
+    verseLayoutNotifier.value = _settings.verseLayout;
   }
 
   void dispose() {

@@ -8,6 +8,9 @@ class BiblePanelManager {
   late final fontScaleNotifier = ValueNotifier<double>(
     _settings.bibleFontScale,
   );
+  late final verseLayoutNotifier = ValueNotifier<VerseLayout>(
+    _settings.verseLayout,
+  );
 
   double get baseFontSize => 20.0; // Standard English font size
 
@@ -20,6 +23,7 @@ class BiblePanelManager {
   /// Call after returning from the settings screen.
   void refreshFromSettings() {
     fontScaleNotifier.value = _settings.bibleFontScale;
+    verseLayoutNotifier.value = _settings.verseLayout;
   }
 
   void dispose() {

@@ -64,6 +64,18 @@
   "@lexiconTextSize": {
     "description": "Settings option to change the text size in the Lexicon popup"
   },
+  "verseLayout":"Verse Layout",
+  "@verseLayout": {
+    "description": "Settings option to change the verse layout"
+  },
+  "paragraph":"Paragraph",
+  "@paragraph": {
+    "description": "Verse layout as paragraph"
+  },
+  "versePerLine":"Verse per line",
+  "@versePerLine": {
+    "description": "Verse layout as verse per line"
+  },
   "downloadResourcesMessage": "To use this language, we need to download additional resources.",
   "@downloadResourcesMessage": {
     "description": "Content for the dialog asking to download Bible and Gloss data"
