@@ -49,6 +49,7 @@ class AudioManager {
   int? _loadedBookId;
   int? _loadedChapter;
   String? _loadedBookName;
+  bool _isStreamingSession = false;
 
   void setSyncController(ScrollSyncController controller) {
     _syncController = controller;
@@ -59,6 +60,7 @@ class AudioManager {
     int chapter,
     String bookName, {
     int? startVerse,
+    bool isAutoAdvance = false,
   }) async {
     final recordingId = AudioLogic.getRecordingId(
       bookId,
@@ -66,7 +68,7 @@ class AudioManager {
       audioSourceNotifier.value,
     );
 
-    // 1. Get Asset config (No versioning)
+    // 1. Get Asset config
     final asset = _assetService.getAudioChapterAsset(
       bookId: bookId,
       chapter: chapter,
@@ -75,11 +77,17 @@ class AudioManager {
 
     if (asset == null) throw AudioMissingException(bookId, chapter);
 
-    // 2. Determine path
+    // 2. Determine path and update session type
     final exists = await _fileService.checkFileExists(
       asset.fileType,
       asset.localRelativePath,
     );
+
+    // If the user explicitly loaded this (not an auto-advance), define the session
+    if (!isAutoAdvance) {
+      _isStreamingSession = !exists;
+    }
+
     String uriPath;
 
     if (exists) {
@@ -108,7 +116,7 @@ class AudioManager {
       recordingId,
     );
 
-    // 4. Sanitize (Option 2: Use double.infinity)
+    // 4. Sanitize
     if (_currentTimings.isNotEmpty) {
       final last = _currentTimings.last;
       if (last.end <= last.start) {
@@ -172,18 +180,14 @@ class AudioManager {
     _positionSubscription?.cancel();
     _playerStateSubscription?.cancel();
 
-    // Handle End of Chapter for ALL books (even if NT has no timings)
     _playerStateSubscription = audioHandler.playerStateStream.listen((
       state,
     ) async {
       if (state.processingState == ProcessingState.completed) {
-        // --- CHECK REPEAT MODE ---
         if (repeatModeNotifier.value == AudioRepeatMode.chapter) {
-          // REPEAT CHAPTER:
           _lastSyncedVerse = -1;
           audioHandler.seek(Duration.zero);
         } else if (repeatModeNotifier.value == AudioRepeatMode.verse) {
-          // EDGE CASE: If repeating the LAST verse...
           if (_currentTimings.isNotEmpty) {
             _seekToTiming(_currentTimings.last);
           }
@@ -201,7 +205,6 @@ class AudioManager {
       if (_currentTimings.isEmpty) return;
       final currentSeconds = positionData.position.inMilliseconds / 1000.0;
 
-      // Repeat Verse Logic
       if (repeatModeNotifier.value == AudioRepeatMode.verse) {
         final currentMatch = _currentTimings.cast<AudioTiming?>().firstWhere(
           (t) => t?.verseNumber == _lastSyncedVerse,
@@ -215,12 +218,11 @@ class AudioManager {
         }
       }
 
-      // Normal Highlight Logic
       try {
         final match = _currentTimings.firstWhere(
           (t) => currentSeconds >= t.start && currentSeconds < t.end,
         );
-        final verseNum = match.verseNumber; // Use verseNumber getter
+        final verseNum = match.verseNumber;
 
         if (verseNum != _lastSyncedVerse) {
           _updateCurrentVerse(verseNum);
@@ -231,7 +233,6 @@ class AudioManager {
     });
   }
 
-  // --- Auto-Play Next Chapter Helper ---
   Future<void> _handleAutoAdvance() async {
     if (_loadedBookId != null &&
         _loadedChapter != null &&
@@ -250,16 +251,28 @@ class AudioManager {
           recordingId: recordingId,
         );
 
-        if (asset != null &&
-            await _fileService.checkFileExists(
-              asset.fileType,
-              asset.localRelativePath,
-            )) {
-          try {
-            await loadAndPlay(_loadedBookId!, nextChapter, _loadedBookName!);
-            _updateCurrentVerse(1);
-            return;
-          } catch (_) {}
+        if (asset != null) {
+          final isNextDownloaded = await _fileService.checkFileExists(
+            asset.fileType,
+            asset.localRelativePath,
+          );
+
+          // Logic: If we are NOT in a streaming session, but the next chapter is NOT downloaded... STOP
+          if (!_isStreamingSession && !isNextDownloaded) {
+            // Fall through to stop playback
+          } else {
+            // Proceed to play the next chapter (either it is downloaded, OR we are streaming anyway)
+            try {
+              await loadAndPlay(
+                _loadedBookId!,
+                nextChapter,
+                _loadedBookName!,
+                isAutoAdvance: true, // Keep tracking our current session type
+              );
+              _updateCurrentVerse(1);
+              return;
+            } catch (_) {}
+          }
         }
       }
     }
