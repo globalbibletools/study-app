@@ -148,16 +148,25 @@ class AudioManager {
     await audioHandler.setSpeed(playbackSpeedNotifier.value);
     _startSyncListener();
 
-    // 6. Initial Seek
-    if (startVerse != null && startVerse > 1 && _currentTimings.isNotEmpty) {
+    // 6. Initial Highlight & Seek
+    if (startVerse != null && _currentTimings.isNotEmpty) {
       final timing = _currentTimings.firstWhere(
         (t) => t.verseNumber == startVerse,
         orElse: () => _currentTimings.first,
       );
       _updateCurrentVerse(timing.verseNumber);
-      await audioHandler.seek(
-        Duration(milliseconds: (timing.start * 1000).toInt()),
-      );
+
+      // If starting from verse > 1, seek to that exact timing.
+      // If startVerse is 1, let it play from the very beginning (0:00)
+      // to include any audio intro/announcement.
+      if (startVerse > 1) {
+        await audioHandler.seek(
+          Duration(milliseconds: (timing.start * 1000).toInt()),
+        );
+      }
+    } else if (_currentTimings.isNotEmpty) {
+      // Default to highlighting the first available verse immediately
+      _updateCurrentVerse(_currentTimings.first.verseNumber);
     }
 
     audioHandler.play();
@@ -218,6 +227,7 @@ class AudioManager {
         }
       }
 
+      // Normal Highlight Logic
       try {
         final match = _currentTimings.firstWhere(
           (t) => currentSeconds >= t.start && currentSeconds < t.end,
@@ -228,7 +238,18 @@ class AudioManager {
           _updateCurrentVerse(verseNum);
         }
       } catch (e) {
-        _clearHighlight();
+        // Fallback: We didn't match a specific timing.
+        // If we are before the very first timing (e.g., in intro music/silence),
+        // keep the first verse highlighted instead of clearing it.
+        if (_currentTimings.isNotEmpty &&
+            currentSeconds < _currentTimings.first.start) {
+          final firstVerse = _currentTimings.first.verseNumber;
+          if (firstVerse != _lastSyncedVerse) {
+            _updateCurrentVerse(firstVerse);
+          }
+        } else {
+          _clearHighlight();
+        }
       }
     });
   }
@@ -257,17 +278,15 @@ class AudioManager {
             asset.localRelativePath,
           );
 
-          // Logic: If we are NOT in a streaming session, but the next chapter is NOT downloaded... STOP
           if (!_isStreamingSession && !isNextDownloaded) {
             // Fall through to stop playback
           } else {
-            // Proceed to play the next chapter (either it is downloaded, OR we are streaming anyway)
             try {
               await loadAndPlay(
                 _loadedBookId!,
                 nextChapter,
                 _loadedBookName!,
-                isAutoAdvance: true, // Keep tracking our current session type
+                isAutoAdvance: true,
               );
               _updateCurrentVerse(1);
               return;
@@ -369,7 +388,14 @@ class AudioManager {
           (t) => seconds >= t.start && seconds < t.end,
         );
         _updateCurrentVerse(match.verseNumber);
-      } catch (_) {}
+      } catch (_) {
+        // Also apply the fallback here just in case the user seeks into the intro manually
+        if (seconds < _currentTimings.first.start) {
+          _updateCurrentVerse(_currentTimings.first.verseNumber);
+        } else {
+          _clearHighlight();
+        }
+      }
     }
     audioHandler.seek(position);
   }
