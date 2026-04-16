@@ -49,6 +49,8 @@ class AudioManager {
   int? _loadedBookId;
   int? _loadedChapter;
   String? _loadedBookName;
+
+  // Track the type of the current session
   bool _isStreamingSession = false;
 
   void setSyncController(ScrollSyncController controller) {
@@ -133,7 +135,7 @@ class AudioManager {
 
     _lastSyncedVerse = -1;
 
-    // 5. Load and Setup Listener
+    // 5. Load
     try {
       await audioHandler.setUrl(
         uriPath,
@@ -146,19 +148,18 @@ class AudioManager {
     }
 
     await audioHandler.setSpeed(playbackSpeedNotifier.value);
-    _startSyncListener();
 
-    // 6. Initial Highlight & Seek
+    // 6. Initial Highlight & Seek BEFORE attaching the sync listener
     if (startVerse != null && _currentTimings.isNotEmpty) {
       final timing = _currentTimings.firstWhere(
         (t) => t.verseNumber == startVerse,
         orElse: () => _currentTimings.first,
       );
+
+      // Update highlight immediately
       _updateCurrentVerse(timing.verseNumber);
 
       // If starting from verse > 1, seek to that exact timing.
-      // If startVerse is 1, let it play from the very beginning (0:00)
-      // to include any audio intro/announcement.
       if (startVerse > 1) {
         await audioHandler.seek(
           Duration(milliseconds: (timing.start * 1000).toInt()),
@@ -168,6 +169,9 @@ class AudioManager {
       // Default to highlighting the first available verse immediately
       _updateCurrentVerse(_currentTimings.first.verseNumber);
     }
+
+    // 7. Start listener ONLY AFTER seeking is finished so it doesn't jump to verse 1
+    _startSyncListener();
 
     audioHandler.play();
   }
@@ -310,11 +314,15 @@ class AudioManager {
   void stopAndClose() {
     if (isVisibleNotifier.value) {
       isVisibleNotifier.value = false;
+
+      // Immediately cancel subscriptions so we don't process position changes
+      // caused by fading/stopping the player (preventing jumps to verse 1).
+      _positionSubscription?.cancel();
+      _playerStateSubscription?.cancel();
+      _clearHighlight();
+
       _fadeOut().then((_) {
-        _positionSubscription?.cancel();
-        _playerStateSubscription?.cancel();
         _currentTimings = [];
-        _clearHighlight();
         _loadedBookId = null;
       });
     }
@@ -389,7 +397,6 @@ class AudioManager {
         );
         _updateCurrentVerse(match.verseNumber);
       } catch (_) {
-        // Also apply the fallback here just in case the user seeks into the intro manually
         if (seconds < _currentTimings.first.start) {
           _updateCurrentVerse(_currentTimings.first.verseNumber);
         } else {
@@ -443,6 +450,11 @@ class AudioManager {
     audioSourceNotifier.value = source;
     if (isVisibleNotifier.value && _loadedBookId != null) {
       final v = _lastSyncedVerse > 0 ? _lastSyncedVerse : 1;
+
+      // Cancel listeners before stopping the player to prevent jumping to verse 1
+      _positionSubscription?.cancel();
+      _playerStateSubscription?.cancel();
+
       await audioHandler.stop();
       await loadAndPlay(
         _loadedBookId!,
