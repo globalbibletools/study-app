@@ -54,7 +54,6 @@ class _BibleChapterState extends State<BibleChapter> {
       valueListenable: manager.textNotifier,
       builder: (context, verseLines, child) {
         if (verseLines.isEmpty) {
-          // You might want a loading indicator here
           return const SizedBox(
             height: 200,
             child: Center(child: CircularProgressIndicator()),
