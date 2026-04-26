@@ -183,6 +183,142 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get progress => 'Progression';
+
+  @override
+  String get goals => 'Objectifs';
+
+  @override
+  String get bySection => 'Par section';
+
+  @override
+  String get byBook => 'Par livre';
+
+  @override
+  String get week => 'Semaine';
+
+  @override
+  String get month => 'Mois';
+
+  @override
+  String months(String month) {
+    String _temp0 = intl.Intl.selectLogic(month, {
+      '1': 'Jan',
+      '2': 'Fév',
+      '3': 'Mar',
+      '4': 'Avr',
+      '5': 'Mai',
+      '6': 'Juin',
+      '7': 'Juil',
+      '8': 'Aoû',
+      '9': 'Sep',
+      '10': 'Oct',
+      '11': 'Nov',
+      '12': 'Déc',
+      'other': '',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get startSession => 'Commencer la session';
+
+  @override
+  String get start => 'Commencer';
+
+  @override
+  String get resume => 'Reprendre';
+
+  @override
+  String get whereYouLeftOff => 'Là où vous vous êtes arrêté';
+
+  @override
+  String get changeGoal => 'Modifier l’objectif';
+
+  @override
+  String get chapterShort => 'CH';
+
+  @override
+  String get dailyGoal => 'Objectif quotidien';
+
+  @override
+  String get minutes => 'minutes';
+
+  @override
+  String get verses => 'versets';
+
+  @override
+  String get minutesShort => 'min';
+
+  @override
+  String get versesShort => 'v';
+
+  @override
+  String get dailyGoalReached => 'objectif quotidien atteint';
+
+  @override
+  String get total => 'Total';
+
+  @override
+  String dayOfWeek(String day) {
+    String _temp0 = intl.Intl.selectLogic(day, {
+      '1': 'Lun',
+      '2': 'Mar',
+      '3': 'Mer',
+      '4': 'Jeu',
+      '5': 'Ven',
+      '6': 'Sam',
+      '7': 'Dim',
+      'other': '',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get dismiss => 'FERMER';
+
+  @override
+  String sessions(Object count) {
+    return 'SÉANCES: $count';
+  }
+
+  @override
+  String get sessionTotal => 'TOTAL DE SESSION';
+
+  @override
+  String get inProgress => 'En cours';
+
+  @override
+  String get goalType => 'Type d’objectif';
+
+  @override
+  String get target => 'Objectif';
+
+  @override
+  String get save => 'Enregistrer';
+
+  @override
+  String get hide => 'Masquer';
+
+  @override
+  String get minutesPerDay => 'Minutes par jour';
+
+  @override
+  String get versesPerDay => 'Versets par jour';
+
+  @override
+  String get goalReachedMessage => 'Tu as atteint ton objectif 🎉';
+
+  @override
+  String get continueReadingPrompt => 'Continuer ta session de lecture ?';
+
+  @override
+  String get yes => 'Oui';
+
+  @override
+  String get no => 'Non';
+
+  @override
   String get bookGenesis => 'Genèse';
 
   @override

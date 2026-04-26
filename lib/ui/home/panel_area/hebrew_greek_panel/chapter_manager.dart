@@ -5,6 +5,7 @@ import 'package:studyapp/services/bible/bible_service.dart';
 import 'package:studyapp/services/download/cancel_token.dart';
 import 'package:studyapp/services/gloss/gloss_service.dart';
 import 'package:studyapp/services/hebrew_greek/database.dart';
+import 'package:studyapp/services/reading_session/rs_manager.dart';
 import 'package:studyapp/services/service_locator.dart';
 import 'package:studyapp/services/settings/user_settings.dart';
 
@@ -13,12 +14,37 @@ class HebrewGreekChapterManager {
   final _glossService = getIt<GlossService>();
   final _bibleService = getIt<BibleService>();
   final _settings = getIt<UserSettings>();
+  final _rsmanager = getIt<ReadingSessionManager>();
 
   final textNotifier = ValueNotifier<List<HebrewGreekWord>>([]);
+  final verseCheckboxNotifier = VerseCheckboxNotifier();
 
   Future<void> loadChapterData(int bookId, int chapter) async {
     textNotifier.value = [];
     textNotifier.value = await _hebrewGreekDb.getChapter(bookId, chapter);
+  }
+
+  Future<void> loadReadVerses(int bookId, int chapter) async {
+    verseCheckboxNotifier.clear();
+    verseCheckboxNotifier.setVersesRead(
+      await _rsmanager.getVersesReadForChapter(bookId, chapter),
+    );
+  }
+
+  Future<void> markVerseAsRead(int bookId, int chapter, int verse) async {
+    await _rsmanager.markVerseAsRead(bookId, chapter, verse);
+    verseCheckboxNotifier.setVersesRead(
+      await _rsmanager.getVersesReadForChapter(bookId, chapter),
+    );
+  }
+
+  Future<void> resetVerseProgress(int bookId, int chapter, int verse) async {
+    await _rsmanager.resetReadingCountForVerse(bookId, chapter, verse);
+    final versesRead = await _rsmanager.getVersesReadForChapter(
+      bookId,
+      chapter,
+    );
+    verseCheckboxNotifier.setVersesRead(versesRead);
   }
 
   bool isRtl(int bookId) {
@@ -116,5 +142,26 @@ class HebrewGreekChapterManager {
       }
     }
     return buffer.toString();
+  }
+
+  void dispose() {
+    textNotifier.dispose();
+    verseCheckboxNotifier.dispose();
+  }
+}
+
+class VerseCheckboxNotifier extends ChangeNotifier {
+  Map<int, int> _value = {};
+
+  Map<int, int> get value => Map.unmodifiable(_value);
+
+  void setVersesRead(Map<int, int> versesRead) {
+    _value = versesRead;
+    notifyListeners();
+  }
+
+  void clear() {
+    _value = {};
+    notifyListeners();
   }
 }

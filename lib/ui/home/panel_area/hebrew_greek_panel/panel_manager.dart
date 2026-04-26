@@ -1,9 +1,11 @@
 import 'package:flutter/foundation.dart';
+import 'package:studyapp/services/reading_session/rs_manager.dart';
 import 'package:studyapp/services/service_locator.dart';
 import 'package:studyapp/services/settings/user_settings.dart';
 
 class HebrewGreekPanelManager {
   final _settings = getIt<UserSettings>();
+  final _rsmanager = getIt<ReadingSessionManager>();
 
   // Notifiers for both languages
   late final hebrewScaleNotifier = ValueNotifier<double>(
@@ -15,6 +17,9 @@ class HebrewGreekPanelManager {
   late final verseLayoutNotifier = ValueNotifier<VerseLayout>(
     _settings.verseLayout,
   );
+
+  ValueNotifier<bool> get readingModeEnabledNotifier =>
+      _rsmanager.readingModeNotifier;
 
   // Track the book currently in view
   int currentBookId = 1;

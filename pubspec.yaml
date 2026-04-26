@@ -50,3 +50,4 @@ flutter:
     - assets/databases/
     - assets/images/logo.png
     - assets/l10n/
+    - assets/schemas/

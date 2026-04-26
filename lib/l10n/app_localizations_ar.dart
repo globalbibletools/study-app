@@ -182,6 +182,142 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String get progress => 'التقدم';
+
+  @override
+  String get goals => 'الأهداف';
+
+  @override
+  String get bySection => 'حسب القسم';
+
+  @override
+  String get byBook => 'حسب السفر';
+
+  @override
+  String get week => 'أسبوع';
+
+  @override
+  String get month => 'شهر';
+
+  @override
+  String months(String month) {
+    String _temp0 = intl.Intl.selectLogic(month, {
+      '1': 'يناير',
+      '2': 'فبراير',
+      '3': 'مارس',
+      '4': 'أبريل',
+      '5': 'مايو',
+      '6': 'يونيو',
+      '7': 'يوليو',
+      '8': 'أغسطس',
+      '9': 'سبتمبر',
+      '10': 'أكتوبر',
+      '11': 'نوفمبر',
+      '12': 'ديسمبر',
+      'other': '',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get startSession => 'ابدأ الجلسة';
+
+  @override
+  String get start => 'ابدأ';
+
+  @override
+  String get resume => 'استئناف';
+
+  @override
+  String get whereYouLeftOff => 'من حيث توقفت';
+
+  @override
+  String get changeGoal => 'تغيير الهدف';
+
+  @override
+  String get chapterShort => 'فص';
+
+  @override
+  String get dailyGoal => 'الهدف اليومي';
+
+  @override
+  String get minutes => 'دقائق';
+
+  @override
+  String get verses => 'آيات';
+
+  @override
+  String get minutesShort => 'د';
+
+  @override
+  String get versesShort => 'آ';
+
+  @override
+  String get dailyGoalReached => 'تم تحقيق الهدف اليومي';
+
+  @override
+  String get total => 'المجموع';
+
+  @override
+  String dayOfWeek(String day) {
+    String _temp0 = intl.Intl.selectLogic(day, {
+      '1': 'الإثنين',
+      '2': 'الثلاثاء',
+      '3': 'الأربعاء',
+      '4': 'الخميس',
+      '5': 'الجمعة',
+      '6': 'السبت',
+      '7': 'الأحد',
+      'other': '',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get dismiss => 'إغلاق';
+
+  @override
+  String sessions(Object count) {
+    return 'الجلسات: $count';
+  }
+
+  @override
+  String get sessionTotal => 'مجموع الجلسة';
+
+  @override
+  String get inProgress => 'قيد التنفيذ';
+
+  @override
+  String get goalType => 'نوع الهدف';
+
+  @override
+  String get target => 'الهدف';
+
+  @override
+  String get save => 'حفظ';
+
+  @override
+  String get hide => 'إخفاء';
+
+  @override
+  String get minutesPerDay => 'دقائق في اليوم';
+
+  @override
+  String get versesPerDay => 'آيات في اليوم';
+
+  @override
+  String get goalReachedMessage => 'لقد وصلت إلى هدفك 🎉';
+
+  @override
+  String get continueReadingPrompt => 'هل تريد متابعة جلسة القراءة؟';
+
+  @override
+  String get yes => 'نعم';
+
+  @override
+  String get no => 'لا';
+
+  @override
   String get bookGenesis => 'التكوين';
 
   @override

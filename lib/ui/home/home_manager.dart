@@ -19,6 +19,7 @@ import 'package:studyapp/ui/home/appbar/reference_chooser/reference_chooser.dart
 import 'package:studyapp/ui/home/audio/audio_logic.dart';
 import 'package:studyapp/ui/home/audio/audio_manager.dart';
 import 'package:studyapp/ui/home/common/scroll_sync_controller.dart';
+import 'package:studyapp/services/reading_session/rs_manager.dart';
 
 class HomeManager {
   final currentReference = ValueNotifier<Reference>(
@@ -56,6 +57,7 @@ class HomeManager {
   final _settings = getIt<UserSettings>();
   final _downloadService = getIt<DownloadService>();
   final _assetService = getIt<RemoteAssetService>();
+  final readingSessionManager = getIt<ReadingSessionManager>();
 
   int? _lastSavedBook;
   int? _lastSavedChapter;
@@ -346,5 +348,6 @@ class HomeManager {
     settingsVersionNotifier.dispose();
     inputModeNotifier.dispose();
     enabledDigitsNotifier.dispose();
+    readingSessionManager.dispose();
   }
 }

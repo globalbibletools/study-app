@@ -59,6 +59,10 @@ class BibleNavigation {
     return _bookIdToChapterCountMap[bookId] ?? 0;
   }
 
+  static int getBooksCount() {
+    return 66;
+  }
+
   static const Map<int, int> _bookIdToChapterCountMap = {
     1: 50, // Genesis
     2: 40, // Exodus

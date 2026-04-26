@@ -6,6 +6,7 @@ import 'package:studyapp/services/bible/bible_service.dart';
 import 'package:studyapp/services/gloss/gloss_service.dart';
 import 'package:studyapp/services/hebrew_greek/database.dart';
 import 'package:studyapp/services/lexicon/database.dart';
+import 'package:studyapp/services/reading_session/rs_database.dart';
 import 'package:studyapp/services/service_locator.dart';
 import 'package:studyapp/services/settings/user_settings.dart';
 import 'package:studyapp/ui/home/home.dart';
@@ -23,6 +24,7 @@ Future<void> main() async {
   await getIt<LexiconsDatabase>().init();
   await getIt<BibleService>().init();
   await getIt<AudioDatabase>().init();
+  await getIt<ReadingSessionDatabase>().init();
   await JustAudioBackground.init(
     androidNotificationChannelId: 'com.ryanheise.bg_demo.channel.audio',
     androidNotificationChannelName: 'Audio playback',
