@@ -465,9 +465,16 @@ class ReadingSessionManager {
   RsBookProgress? getLatestBookProgress() {
     if (_booksProgress == null) return null;
 
-    final latest = _booksProgress!
-        .where((b) => b.id != null)
-        .reduce((a, b) => a.updatedAt.isAfter(b.updatedAt) ? a : b);
+    final filtered = _booksProgress!.where((b) => b.id != null).toList();
+
+    if (filtered.isEmpty) {
+      _latestBookProgress = null;
+      return null;
+    }
+
+    final latest = filtered.reduce(
+      (a, b) => a.updatedAt.isAfter(b.updatedAt) ? a : b,
+    );
 
     _latestBookProgress = latest;
     for (VoidCallback x in _booksProgressListeners) {
@@ -641,7 +648,7 @@ class ReadingSessionManager {
         if (current == null ||
             current.bookId != entry.bookId ||
             current.chapter != entry.chapter ||
-            current.toVerse + 1 != entry.verse) {
+            entry.verse - current.toVerse > 1 ) {
           current = DetailedProgess(
             entry.bookId,
             entry.chapter,

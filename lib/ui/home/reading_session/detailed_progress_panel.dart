@@ -99,11 +99,16 @@ class _DetailedProgressPanelState extends State<DetailedProgressPanel> {
   }
 
   Widget _readingSection() {
+    final screenHeight = MediaQuery.of(context).size.height;
     return ValueListenableBuilder<List<Session>>(
       valueListenable: widget.manager.details,
       builder: (context, data, _) {
-        return Expanded(
-          child: ListView(children: data.map(_sessionCard).toList()),
+        return ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: screenHeight * 0.5),
+          child: ListView(
+            shrinkWrap: true,
+            children: data.map(_sessionCard).toList(),
+          ),
         );
       },
     );

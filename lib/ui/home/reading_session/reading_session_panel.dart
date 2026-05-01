@@ -46,7 +46,9 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
     return Container(
+      height: screenHeight * 0.85,
       padding: const EdgeInsets.all(16),
       decoration: const BoxDecoration(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -244,7 +246,7 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
           itemCount: totalCells,
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 7,
-            childAspectRatio: 1.3,
+            childAspectRatio: 1,
           ),
           itemBuilder: (context, index) {
             if (index < firstWeekday - 1) {
@@ -275,11 +277,7 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
           ProgressTab.bySection,
         ),
         const SizedBox(width: 8),
-        _tab(
-          l10n.byBook,
-          manager.selectedPTabNotifier,
-          ProgressTab.byBook,
-        ),
+        _tab(l10n.byBook, manager.selectedPTabNotifier, ProgressTab.byBook),
       ],
     );
   }
@@ -527,7 +525,6 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
   }
 
   Widget _dayCalendar(DayProgress progress, bool isToday) {
-    final l10n = AppLocalizations.of(context)!;
     final color = Theme.of(context).colorScheme.primary;
     return Material(
       color: Colors.transparent,
@@ -549,16 +546,16 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
             children: [
               Text(
                 "${progress.day.day}",
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
               ),
               const Spacer(),
-              if (!progress.empty)
-                Text(
-                  "${progress.minutes}${l10n.minutesShort}|${progress.verses} ${l10n.versesShort}",
-                  style: TextStyle(fontSize: 10),
-                )
-              else
-                Text("--", style: TextStyle(fontSize: 10, color: Colors.grey)),
+              // if (!progress.empty)
+              //   Text(
+              //     "${progress.minutes}${l10n.minutesShort}|${progress.verses} ${l10n.versesShort}",
+              //     style: TextStyle(fontSize: 10),
+              //   )
+              // else
+              //   Text("--", style: TextStyle(fontSize: 10, color: Colors.grey)),
             ],
           ),
         ),

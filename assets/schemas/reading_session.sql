@@ -37,7 +37,7 @@ create table rs_stats (
     stats_date date not null,
     rs_seconds int not null,
     rs_verses int not null,
-    goal_reached int not null,
+    goal_reached int not null
 );
 
 CREATE UNIQUE INDEX hash_type_date
