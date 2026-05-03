@@ -22,7 +22,8 @@ create table rs_log (
     book_id integer not null,
     chapter integer not null,
     verse integer not null,
-    date_time timestamp not null
+    date_time timestamp not null,
+    foreign key (rs_daily_log_id) references rs_daily_log(id)
 );
 
 ------------------------------
