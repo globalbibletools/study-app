@@ -149,6 +149,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get downloads => 'Téléchargements';
 
   @override
+  String get backupRestore => 'Sauvegarde/restauration';
+
+  @override
   String get audio => 'Audio';
 
   @override

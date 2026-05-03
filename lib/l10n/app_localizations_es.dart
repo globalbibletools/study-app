@@ -149,6 +149,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get downloads => 'Descargas';
 
   @override
+  String get backupRestore => 'Copia de seguridad/restauración';
+
+  @override
   String get audio => 'Audio';
 
   @override

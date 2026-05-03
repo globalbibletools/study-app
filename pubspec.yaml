@@ -22,6 +22,7 @@ dependencies:
   intl: ^0.20.2
   connectivity_plus: ^7.0.0
   archive: ^4.0.7
+  file_picker: ^10.3.2
   http: ^1.4.0
   path_provider: ^2.1.5
   package_info_plus: ^9.0.0

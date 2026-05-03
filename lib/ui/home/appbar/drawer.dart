@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:studyapp/ui/about/about.dart';
 import 'package:studyapp/l10n/app_localizations.dart';
+import 'package:studyapp/ui/backup_restore/backup_restore.dart';
 import 'package:studyapp/ui/download/download_manager_page.dart';
 import 'package:studyapp/ui/search/search.dart';
 import 'package:studyapp/ui/settings/settings_page.dart';
@@ -75,6 +76,19 @@ class AppDrawer extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const AboutPage()),
+                );
+              },
+            ),
+            ListTile(
+              title: Text(AppLocalizations.of(context)!.backupRestore),
+              leading: Icon(Icons.cloud_upload),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const BackupRestorePage(),
+                  ),
                 );
               },
             ),

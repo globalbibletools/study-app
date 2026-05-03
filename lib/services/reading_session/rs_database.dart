@@ -1,18 +1,50 @@
+import 'dart:convert';
 import 'dart:developer';
+import 'dart:io';
 
 import 'package:flutter/services.dart';
+import 'package:path/path.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:studyapp/services/reading_session/rs_model.dart';
+
+class ReadingSessionBackupInfo {
+  const ReadingSessionBackupInfo({
+    required this.path,
+    required this.name,
+    required this.modifiedAt,
+    required this.sizeBytes,
+  });
+
+  final String path;
+  final String name;
+  final DateTime modifiedAt;
+  final int sizeBytes;
+}
 
 class ReadingSessionDatabase {
   static const _databaseName = 'reading_session.db';
   static const _databaseVersion = 1;
+  static const _backupFormatVersion = 1;
+  static const _backupDirectoryName = 'backups';
+  static const _backupFilePrefix = 'reading_session_';
 
   late Database _database;
+  Future<void>? _initFuture;
 
   Future<void> init() async {
-    //await resetDatabase();
-    await _initDatabase(_databaseName);
+    if (_initFuture != null) {
+      return _initFuture;
+    }
+
+    _initFuture = _initDatabase(_databaseName);
+    try {
+      await _initFuture;
+    } catch (_) {
+      _initFuture = null;
+      rethrow;
+    }
+    return _initFuture;
   }
 
   Future<void> resetDatabase() async {
@@ -58,6 +90,152 @@ class ReadingSessionDatabase {
     }
 
     await batch.commit(noResult: true);
+  }
+
+  Future<String> createBackup() async {
+    await init();
+    final backupDir = await _getBackupDirectory();
+    await backupDir.create(recursive: true);
+
+    final timestamp = DateTime.now().toIso8601String().replaceAll(':', '-');
+    final backupPath = join(
+      backupDir.path,
+      '$_backupFilePrefix$timestamp.json',
+    );
+
+    return writeBackupToPath(backupPath);
+  }
+
+  Future<String> writeBackupToPath(String backupPath) async {
+    await init();
+    final file = File(backupPath);
+    await file.parent.create(recursive: true);
+    await file.writeAsBytes(await buildBackupBytes(), flush: true);
+    return file.path;
+  }
+
+  Future<Uint8List> buildBackupBytes() async {
+    await init();
+    final payload = await _buildBackupPayload();
+    final encoded = utf8.encode(jsonEncode(payload));
+    return Uint8List.fromList(encoded);
+  }
+
+  Future<Map<String, Object?>> _buildBackupPayload() async {
+    return {
+      'format_version': _backupFormatVersion,
+      'created_at': DateTime.now().toIso8601String(),
+      'tables': {
+        'rs_daily_log': await _database.query('rs_daily_log', orderBy: 'id'),
+        'rs_log': await _database.query('rs_log', orderBy: 'id'),
+        'rs_stats': await _database.query('rs_stats', orderBy: 'id'),
+        'rs_book_progress': await _database.query(
+          'rs_book_progress',
+          orderBy: 'id',
+        ),
+      },
+    };
+  }
+
+  Future<List<ReadingSessionBackupInfo>> listBackups() async {
+    await init();
+    final backupDir = await _getBackupDirectory();
+    if (!await backupDir.exists()) {
+      return [];
+    }
+
+    final files = await backupDir
+        .list()
+        .where((entity) => entity is File && entity.path.endsWith('.json'))
+        .cast<File>()
+        .toList();
+
+    final backups = <ReadingSessionBackupInfo>[];
+    for (final file in files) {
+      final stat = await file.stat();
+      backups.add(
+        ReadingSessionBackupInfo(
+          path: file.path,
+          name: basename(file.path),
+          modifiedAt: stat.modified,
+          sizeBytes: stat.size,
+        ),
+      );
+    }
+
+    backups.sort((a, b) => b.modifiedAt.compareTo(a.modifiedAt));
+    return backups;
+  }
+
+  Future<void> restoreBackup(String backupPath) async {
+    await init();
+    final file = File(backupPath);
+    await restoreBackupJson(await file.readAsString());
+  }
+
+  Future<void> restoreBackupBytes(Uint8List bytes) async {
+    await init();
+    await restoreBackupJson(utf8.decode(bytes));
+  }
+
+  Future<void> restoreBackupJson(String content) async {
+    await init();
+    final raw = jsonDecode(content);
+    if (raw is! Map<String, dynamic>) {
+      throw const FormatException('Invalid backup file.');
+    }
+
+    final tables = raw['tables'];
+    if (tables is! Map<String, dynamic>) {
+      throw const FormatException('Backup is missing table data.');
+    }
+
+    final dailyLogRows = _parseBackupRows(tables['rs_daily_log']);
+    final logRows = _parseBackupRows(tables['rs_log']);
+    final statsRows = _parseBackupRows(tables['rs_stats']);
+    final bookProgressRows = _parseBackupRows(tables['rs_book_progress']);
+
+    await _database.transaction((txn) async {
+      final batch = txn.batch();
+
+      batch.delete('rs_log');
+      batch.delete('rs_stats');
+      batch.delete('rs_book_progress');
+      batch.delete('rs_daily_log');
+
+      for (final row in dailyLogRows) {
+        batch.insert('rs_daily_log', row);
+      }
+      for (final row in logRows) {
+        batch.insert('rs_log', row);
+      }
+      for (final row in statsRows) {
+        batch.insert('rs_stats', row);
+      }
+      for (final row in bookProgressRows) {
+        batch.insert('rs_book_progress', row);
+      }
+
+      await batch.commit(noResult: true);
+    });
+  }
+
+  List<Map<String, Object?>> _parseBackupRows(Object? rows) {
+    if (rows is! List) {
+      throw const FormatException('Backup table payload is invalid.');
+    }
+
+    return rows.map((row) {
+      if (row is! Map) {
+        throw const FormatException('Backup row payload is invalid.');
+      }
+      return Map<String, Object?>.from(row);
+    }).toList();
+  }
+
+  Future<Directory> _getBackupDirectory() async {
+    final docDir = await getApplicationDocumentsDirectory();
+    return Directory(join(docDir.path, _backupDirectoryName));
   }
 
   /* RS DAILY LOG */

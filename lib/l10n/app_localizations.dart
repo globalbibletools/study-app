@@ -356,6 +356,12 @@ abstract class AppLocalizations {
   /// **'Downloads'**
   String get downloads;
 
+  /// Drawer menu item for the backup and restore screen
+  ///
+  /// In en, this message translates to:
+  /// **'Backup/restore'**
+  String get backupRestore;
+
   /// Section header for Audio downloads
   ///
   /// In en, this message translates to:

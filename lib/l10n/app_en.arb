@@ -181,6 +181,10 @@
   "@downloads": {
     "description": "Title for the Download Manager screen"
   },
+  "backupRestore": "Backup/restore",
+  "@backupRestore": {
+    "description": "Drawer menu item for the backup and restore screen"
+  },
   "audio": "Audio",
   "@audio": {
     "description": "Section header for Audio downloads"

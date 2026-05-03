@@ -148,6 +148,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get downloads => 'Downloads';
 
   @override
+  String get backupRestore => 'Backup/restore';
+
+  @override
   String get audio => 'Audio';
 
   @override

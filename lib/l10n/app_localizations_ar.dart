@@ -148,6 +148,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get downloads => 'التنزيلات';
 
   @override
+  String get backupRestore => 'النسخ الاحتياطي/الاستعادة';
+
+  @override
   String get audio => 'الصوت';
 
   @override

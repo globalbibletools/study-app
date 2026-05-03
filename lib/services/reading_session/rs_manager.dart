@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:developer';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:studyapp/common/bible_navigation.dart';
@@ -78,10 +79,7 @@ class ReadingSessionManager {
 
   Future<void> init() async {
     await _rsdbManager.init();
-    await loadBooksProgress();
-    readingModeNotifier.value = _rsDailyLog != null;
-    getLatestBookProgress();
-    await _loadMonthProgress();
+    await _reloadFromDatabase();
   }
 
   Future<void> toggleReadingSession() async {
@@ -309,6 +307,47 @@ class ReadingSessionManager {
     totalVersesReadPerDay.value = totalVersesReadPerDay.value - count;
 
     await _rsdbManager.updateDailyLog(rsDailyLog);
+  }
+
+  Future<String> createBackup() async {
+    return _rsdbManager.createBackup();
+  }
+
+  Future<String> exportBackup(String backupPath) async {
+    return _rsdbManager.writeBackupToPath(backupPath);
+  }
+
+  Future<Uint8List> buildBackupBytes() async {
+    return _rsdbManager.buildBackupBytes();
+  }
+
+  Future<List<ReadingSessionBackupInfo>> listBackups() async {
+    return _rsdbManager.listBackups();
+  }
+
+  Future<void> restoreBackup(String backupPath) async {
+    await _resetBeforeRestore();
+    await _rsdbManager.restoreBackup(backupPath);
+    await _reloadFromDatabase();
+  }
+
+  Future<void> restoreBackupBytes(Uint8List bytes) async {
+    await _resetBeforeRestore();
+    await _rsdbManager.restoreBackupBytes(bytes);
+    await _reloadFromDatabase();
+  }
+
+  Future<void> _resetBeforeRestore() async {
+    _timer?.cancel();
+    _timer = null;
+    _rsDailyLog = null;
+    readingModeNotifier.value = false;
+    displayGoalProgresNotifier.value = false;
+    totalVersesReadPerDay.value = 0;
+    totalSecondsReadPerDay.value = 0;
+    totalSecondsReadPerSession.value = 0;
+    goalReachedNotifier.value = false;
+    _goalAlreadyReached = false;
   }
 
   ///if the session started in a older day than today, then log it as a distinct entry
@@ -621,6 +660,19 @@ class ReadingSessionManager {
     for (VoidCallback x in _statsListeners) {
       x.call();
     }
+  }
+
+  Future<void> _reloadFromDatabase() async {
+    _bookVerseReadCount.clear();
+    _booksProgress = null;
+    _latestBookProgress = null;
+    _weekProgress = [];
+    _monthProgress = [];
+
+    await loadBooksProgress();
+    readingModeNotifier.value = _rsDailyLog != null;
+    getLatestBookProgress();
+    await _loadMonthProgress();
   }
 
   bool isSameWeek(DateTime a, DateTime b) {
