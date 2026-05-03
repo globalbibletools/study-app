@@ -231,7 +231,8 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter>
                             (locale) => _handleMissingResources(locale),
                           );
                         },
-                        onWordLongPress: _showWordDetails,
+                        onPopupShown: _ensurePopupIsVisible,
+                    onWordLongPress: _showWordDetails,
                         highlightedVerse: verseToHighlight,
                         highlightColor: Theme.of(
                           context,
@@ -246,6 +247,39 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter>
         );
       },
     );
+  }
+
+  void _ensurePopupIsVisible(Rect globalPopupRect) {
+    // 1. Calculate the safe area top (Status Bar + App Bar + small padding)
+    final double statusBarHeight = MediaQuery.of(context).padding.top;
+    final double safeTopPadding = statusBarHeight + kToolbarHeight + 16.0;
+
+    final topY = globalPopupRect.top;
+
+    // 2. If the top of the popup is underneath the App Bar
+    if (topY < safeTopPadding) {
+      final double scrollAdjustment = safeTopPadding - topY;
+      final scrollable = Scrollable.maybeOf(context);
+      if (scrollable == null) {
+        return;
+      }
+      final position = scrollable.position;
+
+      // Push the screen DOWN by decreasing the offset
+      final targetOffset = position.pixels - scrollAdjustment;
+      final clampedOffset = targetOffset.clamp(
+        position.minScrollExtent,
+        position.maxScrollExtent,
+      );
+
+      if (position.pixels != clampedOffset) {
+        position.animateTo(
+          clampedOffset,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    }
   }
 
   Future<void> _handleMissingResources(Locale locale) async {
