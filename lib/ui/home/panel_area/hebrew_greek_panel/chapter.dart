@@ -232,7 +232,7 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter>
                           );
                         },
                         onPopupShown: _ensurePopupIsVisible,
-                    onWordLongPress: _showWordDetails,
+                        onWordLongPress: _showWordDetails,
                         highlightedVerse: verseToHighlight,
                         highlightColor: Theme.of(
                           context,
