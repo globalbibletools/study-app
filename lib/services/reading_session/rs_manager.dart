@@ -547,35 +547,35 @@ class ReadingSessionManager {
 
     var chaptersRead = bookProgress.chaptersRead;
 
+    ChapterIdentifier? nextChapter;
+
     //if this verse is read and chapter is completed, increase the number of read chapters
     if (markVerseAsRead && totalChapterVerses == versesRead) {
       chaptersRead += 1;
-      final nextChapter = BibleNavigation.getNextChapter(
-        ChapterIdentifier(bookId, chapter),
-      );
-      if (nextChapter != null) {
-        bookId = nextChapter.bookId;
-        chapter = nextChapter.chapter;
-      } else {
-        bookId = 1;
-        chapter = 1;
-      }
     }
     //if this verse is unread, and chapter was already completed, reduce the number of read chapters
     else if (!markVerseAsRead && totalChapterVerses == versesRead - 1) {
       chaptersRead -= 1;
-      if (versesRead == 0) {
-        final prevChapter = BibleNavigation.getPreviousChapter(
-          ChapterIdentifier(bookId, chapter),
-        );
-        if (prevChapter != null) {
-          bookId = prevChapter.bookId;
-          chapter = prevChapter.chapter;
-        } else {
-          bookId = 1;
-          chapter = 1;
-        }
-      }
+    }
+
+    //if with reading progress, the last verse is completed, move to next chapter
+    if (markVerseAsRead && verse > totalChapterVerses) {
+      nextChapter = BibleNavigation.getNextChapter(
+        ChapterIdentifier(bookId, chapter),
+      );
+    }
+    //or move backward
+    else if (!markVerseAsRead && verse == 1) {
+      nextChapter = BibleNavigation.getPreviousChapter(
+        ChapterIdentifier(bookId, chapter),
+      );
+    }
+
+    //progress is within the same book, update the values
+    if (nextChapter != null && nextChapter.bookId == bookId) {
+      chapter = nextChapter.chapter;
+      //TODO: get next unread verse of this chapter
+      verse = 1;
     }
 
     //this is to track the last verse read, so the user can resume reading at a later stage
@@ -584,6 +584,7 @@ class ReadingSessionManager {
       chapter: chapter,
       verse: verse,
       chaptersRead: chaptersRead,
+      updatedAt: DateTime.now(),
     );
 
     if (bookProgress.id == null) {
@@ -593,6 +594,29 @@ class ReadingSessionManager {
     }
 
     _booksProgress![rsLog.bookId - 1] = bookProgress;
+
+    if (nextChapter != null && nextChapter.bookId != bookId) {
+      //load the progress of the new book
+
+      bookId = nextChapter.bookId;
+      bookProgress = _booksProgress![bookId];
+
+      if (bookProgress.id == null) {
+        bookProgress = RsBookProgress(
+          bookId: bookId,
+          chapter: nextChapter.chapter,
+          verse: 1,
+          chaptersRead: 0,
+          updatedAt: DateTime.now(),
+        );
+
+        bookProgress = await _rsdbManager.insertBookProgresss(bookProgress);
+      } else {
+        bookProgress = bookProgress.copyWith(updatedAt: DateTime.now());
+        await _rsdbManager.updateBookProgress(bookProgress);
+      }
+      _booksProgress![bookId - 1] = bookProgress;
+    }
 
     //todo to be optimized
     await _loadMonthProgress();
@@ -700,7 +724,7 @@ class ReadingSessionManager {
         if (current == null ||
             current.bookId != entry.bookId ||
             current.chapter != entry.chapter ||
-            entry.verse - current.toVerse > 1 ) {
+            entry.verse - current.toVerse > 1) {
           current = DetailedProgess(
             entry.bookId,
             entry.chapter,
