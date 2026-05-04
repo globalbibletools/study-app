@@ -174,6 +174,103 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
   }
 
   Widget _progressTabContent() {
+    return ValueListenableBuilder(
+      valueListenable: manager.selectedPTabNotifier,
+      builder: (context, value, _) {
+        switch (value) {
+          case ProgressTab.byBook:
+            return _progressByBookTabContent();
+          case ProgressTab.bySection:
+            return _progressBySectionTabContent();
+        }
+      },
+    );
+  }
+
+  Widget _progressBySectionTabContent() {
+    final l10n = AppLocalizations.of(context)!;
+    return ValueListenableBuilder<List<RsBookProgress>>(
+      valueListenable: manager.booksProgressNotifier,
+      builder: (context, booksProgress, _) {
+        final newTestamentStartBookId = BibleNavigation.getNewTestamentBookId();
+        final oldTestamentProgressList =
+            booksProgress
+                .where((b) => b.bookId < newTestamentStartBookId)
+                .toList()
+              ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+
+        final newTestamentProgressList =
+            booksProgress
+                .where((b) => b.bookId >= newTestamentStartBookId)
+                .toList()
+              ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+
+        // Latest items
+        final latestOldTestament = oldTestamentProgressList.isNotEmpty
+            ? oldTestamentProgressList.first
+            : RsBookProgress(
+                bookId: 1,
+                chapter: 1,
+                verse: 1,
+                chaptersRead: 0,
+                updatedAt: DateTime.now(),
+              );
+
+        final latestNewTestament = newTestamentProgressList.isNotEmpty
+            ? newTestamentProgressList.first
+            : RsBookProgress(
+                bookId: newTestamentStartBookId,
+                chapter: 1,
+                verse: 1,
+                chaptersRead: 0,
+                updatedAt: DateTime.now(),
+              );
+        //Books read
+        var oldTestamentBooksRead = 0;
+        var newTestamentBooksRead = 0;
+        var totalOldTestament = newTestamentStartBookId;
+        var totalNewTestament =
+            BibleNavigation.getBooksCount() - newTestamentStartBookId + 1;
+
+        for (RsBookProgress progress in booksProgress) {
+          if (progress.chaptersRead !=
+              BibleNavigation.getChapterCount(progress.bookId)) {
+            continue;
+          } else if (progress.bookId < newTestamentStartBookId) {
+            oldTestamentBooksRead += 1;
+          } else {
+            newTestamentBooksRead += 1;
+          }
+        }
+
+        return Expanded(
+          child: ListView(
+            children: [
+              _bookCard(
+                latestOldTestament,
+                l10n.oldTestament,
+                oldTestamentBooksRead / totalOldTestament,
+                "$oldTestamentBooksRead/$totalOldTestament",
+                "",
+                latestOldTestament.id == null ? l10n.start : l10n.resume,
+              ),
+
+              _bookCard(
+                latestNewTestament,
+                l10n.newTestament,
+                newTestamentBooksRead / totalNewTestament,
+                "$newTestamentBooksRead/$totalNewTestament",
+                "",
+                latestNewTestament.id == null ? l10n.start : l10n.resume,
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _progressByBookTabContent() {
     final l10n = AppLocalizations.of(context)!;
     return ValueListenableBuilder<List<RsBookProgress>>(
       valueListenable: manager.booksProgressNotifier,
@@ -192,6 +289,7 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
                 bookName,
                 book.chaptersRead / totalChapters,
                 "${book.chaptersRead}/$totalChapters",
+                "${l10n.chapterShort}. ",
                 action,
               );
             }).toList(),
@@ -297,10 +395,10 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
     RsBookProgress bookProgress,
     String title,
     double progress,
-    String chapters,
+    String progressLabel,
+    String progressPrefix,
     String action,
   ) {
-    final l10n = AppLocalizations.of(context)!;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -370,7 +468,7 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
                 Row(
                   children: [
                     Text(
-                      "${l10n.chapterShort}. $chapters",
+                      "$progressPrefix$progressLabel",
                       style: const TextStyle(fontSize: 12),
                     ),
                     const Spacer(),
