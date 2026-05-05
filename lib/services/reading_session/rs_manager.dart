@@ -236,7 +236,7 @@ class ReadingSessionManager {
 
     Map<int, int>? current = _bookVerseReadCount[key];
     if (current == null) {
-      current = {};
+      current = await getVersesReadForChapter(bookId, chapter);
       _bookVerseReadCount[key] = current;
     }
     final existingCount = current[verse] ?? 0;
@@ -262,7 +262,7 @@ class ReadingSessionManager {
 
     //book progress is only increased when we read the verse for the first time
     if (existingCount == 0) {
-      _updateBookProgress(rsLog, true);
+      await _updateBookProgress(rsLog, true);
     }
 
     _rsDailyLog = rsDailyLog;
@@ -276,7 +276,19 @@ class ReadingSessionManager {
     int chapter,
     int verse,
   ) async {
-    if (_rsDailyLog == null) {
+    if (_rsDailyLog == null || _bookVerseReadCount.isEmpty) {
+      return;
+    }
+
+    var rsDailyLog = _rsDailyLog!;
+    final key = bookId * 1000 + chapter;
+
+    Map<int, int>? verseReadCount = _bookVerseReadCount[key];
+    //load cache if not already loaded
+    verseReadCount ??= await getVersesReadForChapter(bookId, chapter);
+
+    if (!verseReadCount.containsKey(verse)) {
+      //should not reach here
       return;
     }
 
@@ -287,20 +299,18 @@ class ReadingSessionManager {
       verse,
     );
 
-    var rsDailyLog = _rsDailyLog!;
-    final key = bookId * 1000 + chapter;
     final count = verseLogs.length;
 
     for (RsLog rsLog in verseLogs) {
       await _rsdbManager.deleteLog(rsLog.id!);
     }
 
-    var currentReadCount = _bookVerseReadCount[key]![verse]!;
+    var currentReadCount = verseReadCount[verse]!;
     currentReadCount -= count;
-    _bookVerseReadCount[key]![verse] = currentReadCount;
+    verseReadCount[verse] = currentReadCount;
 
     if (currentReadCount == 0) {
-      _updateBookProgress(verseLogs.first, false);
+      await _updateBookProgress(verseLogs.first, false);
     }
 
     rsDailyLog = rsDailyLog.copyWith(verses: rsDailyLog.verses - count);
@@ -366,7 +376,7 @@ class ReadingSessionManager {
 
       await _rsdbManager.updateDailyLog(rsDailyLog);
 
-      _updateStatistics(rsDailyLog);
+      await _updateStatistics(rsDailyLog);
 
       currentDailyLog = RsDailyLog(
         rsDate: nextDay,
@@ -386,7 +396,7 @@ class ReadingSessionManager {
   }
 
   Future<void> _updateDailyStatistics(RsDailyLog dailyLog) async {
-    _updateStatisticsBy(dailyLog, RsStatsType.daily, dailyLog.rsDate);
+    await _updateStatisticsBy(dailyLog, RsStatsType.daily, dailyLog.rsDate);
   }
 
   Future<void> _updateMonthlyStatistics(RsDailyLog dailyLog) async {
@@ -426,14 +436,14 @@ class ReadingSessionManager {
         goalReached: goalReached,
       );
 
-      _rsdbManager.insertStats(stats);
+      await _rsdbManager.insertStats(stats);
     } else {
       stats = stats.copyWith(
         rsSeconds: totalSeconds,
         rsVerses: totalVerses,
         goalReached: goalReached,
       );
-      _rsdbManager.updateStats(stats);
+      await _rsdbManager.updateStats(stats);
     }
   }
 
@@ -574,8 +584,19 @@ class ReadingSessionManager {
     //progress is within the same book, update the values
     if (nextChapter != null && nextChapter.bookId == bookId) {
       chapter = nextChapter.chapter;
-      //TODO: get next unread verse of this chapter
+      //start with the next unread verse of the chapter
+      final versesReadForChapter = await getVersesReadForChapter(
+        bookId,
+        chapter,
+      );
+      final chapterVerseCount = BibleNavigation.getVerseCount(bookId, chapter);
       verse = 1;
+      for (var i = 1; i <= chapterVerseCount; i++) {
+        if ((versesReadForChapter[i] ?? 0) == 0) {
+          verse = i;
+          break;
+        }
+      }
     }
 
     //this is to track the last verse read, so the user can resume reading at a later stage
@@ -599,7 +620,7 @@ class ReadingSessionManager {
       //load the progress of the new book
 
       bookId = nextChapter.bookId;
-      bookProgress = _booksProgress![bookId];
+      bookProgress = _booksProgress![bookId - 1];
 
       if (bookProgress.id == null) {
         bookProgress = RsBookProgress(
