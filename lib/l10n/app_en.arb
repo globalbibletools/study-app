@@ -185,6 +185,116 @@
   "@backupRestore": {
     "description": "Drawer menu item for the backup and restore screen"
   },
+  "backupCreated": "Backup created: {path}",
+  "@backupCreated": {
+    "description": "Snackbar shown after creating a backup",
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "chooseBackupLocation": "Choose backup location",
+  "@chooseBackupLocation": {
+    "description": "Dialog title for choosing where to save a backup"
+  },
+  "backupExported": "Backup exported to {path}",
+  "@backupExported": {
+    "description": "Snackbar shown after exporting a backup",
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "selectBackupFile": "Select backup file",
+  "@selectBackupFile": {
+    "description": "Dialog title for selecting a backup file"
+  },
+  "couldNotReadSelectedBackupFile": "Could not read selected backup file.",
+  "@couldNotReadSelectedBackupFile": {
+    "description": "Error message when an imported backup file cannot be read"
+  },
+  "backupImported": "Imported {name}",
+  "@backupImported": {
+    "description": "Snackbar shown after importing a backup",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "restoreBackupQuestion": "Restore backup?",
+  "@restoreBackupQuestion": {
+    "description": "Title for the restore backup confirmation dialog"
+  },
+  "restoreBackupConfirmation": "This will replace the current reading session data with {name}.",
+  "@restoreBackupConfirmation": {
+    "description": "Content for the restore backup confirmation dialog",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "restore": "Restore",
+  "@restore": {
+    "description": "Label for restore buttons"
+  },
+  "backupRestored": "Restored {name}",
+  "@backupRestored": {
+    "description": "Snackbar shown after restoring a saved backup",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "appVersion": "App version {version} ({buildNumber})",
+  "@appVersion": {
+    "description": "Label showing the installed app version and build number",
+    "placeholders": {
+      "version": {
+        "type": "String"
+      },
+      "buildNumber": {
+        "type": "String"
+      }
+    }
+  },
+  "createReadingSessionBackup": "Create reading session backup",
+  "@createReadingSessionBackup": {
+    "description": "Button label for creating an internal reading session backup"
+  },
+  "exportToFilesDrive": "Export to Files / Drive",
+  "@exportToFilesDrive": {
+    "description": "Button label for exporting a backup to a file provider"
+  },
+  "importFromFilesDrive": "Import from Files / Drive",
+  "@importFromFilesDrive": {
+    "description": "Button label for importing a backup from a file provider"
+  },
+  "backupSystemPickerHelp": "Use the system picker to save to or restore from locations like iCloud Drive or Google Drive.",
+  "@backupSystemPickerHelp": {
+    "description": "Help text explaining backup import/export file pickers"
+  },
+  "savedBackups": "Saved backups",
+  "@savedBackups": {
+    "description": "Section header for the list of locally saved backups"
+  },
+  "noBackupsCreatedYet": "No backups created yet.",
+  "@noBackupsCreatedYet": {
+    "description": "Empty state text when there are no saved backups"
+  },
+  "bytesCount": "{count} bytes",
+  "@bytesCount": {
+    "description": "File size label in bytes",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "audio": "Audio",
   "@audio": {
     "description": "Section header for Audio downloads"

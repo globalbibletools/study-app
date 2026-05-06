@@ -362,6 +362,114 @@ abstract class AppLocalizations {
   /// **'Backup/restore'**
   String get backupRestore;
 
+  /// Snackbar shown after creating a backup
+  ///
+  /// In en, this message translates to:
+  /// **'Backup created: {path}'**
+  String backupCreated(String path);
+
+  /// Dialog title for choosing where to save a backup
+  ///
+  /// In en, this message translates to:
+  /// **'Choose backup location'**
+  String get chooseBackupLocation;
+
+  /// Snackbar shown after exporting a backup
+  ///
+  /// In en, this message translates to:
+  /// **'Backup exported to {path}'**
+  String backupExported(String path);
+
+  /// Dialog title for selecting a backup file
+  ///
+  /// In en, this message translates to:
+  /// **'Select backup file'**
+  String get selectBackupFile;
+
+  /// Error message when an imported backup file cannot be read
+  ///
+  /// In en, this message translates to:
+  /// **'Could not read selected backup file.'**
+  String get couldNotReadSelectedBackupFile;
+
+  /// Snackbar shown after importing a backup
+  ///
+  /// In en, this message translates to:
+  /// **'Imported {name}'**
+  String backupImported(String name);
+
+  /// Title for the restore backup confirmation dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Restore backup?'**
+  String get restoreBackupQuestion;
+
+  /// Content for the restore backup confirmation dialog
+  ///
+  /// In en, this message translates to:
+  /// **'This will replace the current reading session data with {name}.'**
+  String restoreBackupConfirmation(String name);
+
+  /// Label for restore buttons
+  ///
+  /// In en, this message translates to:
+  /// **'Restore'**
+  String get restore;
+
+  /// Snackbar shown after restoring a saved backup
+  ///
+  /// In en, this message translates to:
+  /// **'Restored {name}'**
+  String backupRestored(String name);
+
+  /// Label showing the installed app version and build number
+  ///
+  /// In en, this message translates to:
+  /// **'App version {version} ({buildNumber})'**
+  String appVersion(String version, String buildNumber);
+
+  /// Button label for creating an internal reading session backup
+  ///
+  /// In en, this message translates to:
+  /// **'Create reading session backup'**
+  String get createReadingSessionBackup;
+
+  /// Button label for exporting a backup to a file provider
+  ///
+  /// In en, this message translates to:
+  /// **'Export to Files / Drive'**
+  String get exportToFilesDrive;
+
+  /// Button label for importing a backup from a file provider
+  ///
+  /// In en, this message translates to:
+  /// **'Import from Files / Drive'**
+  String get importFromFilesDrive;
+
+  /// Help text explaining backup import/export file pickers
+  ///
+  /// In en, this message translates to:
+  /// **'Use the system picker to save to or restore from locations like iCloud Drive or Google Drive.'**
+  String get backupSystemPickerHelp;
+
+  /// Section header for the list of locally saved backups
+  ///
+  /// In en, this message translates to:
+  /// **'Saved backups'**
+  String get savedBackups;
+
+  /// Empty state text when there are no saved backups
+  ///
+  /// In en, this message translates to:
+  /// **'No backups created yet.'**
+  String get noBackupsCreatedYet;
+
+  /// File size label in bytes
+  ///
+  /// In en, this message translates to:
+  /// **'{count} bytes'**
+  String bytesCount(int count);
+
   /// Section header for Audio downloads
   ///
   /// In en, this message translates to:

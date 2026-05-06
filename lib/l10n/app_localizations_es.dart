@@ -152,6 +152,78 @@ class AppLocalizationsEs extends AppLocalizations {
   String get backupRestore => 'Copia de seguridad/restauración';
 
   @override
+  String backupCreated(String path) {
+    return 'Copia de seguridad creada: $path';
+  }
+
+  @override
+  String get chooseBackupLocation =>
+      'Elegir ubicación de la copia de seguridad';
+
+  @override
+  String backupExported(String path) {
+    return 'Copia de seguridad exportada a $path';
+  }
+
+  @override
+  String get selectBackupFile => 'Seleccionar archivo de copia de seguridad';
+
+  @override
+  String get couldNotReadSelectedBackupFile =>
+      'No se pudo leer el archivo de copia de seguridad seleccionado.';
+
+  @override
+  String backupImported(String name) {
+    return '$name importado';
+  }
+
+  @override
+  String get restoreBackupQuestion => '¿Restaurar copia de seguridad?';
+
+  @override
+  String restoreBackupConfirmation(String name) {
+    return 'Esto reemplazará los datos actuales de sesión de lectura con $name.';
+  }
+
+  @override
+  String get restore => 'Restaurar';
+
+  @override
+  String backupRestored(String name) {
+    return '$name restaurado';
+  }
+
+  @override
+  String appVersion(String version, String buildNumber) {
+    return 'Versión de la app $version ($buildNumber)';
+  }
+
+  @override
+  String get createReadingSessionBackup =>
+      'Crear copia de seguridad de sesión de lectura';
+
+  @override
+  String get exportToFilesDrive => 'Exportar a Archivos / Drive';
+
+  @override
+  String get importFromFilesDrive => 'Importar desde Archivos / Drive';
+
+  @override
+  String get backupSystemPickerHelp =>
+      'Use el selector del sistema para guardar o restaurar desde ubicaciones como iCloud Drive o Google Drive.';
+
+  @override
+  String get savedBackups => 'Copias de seguridad guardadas';
+
+  @override
+  String get noBackupsCreatedYet => 'Aún no se han creado copias de seguridad.';
+
+  @override
+  String bytesCount(int count) {
+    return '$count bytes';
+  }
+
+  @override
   String get audio => 'Audio';
 
   @override

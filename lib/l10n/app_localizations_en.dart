@@ -151,6 +151,76 @@ class AppLocalizationsEn extends AppLocalizations {
   String get backupRestore => 'Backup/restore';
 
   @override
+  String backupCreated(String path) {
+    return 'Backup created: $path';
+  }
+
+  @override
+  String get chooseBackupLocation => 'Choose backup location';
+
+  @override
+  String backupExported(String path) {
+    return 'Backup exported to $path';
+  }
+
+  @override
+  String get selectBackupFile => 'Select backup file';
+
+  @override
+  String get couldNotReadSelectedBackupFile =>
+      'Could not read selected backup file.';
+
+  @override
+  String backupImported(String name) {
+    return 'Imported $name';
+  }
+
+  @override
+  String get restoreBackupQuestion => 'Restore backup?';
+
+  @override
+  String restoreBackupConfirmation(String name) {
+    return 'This will replace the current reading session data with $name.';
+  }
+
+  @override
+  String get restore => 'Restore';
+
+  @override
+  String backupRestored(String name) {
+    return 'Restored $name';
+  }
+
+  @override
+  String appVersion(String version, String buildNumber) {
+    return 'App version $version ($buildNumber)';
+  }
+
+  @override
+  String get createReadingSessionBackup => 'Create reading session backup';
+
+  @override
+  String get exportToFilesDrive => 'Export to Files / Drive';
+
+  @override
+  String get importFromFilesDrive => 'Import from Files / Drive';
+
+  @override
+  String get backupSystemPickerHelp =>
+      'Use the system picker to save to or restore from locations like iCloud Drive or Google Drive.';
+
+  @override
+  String get savedBackups => 'Saved backups';
+
+  @override
+  String get noBackupsCreatedYet => 'No backups created yet.';
+
+  @override
+  String bytesCount(int count) {
+    return '$count bytes';
+  }
+
+  @override
   String get audio => 'Audio';
 
   @override

@@ -151,6 +151,76 @@ class AppLocalizationsAr extends AppLocalizations {
   String get backupRestore => 'النسخ الاحتياطي/الاستعادة';
 
   @override
+  String backupCreated(String path) {
+    return 'تم إنشاء النسخة الاحتياطية: $path';
+  }
+
+  @override
+  String get chooseBackupLocation => 'اختر موقع النسخة الاحتياطية';
+
+  @override
+  String backupExported(String path) {
+    return 'تم تصدير النسخة الاحتياطية إلى $path';
+  }
+
+  @override
+  String get selectBackupFile => 'حدد ملف النسخة الاحتياطية';
+
+  @override
+  String get couldNotReadSelectedBackupFile =>
+      'تعذرت قراءة ملف النسخة الاحتياطية المحدد.';
+
+  @override
+  String backupImported(String name) {
+    return 'تم استيراد $name';
+  }
+
+  @override
+  String get restoreBackupQuestion => 'هل تريد استعادة النسخة الاحتياطية؟';
+
+  @override
+  String restoreBackupConfirmation(String name) {
+    return 'سيؤدي هذا إلى استبدال بيانات جلسة القراءة الحالية بـ $name.';
+  }
+
+  @override
+  String get restore => 'استعادة';
+
+  @override
+  String backupRestored(String name) {
+    return 'تمت استعادة $name';
+  }
+
+  @override
+  String appVersion(String version, String buildNumber) {
+    return 'إصدار التطبيق $version ($buildNumber)';
+  }
+
+  @override
+  String get createReadingSessionBackup => 'إنشاء نسخة احتياطية لجلسة القراءة';
+
+  @override
+  String get exportToFilesDrive => 'تصدير إلى الملفات / Drive';
+
+  @override
+  String get importFromFilesDrive => 'استيراد من الملفات / Drive';
+
+  @override
+  String get backupSystemPickerHelp =>
+      'استخدم منتقي النظام للحفظ أو الاستعادة من مواقع مثل iCloud Drive أو Google Drive.';
+
+  @override
+  String get savedBackups => 'النسخ الاحتياطية المحفوظة';
+
+  @override
+  String get noBackupsCreatedYet => 'لم يتم إنشاء أي نسخ احتياطية بعد.';
+
+  @override
+  String bytesCount(int count) {
+    return '$count بايت';
+  }
+
+  @override
   String get audio => 'الصوت';
 
   @override

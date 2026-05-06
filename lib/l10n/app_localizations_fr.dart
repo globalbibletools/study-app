@@ -152,6 +152,77 @@ class AppLocalizationsFr extends AppLocalizations {
   String get backupRestore => 'Sauvegarde/restauration';
 
   @override
+  String backupCreated(String path) {
+    return 'Sauvegarde créée : $path';
+  }
+
+  @override
+  String get chooseBackupLocation => 'Choisir l\'emplacement de la sauvegarde';
+
+  @override
+  String backupExported(String path) {
+    return 'Sauvegarde exportée vers $path';
+  }
+
+  @override
+  String get selectBackupFile => 'Sélectionner le fichier de sauvegarde';
+
+  @override
+  String get couldNotReadSelectedBackupFile =>
+      'Impossible de lire le fichier de sauvegarde sélectionné.';
+
+  @override
+  String backupImported(String name) {
+    return '$name importé';
+  }
+
+  @override
+  String get restoreBackupQuestion => 'Restaurer la sauvegarde ?';
+
+  @override
+  String restoreBackupConfirmation(String name) {
+    return 'Cela remplacera les données actuelles de session de lecture par $name.';
+  }
+
+  @override
+  String get restore => 'Restaurer';
+
+  @override
+  String backupRestored(String name) {
+    return '$name restauré';
+  }
+
+  @override
+  String appVersion(String version, String buildNumber) {
+    return 'Version de l\'app $version ($buildNumber)';
+  }
+
+  @override
+  String get createReadingSessionBackup =>
+      'Créer une sauvegarde de session de lecture';
+
+  @override
+  String get exportToFilesDrive => 'Exporter vers Fichiers / Drive';
+
+  @override
+  String get importFromFilesDrive => 'Importer depuis Fichiers / Drive';
+
+  @override
+  String get backupSystemPickerHelp =>
+      'Utilisez le sélecteur du système pour enregistrer ou restaurer depuis des emplacements comme iCloud Drive ou Google Drive.';
+
+  @override
+  String get savedBackups => 'Sauvegardes enregistrées';
+
+  @override
+  String get noBackupsCreatedYet => 'Aucune sauvegarde créée pour le moment.';
+
+  @override
+  String bytesCount(int count) {
+    return '$count octets';
+  }
+
+  @override
   String get audio => 'Audio';
 
   @override

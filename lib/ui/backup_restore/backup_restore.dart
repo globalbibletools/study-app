@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:studyapp/l10n/app_localizations.dart';
 import 'package:studyapp/services/reading_session/rs_database.dart';
 import 'package:studyapp/services/reading_session/rs_manager.dart';
 import 'package:studyapp/services/service_locator.dart';
@@ -37,6 +38,7 @@ class _BackupRestoreState extends State<BackupRestorePage> {
   }
 
   Future<void> _createBackup() async {
+    final l10n = AppLocalizations.of(context)!;
     setState(() {
       _busy = true;
     });
@@ -47,7 +49,7 @@ class _BackupRestoreState extends State<BackupRestorePage> {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Backup created: $path')));
+      ).showSnackBar(SnackBar(content: Text(l10n.backupCreated(path))));
     } finally {
       if (mounted) {
         setState(() {
@@ -58,6 +60,7 @@ class _BackupRestoreState extends State<BackupRestorePage> {
   }
 
   Future<void> _exportBackup() async {
+    final l10n = AppLocalizations.of(context)!;
     setState(() {
       _busy = true;
     });
@@ -66,7 +69,7 @@ class _BackupRestoreState extends State<BackupRestorePage> {
       final timestamp = DateTime.now().toIso8601String().replaceAll(':', '-');
       final bytes = await _readingSessionManager.buildBackupBytes();
       final targetPath = await FilePicker.platform.saveFile(
-        dialogTitle: 'Choose backup location',
+        dialogTitle: l10n.chooseBackupLocation,
         fileName: 'reading_session_$timestamp.json',
         bytes: bytes,
         type: FileType.custom,
@@ -80,7 +83,7 @@ class _BackupRestoreState extends State<BackupRestorePage> {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Backup exported to $targetPath')));
+      ).showSnackBar(SnackBar(content: Text(l10n.backupExported(targetPath))));
     } finally {
       if (mounted) {
         setState(() {
@@ -91,13 +94,14 @@ class _BackupRestoreState extends State<BackupRestorePage> {
   }
 
   Future<void> _importBackup() async {
+    final l10n = AppLocalizations.of(context)!;
     setState(() {
       _busy = true;
     });
 
     try {
       final result = await FilePicker.platform.pickFiles(
-        dialogTitle: 'Select backup file',
+        dialogTitle: l10n.selectBackupFile,
         type: FileType.custom,
         allowedExtensions: ['json'],
         withData: true,
@@ -115,14 +119,14 @@ class _BackupRestoreState extends State<BackupRestorePage> {
       } else if (file.bytes != null) {
         await _readingSessionManager.restoreBackupBytes(file.bytes!);
       } else {
-        throw const FileSystemException('Could not read selected backup file.');
+        throw FileSystemException(l10n.couldNotReadSelectedBackupFile);
       }
 
       await _loadPageData();
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Imported $label')));
+      ).showSnackBar(SnackBar(content: Text(l10n.backupImported(label))));
     } finally {
       if (mounted) {
         setState(() {
@@ -133,21 +137,20 @@ class _BackupRestoreState extends State<BackupRestorePage> {
   }
 
   Future<void> _restoreBackup(ReadingSessionBackupInfo backup) async {
+    final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Restore backup?'),
-        content: Text(
-          'This will replace the current reading session data with ${backup.name}.',
-        ),
+        title: Text(l10n.restoreBackupQuestion),
+        content: Text(l10n.restoreBackupConfirmation(backup.name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Restore'),
+            child: Text(l10n.restore),
           ),
         ],
       ),
@@ -167,7 +170,7 @@ class _BackupRestoreState extends State<BackupRestorePage> {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Restored ${backup.name}')));
+      ).showSnackBar(SnackBar(content: Text(l10n.backupRestored(backup.name))));
     } finally {
       if (mounted) {
         setState(() {
@@ -187,57 +190,61 @@ class _BackupRestoreState extends State<BackupRestorePage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: const Text('Backup / Restore')),
+      appBar: AppBar(title: Text(l10n.backupRestore)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           if (_packageInfo != null)
             Text(
-              'App version ${_packageInfo!.version} (${_packageInfo!.buildNumber})',
+              l10n.appVersion(_packageInfo!.version, _packageInfo!.buildNumber),
             ),
           const SizedBox(height: 16),
           FilledButton.icon(
             onPressed: _busy ? null : _createBackup,
             icon: const Icon(Icons.backup_outlined),
-            label: const Text('Create reading session backup'),
+            label: Text(l10n.createReadingSessionBackup),
           ),
           const SizedBox(height: 12),
           FilledButton.icon(
             onPressed: _busy ? null : _exportBackup,
             icon: const Icon(Icons.upload_file),
-            label: const Text('Export to Files / Drive'),
+            label: Text(l10n.exportToFilesDrive),
           ),
           const SizedBox(height: 12),
           OutlinedButton.icon(
             onPressed: _busy ? null : _importBackup,
             icon: const Icon(Icons.download_for_offline_outlined),
-            label: const Text('Import from Files / Drive'),
+            label: Text(l10n.importFromFilesDrive),
           ),
           const SizedBox(height: 8),
           Text(
-            'Use the system picker to save to or restore from locations like iCloud Drive or Google Drive.',
+            l10n.backupSystemPickerHelp,
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 24),
-          Text('Saved backups', style: Theme.of(context).textTheme.titleMedium),
+          Text(
+            l10n.savedBackups,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
           const SizedBox(height: 8),
           if (_busy) const LinearProgressIndicator(),
           if (_backups.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 16),
-              child: Text('No backups created yet.'),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              child: Text(l10n.noBackupsCreatedYet),
             ),
           ..._backups.map(
             (backup) => Card(
               child: ListTile(
                 title: Text(backup.name),
                 subtitle: Text(
-                  '${_formatDateTime(backup.modifiedAt)} • ${backup.sizeBytes} bytes',
+                  '${_formatDateTime(backup.modifiedAt)} • ${l10n.bytesCount(backup.sizeBytes)}',
                 ),
                 trailing: TextButton(
                   onPressed: _busy ? null : () => _restoreBackup(backup),
-                  child: const Text('Restore'),
+                  child: Text(l10n.restore),
                 ),
               ),
             ),
