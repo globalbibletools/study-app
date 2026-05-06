@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:studyapp/common/book_name.dart';
 import 'package:studyapp/common/word.dart';
 import 'package:studyapp/l10n/app_localizations.dart';
+import 'package:studyapp/services/reading_session/rs_manager.dart';
 import 'package:studyapp/ui/common/resource_ui_helper.dart';
 import 'package:studyapp/services/settings/user_settings.dart';
 import 'package:studyapp/ui/home/panel_area/common/infinite_scroll_view.dart';
@@ -32,6 +33,7 @@ class HebrewGreekChapter extends StatefulWidget {
     required this.chapter,
     required this.fontSize,
     required this.verseLayout,
+    required this.readingModeEnabled,
     this.syncController,
   });
 
@@ -39,6 +41,7 @@ class HebrewGreekChapter extends StatefulWidget {
   final int chapter;
   final double fontSize;
   final VerseLayout verseLayout;
+  final bool readingModeEnabled;
   final ScrollSyncController? syncController;
 
   @override
@@ -58,6 +61,10 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter>
   void initState() {
     super.initState();
     manager.loadChapterData(widget.bookId, widget.chapter);
+
+    if (widget.readingModeEnabled) {
+      manager.loadReadVerses(widget.bookId, widget.chapter);
+    }
   }
 
   @override
@@ -67,7 +74,19 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter>
     if (widget.bookId != oldWidget.bookId ||
         widget.chapter != oldWidget.chapter) {
       manager.loadChapterData(widget.bookId, widget.chapter);
+
+      if (widget.readingModeEnabled) {
+        manager.loadReadVerses(widget.bookId, widget.chapter);
+      }
+    } else if (widget.readingModeEnabled && !oldWidget.readingModeEnabled) {
+      manager.loadReadVerses(widget.bookId, widget.chapter);
     }
+  }
+
+  @override
+  void dispose() {
+    manager.dispose();
+    super.dispose();
   }
 
   @override
@@ -125,79 +144,104 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter>
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<List<HebrewGreekWord>>(
-      valueListenable: manager.textNotifier,
-      builder: (context, words, child) {
-        if (words.isEmpty) return const SizedBox();
+    return ListenableBuilder(
+      listenable: manager.verseCheckboxNotifier,
+      builder: (context, child) {
+        final checkedVerses = manager.verseCheckboxNotifier.value;
+        return ValueListenableBuilder<List<HebrewGreekWord>>(
+          valueListenable: manager.textNotifier,
+          builder: (context, words, child) {
+            if (words.isEmpty) return const SizedBox();
 
-        return ValueListenableBuilder<VerseHighlight?>(
-          valueListenable:
-              widget.syncController?.highlightNotifier ?? ValueNotifier(null),
-          builder: (context, highlightInfo, _) {
-            int? verseToHighlight;
-            if (highlightInfo != null &&
-                highlightInfo.bookId == widget.bookId &&
-                highlightInfo.chapter == widget.chapter) {
-              verseToHighlight = highlightInfo.verse;
-            }
-            return Padding(
-              padding: const EdgeInsets.only(left: 16.0, right: 16.0),
-              child: Column(
-                children: [
-                  const SizedBox(height: 10),
-                  Text(
-                    '${bookNameForId(context, widget.bookId)} ${widget.chapter}',
-                    style: TextStyle(fontSize: 30),
+            return ValueListenableBuilder<VerseHighlight?>(
+              valueListenable:
+                  widget.syncController?.highlightNotifier ??
+                  ValueNotifier(null),
+              builder: (context, highlightInfo, _) {
+                int? verseToHighlight;
+                if (highlightInfo != null &&
+                    highlightInfo.bookId == widget.bookId &&
+                    highlightInfo.chapter == widget.chapter) {
+                  verseToHighlight = highlightInfo.verse;
+                }
+                return Padding(
+                  padding: const EdgeInsets.only(left: 16.0, right: 16.0),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 10),
+                      Text(
+                        '${bookNameForId(context, widget.bookId)} ${widget.chapter}',
+                        style: TextStyle(fontSize: 30),
+                      ),
+                      const SizedBox(height: 10),
+                      HebrewGreekText(
+                        key: _hebrewGreekTextKey,
+                        words: words,
+                        verseLayout: widget.verseLayout,
+                        readingModeEnabled: widget.readingModeEnabled,
+                        checkedVerses: checkedVerses,
+                        controller: _textController,
+                        textDirection: manager.isRtl(widget.bookId)
+                            ? TextDirection.rtl
+                            : TextDirection.ltr,
+                        textStyle: TextStyle(fontSize: widget.fontSize),
+                        verseNumberStyle: TextStyle(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontSize: widget.fontSize * 0.7,
+                        ),
+                        onVerseNumberTap: (verse) {
+                          VerseNumberTapNotification(
+                            bookId: widget.bookId,
+                            chapter: widget.chapter,
+                            verse: verse,
+                          ).dispatch(context);
+                        },
+                        onVerseCheckboxTap: (verse) {
+                          int count = checkedVerses[verse] ?? 0;
+                          if (count < ReadingSessionManager.maximumReadCount) {
+                            manager.markVerseAsRead(
+                              widget.bookId,
+                              widget.chapter,
+                              verse,
+                            );
+                          } else {
+                            manager.resetVerseProgress(
+                              widget.bookId,
+                              widget.chapter,
+                              verse,
+                            );
+                          }
+                        },
+                        onVerseNumberLongPress: (verse) {
+                          _copyVerseToClipboard(context, verse);
+                        },
+                        popupBackgroundColor: Theme.of(
+                          context,
+                        ).colorScheme.inverseSurface,
+                        popupTextStyle: TextStyle(
+                          fontFamily: 'sbl',
+                          fontSize: widget.fontSize * 0.7,
+                          color: Theme.of(context).colorScheme.onInverseSurface,
+                        ),
+                        popupWordProvider: (wordId) {
+                          final locale = Localizations.localeOf(context);
+                          return manager.getPopupTextForId(
+                            locale,
+                            wordId,
+                            (locale) => _handleMissingResources(locale),
+                          );
+                        },
+                        onPopupShown: _ensurePopupIsVisible,
+                        onWordLongPress: _showWordDetails,
+                        highlightedVerse: verseToHighlight,
+                        highlightColor: Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: 0.25),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 10),
-                  HebrewGreekText(
-                    key: _hebrewGreekTextKey,
-                    words: words,
-                    verseLayout: widget.verseLayout,
-                    controller: _textController,
-                    textDirection: manager.isRtl(widget.bookId)
-                        ? TextDirection.rtl
-                        : TextDirection.ltr,
-                    textStyle: TextStyle(fontSize: widget.fontSize),
-                    verseNumberStyle: TextStyle(
-                      color: Theme.of(context).colorScheme.primary,
-                      fontSize: widget.fontSize * 0.7,
-                    ),
-                    onVerseNumberTap: (verse) {
-                      VerseNumberTapNotification(
-                        bookId: widget.bookId,
-                        chapter: widget.chapter,
-                        verse: verse,
-                      ).dispatch(context);
-                    },
-                    onVerseNumberLongPress: (verse) {
-                      _copyVerseToClipboard(context, verse);
-                    },
-                    popupBackgroundColor: Theme.of(
-                      context,
-                    ).colorScheme.inverseSurface,
-                    popupTextStyle: TextStyle(
-                      fontFamily: 'sbl',
-                      fontSize: widget.fontSize * 0.7,
-                      color: Theme.of(context).colorScheme.onInverseSurface,
-                    ),
-                    popupWordProvider: (wordId) {
-                      final locale = Localizations.localeOf(context);
-                      return manager.getPopupTextForId(
-                        locale,
-                        wordId,
-                        (locale) => _handleMissingResources(locale),
-                      );
-                    },
-                    onPopupShown: _ensurePopupIsVisible,
-                    onWordLongPress: _showWordDetails,
-                    highlightedVerse: verseToHighlight,
-                    highlightColor: Theme.of(
-                      context,
-                    ).colorScheme.primary.withValues(alpha: 0.25),
-                  ),
-                ],
-              ),
+                );
+              },
             );
           },
         );

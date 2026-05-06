@@ -149,6 +149,80 @@ class AppLocalizationsFr extends AppLocalizations {
   String get downloads => 'Téléchargements';
 
   @override
+  String get backupRestore => 'Sauvegarde/restauration';
+
+  @override
+  String backupCreated(String path) {
+    return 'Sauvegarde créée : $path';
+  }
+
+  @override
+  String get chooseBackupLocation => 'Choisir l\'emplacement de la sauvegarde';
+
+  @override
+  String backupExported(String path) {
+    return 'Sauvegarde exportée vers $path';
+  }
+
+  @override
+  String get selectBackupFile => 'Sélectionner le fichier de sauvegarde';
+
+  @override
+  String get couldNotReadSelectedBackupFile =>
+      'Impossible de lire le fichier de sauvegarde sélectionné.';
+
+  @override
+  String backupImported(String name) {
+    return '$name importé';
+  }
+
+  @override
+  String get restoreBackupQuestion => 'Restaurer la sauvegarde ?';
+
+  @override
+  String restoreBackupConfirmation(String name) {
+    return 'Cela remplacera les données actuelles de session de lecture par $name.';
+  }
+
+  @override
+  String get restore => 'Restaurer';
+
+  @override
+  String backupRestored(String name) {
+    return '$name restauré';
+  }
+
+  @override
+  String appVersion(String version, String buildNumber) {
+    return 'Version de l\'app $version ($buildNumber)';
+  }
+
+  @override
+  String get createReadingSessionBackup =>
+      'Créer une sauvegarde de session de lecture';
+
+  @override
+  String get exportToFilesDrive => 'Exporter vers Fichiers / Drive';
+
+  @override
+  String get importFromFilesDrive => 'Importer depuis Fichiers / Drive';
+
+  @override
+  String get backupSystemPickerHelp =>
+      'Utilisez le sélecteur du système pour enregistrer ou restaurer depuis des emplacements comme iCloud Drive ou Google Drive.';
+
+  @override
+  String get savedBackups => 'Sauvegardes enregistrées';
+
+  @override
+  String get noBackupsCreatedYet => 'Aucune sauvegarde créée pour le moment.';
+
+  @override
+  String bytesCount(int count) {
+    return '$count octets';
+  }
+
+  @override
   String get audio => 'Audio';
 
   @override
@@ -181,6 +255,142 @@ class AppLocalizationsFr extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get progress => 'Progression';
+
+  @override
+  String get goals => 'Objectifs';
+
+  @override
+  String get bySection => 'Par section';
+
+  @override
+  String get byBook => 'Par livre';
+
+  @override
+  String get week => 'Semaine';
+
+  @override
+  String get month => 'Mois';
+
+  @override
+  String months(String month) {
+    String _temp0 = intl.Intl.selectLogic(month, {
+      '1': 'Jan',
+      '2': 'Fév',
+      '3': 'Mar',
+      '4': 'Avr',
+      '5': 'Mai',
+      '6': 'Juin',
+      '7': 'Juil',
+      '8': 'Aoû',
+      '9': 'Sep',
+      '10': 'Oct',
+      '11': 'Nov',
+      '12': 'Déc',
+      'other': '',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get startSession => 'Commencer la session';
+
+  @override
+  String get start => 'Commencer';
+
+  @override
+  String get resume => 'Reprendre';
+
+  @override
+  String get whereYouLeftOff => 'Là où vous vous êtes arrêté';
+
+  @override
+  String get changeGoal => 'Modifier l’objectif';
+
+  @override
+  String get chapterShort => 'CH';
+
+  @override
+  String get dailyGoal => 'Objectif quotidien';
+
+  @override
+  String get minutes => 'minutes';
+
+  @override
+  String get verses => 'versets';
+
+  @override
+  String get minutesShort => 'min';
+
+  @override
+  String get versesShort => 'v';
+
+  @override
+  String get dailyGoalReached => 'objectif quotidien atteint';
+
+  @override
+  String get total => 'Total';
+
+  @override
+  String dayOfWeek(String day) {
+    String _temp0 = intl.Intl.selectLogic(day, {
+      '1': 'Lun',
+      '2': 'Mar',
+      '3': 'Mer',
+      '4': 'Jeu',
+      '5': 'Ven',
+      '6': 'Sam',
+      '7': 'Dim',
+      'other': '',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get dismiss => 'FERMER';
+
+  @override
+  String sessions(Object count) {
+    return 'SÉANCES: $count';
+  }
+
+  @override
+  String get sessionTotal => 'TOTAL DE SESSION';
+
+  @override
+  String get inProgress => 'En cours';
+
+  @override
+  String get goalType => 'Type d’objectif';
+
+  @override
+  String get target => 'Objectif';
+
+  @override
+  String get save => 'Enregistrer';
+
+  @override
+  String get hide => 'Masquer';
+
+  @override
+  String get minutesPerDay => 'Minutes par jour';
+
+  @override
+  String get versesPerDay => 'Versets par jour';
+
+  @override
+  String get goalReachedMessage => 'Tu as atteint ton objectif 🎉';
+
+  @override
+  String get continueReadingPrompt => 'Continuer ta session de lecture ?';
+
+  @override
+  String get yes => 'Oui';
+
+  @override
+  String get no => 'Non';
 
   @override
   String get bookGenesis => 'Genèse';

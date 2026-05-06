@@ -149,6 +149,79 @@ class AppLocalizationsPt extends AppLocalizations {
   String get downloads => 'Downloads';
 
   @override
+  String get backupRestore => 'Backup/restauração';
+
+  @override
+  String backupCreated(String path) {
+    return 'Backup criado: $path';
+  }
+
+  @override
+  String get chooseBackupLocation => 'Escolher local do backup';
+
+  @override
+  String backupExported(String path) {
+    return 'Backup exportado para $path';
+  }
+
+  @override
+  String get selectBackupFile => 'Selecionar arquivo de backup';
+
+  @override
+  String get couldNotReadSelectedBackupFile =>
+      'Não foi possível ler o arquivo de backup selecionado.';
+
+  @override
+  String backupImported(String name) {
+    return '$name importado';
+  }
+
+  @override
+  String get restoreBackupQuestion => 'Restaurar backup?';
+
+  @override
+  String restoreBackupConfirmation(String name) {
+    return 'Isso substituirá os dados atuais da sessão de leitura por $name.';
+  }
+
+  @override
+  String get restore => 'Restaurar';
+
+  @override
+  String backupRestored(String name) {
+    return '$name restaurado';
+  }
+
+  @override
+  String appVersion(String version, String buildNumber) {
+    return 'Versão do app $version ($buildNumber)';
+  }
+
+  @override
+  String get createReadingSessionBackup => 'Criar backup da sessão de leitura';
+
+  @override
+  String get exportToFilesDrive => 'Exportar para Arquivos / Drive';
+
+  @override
+  String get importFromFilesDrive => 'Importar de Arquivos / Drive';
+
+  @override
+  String get backupSystemPickerHelp =>
+      'Use o seletor do sistema para salvar ou restaurar de locais como iCloud Drive ou Google Drive.';
+
+  @override
+  String get savedBackups => 'Backups salvos';
+
+  @override
+  String get noBackupsCreatedYet => 'Nenhum backup criado ainda.';
+
+  @override
+  String bytesCount(int count) {
+    return '$count bytes';
+  }
+
+  @override
   String get audio => 'Áudio';
 
   @override
@@ -181,6 +254,142 @@ class AppLocalizationsPt extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get progress => 'Progresso';
+
+  @override
+  String get goals => 'Metas';
+
+  @override
+  String get bySection => 'Por seção';
+
+  @override
+  String get byBook => 'Por livro';
+
+  @override
+  String get week => 'Semana';
+
+  @override
+  String get month => 'Mês';
+
+  @override
+  String months(String month) {
+    String _temp0 = intl.Intl.selectLogic(month, {
+      '1': 'Jan',
+      '2': 'Fev',
+      '3': 'Mar',
+      '4': 'Abr',
+      '5': 'Mai',
+      '6': 'Jun',
+      '7': 'Jul',
+      '8': 'Ago',
+      '9': 'Set',
+      '10': 'Out',
+      '11': 'Nov',
+      '12': 'Dez',
+      'other': '',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get startSession => 'Iniciar sessão';
+
+  @override
+  String get start => 'Iniciar';
+
+  @override
+  String get resume => 'Retomar';
+
+  @override
+  String get whereYouLeftOff => 'De onde você parou';
+
+  @override
+  String get changeGoal => 'Alterar meta';
+
+  @override
+  String get chapterShort => 'CAP';
+
+  @override
+  String get dailyGoal => 'Meta diária';
+
+  @override
+  String get minutes => 'minutos';
+
+  @override
+  String get verses => 'versículos';
+
+  @override
+  String get minutesShort => 'min';
+
+  @override
+  String get versesShort => 'v';
+
+  @override
+  String get dailyGoalReached => 'meta diária atingida';
+
+  @override
+  String get total => 'Total';
+
+  @override
+  String dayOfWeek(String day) {
+    String _temp0 = intl.Intl.selectLogic(day, {
+      '1': 'Seg',
+      '2': 'Ter',
+      '3': 'Qua',
+      '4': 'Qui',
+      '5': 'Sex',
+      '6': 'Sáb',
+      '7': 'Dom',
+      'other': '',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get dismiss => 'FECHAR';
+
+  @override
+  String sessions(Object count) {
+    return 'SESSÕES: $count';
+  }
+
+  @override
+  String get sessionTotal => 'TOTAL DA SESSÃO';
+
+  @override
+  String get inProgress => 'Em andamento';
+
+  @override
+  String get goalType => 'Tipo de meta';
+
+  @override
+  String get target => 'Meta';
+
+  @override
+  String get save => 'Salvar';
+
+  @override
+  String get hide => 'Ocultar';
+
+  @override
+  String get minutesPerDay => 'Minutos por dia';
+
+  @override
+  String get versesPerDay => 'Versículos por dia';
+
+  @override
+  String get goalReachedMessage => 'Você atingiu sua meta 🎉';
+
+  @override
+  String get continueReadingPrompt => 'Continuar sua sessão de leitura?';
+
+  @override
+  String get yes => 'Sim';
+
+  @override
+  String get no => 'Não';
 
   @override
   String get bookGenesis => 'Gênesis';

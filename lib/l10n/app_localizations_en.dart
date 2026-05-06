@@ -148,6 +148,79 @@ class AppLocalizationsEn extends AppLocalizations {
   String get downloads => 'Downloads';
 
   @override
+  String get backupRestore => 'Backup/restore';
+
+  @override
+  String backupCreated(String path) {
+    return 'Backup created: $path';
+  }
+
+  @override
+  String get chooseBackupLocation => 'Choose backup location';
+
+  @override
+  String backupExported(String path) {
+    return 'Backup exported to $path';
+  }
+
+  @override
+  String get selectBackupFile => 'Select backup file';
+
+  @override
+  String get couldNotReadSelectedBackupFile =>
+      'Could not read selected backup file.';
+
+  @override
+  String backupImported(String name) {
+    return 'Imported $name';
+  }
+
+  @override
+  String get restoreBackupQuestion => 'Restore backup?';
+
+  @override
+  String restoreBackupConfirmation(String name) {
+    return 'This will replace the current reading session data with $name.';
+  }
+
+  @override
+  String get restore => 'Restore';
+
+  @override
+  String backupRestored(String name) {
+    return 'Restored $name';
+  }
+
+  @override
+  String appVersion(String version, String buildNumber) {
+    return 'App version $version ($buildNumber)';
+  }
+
+  @override
+  String get createReadingSessionBackup => 'Create reading session backup';
+
+  @override
+  String get exportToFilesDrive => 'Export to Files / Drive';
+
+  @override
+  String get importFromFilesDrive => 'Import from Files / Drive';
+
+  @override
+  String get backupSystemPickerHelp =>
+      'Use the system picker to save to or restore from locations like iCloud Drive or Google Drive.';
+
+  @override
+  String get savedBackups => 'Saved backups';
+
+  @override
+  String get noBackupsCreatedYet => 'No backups created yet.';
+
+  @override
+  String bytesCount(int count) {
+    return '$count bytes';
+  }
+
+  @override
   String get audio => 'Audio';
 
   @override
@@ -180,6 +253,142 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get progress => 'Progress';
+
+  @override
+  String get goals => 'Goals';
+
+  @override
+  String get bySection => 'By Section';
+
+  @override
+  String get byBook => 'By Book';
+
+  @override
+  String get week => 'Week';
+
+  @override
+  String get month => 'Month';
+
+  @override
+  String months(String month) {
+    String _temp0 = intl.Intl.selectLogic(month, {
+      '1': 'Jan',
+      '2': 'Feb',
+      '3': 'Mar',
+      '4': 'Apr',
+      '5': 'May',
+      '6': 'Jun',
+      '7': 'Jul',
+      '8': 'Aug',
+      '9': 'Sep',
+      '10': 'Oct',
+      '11': 'Nov',
+      '12': 'Dec',
+      'other': '',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get startSession => 'Start Session';
+
+  @override
+  String get start => 'Start';
+
+  @override
+  String get resume => 'Resume';
+
+  @override
+  String get whereYouLeftOff => 'Where you left off';
+
+  @override
+  String get changeGoal => 'Change Goal';
+
+  @override
+  String get chapterShort => 'CH';
+
+  @override
+  String get dailyGoal => 'Daily Goal';
+
+  @override
+  String get minutes => 'minutes';
+
+  @override
+  String get verses => 'verses';
+
+  @override
+  String get minutesShort => 'min';
+
+  @override
+  String get versesShort => 'v';
+
+  @override
+  String get dailyGoalReached => 'daily goal reached';
+
+  @override
+  String get total => 'Total';
+
+  @override
+  String dayOfWeek(String day) {
+    String _temp0 = intl.Intl.selectLogic(day, {
+      '1': 'Mon',
+      '2': 'Tue',
+      '3': 'Wed',
+      '4': 'Thu',
+      '5': 'Fri',
+      '6': 'Sat',
+      '7': 'Sun',
+      'other': '',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get dismiss => 'Dismiss';
+
+  @override
+  String sessions(Object count) {
+    return 'Sessions: $count';
+  }
+
+  @override
+  String get sessionTotal => 'Total Sessions';
+
+  @override
+  String get inProgress => 'In Progress';
+
+  @override
+  String get goalType => 'Goal Type';
+
+  @override
+  String get target => 'Target';
+
+  @override
+  String get save => 'Save';
+
+  @override
+  String get hide => 'Hide';
+
+  @override
+  String get minutesPerDay => 'Minutes per day';
+
+  @override
+  String get versesPerDay => 'Verses per day';
+
+  @override
+  String get goalReachedMessage => 'You reached your goal 🎉';
+
+  @override
+  String get continueReadingPrompt => 'Continue your reading session?';
+
+  @override
+  String get yes => 'Yes';
+
+  @override
+  String get no => 'No';
 
   @override
   String get bookGenesis => 'Genesis';

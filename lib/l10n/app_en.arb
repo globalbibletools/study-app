@@ -181,6 +181,120 @@
   "@downloads": {
     "description": "Title for the Download Manager screen"
   },
+  "backupRestore": "Backup/restore",
+  "@backupRestore": {
+    "description": "Drawer menu item for the backup and restore screen"
+  },
+  "backupCreated": "Backup created: {path}",
+  "@backupCreated": {
+    "description": "Snackbar shown after creating a backup",
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "chooseBackupLocation": "Choose backup location",
+  "@chooseBackupLocation": {
+    "description": "Dialog title for choosing where to save a backup"
+  },
+  "backupExported": "Backup exported to {path}",
+  "@backupExported": {
+    "description": "Snackbar shown after exporting a backup",
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "selectBackupFile": "Select backup file",
+  "@selectBackupFile": {
+    "description": "Dialog title for selecting a backup file"
+  },
+  "couldNotReadSelectedBackupFile": "Could not read selected backup file.",
+  "@couldNotReadSelectedBackupFile": {
+    "description": "Error message when an imported backup file cannot be read"
+  },
+  "backupImported": "Imported {name}",
+  "@backupImported": {
+    "description": "Snackbar shown after importing a backup",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "restoreBackupQuestion": "Restore backup?",
+  "@restoreBackupQuestion": {
+    "description": "Title for the restore backup confirmation dialog"
+  },
+  "restoreBackupConfirmation": "This will replace the current reading session data with {name}.",
+  "@restoreBackupConfirmation": {
+    "description": "Content for the restore backup confirmation dialog",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "restore": "Restore",
+  "@restore": {
+    "description": "Label for restore buttons"
+  },
+  "backupRestored": "Restored {name}",
+  "@backupRestored": {
+    "description": "Snackbar shown after restoring a saved backup",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "appVersion": "App version {version} ({buildNumber})",
+  "@appVersion": {
+    "description": "Label showing the installed app version and build number",
+    "placeholders": {
+      "version": {
+        "type": "String"
+      },
+      "buildNumber": {
+        "type": "String"
+      }
+    }
+  },
+  "createReadingSessionBackup": "Create reading session backup",
+  "@createReadingSessionBackup": {
+    "description": "Button label for creating an internal reading session backup"
+  },
+  "exportToFilesDrive": "Export to Files / Drive",
+  "@exportToFilesDrive": {
+    "description": "Button label for exporting a backup to a file provider"
+  },
+  "importFromFilesDrive": "Import from Files / Drive",
+  "@importFromFilesDrive": {
+    "description": "Button label for importing a backup from a file provider"
+  },
+  "backupSystemPickerHelp": "Use the system picker to save to or restore from locations like iCloud Drive or Google Drive.",
+  "@backupSystemPickerHelp": {
+    "description": "Help text explaining backup import/export file pickers"
+  },
+  "savedBackups": "Saved backups",
+  "@savedBackups": {
+    "description": "Section header for the list of locally saved backups"
+  },
+  "noBackupsCreatedYet": "No backups created yet.",
+  "@noBackupsCreatedYet": {
+    "description": "Empty state text when there are no saved backups"
+  },
+  "bytesCount": "{count} bytes",
+  "@bytesCount": {
+    "description": "File size label in bytes",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "audio": "Audio",
   "@audio": {
     "description": "Section header for Audio downloads"
@@ -225,6 +339,156 @@
         "type": "String"
       }
     }
+  },
+  "progress": "Progress",
+  "@progress": {
+    "description" : "Progress Tab"
+  },
+  "goals": "Goals",
+  "@goals": {
+    "description": "Description Tab"
+  },
+  "bySection": "By Section",
+  "@bySection": {
+    "description" : "By Section tab"
+  },
+  "byBook": "By Book",
+  "@byBook": {
+    "description" : "By Book tab"
+  },
+  "week": "Week",
+  "@week": {
+    "description" : "Week tab"
+  },
+  "month": "Month",
+  "@month": {
+    "description": "Month tab"
+  },
+  "months": "{month, select, 1{Jan} 2{Feb} 3{Mar} 4{Apr} 5{May} 6{Jun} 7{Jul} 8{Aug} 9{Sep} 10{Oct} 11{Nov} 12{Dec} other{}}",
+  "@months": {
+    "description": "month name",
+    "placeholders": {
+      "month": {
+        "type": "String"
+      }
+    }
+  },
+  "startSession": "Start Session",
+  "@startSession": {
+    "description": "Start Session button"
+  },
+  "start": "Start",
+  "@start": {
+    "description": "Start"
+  },
+  "resume": "Resume",
+  "@resume": {
+    "description": "Resume"
+  },
+  "whereYouLeftOff": "Where you left off",
+  "@whereYouLeftOff": {
+    "description": "Where you left off"
+  },
+  "changeGoal": "Change Goal",
+  "@changeGoal": {
+    "description": "change goal button"
+  },
+  "chapterShort": "CH",
+  "@chapterShort": {
+    "description": "Chapter Abreviation"
+  },
+  "dailyGoal": "Daily Goal",
+  "@dailyGoal": {
+    "description": "Daily goal"
+  },
+  "minutes": "minutes",
+  "@minutes": {
+    "description": "Minutes"
+  },
+  "verses": "verses",
+  "@verses": {
+    "description": "verses"
+  },
+  "minutesShort": "min",
+  "@minutesShort": {
+    "description": "Minutes Abreviation"
+  },
+  "versesShort": "v",
+  "@versesShort": {
+    "description": "Verses Abreviation"
+  },
+  "dailyGoalReached": "daily goal reached",
+  "@dailyGoalReached": {
+    "description": "daily goal reached"
+  },
+  "total": "Total",
+  "@total": {
+    "description": "Total"
+  },
+  "dayOfWeek": "{day, select, 1{Mon} 2{Tue} 3{Wed} 4{Thu} 5{Fri} 6{Sat} 7{Sun} other{}}",
+  "@dayOfWeek": {
+    "description": "Day of the week",
+    "placeholders": {
+      "day": {
+        "type": "String"
+      }
+    }
+  },
+  "dismiss": "Dismiss",
+  "@dismiss": {
+    "description": "Dismiss"
+  },
+  "sessions": "Sessions: {count}",
+  "@sessions": {
+    "description": "sessions count"
+  },
+  "sessionTotal": "Total Sessions",
+  "@sessionTotal": {
+    "description": "total sessions"
+  },
+  "inProgress": "In Progress",
+  "@inProgress": {
+    "description": "in progress"
+  },
+  "goalType": "Goal Type",
+  "@goalType": {
+    "description": "Goal Type"
+  },
+  "target": "Target",
+  "@target": {
+    "description": "Target"
+  },
+  "save": "Save",
+  "@save": {
+    "description": "Save"
+  },
+  "hide": "Hide",
+  "@hide": {
+    "description": "Hide button label"
+  },
+  "minutesPerDay": "Minutes per day",
+  "@minutesPerDay": {
+    "description": "Minutes per day"
+  },
+  "versesPerDay": "Verses per day",
+  "@versesPerDay": {
+    "description": "Verses per day"
+  },
+  "goalReachedMessage": "You reached your goal 🎉",
+  "@goalReachedMessage": {
+    "description": "Message shown when the user reaches their daily goal"
+  },
+  "continueReadingPrompt": "Continue your reading session?",
+  "@continueReadingPrompt": {
+    "description": "Prompt asking if the user wants to continue reading"
+  },
+  "yes": "Yes",
+  "@yes": {
+    "description": "Yes button label"
+  },
+  "no": "No",
+  "@no": {
+    "description": "No button label"
   },
   "bookGenesis": "Genesis",
   "@bookGenesis": {

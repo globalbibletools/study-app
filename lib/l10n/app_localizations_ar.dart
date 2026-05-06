@@ -148,6 +148,79 @@ class AppLocalizationsAr extends AppLocalizations {
   String get downloads => 'التنزيلات';
 
   @override
+  String get backupRestore => 'النسخ الاحتياطي/الاستعادة';
+
+  @override
+  String backupCreated(String path) {
+    return 'تم إنشاء النسخة الاحتياطية: $path';
+  }
+
+  @override
+  String get chooseBackupLocation => 'اختر موقع النسخة الاحتياطية';
+
+  @override
+  String backupExported(String path) {
+    return 'تم تصدير النسخة الاحتياطية إلى $path';
+  }
+
+  @override
+  String get selectBackupFile => 'حدد ملف النسخة الاحتياطية';
+
+  @override
+  String get couldNotReadSelectedBackupFile =>
+      'تعذرت قراءة ملف النسخة الاحتياطية المحدد.';
+
+  @override
+  String backupImported(String name) {
+    return 'تم استيراد $name';
+  }
+
+  @override
+  String get restoreBackupQuestion => 'هل تريد استعادة النسخة الاحتياطية؟';
+
+  @override
+  String restoreBackupConfirmation(String name) {
+    return 'سيؤدي هذا إلى استبدال بيانات جلسة القراءة الحالية بـ $name.';
+  }
+
+  @override
+  String get restore => 'استعادة';
+
+  @override
+  String backupRestored(String name) {
+    return 'تمت استعادة $name';
+  }
+
+  @override
+  String appVersion(String version, String buildNumber) {
+    return 'إصدار التطبيق $version ($buildNumber)';
+  }
+
+  @override
+  String get createReadingSessionBackup => 'إنشاء نسخة احتياطية لجلسة القراءة';
+
+  @override
+  String get exportToFilesDrive => 'تصدير إلى الملفات / Drive';
+
+  @override
+  String get importFromFilesDrive => 'استيراد من الملفات / Drive';
+
+  @override
+  String get backupSystemPickerHelp =>
+      'استخدم منتقي النظام للحفظ أو الاستعادة من مواقع مثل iCloud Drive أو Google Drive.';
+
+  @override
+  String get savedBackups => 'النسخ الاحتياطية المحفوظة';
+
+  @override
+  String get noBackupsCreatedYet => 'لم يتم إنشاء أي نسخ احتياطية بعد.';
+
+  @override
+  String bytesCount(int count) {
+    return '$count بايت';
+  }
+
+  @override
   String get audio => 'الصوت';
 
   @override
@@ -180,6 +253,142 @@ class AppLocalizationsAr extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get progress => 'التقدم';
+
+  @override
+  String get goals => 'الأهداف';
+
+  @override
+  String get bySection => 'حسب القسم';
+
+  @override
+  String get byBook => 'حسب السفر';
+
+  @override
+  String get week => 'أسبوع';
+
+  @override
+  String get month => 'شهر';
+
+  @override
+  String months(String month) {
+    String _temp0 = intl.Intl.selectLogic(month, {
+      '1': 'يناير',
+      '2': 'فبراير',
+      '3': 'مارس',
+      '4': 'أبريل',
+      '5': 'مايو',
+      '6': 'يونيو',
+      '7': 'يوليو',
+      '8': 'أغسطس',
+      '9': 'سبتمبر',
+      '10': 'أكتوبر',
+      '11': 'نوفمبر',
+      '12': 'ديسمبر',
+      'other': '',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get startSession => 'ابدأ الجلسة';
+
+  @override
+  String get start => 'ابدأ';
+
+  @override
+  String get resume => 'استئناف';
+
+  @override
+  String get whereYouLeftOff => 'من حيث توقفت';
+
+  @override
+  String get changeGoal => 'تغيير الهدف';
+
+  @override
+  String get chapterShort => 'فص';
+
+  @override
+  String get dailyGoal => 'الهدف اليومي';
+
+  @override
+  String get minutes => 'دقائق';
+
+  @override
+  String get verses => 'آيات';
+
+  @override
+  String get minutesShort => 'د';
+
+  @override
+  String get versesShort => 'آ';
+
+  @override
+  String get dailyGoalReached => 'تم تحقيق الهدف اليومي';
+
+  @override
+  String get total => 'المجموع';
+
+  @override
+  String dayOfWeek(String day) {
+    String _temp0 = intl.Intl.selectLogic(day, {
+      '1': 'الإثنين',
+      '2': 'الثلاثاء',
+      '3': 'الأربعاء',
+      '4': 'الخميس',
+      '5': 'الجمعة',
+      '6': 'السبت',
+      '7': 'الأحد',
+      'other': '',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get dismiss => 'إغلاق';
+
+  @override
+  String sessions(Object count) {
+    return 'الجلسات: $count';
+  }
+
+  @override
+  String get sessionTotal => 'مجموع الجلسة';
+
+  @override
+  String get inProgress => 'قيد التنفيذ';
+
+  @override
+  String get goalType => 'نوع الهدف';
+
+  @override
+  String get target => 'الهدف';
+
+  @override
+  String get save => 'حفظ';
+
+  @override
+  String get hide => 'إخفاء';
+
+  @override
+  String get minutesPerDay => 'دقائق في اليوم';
+
+  @override
+  String get versesPerDay => 'آيات في اليوم';
+
+  @override
+  String get goalReachedMessage => 'لقد وصلت إلى هدفك 🎉';
+
+  @override
+  String get continueReadingPrompt => 'هل تريد متابعة جلسة القراءة؟';
+
+  @override
+  String get yes => 'نعم';
+
+  @override
+  String get no => 'لا';
 
   @override
   String get bookGenesis => 'التكوين';

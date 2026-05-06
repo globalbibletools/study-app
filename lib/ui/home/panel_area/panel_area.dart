@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:studyapp/l10n/book_names.dart';
 import 'package:studyapp/ui/home/panel_area/bible_panel/bible_panel.dart';
+import 'package:studyapp/ui/home/panel_area/common/goal_reached_overlay.dart';
+import 'package:studyapp/ui/home/panel_area/common/reading_session_overlay.dart';
 import 'package:studyapp/ui/home/panel_area/hebrew_greek_panel/chapter.dart';
 import 'package:studyapp/ui/home/panel_area/hebrew_greek_panel/panel.dart';
 import 'package:studyapp/ui/home/home_manager.dart';
@@ -36,32 +38,39 @@ class BiblePanelArea extends StatelessWidget {
           final isSinglePanel = manager.isSinglePanelNotifier.value;
           final settingsVersion = manager.settingsVersionNotifier.value;
 
-          return Column(
+          return Stack(
             children: [
-              // Top Panel (Hebrew/Greek)
-              Expanded(
-                child: HebrewGreekPanel(
-                  key: ValueKey('hg-${anchor.bookId}-${anchor.chapter}'),
-                  bookId: anchor.bookId,
-                  chapter: anchor.chapter,
-                  syncController: manager.syncController,
-                  settingsVersion: settingsVersion,
-                ),
+              Column(
+                children: [
+                  ReadingSessionOverlay(manager: manager.readingSessionManager),
+                  // Top Panel (Hebrew/Greek)
+                  Expanded(
+                    child: HebrewGreekPanel(
+                      key: ValueKey('hg-${anchor.bookId}-${anchor.chapter}'),
+                      bookId: anchor.bookId,
+                      chapter: anchor.chapter,
+                      syncController: manager.syncController,
+                      settingsVersion: settingsVersion,
+                    ),
+                  ),
+
+                  // Bottom Panel (Bible Translation)
+                  if (!isSinglePanel) ...[
+                    const Divider(height: 0, indent: 8, endIndent: 8),
+                    Expanded(
+                      child: BiblePanel(
+                        key: ValueKey('bi-${anchor.bookId}-${anchor.chapter}'),
+                        bookId: anchor.bookId,
+                        chapter: anchor.chapter,
+                        syncController: manager.syncController,
+                        settingsVersion: settingsVersion,
+                      ),
+                    ),
+                  ],
+                ],
               ),
 
-              // Bottom Panel (Bible Translation)
-              if (!isSinglePanel) ...[
-                const Divider(height: 0, indent: 8, endIndent: 8),
-                Expanded(
-                  child: BiblePanel(
-                    key: ValueKey('bi-${anchor.bookId}-${anchor.chapter}'),
-                    bookId: anchor.bookId,
-                    chapter: anchor.chapter,
-                    syncController: manager.syncController,
-                    settingsVersion: settingsVersion,
-                  ),
-                ),
-              ],
+              GoalReachedOverlay(manager: manager.readingSessionManager),
             ],
           );
         },

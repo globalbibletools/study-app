@@ -356,6 +356,120 @@ abstract class AppLocalizations {
   /// **'Downloads'**
   String get downloads;
 
+  /// Drawer menu item for the backup and restore screen
+  ///
+  /// In en, this message translates to:
+  /// **'Backup/restore'**
+  String get backupRestore;
+
+  /// Snackbar shown after creating a backup
+  ///
+  /// In en, this message translates to:
+  /// **'Backup created: {path}'**
+  String backupCreated(String path);
+
+  /// Dialog title for choosing where to save a backup
+  ///
+  /// In en, this message translates to:
+  /// **'Choose backup location'**
+  String get chooseBackupLocation;
+
+  /// Snackbar shown after exporting a backup
+  ///
+  /// In en, this message translates to:
+  /// **'Backup exported to {path}'**
+  String backupExported(String path);
+
+  /// Dialog title for selecting a backup file
+  ///
+  /// In en, this message translates to:
+  /// **'Select backup file'**
+  String get selectBackupFile;
+
+  /// Error message when an imported backup file cannot be read
+  ///
+  /// In en, this message translates to:
+  /// **'Could not read selected backup file.'**
+  String get couldNotReadSelectedBackupFile;
+
+  /// Snackbar shown after importing a backup
+  ///
+  /// In en, this message translates to:
+  /// **'Imported {name}'**
+  String backupImported(String name);
+
+  /// Title for the restore backup confirmation dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Restore backup?'**
+  String get restoreBackupQuestion;
+
+  /// Content for the restore backup confirmation dialog
+  ///
+  /// In en, this message translates to:
+  /// **'This will replace the current reading session data with {name}.'**
+  String restoreBackupConfirmation(String name);
+
+  /// Label for restore buttons
+  ///
+  /// In en, this message translates to:
+  /// **'Restore'**
+  String get restore;
+
+  /// Snackbar shown after restoring a saved backup
+  ///
+  /// In en, this message translates to:
+  /// **'Restored {name}'**
+  String backupRestored(String name);
+
+  /// Label showing the installed app version and build number
+  ///
+  /// In en, this message translates to:
+  /// **'App version {version} ({buildNumber})'**
+  String appVersion(String version, String buildNumber);
+
+  /// Button label for creating an internal reading session backup
+  ///
+  /// In en, this message translates to:
+  /// **'Create reading session backup'**
+  String get createReadingSessionBackup;
+
+  /// Button label for exporting a backup to a file provider
+  ///
+  /// In en, this message translates to:
+  /// **'Export to Files / Drive'**
+  String get exportToFilesDrive;
+
+  /// Button label for importing a backup from a file provider
+  ///
+  /// In en, this message translates to:
+  /// **'Import from Files / Drive'**
+  String get importFromFilesDrive;
+
+  /// Help text explaining backup import/export file pickers
+  ///
+  /// In en, this message translates to:
+  /// **'Use the system picker to save to or restore from locations like iCloud Drive or Google Drive.'**
+  String get backupSystemPickerHelp;
+
+  /// Section header for the list of locally saved backups
+  ///
+  /// In en, this message translates to:
+  /// **'Saved backups'**
+  String get savedBackups;
+
+  /// Empty state text when there are no saved backups
+  ///
+  /// In en, this message translates to:
+  /// **'No backups created yet.'**
+  String get noBackupsCreatedYet;
+
+  /// File size label in bytes
+  ///
+  /// In en, this message translates to:
+  /// **'{count} bytes'**
+  String bytesCount(int count);
+
   /// Section header for Audio downloads
   ///
   /// In en, this message translates to:
@@ -403,6 +517,216 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =1{Download 1 missing chapter for {book}?} other{Download {count} missing chapters for {book}?}}'**
   String downloadAudioConfirmation(int count, String book);
+
+  /// Progress Tab
+  ///
+  /// In en, this message translates to:
+  /// **'Progress'**
+  String get progress;
+
+  /// Description Tab
+  ///
+  /// In en, this message translates to:
+  /// **'Goals'**
+  String get goals;
+
+  /// By Section tab
+  ///
+  /// In en, this message translates to:
+  /// **'By Section'**
+  String get bySection;
+
+  /// By Book tab
+  ///
+  /// In en, this message translates to:
+  /// **'By Book'**
+  String get byBook;
+
+  /// Week tab
+  ///
+  /// In en, this message translates to:
+  /// **'Week'**
+  String get week;
+
+  /// Month tab
+  ///
+  /// In en, this message translates to:
+  /// **'Month'**
+  String get month;
+
+  /// month name
+  ///
+  /// In en, this message translates to:
+  /// **'{month, select, 1{Jan} 2{Feb} 3{Mar} 4{Apr} 5{May} 6{Jun} 7{Jul} 8{Aug} 9{Sep} 10{Oct} 11{Nov} 12{Dec} other{}}'**
+  String months(String month);
+
+  /// Start Session button
+  ///
+  /// In en, this message translates to:
+  /// **'Start Session'**
+  String get startSession;
+
+  /// Start
+  ///
+  /// In en, this message translates to:
+  /// **'Start'**
+  String get start;
+
+  /// Resume
+  ///
+  /// In en, this message translates to:
+  /// **'Resume'**
+  String get resume;
+
+  /// Where you left off
+  ///
+  /// In en, this message translates to:
+  /// **'Where you left off'**
+  String get whereYouLeftOff;
+
+  /// change goal button
+  ///
+  /// In en, this message translates to:
+  /// **'Change Goal'**
+  String get changeGoal;
+
+  /// Chapter Abreviation
+  ///
+  /// In en, this message translates to:
+  /// **'CH'**
+  String get chapterShort;
+
+  /// Daily goal
+  ///
+  /// In en, this message translates to:
+  /// **'Daily Goal'**
+  String get dailyGoal;
+
+  /// Minutes
+  ///
+  /// In en, this message translates to:
+  /// **'minutes'**
+  String get minutes;
+
+  /// verses
+  ///
+  /// In en, this message translates to:
+  /// **'verses'**
+  String get verses;
+
+  /// Minutes Abreviation
+  ///
+  /// In en, this message translates to:
+  /// **'min'**
+  String get minutesShort;
+
+  /// Verses Abreviation
+  ///
+  /// In en, this message translates to:
+  /// **'v'**
+  String get versesShort;
+
+  /// daily goal reached
+  ///
+  /// In en, this message translates to:
+  /// **'daily goal reached'**
+  String get dailyGoalReached;
+
+  /// Total
+  ///
+  /// In en, this message translates to:
+  /// **'Total'**
+  String get total;
+
+  /// Day of the week
+  ///
+  /// In en, this message translates to:
+  /// **'{day, select, 1{Mon} 2{Tue} 3{Wed} 4{Thu} 5{Fri} 6{Sat} 7{Sun} other{}}'**
+  String dayOfWeek(String day);
+
+  /// Dismiss
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss'**
+  String get dismiss;
+
+  /// sessions count
+  ///
+  /// In en, this message translates to:
+  /// **'Sessions: {count}'**
+  String sessions(Object count);
+
+  /// total sessions
+  ///
+  /// In en, this message translates to:
+  /// **'Total Sessions'**
+  String get sessionTotal;
+
+  /// in progress
+  ///
+  /// In en, this message translates to:
+  /// **'In Progress'**
+  String get inProgress;
+
+  /// Goal Type
+  ///
+  /// In en, this message translates to:
+  /// **'Goal Type'**
+  String get goalType;
+
+  /// Target
+  ///
+  /// In en, this message translates to:
+  /// **'Target'**
+  String get target;
+
+  /// Save
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get save;
+
+  /// Hide button label
+  ///
+  /// In en, this message translates to:
+  /// **'Hide'**
+  String get hide;
+
+  /// Minutes per day
+  ///
+  /// In en, this message translates to:
+  /// **'Minutes per day'**
+  String get minutesPerDay;
+
+  /// Verses per day
+  ///
+  /// In en, this message translates to:
+  /// **'Verses per day'**
+  String get versesPerDay;
+
+  /// Message shown when the user reaches their daily goal
+  ///
+  /// In en, this message translates to:
+  /// **'You reached your goal 🎉'**
+  String get goalReachedMessage;
+
+  /// Prompt asking if the user wants to continue reading
+  ///
+  /// In en, this message translates to:
+  /// **'Continue your reading session?'**
+  String get continueReadingPrompt;
+
+  /// Yes button label
+  ///
+  /// In en, this message translates to:
+  /// **'Yes'**
+  String get yes;
+
+  /// No button label
+  ///
+  /// In en, this message translates to:
+  /// **'No'**
+  String get no;
 
   /// The name of the first book of the Bible
   ///

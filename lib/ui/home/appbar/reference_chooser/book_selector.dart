@@ -156,6 +156,7 @@ class _BookSelectorState extends State<BookSelector> {
     if (_overlayEntry != null) return;
     final renderBox = context.findRenderObject() as RenderBox;
     final size = renderBox.size;
+    final isRTL = Directionality.of(context) == TextDirection.rtl;
 
     _overlayEntry = OverlayEntry(
       builder: (context) => Positioned(
@@ -163,7 +164,7 @@ class _BookSelectorState extends State<BookSelector> {
         child: CompositedTransformFollower(
           link: _layerLink,
           showWhenUnlinked: false,
-          offset: Offset(0, size.height + 5),
+          offset: Offset(isRTL ? -100 : 0, size.height + 5),
           child: Material(
             elevation: 4,
             borderRadius: BorderRadius.circular(8),

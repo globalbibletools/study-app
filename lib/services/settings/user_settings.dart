@@ -23,6 +23,7 @@ class UserSettings {
   static const _useSystemKeyboardKey = 'useSystemKeyboard';
   static const _currentBible = 'currentBible';
   static const _verseLayout = "verseLayout";
+  static const _rsDailyGoalKey = 'rsDailyGoal';
 
   String? get themeMode {
     return _prefs.getString(_themeModeKey);
@@ -127,5 +128,14 @@ class UserSettings {
     } else {
       await _prefs.setString((_currentBible), bibleCode);
     }
+  }
+
+  /// Set the daily goal for the reading session
+  Future<void> setDailyGoal(String value) async {
+    await _prefs.setString(_rsDailyGoalKey, value);
+  }
+
+  String? get dailyGoal {
+    return _prefs.getString(_rsDailyGoalKey);
   }
 }
