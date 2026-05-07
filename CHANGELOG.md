@@ -3,6 +3,7 @@
 - Enable line-by-line verse layout in addition to paragraph layout.
 - Auto-play next chapter when streaming (#62).
 - Scroll gloss popups into view when under the appbar (#43).
+- Reading mode (@abouzaidan-tony) (#76).
 
 ## 1.0.1 - April 3, 2026
 
