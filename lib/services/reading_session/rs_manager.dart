@@ -103,12 +103,16 @@ class ReadingSessionManager {
     _settings.setDailyGoal('${type.name}-$value');
   }
 
-  DailyGoal getDailyGoal() {
+  DailyGoal? getDailyGoal() {
     if (_dailyGoal != null) {
       return _dailyGoal!;
     }
 
-    String settingVal = _settings.dailyGoal ?? "${GoalType.minutes.name}-10";
+    String? settingVal = _settings.dailyGoal;
+
+    if (settingVal == null) {
+      return null;
+    }
 
     final spl = settingVal.split('-');
 
@@ -126,7 +130,7 @@ class ReadingSessionManager {
   }
 
   Future<void> startReadingSession() async {
-    if (_rsDailyLog != null) {
+    if (_rsDailyLog != null || getDailyGoal() == null) {
       return;
     }
 
@@ -202,7 +206,11 @@ class ReadingSessionManager {
   ///this function helps setting if the goal is reached within this running session.
   ///if the goal was previously reached, no need to reset this value to true
   void checkGoalReached(bool initialLoad) {
-    DailyGoal dailyGoal = getDailyGoal();
+    DailyGoal? dailyGoal = getDailyGoal();
+
+    if (dailyGoal == null) {
+      return;
+    }
 
     bool goalReached = false;
 
@@ -414,11 +422,15 @@ class ReadingSessionManager {
     RsStatsType type,
     DateTime rsDate,
   ) async {
+    final dailyGoal = getDailyGoal();
+
+    if (dailyGoal == null) {
+      return;
+    }
+
     RsStats? stats = await _rsdbManager.findStatsByTypeAndDate(type, rsDate);
 
     final seconds = dailyLog.endTime!.difference(dailyLog.startTime).inSeconds;
-
-    final dailyGoal = getDailyGoal();
 
     final totalVerses = dailyLog.verses + (stats?.rsVerses ?? 0);
     final totalSeconds = seconds + (stats?.rsSeconds ?? 0);
@@ -467,6 +479,7 @@ class ReadingSessionManager {
             chapter: 1,
             verse: 1,
             chaptersRead: 0,
+            versesRead: 0,
             updatedAt: DateTime.now(),
           ),
         );
@@ -483,6 +496,7 @@ class ReadingSessionManager {
           chapter: 1,
           verse: 1,
           chaptersRead: 0,
+          versesRead: 0,
           updatedAt: DateTime.now(),
         ),
       );
@@ -503,6 +517,7 @@ class ReadingSessionManager {
           chapter: 1,
           verse: 1,
           chaptersRead: 0,
+          versesRead: 0,
           updatedAt: DateTime.now(),
         ),
       );
@@ -550,21 +565,24 @@ class ReadingSessionManager {
       rsLog.chapter,
     );
 
-    int versesRead = await _rsdbManager.countVersesReadForChapter(
+    int chapterVersesRead = await _rsdbManager.countVersesReadForChapter(
       rsLog.bookId,
       rsLog.chapter,
     );
 
     var chaptersRead = bookProgress.chaptersRead;
+    var versesRead = bookProgress.versesRead;
+
+    versesRead += 1;
 
     ChapterIdentifier? nextChapter;
 
     //if this verse is read and chapter is completed, increase the number of read chapters
-    if (markVerseAsRead && totalChapterVerses == versesRead) {
+    if (markVerseAsRead && totalChapterVerses == chapterVersesRead) {
       chaptersRead += 1;
     }
     //if this verse is unread, and chapter was already completed, reduce the number of read chapters
-    else if (!markVerseAsRead && totalChapterVerses == versesRead - 1) {
+    else if (!markVerseAsRead && totalChapterVerses == chapterVersesRead - 1) {
       chaptersRead -= 1;
     }
 
@@ -605,6 +623,7 @@ class ReadingSessionManager {
       chapter: chapter,
       verse: verse,
       chaptersRead: chaptersRead,
+      versesRead: versesRead,
       updatedAt: DateTime.now(),
     );
 
@@ -628,6 +647,7 @@ class ReadingSessionManager {
           chapter: nextChapter.chapter,
           verse: 1,
           chaptersRead: 0,
+          versesRead: 0,
           updatedAt: DateTime.now(),
         );
 

@@ -308,10 +308,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get changeGoal => 'Change Goal';
 
   @override
+  String get setGoal => 'Set Goal';
+
+  @override
   String get chapterShort => 'CH';
 
   @override
   String get dailyGoal => 'Daily Goal';
+
+  @override
+  String get dailyGoalNotSet => 'Daily goal: not set';
 
   @override
   String get minutes => 'minutes';

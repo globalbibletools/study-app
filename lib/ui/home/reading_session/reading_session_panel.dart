@@ -146,7 +146,7 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
             const SizedBox(height: 16),
             _progressTabContent(),
             const SizedBox(height: 20),
-            _startButton(),
+            _startButtonOrNone(),
           ],
         );
       },
@@ -168,7 +168,7 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
         const SizedBox(height: 20),
         _changeGoalButton(),
         const SizedBox(height: 20),
-        _startButton(),
+        _startButtonOrNone(),
       ],
     );
   }
@@ -226,6 +226,7 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
                 chapter: 1,
                 verse: 1,
                 chaptersRead: 0,
+                versesRead: 0,
                 updatedAt: DateTime.now(),
               );
 
@@ -236,12 +237,13 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
                 chapter: 1,
                 verse: 1,
                 chaptersRead: 0,
+                versesRead: 0,
                 updatedAt: DateTime.now(),
               );
         //Books read
         var oldTestamentBooksRead = 0;
         var newTestamentBooksRead = 0;
-        var totalOldTestament = newTestamentStartBookId;
+        var totalOldTestament = newTestamentStartBookId - 1;
         var totalNewTestament =
             BibleNavigation.getBooksCount() - newTestamentStartBookId + 1;
 
@@ -297,11 +299,16 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
                 book.bookId,
               );
 
+              int versesCount = 0;
+              for (int i = 1; i <= totalChapters; i++) {
+                versesCount += BibleNavigation.getVerseCount(book.bookId, i);
+              }
+
               return _bookCard(
                 book,
                 bookName,
-                book.chaptersRead / totalChapters,
-                "${book.chaptersRead}/$totalChapters",
+                book.versesRead / versesCount,
+                "${book.versesRead}/$versesCount",
                 "${l10n.chapterShort}. ",
                 action,
               );
@@ -503,6 +510,19 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
     );
   }
 
+  Widget _startButtonOrNone() {
+    return ValueListenableBuilder(
+      valueListenable: manager.dailyGoalNotifier,
+      builder: (_, dailyGoal, child) {
+        if (dailyGoal == null) {
+          return const SizedBox.shrink();
+        } else {
+          return _startButton();
+        }
+      },
+    );
+  }
+
   Widget _startButton() {
     final l10n = AppLocalizations.of(context)!;
 
@@ -695,6 +715,15 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
     return ValueListenableBuilder(
       valueListenable: manager.dailyGoalNotifier,
       builder: (_, value, _) {
+        if (value == null) {
+          return Center(
+            child: Text(
+              l10n.dailyGoalNotSet,
+              style: TextStyle(color: color, fontSize: 16),
+            ),
+          );
+        }
+
         final minuteLabel = l10n.minutes;
         final versesLabel = l10n.verses;
 
@@ -764,6 +793,8 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
     final color = Theme.of(context).colorScheme.primary;
     final l10n = AppLocalizations.of(context)!;
 
+    final currentGoal = manager.dailyGoalNotifier.value;
+
     return Center(
       child: ElevatedButton.icon(
         style: ElevatedButton.styleFrom(
@@ -774,15 +805,14 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
           ),
         ),
         onPressed: () async {
-          final currentGoal = manager.dailyGoalNotifier.value;
           final result = await showModalBottomSheet<(GoalType, int)>(
             context: context,
             isScrollControlled: true,
             isDismissible: true,
             backgroundColor: Colors.transparent,
             builder: (_) => SetDailyGoalView(
-              initialGoalType: currentGoal.type,
-              initialValue: currentGoal.value,
+              initialGoalType: currentGoal?.type,
+              initialValue: currentGoal?.value,
             ),
           );
 
@@ -791,7 +821,16 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
           }
         },
         icon: const Icon(Icons.adjust),
-        label: Text(l10n.changeGoal),
+        label: ValueListenableBuilder(
+          valueListenable: manager.dailyGoalNotifier,
+          builder: (_, dailyGoal, child) {
+            return Text(
+              dailyGoal == null
+                  ? l10n.setGoal.toUpperCase()
+                  : l10n.changeGoal.toUpperCase(),
+            );
+          },
+        ),
       ),
     );
   }

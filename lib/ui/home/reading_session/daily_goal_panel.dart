@@ -3,8 +3,8 @@ import 'package:studyapp/l10n/app_localizations.dart';
 import 'package:studyapp/services/reading_session/rs_manager.dart';
 
 class SetDailyGoalView extends StatefulWidget {
-  final GoalType initialGoalType;
-  final int initialValue;
+  final GoalType? initialGoalType;
+  final int? initialValue;
 
   const SetDailyGoalView({
     super.key,
@@ -23,8 +23,8 @@ class _SetDailyGoalViewState extends State<SetDailyGoalView> {
   @override
   void initState() {
     super.initState();
-    _goalType = widget.initialGoalType;
-    _value = widget.initialValue;
+    _goalType = widget.initialGoalType ?? GoalType.minutes;
+    _value = widget.initialValue ?? 10;
   }
 
   @override
@@ -179,7 +179,9 @@ class _SetDailyGoalViewState extends State<SetDailyGoalView> {
                           Navigator.pop(context, (_goalType, _value));
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Theme.of(context).colorScheme.primary,
+                          backgroundColor: Theme.of(
+                            context,
+                          ).colorScheme.primary,
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),

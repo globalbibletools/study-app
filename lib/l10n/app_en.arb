@@ -393,6 +393,10 @@
   "@changeGoal": {
     "description": "change goal button"
   },
+  "setGoal": "Set Goal",
+  "@setGoal": {
+    "description": "Set goal button"
+  },
   "chapterShort": "CH",
   "@chapterShort": {
     "description": "Chapter Abreviation"
@@ -400,6 +404,10 @@
   "dailyGoal": "Daily Goal",
   "@dailyGoal": {
     "description": "Daily goal"
+  },
+  "dailyGoalNotSet": "Daily goal: not set",
+  "@dailyGoalNotSet": {
+    "description": "Message shown when no daily reading goal has been set"
   },
   "minutes": "minutes",
   "@minutes": {

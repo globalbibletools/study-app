@@ -189,6 +189,7 @@ class RsBookProgress {
   final int chapter;
   final int verse;
   final int chaptersRead;
+  final int versesRead;
   final DateTime updatedAt;
 
   RsBookProgress({
@@ -197,6 +198,7 @@ class RsBookProgress {
     required this.chapter,
     required this.verse,
     required this.chaptersRead,
+    required this.versesRead,
     required this.updatedAt,
   });
 
@@ -208,6 +210,7 @@ class RsBookProgress {
     int? chapter,
     int? verse,
     int? chaptersRead,
+    int? versesRead,
     DateTime? updatedAt,
   }) {
     return RsBookProgress(
@@ -216,6 +219,7 @@ class RsBookProgress {
       chapter: chapter ?? this.chapter,
       verse: verse ?? this.verse,
       chaptersRead: chaptersRead ?? this.chaptersRead,
+      versesRead: versesRead ?? this.versesRead,
       updatedAt: updatedAt ?? DateTime.now(),
     );
   }
@@ -227,6 +231,7 @@ class RsBookProgress {
       chapter: map['chapter'],
       verse: map['verse'],
       chaptersRead: map['chapters_read'],
+      versesRead: map['verses_read'],
       updatedAt: DateTime.parse(map['updated_at']),
     );
   }
@@ -238,6 +243,7 @@ class RsBookProgress {
       'chapter': chapter,
       'verse': verse,
       'chapters_read': chaptersRead,
+      'verses_read': versesRead,
       'updated_at': updatedAt.toIso8601String(),
     };
   }

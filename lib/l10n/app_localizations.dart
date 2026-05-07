@@ -590,6 +590,12 @@ abstract class AppLocalizations {
   /// **'Change Goal'**
   String get changeGoal;
 
+  /// Set goal button
+  ///
+  /// In en, this message translates to:
+  /// **'Set Goal'**
+  String get setGoal;
+
   /// Chapter Abreviation
   ///
   /// In en, this message translates to:
@@ -601,6 +607,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Daily Goal'**
   String get dailyGoal;
+
+  /// Message shown when no daily reading goal has been set
+  ///
+  /// In en, this message translates to:
+  /// **'Daily goal: not set'**
+  String get dailyGoalNotSet;
 
   /// Minutes
   ///

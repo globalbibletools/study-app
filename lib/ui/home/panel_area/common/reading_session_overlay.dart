@@ -18,7 +18,9 @@ class ReadingSessionOverlay extends StatelessWidget {
           valueListenable: manager.displayGoalProgresNotifier,
           builder: (context, displayGoalProgress, _) {
             final dailyGoal = manager.getDailyGoal();
-            if (!readingModeEnabled || !displayGoalProgress) {
+            if (!readingModeEnabled ||
+                !displayGoalProgress ||
+                dailyGoal == null) {
               return const SizedBox.shrink();
             } else if (dailyGoal.type == GoalType.verses) {
               return _VersesGoalProgressBar(
