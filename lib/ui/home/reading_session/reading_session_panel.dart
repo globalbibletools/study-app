@@ -187,6 +187,19 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
     );
   }
 
+  int _compareProgress(RsBookProgress a, RsBookProgress b) {
+    if (b.id == null && a.id != null) {
+      return -1;
+    }
+    if (a.id == null && b.id != null) {
+      return 1;
+    }
+    if (a.id == null && b.id == null) {
+      return a.bookId.compareTo(b.bookId);
+    }
+    return b.updatedAt.compareTo(a.updatedAt);
+  }
+
   Widget _progressBySectionTabContent() {
     final l10n = AppLocalizations.of(context)!;
     return ValueListenableBuilder<List<RsBookProgress>>(
@@ -197,13 +210,13 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
             booksProgress
                 .where((b) => b.bookId < newTestamentStartBookId)
                 .toList()
-              ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+              ..sort(_compareProgress);
 
         final newTestamentProgressList =
             booksProgress
                 .where((b) => b.bookId >= newTestamentStartBookId)
                 .toList()
-              ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+              ..sort(_compareProgress);
 
         // Latest items
         final latestOldTestament = oldTestamentProgressList.isNotEmpty
