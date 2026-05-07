@@ -99,8 +99,8 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 alignment: Alignment.center,
                 child: Text(
-                  text,
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  text.toUpperCase(),
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
@@ -539,8 +539,11 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        l10n.startSession,
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                        l10n.startSession.toUpperCase(),
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       const SizedBox(height: 4),
                       Text(
