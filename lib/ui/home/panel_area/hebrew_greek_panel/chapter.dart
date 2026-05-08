@@ -148,6 +148,9 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter>
       listenable: manager.verseCheckboxNotifier,
       builder: (context, child) {
         final checkedVerses = manager.verseCheckboxNotifier.value;
+        final changedVerse = manager.verseCheckboxNotifier.changedVerse;
+        final resetCheckedVerses = manager.verseCheckboxNotifier.resetAll;
+        final checkedVersesRevision = manager.verseCheckboxNotifier.revision;
         return ValueListenableBuilder<List<HebrewGreekWord>>(
           valueListenable: manager.textNotifier,
           builder: (context, words, child) {
@@ -180,6 +183,9 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter>
                         verseLayout: widget.verseLayout,
                         readingModeEnabled: widget.readingModeEnabled,
                         checkedVerses: checkedVerses,
+                        changedCheckedVerse: changedVerse,
+                        resetCheckedVerses: resetCheckedVerses,
+                        checkedVersesRevision: checkedVersesRevision,
                         controller: _textController,
                         textDirection: manager.isRtl(widget.bookId)
                             ? TextDirection.rtl
@@ -196,16 +202,16 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter>
                             verse: verse,
                           ).dispatch(context);
                         },
-                        onVerseCheckboxTap: (verse) {
+                        onVerseCheckboxTap: (verse) async {
                           int count = checkedVerses[verse] ?? 0;
                           if (count < ReadingSessionManager.maximumReadCount) {
-                            manager.markVerseAsRead(
+                            await manager.markVerseAsRead(
                               widget.bookId,
                               widget.chapter,
                               verse,
                             );
                           } else {
-                            manager.resetVerseProgress(
+                            await manager.resetVerseProgress(
                               widget.bookId,
                               widget.chapter,
                               verse,

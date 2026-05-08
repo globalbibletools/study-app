@@ -35,6 +35,7 @@ class HebrewGreekChapterManager {
     await _rsmanager.markVerseAsRead(bookId, chapter, verse);
     verseCheckboxNotifier.setVersesRead(
       await _rsmanager.getVersesReadForChapter(bookId, chapter),
+      changedVerse: verse,
     );
   }
 
@@ -44,7 +45,7 @@ class HebrewGreekChapterManager {
       bookId,
       chapter,
     );
-    verseCheckboxNotifier.setVersesRead(versesRead);
+    verseCheckboxNotifier.setVersesRead(versesRead, changedVerse: verse);
   }
 
   bool isRtl(int bookId) {
@@ -151,17 +152,29 @@ class HebrewGreekChapterManager {
 }
 
 class VerseCheckboxNotifier extends ChangeNotifier {
-  Map<int, int> _value = {};
+  Map<int, int> _value = const {};
+  int? _changedVerse;
+  bool _resetAll = true;
+  int _revision = 0;
 
-  Map<int, int> get value => Map.unmodifiable(_value);
+  Map<int, int> get value => _value;
+  int? get changedVerse => _changedVerse;
+  bool get resetAll => _resetAll;
+  int get revision => _revision;
 
-  void setVersesRead(Map<int, int> versesRead) {
-    _value = versesRead;
+  void setVersesRead(Map<int, int> versesRead, {int? changedVerse}) {
+    _value = Map<int, int>.unmodifiable(versesRead);
+    _changedVerse = changedVerse;
+    _resetAll = changedVerse == null;
+    _revision++;
     notifyListeners();
   }
 
   void clear() {
-    _value = {};
+    _value = const {};
+    _changedVerse = null;
+    _resetAll = true;
+    _revision++;
     notifyListeners();
   }
 }
