@@ -704,6 +704,12 @@ abstract class AppLocalizations {
   /// **'Hide'**
   String get hide;
 
+  /// Show button label
+  ///
+  /// In en, this message translates to:
+  /// **'Show'**
+  String get show;
+
   /// Minutes per day
   ///
   /// In en, this message translates to:

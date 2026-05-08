@@ -53,7 +53,7 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
         onAvailableDigitsChanged: onAvailableDigitsChanged,
       ),
       actions: [
-        _readingSessionTimer(readingSessionStarted),
+        //_readingSessionTimer(readingSessionStarted),
         IconButton(
           onPressed: onToggleReadingSession,
           style: IconButton.styleFrom(
@@ -67,7 +67,7 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
                 : Theme.of(context).iconTheme.color,
           ),
           icon: Icon(
-            readingSessionStarted ? Icons.auto_stories_rounded : Icons.menu_book_outlined,
+            readingSessionStarted ? Icons.auto_stories_rounded : Icons.book_rounded,
           ),
         ),
         IconButton(onPressed: onPlayAudio, icon: Icon(Icons.play_arrow)),

@@ -381,6 +381,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get hide => 'Masquer';
 
   @override
+  String get show => 'Afficher';
+
+  @override
   String get minutesPerDay => 'Minutes par jour';
 
   @override

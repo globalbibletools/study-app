@@ -102,6 +102,7 @@
     "sessions": "الجلسات: {count}",
     "sessionTotal": "مجموع الجلسة",
     "inProgress": "قيد التنفيذ",
+    "show": "إظهار",
     "goalReachedMessage": "لقد وصلت إلى هدفك 🎉",
     "continueReadingPrompt": "هل تريد متابعة جلسة القراءة؟",
     "yes": "نعم",

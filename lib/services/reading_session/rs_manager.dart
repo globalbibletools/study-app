@@ -160,6 +160,8 @@ class ReadingSessionManager {
       totalSecondsReadPerSession.value += 1;
       checkGoalReached(false);
     });
+
+    displayGoalProgresNotifier.value = true;
   }
 
   Future<void> endReadingSession() async {

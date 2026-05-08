@@ -380,6 +380,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get hide => 'Ocultar';
 
   @override
+  String get show => 'Mostrar';
+
+  @override
   String get minutesPerDay => 'Minutos por dia';
 
   @override

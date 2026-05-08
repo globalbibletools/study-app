@@ -102,6 +102,7 @@
     "sessions": "SESSÕES: {count}",
     "sessionTotal": "TOTAL DA SESSÃO",
     "inProgress": "Em andamento",
+    "show": "Mostrar",
     "goalReachedMessage": "Você atingiu sua meta 🎉",
     "continueReadingPrompt": "Continuar sua sessão de leitura?",
     "yes": "Sim",

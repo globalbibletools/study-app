@@ -32,42 +32,63 @@ class BiblePanelArea extends StatelessWidget {
           manager.panelAnchorNotifier,
           manager.isSinglePanelNotifier,
           manager.settingsVersionNotifier,
+          manager.readingSessionManager.readingModeNotifier,
+          manager.readingSessionManager.displayGoalProgresNotifier,
         ]),
         builder: (context, _) {
           final anchor = manager.panelAnchorNotifier.value;
           final isSinglePanel = manager.isSinglePanelNotifier.value;
           final settingsVersion = manager.settingsVersionNotifier.value;
+          final shouldOffsetForProgress =
+              manager.readingSessionManager.readingModeNotifier.value &&
+              manager.readingSessionManager.displayGoalProgresNotifier.value &&
+              manager.readingSessionManager.getDailyGoal() != null;
 
           return Stack(
             children: [
-              Column(
-                children: [
-                  ReadingSessionOverlay(manager: manager.readingSessionManager),
-                  // Top Panel (Hebrew/Greek)
-                  Expanded(
-                    child: HebrewGreekPanel(
-                      key: ValueKey('hg-${anchor.bookId}-${anchor.chapter}'),
-                      bookId: anchor.bookId,
-                      chapter: anchor.chapter,
-                      syncController: manager.syncController,
-                      settingsVersion: settingsVersion,
-                    ),
-                  ),
-
-                  // Bottom Panel (Bible Translation)
-                  if (!isSinglePanel) ...[
-                    const Divider(height: 0, indent: 8, endIndent: 8),
+              AnimatedPadding(
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOutCubic,
+                padding: EdgeInsets.only(top: shouldOffsetForProgress ? 44 : 0),
+                child: Column(
+                  children: [
+                    // Top Panel (Hebrew/Greek)
                     Expanded(
-                      child: BiblePanel(
-                        key: ValueKey('bi-${anchor.bookId}-${anchor.chapter}'),
+                      child: HebrewGreekPanel(
+                        key: ValueKey('hg-${anchor.bookId}-${anchor.chapter}'),
                         bookId: anchor.bookId,
                         chapter: anchor.chapter,
                         syncController: manager.syncController,
                         settingsVersion: settingsVersion,
                       ),
                     ),
+
+                    // Bottom Panel (Bible Translation)
+                    if (!isSinglePanel) ...[
+                      const Divider(height: 0, indent: 8, endIndent: 8),
+                      Expanded(
+                        child: BiblePanel(
+                          key: ValueKey(
+                            'bi-${anchor.bookId}-${anchor.chapter}',
+                          ),
+                          bookId: anchor.bookId,
+                          chapter: anchor.chapter,
+                          syncController: manager.syncController,
+                          settingsVersion: settingsVersion,
+                        ),
+                      ),
+                    ],
                   ],
-                ],
+                ),
+              ),
+
+              PositionedDirectional(
+                top: 0,
+                start: 0,
+                end: 0,
+                child: ReadingSessionOverlay(
+                  manager: manager.readingSessionManager,
+                ),
               ),
 
               GoalReachedOverlay(manager: manager.readingSessionManager),

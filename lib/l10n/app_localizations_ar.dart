@@ -379,6 +379,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get hide => 'إخفاء';
 
   @override
+  String get show => 'إظهار';
+
+  @override
   String get minutesPerDay => 'دقائق في اليوم';
 
   @override

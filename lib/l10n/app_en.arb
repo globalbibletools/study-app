@@ -474,6 +474,10 @@
   "@hide": {
     "description": "Hide button label"
   },
+  "show": "Show",
+  "@show": {
+    "description": "Show button label"
+  },
   "minutesPerDay": "Minutes per day",
   "@minutesPerDay": {
     "description": "Minutes per day"

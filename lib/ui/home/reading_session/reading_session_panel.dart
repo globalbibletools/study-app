@@ -457,7 +457,7 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
                       child: Text(title, style: const TextStyle(fontSize: 18)),
                     ),
                     Text(
-                      "${(progress * 100).toStringAsFixed(2)}%",
+                      "${(progress * 100).toInt()}%",
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.primary,
                         fontWeight: FontWeight.bold,
