@@ -309,7 +309,7 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
                 bookName,
                 book.versesRead / versesCount,
                 "${book.versesRead}/$versesCount",
-                "${l10n.chapterShort}. ",
+                "${l10n.versesShort}. ".toUpperCase(),
                 action,
               );
             }).toList(),
@@ -457,7 +457,7 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
                       child: Text(title, style: const TextStyle(fontSize: 18)),
                     ),
                     Text(
-                      "${(progress * 100).toInt()}%",
+                      "${(progress * 100).toStringAsFixed(2)}%",
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.primary,
                         fontWeight: FontWeight.bold,
