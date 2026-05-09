@@ -55,6 +55,7 @@ create table rs_book_progress (
     chapter int not null,
     verse int not null,
     chapters_read int not null,
+    verses_read int not null,
     updated_at datetime not null
 );
 

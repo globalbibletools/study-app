@@ -24,7 +24,7 @@ class ReadingSessionBackupInfo {
 
 class ReadingSessionDatabase {
   static const _databaseName = 'reading_session.db';
-  static const _databaseVersion = 1;
+  static const _databaseVersion = 2;
   static const _backupFormatVersion = 1;
   static const _backupDirectoryName = 'backups';
   static const _backupFilePrefix = 'reading_session_';

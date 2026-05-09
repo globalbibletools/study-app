@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer';
 import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
@@ -30,7 +31,10 @@ class _LineMetrics {
   // The verse to show if this line is visible
   final int labelVerse;
 
-  _LineMetrics(this.top, this.bottom, this.labelVerse);
+  //the maximum verse number on a given line
+  final int highestVerseOnLine;
+
+  _LineMetrics(this.top, this.bottom, this.labelVerse, this.highestVerseOnLine);
 }
 
 /// A way for the outside world (such as scroll controllers) to obtain the
@@ -69,6 +73,35 @@ class HebrewGreekTextController {
   }
 }
 
+//class to group words by verse
+class VerseLayoutBlock {
+  final int verse;
+  final List<HebrewGreekWord> words;
+  VerseLayoutBlock(this.verse, this.words);
+}
+
+class WordRenderer {
+  HebrewGreekWord word;
+  TextPainter painter;
+  Rect? rect;
+  WordRenderer({required this.word, required this.painter});
+}
+
+class VerseRenderer {
+  final int verse;
+  int readingCount;
+  Rect? verseNumberRect;
+  Rect? readingCheckboxRect;
+  TextPainter verseNumberPainter;
+  TextPainter? verseReadingCountPainter;
+  Size? checkboxSize;
+  List<WordRenderer> words;
+
+  VerseRenderer(this.verse, this.verseNumberPainter)
+    : words = [],
+      readingCount = 0;
+}
+
 /// A widget that renders Hebrew and Greek text with custom layout and styling.
 ///
 /// This widget takes a list of [HebrewGreekWord] objects and renders them according
@@ -105,6 +138,9 @@ class HebrewGreekText extends LeafRenderObjectWidget {
     required this.verseLayout,
     required this.readingModeEnabled,
     this.checkedVerses,
+    this.changedCheckedVerse,
+    this.resetCheckedVerses = false,
+    this.checkedVersesRevision = 0,
   });
 
   /// The words that will rendered in the text layout
@@ -169,6 +205,9 @@ class HebrewGreekText extends LeafRenderObjectWidget {
   /// Indicates if the verse has been read or not
   /// a filled checkbox will appear
   final Map<int, int>? checkedVerses;
+  final int? changedCheckedVerse;
+  final bool resetCheckedVerses;
+  final int checkedVersesRevision;
 
   @override
   RenderHebrewGreekText createRenderObject(BuildContext context) {
@@ -184,6 +223,8 @@ class HebrewGreekText extends LeafRenderObjectWidget {
     final effectivePopupTextStyle = defaultTextStyle.style.merge(
       popupTextStyle,
     );
+
+    log("Creating render object");
 
     return RenderHebrewGreekText(
       words: words,
@@ -202,6 +243,9 @@ class HebrewGreekText extends LeafRenderObjectWidget {
       verseLayout: verseLayout,
       readingModeEnabled: readingModeEnabled,
       checkedVerses: checkedVerses,
+      changedCheckedVerse: changedCheckedVerse,
+      resetCheckedVerses: resetCheckedVerses,
+      checkedVersesRevision: checkedVersesRevision,
       flashColor:
           flashColor ??
           effectiveVerseNumberStyle?.color?.withValues(alpha: 0.4) ??
@@ -234,6 +278,8 @@ class HebrewGreekText extends LeafRenderObjectWidget {
       color: Color(0xFFFFFFFF),
     ).merge(popupTextStyle);
 
+    log("update render object");
+
     renderObject
       ..words = words
       ..controller = controller
@@ -249,7 +295,12 @@ class HebrewGreekText extends LeafRenderObjectWidget {
       ..onVerseCheckboxTap = onVerseCheckboxTap
       ..onVerseNumberLongPress = onVerseNumberLongPress
       ..verseLayout = verseLayout
-      ..checkedVerses = checkedVerses
+      ..updateCheckedVerses(
+        checkedVerses,
+        changedVerse: changedCheckedVerse,
+        resetAll: resetCheckedVerses,
+        revision: checkedVersesRevision,
+      )
       ..readingModeEnabled = readingModeEnabled
       ..flashColor =
           flashColor ??
@@ -335,8 +386,12 @@ class RenderHebrewGreekText extends RenderBox {
     required VerseLayout verseLayout,
     required bool readingModeEnabled,
     Map<int, int>? checkedVerses,
+    int? changedCheckedVerse,
+    bool resetCheckedVerses = false,
+    int checkedVersesRevision = 0,
     required Color primaryColor,
   }) : _words = words,
+       _verses = _buildBlocks(words),
        _controller = controller,
        _textDirection = textDirection,
        _textStyle = style,
@@ -354,7 +409,10 @@ class RenderHebrewGreekText extends RenderBox {
        _highlightColor = highlightColor,
        _verseLayout = verseLayout,
        _readingModeEnabled = readingModeEnabled,
-       _checkedVerses = checkedVerses,
+       _checkedVerses = checkedVerses == null
+           ? null
+           : Map<int, int>.unmodifiable(checkedVerses),
+       _checkedVersesRevision = checkedVersesRevision,
        _primaryColor = primaryColor {
     _updatePainters();
     _tapRecognizer = TapGestureRecognizer()..onTapUp = _handleTapUp;
@@ -371,6 +429,11 @@ class RenderHebrewGreekText extends RenderBox {
     markNeedsPaint();
   }
 
+  // Cached Paint objects
+  final Paint _flashPaint = Paint();
+  final Paint _highlightPaint = Paint();
+  final Paint _bgPaint = Paint();
+
   int? _tappedWordId;
   String? _popupText;
   TextPainter? _popupPainter;
@@ -383,38 +446,97 @@ class RenderHebrewGreekText extends RenderBox {
   VerseLayout _verseLayout;
   bool _readingModeEnabled;
   Map<int, int>? _checkedVerses;
+  int _checkedVersesRevision;
 
+  static List<VerseLayoutBlock> _buildBlocks(List<HebrewGreekWord> words) {
+    final blocks = <VerseLayoutBlock>[];
+    int? currentVerse;
+    List<HebrewGreekWord> currentWords = [];
+
+    for (final w in words) {
+      final verse = (w.id ~/ 100) % 1000;
+
+      if (currentVerse != verse) {
+        if (currentWords.isNotEmpty) {
+          blocks.add(VerseLayoutBlock(currentVerse!, currentWords));
+        }
+        currentVerse = verse;
+
+        currentWords = [];
+      }
+
+      currentWords.add(w);
+    }
+
+    if (currentWords.isNotEmpty) {
+      blocks.add(VerseLayoutBlock(currentVerse!, currentWords));
+    }
+
+    return blocks;
+  }
+
+  late List<VerseLayoutBlock> _verses;
   List<HebrewGreekWord> _words;
   List<HebrewGreekWord> get words => _words;
-  VerseLayout get verseLayout => _verseLayout;
-  Map<int, int>? get checkedVerses => _checkedVerses;
 
   set words(List<HebrewGreekWord> value) {
     if (_words == value) return;
     _words = value;
-    _needsPaintersUpdate = true;
+    _verses = _buildBlocks(value);
+    _needsResetVersesRenderers = true;
+    _needsTextPaintersUpdate = true;
     markNeedsLayout();
   }
+
+  List<VerseLayoutBlock> get verses => _verses;
+  VerseLayout get verseLayout => _verseLayout;
+  Map<int, int>? get checkedVerses => _checkedVerses;
 
   set verseLayout(VerseLayout value) {
     if (_verseLayout == value) return;
     _verseLayout = value;
-    _needsPaintersUpdate = true;
+    _needsTextPaintersUpdate = true;
     markNeedsLayout();
   }
 
   set checkedVerses(Map<int, int>? value) {
-    if (_checkedVerses.hashCode == value.hashCode) return;
-    _checkedVerses = value;
-    _needsPaintersUpdate = true;
-    markNeedsLayout();
+    updateCheckedVerses(
+      value,
+      resetAll: true,
+      revision: _checkedVersesRevision + 1,
+    );
+  }
+
+  void updateCheckedVerses(
+    Map<int, int>? value, {
+    int? changedVerse,
+    bool resetAll = false,
+    required int revision,
+  }) {
+    if (revision == _checkedVersesRevision) return;
+
+    _checkedVerses = value == null ? null : Map<int, int>.unmodifiable(value);
+    _checkedVersesRevision = revision;
+
+    if (resetAll) {
+      _checkboxesNeedFullUpdate = true;
+      _checkboxesToUpdate.clear();
+    } else if (changedVerse != null) {
+      _checkboxesToUpdate.add(changedVerse);
+    } else {
+      return;
+    }
+
+    _needsCheckboxesUpdate = true;
+    _updateCheckboxPainters();
   }
 
   set readingModeEnabled(bool value) {
     if (_readingModeEnabled == value) return;
     _readingModeEnabled = value;
-    _needsPaintersUpdate = true;
-    markNeedsLayout();
+    _needsCheckboxesUpdate = true;
+    _checkboxesNeedFullUpdate = true;
+    _updateCheckboxPainters();
   }
 
   HebrewGreekTextController? _controller;
@@ -430,7 +552,7 @@ class RenderHebrewGreekText extends RenderBox {
   set textDirection(TextDirection value) {
     if (_textDirection == value) return;
     _textDirection = value;
-    _needsPaintersUpdate = true;
+    _needsTextPaintersUpdate = true;
     markNeedsLayout();
   }
 
@@ -439,7 +561,9 @@ class RenderHebrewGreekText extends RenderBox {
   set textStyle(TextStyle value) {
     if (_textStyle == value) return;
     _textStyle = value;
-    _needsPaintersUpdate = true;
+    _needsTextPaintersUpdate = true;
+    _needsCheckboxesUpdate = true;
+    _checkboxesNeedFullUpdate = true;
     markNeedsLayout();
   }
 
@@ -448,7 +572,7 @@ class RenderHebrewGreekText extends RenderBox {
   set verseNumberStyle(TextStyle? value) {
     if (_verseNumberStyle == value) return;
     _verseNumberStyle = value;
-    _needsPaintersUpdate = true;
+    _needsTextPaintersUpdate = true;
     markNeedsLayout();
   }
 
@@ -568,96 +692,181 @@ class RenderHebrewGreekText extends RenderBox {
   }
 
   // Cached layout data
-  bool _needsPaintersUpdate = true;
-  final List<TextPainter> _wordPainters = [];
+  bool _needsTextPaintersUpdate = true;
+  bool _needsCheckboxesUpdate = false;
+  bool _needsResetVersesRenderers = false;
+  bool _checkboxesNeedFullUpdate = false;
+  final Set<int> _checkboxesToUpdate = {};
+
   late TextPainter _spacePainter;
-  final Map<int, Rect> _wordRects = {};
-  final Map<int, TextPainter> _verseNumberPainters = {};
-  final Map<int, Size> _verseCheckboxSizes = {};
-  final Map<int, int> _checkedVerseWordIds = {};
-  final Map<int, TextPainter> _verseReadingCountPainters = {};
-  final Map<int, int> _wordIdToVerse = {};
-  final Map<int, Rect> _verseNumberRects = {};
-  final Map<int, Rect> _verseCheckboxRects = {};
+  final List<VerseRenderer> _verseRenderer = [];
 
   void _updatePainters() {
-    _spacePainter = TextPainter(
-      text: TextSpan(text: ' ', style: _textStyle),
-      textDirection: _textDirection,
-    )..layout();
-
-    _wordPainters.clear();
-    _verseNumberPainters.clear();
-    _verseCheckboxSizes.clear();
-    _checkedVerseWordIds.clear();
-    _verseReadingCountPainters.clear();
-    _verseCheckboxRects.clear();
-    for (final word in _words) {
-      final wordPainter = TextPainter(
-        text: TextSpan(text: word.text, style: _textStyle),
+    if (_needsTextPaintersUpdate || _needsResetVersesRenderers) {
+      _spacePainter = TextPainter(
+        text: TextSpan(text: ' ', style: _textStyle),
         textDirection: _textDirection,
       )..layout();
-      _wordPainters.add(wordPainter);
 
-      // Create painter for the verse number if it's the first word
-      final verseNumber = _getVerseNumber(word);
-      if (verseNumber != null) {
-        final versePainter = TextPainter(
-          text: TextSpan(text: '$verseNumber', style: _verseNumberStyle),
-          textDirection: _textDirection,
-        )..layout();
-        // Use the word's ID as the key to associate them
+      if (_verseRenderer.isEmpty || _needsResetVersesRenderers) {
+        _verseRenderer.clear();
+        _initializeVerseRenderers();
+      } else {
+        _updateVerseRenderers();
+      }
 
-        _verseNumberPainters[word.id] = versePainter;
+      _needsTextPaintersUpdate = false;
+      _needsResetVersesRenderers = false;
+    }
 
-        if (_readingModeEnabled) {
-          final readingCount = _checkedVerses?[verseNumber] ?? 0;
-          final horizontalPadding = 8.0;
-          final verticalPadding = 4.0;
-          final badgeHeight = 0.4 * (_textStyle.fontSize ?? 48);
+    if (_needsCheckboxesUpdate) {
+      _updateCheckboxPainters();
+    }
+  }
 
-          final countPainter = TextPainter(
-            text: TextSpan(
-              text: '$readingCount',
-              style: _textStyle.copyWith(
-                color: const Color(0xFFFFFFFF),
-                fontWeight: FontWeight.w700,
-                fontSize: (_textStyle.fontSize ?? 48) * 0.4,
-              ),
-            ),
-            textDirection: _textDirection,
-          )..layout();
+  void _updateCheckboxPainters() {
+    if (!_needsCheckboxesUpdate) return;
+    bool sizeChanged = false;
 
-          final height = math.max(
-            badgeHeight,
-            countPainter.height + verticalPadding * 2,
-          );
-
-          final width = math.max(
-            countPainter.width + horizontalPadding * 2,
-            height,
-          );
-
-          if (readingCount > 0) {
-            _verseReadingCountPainters[word.id] = countPainter;
+    if (!_readingModeEnabled) {
+      for (final verseRenderer in _verseRenderer) {
+        if (verseRenderer.readingCount != 0 ||
+            verseRenderer.checkboxSize != null) {
+          verseRenderer.readingCount = 0;
+          verseRenderer.checkboxSize = null;
+          verseRenderer.readingCheckboxRect = null;
+          verseRenderer.verseReadingCountPainter = null;
+          sizeChanged = true;
+        }
+      }
+    } else {
+      for (final verseRenderer in _verseRenderer) {
+        final shouldUpdate =
+            _checkboxesNeedFullUpdate ||
+            _checkboxesToUpdate.contains(verseRenderer.verse);
+        if (shouldUpdate) {
+          final oldSize = verseRenderer.checkboxSize;
+          final newSize = _setupCheckboxPainter(verseRenderer);
+          if (oldSize != newSize) {
+            sizeChanged = true;
           }
-          _verseCheckboxSizes[word.id] = Size(width, height);
-
-          _checkedVerseWordIds[word.id] = readingCount;
         }
       }
     }
-    _needsPaintersUpdate = false;
+
+    _needsCheckboxesUpdate = false;
+    _checkboxesNeedFullUpdate = false;
+    _checkboxesToUpdate.clear();
+
+    if (sizeChanged) {
+      markNeedsLayout();
+    } else {
+      markNeedsPaint();
+    }
   }
 
-  /// Extracts the verse number if the word is the first in a verse.
-  int? _getVerseNumber(HebrewGreekWord word) {
-    final wordNumber = word.id % 100;
-    if (wordNumber != 1) return null;
-    return (word.id ~/ 100) % 1000;
+  void _initializeVerseRenderers() {
+    log("Creating verse painters");
+    //for each verse of the chapter
+    for (final verse in verses) {
+      final verseNumberPainter = TextPainter(
+        text: TextSpan(text: '${verse.verse}', style: _verseNumberStyle),
+        textDirection: _textDirection,
+      )..layout();
+
+      final verseRenderer = VerseRenderer(verse.verse, verseNumberPainter);
+
+      _verseRenderer.add(verseRenderer);
+
+      //for each word of the verse
+      for (final word in verse.words) {
+        final wordPainter = TextPainter(
+          text: TextSpan(text: word.text, style: _textStyle),
+          textDirection: _textDirection,
+        )..layout();
+
+        final wordRenderer = WordRenderer(word: word, painter: wordPainter);
+
+        verseRenderer.words.add(wordRenderer);
+      }
+
+      if (_readingModeEnabled) {
+        _setupCheckboxPainter(verseRenderer);
+      } else {
+        verseRenderer.readingCheckboxRect = null;
+        verseRenderer.verseReadingCountPainter = null;
+      }
+    }
   }
 
-  int? _findVerseAtOffset(double y) {
+  Size _setupCheckboxPainter(VerseRenderer verseRenderer) {
+    final readingCount = _checkedVerses?[verseRenderer.verse] ?? 0;
+    final horizontalPadding = 8.0;
+    final verticalPadding = 4.0;
+    final badgeHeight = 0.4 * (_textStyle.fontSize ?? 48);
+
+    verseRenderer.readingCount = readingCount;
+
+    final countPainter = TextPainter(
+      text: TextSpan(
+        text: '$readingCount',
+        style: _textStyle.copyWith(
+          color: const Color(0xFFFFFFFF),
+          fontWeight: FontWeight.w700,
+          fontSize: (_textStyle.fontSize ?? 48) * 0.4,
+        ),
+      ),
+      textDirection: _textDirection,
+    )..layout();
+
+    final height = math.max(
+      badgeHeight,
+      countPainter.height + verticalPadding * 2,
+    );
+
+    final width = math.max(countPainter.width + horizontalPadding * 2, height);
+
+    verseRenderer.verseReadingCountPainter = countPainter;
+
+    final newSize = Size(width, height);
+    verseRenderer.checkboxSize = newSize;
+    return newSize;
+  }
+
+  void _updateVerseRenderers() {
+    //for each verse of the chapter
+    for (final verseRenderer in _verseRenderer) {
+      //for each word of the verse
+      for (final word in verseRenderer.words) {
+        word.painter.text = TextSpan(text: word.word.text, style: _textStyle);
+        word.painter.layout();
+      }
+
+      verseRenderer.verseNumberPainter.text = TextSpan(
+        text: '${verseRenderer.verse}',
+        style: _verseNumberStyle,
+      );
+      verseRenderer.verseNumberPainter.layout();
+    }
+  }
+
+  Rect? getWordRect(int wordId) {
+    final verseNumber = (wordId ~/ 100) % 1000;
+    if (verseNumber < 1 || verseNumber > _verseRenderer.length) return null;
+
+    VerseRenderer verse = _verseRenderer[verseNumber - 1];
+
+    for (int i = 0; i < verse.words.length; i++) {
+      WordRenderer word = verse.words[i];
+      if (word.word.id == wordId) {
+        return word.rect;
+      }
+    }
+
+    return null;
+  }
+
+  _LineMetrics? _findLineAtOffset(double y) {
     if (_lineMetrics.isEmpty) return null;
 
     // Binary search to find the line containing 'y'
@@ -685,32 +894,66 @@ class RenderHebrewGreekText extends RenderBox {
     }
 
     if (match != null) {
-      return match.labelVerse;
+      return match;
     }
 
     // Fallback: If we scrolled past everything (y > last line)
     // closestPrevIndex will point to the last line.
     if (closestPrevIndex != null) {
-      return _lineMetrics[closestPrevIndex].labelVerse;
+      return _lineMetrics[closestPrevIndex];
     }
 
     // Fallback: Top of screen (y < first line)
-    return _lineMetrics.first.labelVerse;
+    return _lineMetrics.first;
+  }
+
+  int? _findVerseAtOffset(double y) {
+    return _findLineAtOffset(y)?.labelVerse;
+  }
+
+  // Helper to finalize a line
+  void _finalizeLine(double top, double bottom, List<int> wordIds) {
+    if (wordIds.isEmpty) return;
+
+    int? bestStartVerse;
+    int? lowestVerseOnLine;
+    int? highestVerseOnLine;
+
+    for (final wordId in wordIds) {
+      final verse = (wordId ~/ 100) % 1000;
+      final wordNum = wordId % 100;
+
+      if (lowestVerseOnLine == null || verse < lowestVerseOnLine) {
+        lowestVerseOnLine = verse;
+      }
+      if (highestVerseOnLine == null || verse > highestVerseOnLine) {
+        highestVerseOnLine = verse;
+      }
+      if (wordNum == 1) {
+        if (bestStartVerse == null || verse < bestStartVerse) {
+          bestStartVerse = verse;
+        }
+      }
+    }
+
+    // Priority: Start Verse > Lowest Visible
+    final label = bestStartVerse ?? lowestVerseOnLine ?? 1;
+    _lineMetrics.add(_LineMetrics(top, bottom, label, highestVerseOnLine ?? 1));
+    wordIds.clear();
   }
 
   Size _performLayout(BoxConstraints constraints) {
-    if (_needsPaintersUpdate) {
+    if (_needsTextPaintersUpdate || _needsCheckboxesUpdate) {
       _updatePainters();
     }
-    _wordRects.clear();
-    _verseNumberRects.clear();
     _lineMetrics.clear();
-    _wordIdToVerse.clear();
+    //_verseRenderer.clear();
 
     double mainAxisOffset = 0.0;
     double crossAxisOffset = 0.0;
     double currentLineMaxHeight = 0.0;
     double maxLineWidth = 0.0;
+    double effectiveSpaceWidth = 0.0;
 
     final double availableWidth = constraints.maxWidth;
     final double spaceWidth = _spacePainter.width;
@@ -719,201 +962,58 @@ class RenderHebrewGreekText extends RenderBox {
     // Temporary storage for calculating verse priority on the current line
     List<int> currentLineWordIds = [];
 
-    // Helper to finalize a line
-    void finalizeLine(double top, double bottom, List<int> wordIds) {
-      if (wordIds.isEmpty) return;
-
-      int? bestStartVerse;
-      int? lowestVerseOnLine;
-
-      for (final wordId in wordIds) {
-        final verse = (wordId ~/ 100) % 1000;
-        final wordNum = wordId % 100;
-
-        if (lowestVerseOnLine == null || verse < lowestVerseOnLine) {
-          lowestVerseOnLine = verse;
-        }
-        if (wordNum == 1) {
-          if (bestStartVerse == null || verse < bestStartVerse) {
-            bestStartVerse = verse;
-          }
-        }
-      }
-
-      // Priority: Start Verse > Lowest Visible
-      final label = bestStartVerse ?? lowestVerseOnLine ?? 1;
-      _lineMetrics.add(_LineMetrics(top, bottom, label));
-      wordIds.clear();
-    }
-
     mainAxisOffset = isLtr ? 0.0 : availableWidth;
 
-    for (int i = 0; i < _wordPainters.length; i++) {
-      final wordPainter = _wordPainters[i];
-      final wordSize = wordPainter.size;
-      final currentWord = _words[i];
+    final Map<int, Rect> verseRectsMap = {};
 
-      // Check if this word has an associated verse number
-      final versePainter = _verseNumberPainters[currentWord.id];
-      final checkboxSize = _verseCheckboxSizes[currentWord.id] ?? Size.zero;
-      final verseNumberSize = versePainter?.size ?? Size.zero;
-      final verseNumberUnitWidth = versePainter != null
-          ? verseNumberSize.width + spaceWidth
-          : 0.0;
-      final checkboxUnitWidth = checkboxSize != Size.zero
-          ? checkboxSize.width + spaceWidth
-          : 0.0;
+    for (int i = 0; i < _verseRenderer.length; i++) {
+      VerseRenderer verse = _verseRenderer[i];
 
-      // "No orphan" rule: Check if the verse number AND its word fit together
-      final totalUnitWidth =
-          verseNumberUnitWidth + checkboxUnitWidth + wordSize.width;
-      bool fitsOnLine = isLtr
-          ? mainAxisOffset + totalUnitWidth <= availableWidth
-          : mainAxisOffset - totalUnitWidth >= 0;
-
-      if (i > 1 && VerseLayout.versePerLine == _verseLayout) {
-        final verseNumber = _getVerseNumber(currentWord);
-        if (null != verseNumber) fitsOnLine = false;
-      }
-
-      // Line wrap logic
-      if (!fitsOnLine) {
-        // --- End of previous line ---
-        finalizeLine(
+      for (int j = 0; j < verse.words.length; j++) {
+        (
+          mainAxisOffset,
           crossAxisOffset,
-          crossAxisOffset + currentLineMaxHeight,
+          currentLineMaxHeight,
+          effectiveSpaceWidth,
+        ) = _performWordLayout(
+          verse,
+          verse.words[j],
+          mainAxisOffset,
+          crossAxisOffset,
+          spaceWidth,
+          isLtr,
+          availableWidth,
+          currentLineMaxHeight,
           currentLineWordIds,
+          j == 0 ? verse.verseNumberPainter : null,
+          j == 0 ? verse.verseReadingCountPainter : null,
+          j == 0 ? verse.checkboxSize : null,
         );
 
-        crossAxisOffset += currentLineMaxHeight;
-        currentLineMaxHeight = 0.0;
-        mainAxisOffset = isLtr ? 0.0 : availableWidth;
+        // Track the maximum width used.
+        if (isLtr) {
+          maxLineWidth = math.max(
+            maxLineWidth,
+            mainAxisOffset - effectiveSpaceWidth,
+          );
+        } else {
+          maxLineWidth = math.max(
+            maxLineWidth,
+            availableWidth - (mainAxisOffset + effectiveSpaceWidth),
+          );
+        }
       }
 
-      // Track word for the current line
-      currentLineWordIds.add(currentWord.id);
-
-      currentLineMaxHeight = math.max(
-        currentLineMaxHeight,
-        math.max(wordSize.height, verseNumberSize.height),
-      );
-
-      final bool endsWithMaqaph = _words[i].text.endsWith(maqaph);
-      final double effectiveSpaceWidth = endsWithMaqaph ? 0.0 : spaceWidth;
-
-      //move checkbox slightly upward
-      final offset = math.max(
-        0,
-        (currentLineMaxHeight - checkboxSize.height) / 4,
-      );
-
-      final verse = _getVerseNumber(currentWord);
-      if (verse != null) {
-        _wordIdToVerse[currentWord.id] = verse;
-      }
-
-      // Position and store Rect
-      if (isLtr) {
-        // 1. Position verse reading checkbox if it exists
-        if (checkboxSize != Size.zero) {
-          final checkboxRect = Rect.fromLTWH(
-            mainAxisOffset,
-            crossAxisOffset + offset,
-            checkboxSize.width,
-            checkboxSize.height,
-          );
-          _verseCheckboxRects[currentWord.id] = checkboxRect;
-          mainAxisOffset += checkboxUnitWidth;
-        }
-        // 2. Position verse number if it exists
-        if (versePainter != null) {
-          final verseRect = Rect.fromLTWH(
-            mainAxisOffset,
-            crossAxisOffset,
-            verseNumberSize.width,
-            verseNumberSize.height,
-          );
-          _verseNumberRects[currentWord.id] = verseRect;
-          mainAxisOffset += verseNumberUnitWidth;
-        }
-        // 3. Position the word
-        final wordRect = Rect.fromLTWH(
-          mainAxisOffset,
-          crossAxisOffset,
-          wordSize.width,
-          wordSize.height,
-        );
-        _wordRects[currentWord.id] = wordRect;
-        mainAxisOffset += wordSize.width + effectiveSpaceWidth;
-      } else {
-        // RTL
-        // 1. Position verse reading checkbox if it exists
-        if (checkboxSize != Size.zero) {
-          // Move cursor left by the width of the number to find its top-left
-          mainAxisOffset -= checkboxSize.width;
-          final checkboxRect = Rect.fromLTWH(
-            mainAxisOffset,
-            crossAxisOffset + offset,
-            checkboxSize.width,
-            checkboxSize.height,
-          );
-          _verseCheckboxRects[currentWord.id] = checkboxRect;
-          mainAxisOffset -= spaceWidth;
-        }
-        // 2. Position verse number if it exists (at the rightmost available spot)
-        if (versePainter != null) {
-          // Move cursor left by the width of the number to find its top-left
-          mainAxisOffset -= verseNumberSize.width;
-          final verseRect = Rect.fromLTWH(
-            mainAxisOffset,
-            crossAxisOffset,
-            verseNumberSize.width,
-            verseNumberSize.height,
-          );
-          _verseNumberRects[currentWord.id] = verseRect;
-          mainAxisOffset -= spaceWidth;
-        }
-        // 3. Position the word to the left of the verse number (or at the start)
-        mainAxisOffset -= wordSize.width;
-        final wordRect = Rect.fromLTWH(
-          mainAxisOffset,
-          crossAxisOffset,
-          wordSize.width,
-          wordSize.height,
-        );
-        _wordRects[currentWord.id] = wordRect;
-        // 4. Account for the space before the next element
-        mainAxisOffset -= effectiveSpaceWidth;
-      }
-
-      // Track the maximum width used.
-      if (isLtr) {
-        maxLineWidth = math.max(
-          maxLineWidth,
-          mainAxisOffset - effectiveSpaceWidth,
-        );
-      } else {
-        maxLineWidth = math.max(
-          maxLineWidth,
-          availableWidth - (mainAxisOffset + effectiveSpaceWidth),
-        );
-      }
+      verseRectsMap[verse.verse] = verse.verseNumberRect!;
     }
 
     // Finalize the last line
-    finalizeLine(
+    _finalizeLine(
       crossAxisOffset,
       crossAxisOffset + currentLineMaxHeight,
       currentLineWordIds,
     );
 
-    final Map<int, Rect> verseRectsMap = {};
-    for (final entry in _verseNumberRects.entries) {
-      final wordId = entry.key;
-      final rect = entry.value;
-      final verseNumber = _wordIdToVerse[wordId]!;
-      verseRectsMap[verseNumber] = rect;
-    }
     controller?._updateVerseRects(verseRectsMap);
 
     final double finalHeight = crossAxisOffset + currentLineMaxHeight;
@@ -922,6 +1022,214 @@ class RenderHebrewGreekText extends RenderBox {
         : maxLineWidth;
 
     return Size(finalWidth, finalHeight);
+  }
+
+  /// Main layout method for a single word (called for every word)
+  (double, double, double, double) _performWordLayout(
+    VerseRenderer verse,
+    WordRenderer wordRenderer,
+    double mainAxisOffset,
+    double crossAxisOffset,
+    double spaceWidth,
+    bool isLtr,
+    double availableWidth,
+    double currentLineMaxHeight,
+    List<int> currentLineWordIds,
+    TextPainter? verseNumberPainter,
+    TextPainter? countPainter,
+    Size? checkboxSize,
+  ) {
+    final wordPainter = wordRenderer.painter;
+    final word = wordRenderer.word;
+    final wordSize = wordPainter.size;
+    final verseNumberSize = verseNumberPainter?.size ?? Size.zero;
+    final checkboxHeight = checkboxSize?.height ?? 0.0;
+
+    final verseNumberUnitWidth = verseNumberPainter != null
+        ? verseNumberPainter.size.width + spaceWidth
+        : 0.0;
+
+    final checkboxUnitWidth = checkboxSize != null
+        ? checkboxSize.width + spaceWidth
+        : 0.0;
+
+    final totalUnitWidth =
+        verseNumberUnitWidth + checkboxUnitWidth + wordSize.width;
+
+    // Should this verse start on a new line?
+    bool fitsOnLine = true;
+    if (verseNumberPainter != null &&
+        _verseLayout == VerseLayout.versePerLine) {
+      fitsOnLine = false;
+    } else if (isLtr) {
+      fitsOnLine = mainAxisOffset + totalUnitWidth <= availableWidth;
+    } else {
+      fitsOnLine = mainAxisOffset - totalUnitWidth >= 0;
+    }
+
+    // Line wrap
+    if (!fitsOnLine) {
+      _finalizeLine(
+        crossAxisOffset,
+        crossAxisOffset + currentLineMaxHeight,
+        currentLineWordIds,
+      );
+      crossAxisOffset += currentLineMaxHeight;
+      currentLineMaxHeight = 0.0;
+      mainAxisOffset = isLtr ? 0.0 : availableWidth;
+    }
+
+    currentLineWordIds.add(word.id);
+
+    // Calculate max height for this line
+    currentLineMaxHeight = math.max(
+      currentLineMaxHeight,
+      math.max(wordSize.height, verseNumberSize.height),
+    );
+
+    final bool endsWithMaqaph = word.text.endsWith(maqaph);
+    final double effectiveSpaceWidth = endsWithMaqaph ? 0.0 : spaceWidth;
+
+    final double offset = math.max(
+      0,
+      (currentLineMaxHeight - checkboxHeight) / 4,
+    );
+
+    // === LAYOUT BRANCH ===
+    if (isLtr) {
+      mainAxisOffset = _layoutLTR(
+        verse,
+        wordRenderer,
+        mainAxisOffset,
+        crossAxisOffset,
+        offset,
+        verseNumberPainter,
+        checkboxSize,
+        verseNumberSize,
+        spaceWidth,
+      );
+    } else {
+      mainAxisOffset = _layoutRTL(
+        verse,
+        wordRenderer,
+        mainAxisOffset,
+        crossAxisOffset,
+        offset,
+        verseNumberPainter,
+        checkboxSize,
+        verseNumberSize,
+        spaceWidth,
+        effectiveSpaceWidth,
+      );
+    }
+
+    return (
+      mainAxisOffset,
+      crossAxisOffset,
+      currentLineMaxHeight,
+      effectiveSpaceWidth,
+    );
+  }
+
+  double _layoutLTR(
+    VerseRenderer verse,
+    WordRenderer wordRenderer,
+    double mainAxisOffset,
+    double crossAxisOffset,
+    double offset,
+    TextPainter? verseNumberPainter,
+    Size? checkboxSize,
+    Size verseNumberSize,
+    double effectiveSpaceWidth,
+  ) {
+    // 1. Position verse reading checkbox if it exists
+    if (checkboxSize != null) {
+      final checkboxRect = Rect.fromLTWH(
+        mainAxisOffset,
+        crossAxisOffset + offset,
+        checkboxSize.width,
+        checkboxSize.height,
+      );
+      verse.readingCheckboxRect = checkboxRect;
+      mainAxisOffset += checkboxSize.width;
+    }
+    // 2. Position verse number if it exists
+    if (verseNumberPainter != null) {
+      final verseRect = Rect.fromLTWH(
+        mainAxisOffset,
+        crossAxisOffset,
+        verseNumberSize.width,
+        verseNumberSize.height,
+      );
+      verse.verseNumberRect = verseRect;
+      mainAxisOffset += verseNumberSize.width;
+    }
+    // 3. Position the word
+    final wordRect = Rect.fromLTWH(
+      mainAxisOffset,
+      crossAxisOffset,
+      wordRenderer.painter.size.width,
+      wordRenderer.painter.size.height,
+    );
+
+    wordRenderer.rect = wordRect;
+    mainAxisOffset += wordRenderer.painter.size.width + effectiveSpaceWidth;
+
+    return mainAxisOffset;
+  }
+
+  double _layoutRTL(
+    VerseRenderer verse,
+    WordRenderer wordRenderer,
+    double mainAxisOffset,
+    double crossAxisOffset,
+    double offset,
+    TextPainter? verseNumberPainter,
+    Size? checkboxSize,
+    Size verseNumberSize,
+    double effectiveSpaceWidth,
+    double spaceWidth,
+  ) {
+    // RTL
+    // 1. Position verse reading checkbox if it exists
+    if (checkboxSize != null) {
+      // Move cursor left by the width of the number to find its top-left
+      mainAxisOffset -= checkboxSize.width;
+      final checkboxRect = Rect.fromLTWH(
+        mainAxisOffset,
+        crossAxisOffset + offset,
+        checkboxSize.width,
+        checkboxSize.height,
+      );
+      verse.readingCheckboxRect = checkboxRect;
+      mainAxisOffset -= spaceWidth;
+    }
+    // 2. Position verse number if it exists (at the rightmost available spot)
+    if (verseNumberPainter != null) {
+      // Move cursor left by the width of the number to find its top-left
+      mainAxisOffset -= verseNumberSize.width;
+      final verseRect = Rect.fromLTWH(
+        mainAxisOffset,
+        crossAxisOffset,
+        verseNumberSize.width,
+        verseNumberSize.height,
+      );
+      verse.verseNumberRect = verseRect;
+      mainAxisOffset -= spaceWidth;
+    }
+    // 3. Position the word to the left of the verse number (or at the start)
+    mainAxisOffset -= wordRenderer.painter.size.width;
+    final wordRect = Rect.fromLTWH(
+      mainAxisOffset,
+      crossAxisOffset,
+      wordRenderer.painter.size.width,
+      wordRenderer.painter.size.height,
+    );
+    wordRenderer.rect = wordRect;
+    // 4. Account for the space before the next element
+    mainAxisOffset -= effectiveSpaceWidth;
+
+    return mainAxisOffset;
   }
 
   @override
@@ -936,40 +1244,59 @@ class RenderHebrewGreekText extends RenderBox {
 
   @override
   double computeMinIntrinsicWidth(double height) {
-    if (_needsPaintersUpdate) _updatePainters();
-    if (_words.isEmpty) return 0.0;
+    if (_needsTextPaintersUpdate || _needsCheckboxesUpdate) _updatePainters();
+    if (_verseRenderer.isEmpty) return 0.0;
 
     double maxWidth = 0.0;
-    for (int i = 0; i < _words.length; i++) {
-      final word = _words[i];
-      final wordPainter = _wordPainters[i];
-      final versePainter = _verseNumberPainters[word.id];
-      double unitWidth = wordPainter.width;
-      if (versePainter != null) {
-        unitWidth += versePainter.width + _spacePainter.width;
+
+    for (int i = 0; i < _verseRenderer.length; i++) {
+      for (int j = 0; j < _verseRenderer[i].words.length; j++) {
+        final word = _verseRenderer[i].words[j];
+        final wordPainter = word.painter;
+        final versePainter = j == 0
+            ? _verseRenderer[i].verseNumberPainter
+            : null;
+        final checkboxPainter = j == 0
+            ? _verseRenderer[i].verseReadingCountPainter
+            : null;
+
+        double unitWidth = wordPainter.width;
+        if (versePainter != null && _verseRenderer[i].readingCount > 0) {
+          unitWidth += versePainter.width + _spacePainter.width;
+        }
+
+        if (checkboxPainter != null) {
+          unitWidth += checkboxPainter.width + _spacePainter.width;
+        }
+
+        maxWidth = math.max(maxWidth, unitWidth);
       }
-      maxWidth = math.max(maxWidth, unitWidth);
     }
+
     return maxWidth;
   }
 
   @override
   double computeMaxIntrinsicWidth(double height) {
-    if (_needsPaintersUpdate) _updatePainters();
-    if (_words.isEmpty) return 0.0;
+    if (_needsTextPaintersUpdate || _needsCheckboxesUpdate) _updatePainters();
+    if (_verseRenderer.isEmpty) return 0.0;
 
     double totalWidth = 0.0;
-    totalWidth += _wordPainters.fold(0.0, (sum, p) => sum + p.width);
-    totalWidth += _verseNumberPainters.values.fold(
-      0.0,
-      (sum, p) => sum + p.width + _spacePainter.width,
-    );
+    for (VerseRenderer vr in _verseRenderer) {
+      totalWidth += vr.verseNumberPainter.width + _spacePainter.width;
 
-    // Sum of inter-word spaces, skipping words that end with a maqaph.
-    for (int i = 0; i < _words.length - 1; i++) {
-      if (!_words[i].text.endsWith(maqaph)) {
-        totalWidth += _spacePainter.width;
+      if (vr.verseReadingCountPainter != null) {
+        totalWidth += vr.verseReadingCountPainter!.width + _spacePainter.width;
       }
+
+      // Sum of  words + inter-word spaces, skipping words that end with a maqaph.
+      totalWidth += vr.words.fold(
+        0.0,
+        (sum, w) =>
+            sum +
+            w.painter.width +
+            (w.word.text.endsWith(maqaph) ? 0 : _spacePainter.width),
+      );
     }
     return totalWidth;
   }
@@ -993,35 +1320,37 @@ class RenderHebrewGreekText extends RenderBox {
       return false;
     }
 
-    // Check verse numbers first
-    for (final entry in _verseNumberRects.entries.toList().reversed) {
-      final int wordId = entry.key;
-      final Rect rect = entry.value;
-      if (rect.contains(position)) {
-        final verseNumber = _wordIdToVerse[wordId]!;
-        result.add(VerseNumberHitTestEntry(this, verseNumber));
-        return true;
-      }
+    _LineMetrics? verse = _findLineAtOffset(position.dy);
+
+    if (verse == null) {
+      return false;
     }
 
-    // then check verse checkbox
-    for (final entry in _verseCheckboxRects.entries.toList().reversed) {
-      final int wordId = entry.key;
-      final Rect rect = entry.value;
-      if (rect.contains(position)) {
-        final verseNumber = _wordIdToVerse[wordId]!;
-        result.add(VerseCheckboxHitTestEntry(this, verseNumber));
+    for (
+      int i = verse.labelVerse - 1;
+      i < verse.highestVerseOnLine && i < _verseRenderer.length;
+      i++
+    ) {
+      VerseRenderer vr = _verseRenderer[i];
+
+      // Check verse numbers first
+      if (vr.verseNumberRect?.contains(position) ?? false) {
+        result.add(VerseNumberHitTestEntry(this, vr.verse));
         return true;
       }
-    }
 
-    // Then check words
-    for (final entry in _wordRects.entries.toList().reversed) {
-      final int wordId = entry.key;
-      final Rect rect = entry.value;
-      if (rect.contains(position)) {
-        result.add(HebrewGreekWordHitTestEntry(this, wordId));
+      // then check verse checkbox
+      if (vr.readingCheckboxRect?.contains(position) ?? false) {
+        result.add(VerseCheckboxHitTestEntry(this, vr.verse));
         return true;
+      }
+
+      // Then check words
+      for (int j = 0; j < vr.words.length; j++) {
+        if (vr.words[j].rect?.contains(position) ?? false) {
+          result.add(HebrewGreekWordHitTestEntry(this, vr.words[j].word.id));
+          return true;
+        }
       }
     }
 
@@ -1087,7 +1416,7 @@ class RenderHebrewGreekText extends RenderBox {
             _preparePopupPainter();
 
             // Notify parent about the popup rect for potential scrolling.
-            final tappedWordRect = _wordRects[tappedId];
+            final tappedWordRect = getWordRect(tappedId);
             if (tappedWordRect != null) {
               final localPopupRect = _getPopupRect(tappedWordRect);
               final globalTopLeft = localToGlobal(localPopupRect.topLeft);
@@ -1171,7 +1500,7 @@ class RenderHebrewGreekText extends RenderBox {
 
   @override
   void paint(PaintingContext context, Offset offset) {
-    if (_words.isEmpty) return;
+    if (verses.isEmpty) return;
 
     final canvas = context.canvas;
     canvas.save();
@@ -1179,26 +1508,17 @@ class RenderHebrewGreekText extends RenderBox {
 
     // --- 0. Paint audio highlight (Continuous Line Style) ---
     if (_highlightedVerse != null && _highlightColor != null) {
-      final highlightPaint = Paint()..color = _highlightColor!;
+      _highlightPaint.color = _highlightColor!;
       final List<Rect> verseRects = [];
 
-      // A. Collect all Word Rects for this verse
-      for (final word in _words) {
-        final verseNum = (word.id ~/ 100) % 1000; // Extract Verse ID
-        if (verseNum == _highlightedVerse) {
-          final rect = _wordRects[word.id];
-          if (rect != null) verseRects.add(rect);
-        }
-      }
+      VerseRenderer verse = _verseRenderer[_highlightedVerse! - 1];
 
-      // B. Collect Verse Number Rect (if it belongs to this verse)
-      // We iterate verse numbers to see if they match the highlighted verse
-      for (final entry in _verseNumberRects.entries) {
-        final wordId = entry.key;
-        final verseNum = (wordId ~/ 100) % 1000;
-        if (verseNum == _highlightedVerse) {
-          verseRects.add(entry.value);
-        }
+      // A. Collect Verse Number Rect
+      verseRects.add(verse.verseNumberRect!);
+
+      // B. Collect all Word Rects for this verse
+      for (final word in verse.words) {
+        verseRects.add(word.rect!);
       }
 
       if (verseRects.isNotEmpty) {
@@ -1256,94 +1576,101 @@ class RenderHebrewGreekText extends RenderBox {
 
         // Draw the entire path once.
         // Overlapping areas within a single Path do not accumulate alpha.
-        canvas.drawPath(highlightPath, highlightPaint);
+        canvas.drawPath(highlightPath, _highlightPaint);
       }
     }
     // ---------------------------------------------------------
 
-    // 1. Paint the flash effect (long press)
-    if (_flashedWordId != null) {
-      final rect = _wordRects[_flashedWordId];
-      if (rect != null) {
-        final flashPaint = Paint()..color = _flashColor;
-        final rrect = RRect.fromRectAndRadius(
-          rect.inflate(2.0),
-          const Radius.circular(4.0),
-        );
-        canvas.drawRRect(rrect, flashPaint);
-      }
-    }
-
     // 2. Paint all the words
-    for (int i = 0; i < _wordPainters.length; i++) {
-      final wordId = _words[i].id;
-      final rect = _wordRects[wordId];
-      final painter = _wordPainters[i];
-      if (rect != null) {
-        painter.paint(canvas, rect.topLeft);
+    final Rect visibleRect = canvas.getLocalClipBounds();
+    final firstLine = _findLineAtOffset(visibleRect.top);
+    final lastLine = _findLineAtOffset(visibleRect.bottom);
+
+    int startVerse = firstLine?.labelVerse ?? 1;
+    int endVerse = lastLine?.highestVerseOnLine ?? _verseRenderer.length;
+
+    for (
+      int i = startVerse - 1;
+      i < endVerse && i < _verseRenderer.length;
+      i++
+    ) {
+      final verse = _verseRenderer[i];
+
+      //paint the checkbox for the reading session
+      if (verse.verseReadingCountPainter != null) {
+        _paintCheckboxes(canvas, verse);
       }
-    }
 
-    // 3. Paint all the verse numbers
-    for (final entry in _verseNumberPainters.entries) {
-      final wordId = entry.key;
-      final painter = entry.value;
-      final rect = _verseNumberRects[wordId];
-      if (rect != null) {
-        painter.paint(canvas, rect.topLeft);
-      }
-    }
+      // 2.1 Paint the verse number
+      verse.verseNumberPainter.paint(canvas, verse.verseNumberRect!.topLeft);
 
-    // 4. Paint all the verse checkboxes if any
-    _paintCheckboxes(canvas);
+      // 2.2 Paint the verse words
+      for (final word in verse.words) {
+        if (word.rect == null) {
+          continue;
+        }
 
-    // 5. Paint the popup if a word is tapped AND its painter is ready
-    if (_tappedWordId != null && _popupPainter != null) {
-      final tappedWordRect = _wordRects[_tappedWordId];
-      if (tappedWordRect != null) {
-        _paintPopup(canvas, tappedWordRect);
+        final rect = word.rect!;
+
+        // 2.2.1 Paint the flash effect (long press)
+        if (_flashedWordId != null && _flashedWordId == word.word.id) {
+          _flashPaint.color = _flashColor;
+          final rrect = RRect.fromRectAndRadius(
+            rect.inflate(2.0),
+            const Radius.circular(4.0),
+          );
+          canvas.drawRRect(rrect, _flashPaint);
+        }
+
+        // 2.2.2 Paint the popup if a word is tapped AND its painter is ready
+        if (_tappedWordId != null &&
+            _popupPainter != null &&
+            word.word.id == _tappedWordId) {
+          _paintPopup(canvas, rect);
+        }
+
+        // 2.2.3 Paint the word
+        word.painter.paint(canvas, word.rect!.topLeft);
       }
     }
 
     canvas.restore();
   }
 
-  void _paintCheckboxes(Canvas canvas) {
-    for (final entry in _verseCheckboxRects.entries) {
-      final wordId = entry.key;
-      final rect = entry.value;
+  void _paintCheckboxes(Canvas canvas, VerseRenderer verse) {
+    final readingCount = verse.readingCount;
+    final isChecked = readingCount > 0;
 
-      final readingCount = _checkedVerseWordIds[wordId] ?? 0;
-      final isChecked = readingCount > 0;
+    final rect = verse.readingCheckboxRect!;
 
-      final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(6));
+    final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(6));
 
-      final baseColor = _primaryColor;
-      final uncheckedTop = baseColor.withValues(alpha: 0.3);
-      final uncheckedBottom = baseColor.withValues(alpha: 0.1);
+    final baseColor = _primaryColor;
+    final uncheckedTop = baseColor.withValues(alpha: 0.3);
+    final uncheckedBottom = baseColor.withValues(alpha: 0.1);
 
-      final paint = Paint()
-        ..shader = LinearGradient(
-          colors: isChecked
-              ? [
-                  baseColor.withValues(alpha: 0.9),
-                  baseColor.withValues(alpha: 0.6),
-                ]
-              : [uncheckedTop, uncheckedBottom],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ).createShader(rect);
+    final paint = Paint()
+      ..shader = LinearGradient(
+        colors: isChecked
+            ? [
+                baseColor.withValues(alpha: 0.9),
+                baseColor.withValues(alpha: 0.6),
+              ]
+            : [uncheckedTop, uncheckedBottom],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ).createShader(rect);
 
-      canvas.drawRRect(rrect, paint);
+    canvas.drawRRect(rrect, paint);
 
-      final countPainter = _verseReadingCountPainters[wordId];
-      if (countPainter != null) {
-        final textOffset = Offset(
-          rect.left + (rect.width - countPainter.width) / 2,
-          rect.top + (rect.height - countPainter.height) / 2,
-        );
-        countPainter.paint(canvas, textOffset);
-      }
+    if (isChecked) {
+      final countPainter = verse.verseReadingCountPainter!;
+
+      final textOffset = Offset(
+        rect.left + (rect.width - countPainter.width) / 2,
+        rect.top + (rect.height - countPainter.height) / 2,
+      );
+      countPainter.paint(canvas, textOffset);
     }
   }
 
@@ -1354,12 +1681,12 @@ class RenderHebrewGreekText extends RenderBox {
     // Draw the background.
     const double kPopupCornerRadius = 8.0;
     final bgRect = _getPopupRect(tappedWordRect);
-    final bgPaint = Paint()..color = _popupBackgroundColor;
+    _bgPaint.color = _popupBackgroundColor;
     final rrect = RRect.fromRectAndRadius(
       bgRect,
       const Radius.circular(kPopupCornerRadius),
     );
-    canvas.drawRRect(rrect, bgPaint);
+    canvas.drawRRect(rrect, _bgPaint);
 
     // Paint the text.
     final textOffset = Offset(

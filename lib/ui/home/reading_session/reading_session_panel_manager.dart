@@ -20,9 +20,7 @@ class ReadingSessionPanelManager {
   final selectedPTabNotifier = ValueNotifier<ProgressTab>(ProgressTab.byBook);
   final selectedGTabNotifier = ValueNotifier<GoalsTab>(GoalsTab.byWeek);
 
-  final dailyGoalNotifier = ValueNotifier<DailyGoal>(
-    DailyGoal(GoalType.minutes, 10),
-  );
+  final dailyGoalNotifier = ValueNotifier<DailyGoal?>(null);
 
   ReadingSessionPanelManager() {
     _rsManager.subsribeForBookProgress(onBookProgressUpdated);
@@ -31,6 +29,12 @@ class ReadingSessionPanelManager {
     booksProgressNotifier.value = _rsManager.booksProgress;
     latestBookProgressNotifier.value = _rsManager.latestBookProgress;
     dailyGoalNotifier.value = _rsManager.getDailyGoal();
+
+    if (dailyGoalNotifier.value == null) {
+      selectedMainTab.value = MainTab.goals;
+      selectedGTabNotifier.value = GoalsTab.byWeek;
+    }
+
     onStatsUpdated();
   }
 

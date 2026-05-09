@@ -309,10 +309,16 @@ class AppLocalizationsPt extends AppLocalizations {
   String get changeGoal => 'Alterar meta';
 
   @override
+  String get setGoal => 'Definir meta';
+
+  @override
   String get chapterShort => 'CAP';
 
   @override
   String get dailyGoal => 'Meta diária';
+
+  @override
+  String get dailyGoalNotSet => 'Meta diária: não definida';
 
   @override
   String get minutes => 'minutos';
@@ -372,6 +378,9 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get hide => 'Ocultar';
+
+  @override
+  String get show => 'Mostrar';
 
   @override
   String get minutesPerDay => 'Minutos por dia';

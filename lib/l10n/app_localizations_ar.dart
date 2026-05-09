@@ -308,10 +308,16 @@ class AppLocalizationsAr extends AppLocalizations {
   String get changeGoal => 'تغيير الهدف';
 
   @override
+  String get setGoal => 'تعيين الهدف';
+
+  @override
   String get chapterShort => 'فص';
 
   @override
   String get dailyGoal => 'الهدف اليومي';
+
+  @override
+  String get dailyGoalNotSet => 'الهدف اليومي: غير معين';
 
   @override
   String get minutes => 'دقائق';
@@ -371,6 +377,9 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get hide => 'إخفاء';
+
+  @override
+  String get show => 'إظهار';
 
   @override
   String get minutesPerDay => 'دقائق في اليوم';

@@ -311,10 +311,16 @@ class AppLocalizationsEs extends AppLocalizations {
   String get changeGoal => 'Cambiar objetivo';
 
   @override
+  String get setGoal => 'Establecer objetivo';
+
+  @override
   String get chapterShort => 'CAP';
 
   @override
   String get dailyGoal => 'Objetivo diario';
+
+  @override
+  String get dailyGoalNotSet => 'Objetivo diario: no establecido';
 
   @override
   String get minutes => 'minutos';
@@ -374,6 +380,9 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get hide => 'Ocultar';
+
+  @override
+  String get show => 'Mostrar';
 
   @override
   String get minutesPerDay => 'Minutos por día';

@@ -18,19 +18,62 @@ class ReadingSessionOverlay extends StatelessWidget {
           valueListenable: manager.displayGoalProgresNotifier,
           builder: (context, displayGoalProgress, _) {
             final dailyGoal = manager.getDailyGoal();
-            if (!readingModeEnabled || !displayGoalProgress) {
-              return const SizedBox.shrink();
+            late final Widget child;
+            if (!readingModeEnabled || dailyGoal == null) {
+              child = const SizedBox.shrink(key: ValueKey('hidden'));
+            } else if (!displayGoalProgress) {
+              child = _CollapsedGoalProgress(
+                key: const ValueKey('collapsed'),
+                manager: manager,
+              );
             } else if (dailyGoal.type == GoalType.verses) {
-              return _VersesGoalProgressBar(
+              child = _VersesGoalProgressBar(
+                key: const ValueKey('verses-progress'),
                 manager: manager,
                 dailyGoal: dailyGoal,
               );
             } else {
-              return _MinutesGoalProgressBar(
+              child = _MinutesGoalProgressBar(
+                key: const ValueKey('minutes-progress'),
                 manager: manager,
                 dailyGoal: dailyGoal,
               );
             }
+
+            final textDirection = Directionality.of(context);
+            final edgeAlignment = textDirection == TextDirection.ltr
+                ? Alignment.centerRight
+                : Alignment.centerLeft;
+            final axisAlignment = textDirection == TextDirection.ltr
+                ? 1.0
+                : -1.0;
+
+            return AnimatedSwitcher(
+              duration: const Duration(milliseconds: 220),
+              reverseDuration: const Duration(milliseconds: 180),
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeInCubic,
+              layoutBuilder: (currentChild, previousChildren) {
+                return Stack(
+                  alignment: edgeAlignment,
+                  children: [...previousChildren, if (currentChild != null) currentChild],
+                );
+              },
+              transitionBuilder: (child, animation) {
+                return Align(
+                  alignment: edgeAlignment,
+                  child: ClipRect(
+                    child: SizeTransition(
+                      axis: Axis.horizontal,
+                      axisAlignment: axisAlignment,
+                      sizeFactor: animation,
+                      child: child,
+                    ),
+                  ),
+                );
+              },
+              child: child,
+            );
           },
         );
       },
@@ -38,8 +81,34 @@ class ReadingSessionOverlay extends StatelessWidget {
   }
 }
 
+class _CollapsedGoalProgress extends StatelessWidget {
+  const _CollapsedGoalProgress({super.key, required this.manager});
+
+  final ReadingSessionManager manager;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      child: Align(
+        alignment: AlignmentDirectional.centerEnd,
+        child: _GoalProgressToggleButton(
+          label: l10n.show.toUpperCase(),
+          icon: Icons.arrow_drop_down,
+          onTap: () {
+            manager.displayGoalProgresNotifier.value = true;
+          },
+        ),
+      ),
+    );
+  }
+}
+
 class _VersesGoalProgressBar extends StatelessWidget {
   const _VersesGoalProgressBar({
+    super.key,
     required this.manager,
     required this.dailyGoal,
   });
@@ -70,6 +139,7 @@ class _VersesGoalProgressBar extends StatelessWidget {
 
 class _MinutesGoalProgressBar extends StatelessWidget {
   const _MinutesGoalProgressBar({
+    super.key,
     required this.manager,
     required this.dailyGoal,
   });
@@ -138,7 +208,7 @@ class _ProgressContainer extends StatelessWidget {
               child: LinearProgressIndicator(
                 value: progress,
                 minHeight: 6,
-                backgroundColor: primaryColor.withValues(alpha: 0.2),
+                backgroundColor: primaryColor.withAlpha(51),
                 valueColor: AlwaysStoppedAnimation(primaryColor),
               ),
             ),
@@ -149,28 +219,58 @@ class _ProgressContainer extends StatelessWidget {
             style: TextStyle(color: primaryColor, fontWeight: FontWeight.w600),
           ),
           const SizedBox(width: 12),
-          Icon(Icons.adjust, color: primaryColor),
-          const SizedBox(width: 12),
-          GestureDetector(
+          _GoalProgressToggleButton(
+            label: l10n.hide.toUpperCase(),
+            icon: Icons.arrow_drop_up,
             onTap: () {
               manager.displayGoalProgresNotifier.value = false;
             },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                border: Border.all(color: primaryColor),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Text(
-                '${l10n.hide.toUpperCase()} >',
-                style: TextStyle(
-                  color: primaryColor,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _GoalProgressToggleButton extends StatelessWidget {
+  const _GoalProgressToggleButton({
+    required this.label,
+    required this.onTap,
+    required this.icon,
+  });
+
+  final String label;
+  final VoidCallback onTap;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final primaryColor = Theme.of(context).colorScheme.primary;
+    final backgroundColor = Theme.of(context).scaffoldBackgroundColor;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          border: Border.all(color: primaryColor),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                color: primaryColor,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(width: 2),
+            Icon(icon, color: primaryColor, size: 22),
+          ],
+        ),
       ),
     );
   }
