@@ -5,6 +5,7 @@ import 'package:studyapp/l10n/app_localizations.dart';
 import 'package:studyapp/l10n/book_names.dart';
 import 'package:studyapp/services/reading_session/rs_manager.dart';
 import 'package:studyapp/services/reading_session/rs_model.dart';
+import 'package:studyapp/ui/home/common/glowing_button.dart';
 import 'package:studyapp/ui/home/home_manager.dart';
 import 'package:studyapp/ui/home/reading_session/daily_goal_panel.dart';
 import 'package:studyapp/ui/home/reading_session/detailed_progress_panel.dart';
@@ -532,60 +533,67 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
         if (latestBookProgress == null) {
           return const SizedBox.shrink();
         } else {
-          return Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            child: Material(
-              color: Theme.of(context).colorScheme.primary,
+          final child = Material(
+            color: Theme.of(context).colorScheme.primary,
+            borderRadius: BorderRadius.circular(16),
+            child: InkWell(
               borderRadius: BorderRadius.circular(16),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(12),
-                onTap: () async {
-                  log("starting reading session");
+              onTap: () async {
+                log("starting reading session");
 
-                  await widget.readingSessionManager.startReadingSession();
-                  if (!mounted) return;
+                await widget.readingSessionManager.startReadingSession();
+                if (!mounted) return;
 
-                  widget.homeManager.onBookSelected(
-                    context,
-                    latestBookProgress.bookId,
-                  );
+                widget.homeManager.onBookSelected(
+                  context,
+                  latestBookProgress.bookId,
+                );
 
-                  widget.homeManager.onChapterSelected(
-                    latestBookProgress.chapter,
-                  );
+                widget.homeManager.onChapterSelected(
+                  latestBookProgress.chapter,
+                );
 
-                  widget.homeManager.syncController.jumpToVerse(
-                    latestBookProgress.bookId,
-                    latestBookProgress.chapter,
-                    latestBookProgress.verse,
-                  );
+                widget.homeManager.syncController.jumpToVerse(
+                  latestBookProgress.bookId,
+                  latestBookProgress.chapter,
+                  latestBookProgress.verse,
+                );
 
-                  Navigator.of(context).maybePop();
-                },
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 12,
-                    horizontal: 16,
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        l10n.startSession.toUpperCase(),
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        l10n.whereYouLeftOff,
-                        style: TextStyle(fontSize: 12),
-                      ),
-                    ],
-                  ),
+                Navigator.of(context).maybePop();
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  vertical: 12,
+                  horizontal: 16,
                 ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      l10n.startSession.toUpperCase(),
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(l10n.whereYouLeftOff, style: TextStyle(fontSize: 12)),
+                  ],
+                ),
+              ),
+            ),
+          );
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: SizedBox(
+              width: double.infinity,
+              child: GlowingButton(
+                primaryColor: Theme.of(context).colorScheme.primary,
+                duration: 4000,
+                borderRadius: 16,
+                glowInset: 4,
+                strokeWidth: 4,
+                child: child,
               ),
             ),
           );
@@ -790,46 +798,54 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
   }
 
   Widget _changeGoalButton() {
-    final color = Theme.of(context).colorScheme.primary;
+    final colorScheme = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context)!;
 
     final currentGoal = manager.dailyGoalNotifier.value;
 
     return Center(
-      child: ElevatedButton.icon(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: color,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-        ),
-        onPressed: () async {
-          final result = await showModalBottomSheet<(GoalType, int)>(
-            context: context,
-            isScrollControlled: true,
-            isDismissible: true,
-            backgroundColor: Colors.transparent,
-            builder: (_) => SetDailyGoalView(
-              initialGoalType: currentGoal?.type,
-              initialValue: currentGoal?.value,
+      child: GlowingButton(
+        duration: 2000,
+        primaryColor: colorScheme.primary,
+        borderRadius: 28,
+        child: ElevatedButton.icon(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: colorScheme.surface,
+            foregroundColor: colorScheme.onSurface,
+            elevation: 0,
+            shadowColor: Colors.transparent,
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(28),
             ),
-          );
-
-          if (result != null) {
-            manager.updateGoal(result.$1, result.$2);
-          }
-        },
-        icon: const Icon(Icons.adjust),
-        label: ValueListenableBuilder(
-          valueListenable: manager.dailyGoalNotifier,
-          builder: (_, dailyGoal, child) {
-            return Text(
-              dailyGoal == null
-                  ? l10n.setGoal.toUpperCase()
-                  : l10n.changeGoal.toUpperCase(),
+          ),
+          onPressed: () async {
+            final result = await showModalBottomSheet<(GoalType, int)>(
+              context: context,
+              isScrollControlled: true,
+              isDismissible: true,
+              backgroundColor: Colors.transparent,
+              builder: (_) => SetDailyGoalView(
+                initialGoalType: currentGoal?.type,
+                initialValue: currentGoal?.value,
+              ),
             );
+
+            if (result != null) {
+              manager.updateGoal(result.$1, result.$2);
+            }
           },
+          icon: const Icon(Icons.adjust),
+          label: ValueListenableBuilder(
+            valueListenable: manager.dailyGoalNotifier,
+            builder: (_, dailyGoal, child) {
+              return Text(
+                dailyGoal == null
+                    ? l10n.setGoal.toUpperCase()
+                    : l10n.changeGoal.toUpperCase(),
+              );
+            },
+          ),
         ),
       ),
     );

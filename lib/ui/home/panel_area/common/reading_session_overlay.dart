@@ -56,7 +56,7 @@ class ReadingSessionOverlay extends StatelessWidget {
               layoutBuilder: (currentChild, previousChildren) {
                 return Stack(
                   alignment: edgeAlignment,
-                  children: [...previousChildren, ?currentChild],
+                  children: [...previousChildren, if (currentChild != null) currentChild],
                 );
               },
               transitionBuilder: (child, animation) {
@@ -95,7 +95,8 @@ class _CollapsedGoalProgress extends StatelessWidget {
       child: Align(
         alignment: AlignmentDirectional.centerEnd,
         child: _GoalProgressToggleButton(
-          label: '< ${l10n.show}'.toUpperCase(),
+          label: l10n.show.toUpperCase(),
+          icon: Icons.arrow_drop_down,
           onTap: () {
             manager.displayGoalProgresNotifier.value = true;
           },
@@ -207,7 +208,7 @@ class _ProgressContainer extends StatelessWidget {
               child: LinearProgressIndicator(
                 value: progress,
                 minHeight: 6,
-                backgroundColor: primaryColor.withValues(alpha: 0.2),
+                backgroundColor: primaryColor.withAlpha(51),
                 valueColor: AlwaysStoppedAnimation(primaryColor),
               ),
             ),
@@ -218,10 +219,9 @@ class _ProgressContainer extends StatelessWidget {
             style: TextStyle(color: primaryColor, fontWeight: FontWeight.w600),
           ),
           const SizedBox(width: 12),
-          Icon(Icons.adjust, color: primaryColor),
-          const SizedBox(width: 12),
           _GoalProgressToggleButton(
-            label: '${l10n.hide.toUpperCase()} >',
+            label: l10n.hide.toUpperCase(),
+            icon: Icons.arrow_drop_up,
             onTap: () {
               manager.displayGoalProgresNotifier.value = false;
             },
@@ -233,10 +233,15 @@ class _ProgressContainer extends StatelessWidget {
 }
 
 class _GoalProgressToggleButton extends StatelessWidget {
-  const _GoalProgressToggleButton({required this.label, required this.onTap});
+  const _GoalProgressToggleButton({
+    required this.label,
+    required this.onTap,
+    required this.icon,
+  });
 
   final String label;
   final VoidCallback onTap;
+  final IconData icon;
 
   @override
   Widget build(BuildContext context) {
@@ -252,9 +257,19 @@ class _GoalProgressToggleButton extends StatelessWidget {
           border: Border.all(color: primaryColor),
           borderRadius: BorderRadius.circular(6),
         ),
-        child: Text(
-          label,
-          style: TextStyle(color: primaryColor, fontWeight: FontWeight.w600),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                color: primaryColor,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(width: 2),
+            Icon(icon, color: primaryColor, size: 22),
+          ],
         ),
       ),
     );
