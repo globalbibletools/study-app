@@ -5,6 +5,7 @@ import 'package:studyapp/l10n/app_localizations.dart';
 import 'package:studyapp/l10n/book_names.dart';
 import 'package:studyapp/services/reading_session/rs_manager.dart';
 import 'package:studyapp/services/reading_session/rs_model.dart';
+import 'package:studyapp/ui/home/common/cutout_view.dart';
 import 'package:studyapp/ui/home/common/glowing_button.dart';
 import 'package:studyapp/ui/home/home_manager.dart';
 import 'package:studyapp/ui/home/reading_session/daily_goal_panel.dart';
@@ -24,6 +25,8 @@ class ReadingSessionPanel extends StatefulWidget {
 
 class ReadingSessionPanelState extends State<ReadingSessionPanel> {
   late final ReadingSessionPanelManager manager;
+  final _goalButtonKey = GlobalKey();
+
   @override
   void initState() {
     super.initState();
@@ -48,24 +51,36 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
-    return Container(
-      height: screenHeight * 0.85,
-      padding: const EdgeInsets.all(16),
-      decoration: const BoxDecoration(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _handle(),
-          const SizedBox(height: 16),
 
-          _topTabs(),
-          const SizedBox(height: 12),
-
-          Flexible(child: _content()),
-        ],
-      ),
+    return ValueListenableBuilder<MainTab>(
+      valueListenable: manager.selectedMainTab,
+      builder: (context, selectedTab, _) {
+        return CutoutView(
+          enabled:
+              selectedTab == MainTab.goals &&
+              manager.dailyGoalNotifier.value == null,
+          objects: [
+            SpotlightObject(key: _goalButtonKey, inflate: 3, radius: 28),
+          ],
+          content: Container(
+            height: screenHeight * 0.85,
+            padding: const EdgeInsets.all(16),
+            decoration: const BoxDecoration(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _handle(),
+                const SizedBox(height: 16),
+                _topTabs(),
+                const SizedBox(height: 12),
+                Flexible(child: _content()),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -158,17 +173,14 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
     return Column(
       children: [
         _subTabsGoals(),
-        const SizedBox(height: 16),
+        const SizedBox(height: 10),
         _dailyGoalText(),
-        const SizedBox(height: 20),
         Expanded(child: _goalsTabContent()),
-        const SizedBox(height: 30),
+        const SizedBox(height: 5),
         _legend(),
-        const SizedBox(height: 20),
+        const SizedBox(height: 10),
         _totals(),
-        const SizedBox(height: 20),
         _changeGoalButton(),
-        const SizedBox(height: 20),
         _startButtonOrNone(),
       ],
     );
@@ -804,47 +816,52 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
     final currentGoal = manager.dailyGoalNotifier.value;
 
     return Center(
-      child: GlowingButton(
-        duration: 2000,
-        primaryColor: colorScheme.primary,
-        borderRadius: 28,
-        child: ElevatedButton.icon(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: colorScheme.surface,
-            foregroundColor: colorScheme.onSurface,
-            elevation: 0,
-            shadowColor: Colors.transparent,
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(28),
-            ),
-          ),
-          onPressed: () async {
-            final result = await showModalBottomSheet<(GoalType, int)>(
-              context: context,
-              isScrollControlled: true,
-              isDismissible: true,
-              backgroundColor: Colors.transparent,
-              builder: (_) => SetDailyGoalView(
-                initialGoalType: currentGoal?.type,
-                initialValue: currentGoal?.value,
+      child: KeyedSubtree(
+        child: GlowingButton(
+          duration: 2000,
+          primaryColor: colorScheme.primary,
+          borderRadius: 28,
+          glowInset: 30,
+          strokeWidth: 10,
+          child: ElevatedButton.icon(
+            key: _goalButtonKey,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: colorScheme.surface,
+              foregroundColor: colorScheme.onSurface,
+              elevation: 0,
+              shadowColor: Colors.transparent,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(28),
               ),
-            );
-
-            if (result != null) {
-              manager.updateGoal(result.$1, result.$2);
-            }
-          },
-          icon: const Icon(Icons.adjust),
-          label: ValueListenableBuilder(
-            valueListenable: manager.dailyGoalNotifier,
-            builder: (_, dailyGoal, child) {
-              return Text(
-                dailyGoal == null
-                    ? l10n.setGoal.toUpperCase()
-                    : l10n.changeGoal.toUpperCase(),
+            ),
+            onPressed: () async {
+              final result = await showModalBottomSheet<(GoalType, int)>(
+                context: context,
+                isScrollControlled: true,
+                isDismissible: true,
+                backgroundColor: Colors.transparent,
+                builder: (_) => SetDailyGoalView(
+                  initialGoalType: currentGoal?.type,
+                  initialValue: currentGoal?.value,
+                ),
               );
+
+              if (result != null) {
+                manager.updateGoal(result.$1, result.$2);
+              }
             },
+            icon: const Icon(Icons.adjust),
+            label: ValueListenableBuilder(
+              valueListenable: manager.dailyGoalNotifier,
+              builder: (_, dailyGoal, child) {
+                return Text(
+                  dailyGoal == null
+                      ? l10n.setGoal.toUpperCase()
+                      : l10n.changeGoal.toUpperCase(),
+                );
+              },
+            ),
           ),
         ),
       ),
