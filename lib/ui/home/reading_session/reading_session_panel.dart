@@ -60,7 +60,11 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
               selectedTab == MainTab.goals &&
               manager.dailyGoalNotifier.value == null,
           objects: [
-            SpotlightObject(key: _goalButtonKey, inflate: 3, radius: 28),
+            SpotlightObject.fromKey(
+              key: _goalButtonKey,
+              inflate: 3,
+              radius: 28,
+            ),
           ],
           content: Container(
             height: screenHeight * 0.85,
