@@ -60,12 +60,34 @@ class _BibleChapterState extends State<BibleChapter> {
           );
         }
 
-        final verses = widget.verseLayout == VerseLayout.versePerLine
-            ? Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: verseLines.map((v) => buildUsfm([v])).toList(),
-              )
-            : buildUsfm(verseLines);
+        final Widget verses;
+
+        if (widget.verseLayout == VerseLayout.versePerLine) {
+          List<Widget> listVerses = [];
+          List<UsfmLine> lines = [];
+
+          int? verseNumber;
+
+          for (UsfmLine line in verseLines) {
+            if (verseNumber == null || verseNumber == line.verse) {
+              lines.add(line);
+            } else {
+              listVerses.add(buildUsfm(lines));
+              lines = [];
+              lines.add(line);
+            }
+            verseNumber = line.verse;
+          }
+
+          listVerses.add(buildUsfm(lines));
+
+          verses = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: listVerses,
+          );
+        } else {
+          verses = buildUsfm(verseLines);
+        }
 
         return Container(
           width: double.infinity,
