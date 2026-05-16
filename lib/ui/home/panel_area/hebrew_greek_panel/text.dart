@@ -701,7 +701,7 @@ class RenderHebrewGreekText extends RenderBox {
   late TextPainter _spacePainter;
   final List<VerseRenderer> _verseRenderer = [];
 
-  void _updatePainters() {
+  void _updatePainters({bool duringLayout = false}) {
     if (_needsTextPaintersUpdate || _needsResetVersesRenderers) {
       _spacePainter = TextPainter(
         text: TextSpan(text: ' ', style: _textStyle),
@@ -720,11 +720,11 @@ class RenderHebrewGreekText extends RenderBox {
     }
 
     if (_needsCheckboxesUpdate) {
-      _updateCheckboxPainters();
+      _updateCheckboxPainters(duringLayout: duringLayout);
     }
   }
 
-  void _updateCheckboxPainters() {
+  void _updateCheckboxPainters({bool duringLayout = false}) {
     if (!_needsCheckboxesUpdate) return;
     bool sizeChanged = false;
 
@@ -757,6 +757,10 @@ class RenderHebrewGreekText extends RenderBox {
     _needsCheckboxesUpdate = false;
     _checkboxesNeedFullUpdate = false;
     _checkboxesToUpdate.clear();
+
+    if (duringLayout) {
+      return;
+    }
 
     if (sizeChanged) {
       markNeedsLayout();
@@ -944,7 +948,7 @@ class RenderHebrewGreekText extends RenderBox {
 
   Size _performLayout(BoxConstraints constraints) {
     if (_needsTextPaintersUpdate || _needsCheckboxesUpdate) {
-      _updatePainters();
+      _updatePainters(duringLayout: true);
     }
     _lineMetrics.clear();
     //_verseRenderer.clear();
