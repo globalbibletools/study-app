@@ -270,6 +270,15 @@ class AppLocalizationsEs extends AppLocalizations {
   String get byBook => 'Por libro';
 
   @override
+  String get christianOrder => 'Cristianos';
+
+  @override
+  String get jewishOrder => 'Judío';
+
+  @override
+  String get easyToHardOrder => 'Fácil a difícil';
+
+  @override
   String get week => 'Semana';
 
   @override

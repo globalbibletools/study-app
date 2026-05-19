@@ -7,6 +7,8 @@ enum MainTab { progress, goals }
 
 enum ProgressTab { bySection, byBook }
 
+enum BookProgressTab { christian, jewish, easyToHard }
+
 enum GoalsTab { byWeek, byMonth }
 
 class ReadingSessionPanelManager {
@@ -19,6 +21,7 @@ class ReadingSessionPanelManager {
   final selectedMainTab = ValueNotifier<MainTab>(MainTab.progress);
   final selectedPTabNotifier = ValueNotifier<ProgressTab>(ProgressTab.byBook);
   final selectedGTabNotifier = ValueNotifier<GoalsTab>(GoalsTab.byWeek);
+  final selectedBPTabNotifier = ValueNotifier<BookProgressTab>(BookProgressTab.christian);
 
   final dailyGoalNotifier = ValueNotifier<DailyGoal?>(null);
 

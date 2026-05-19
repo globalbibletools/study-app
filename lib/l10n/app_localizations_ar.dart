@@ -267,6 +267,15 @@ class AppLocalizationsAr extends AppLocalizations {
   String get byBook => 'حسب السفر';
 
   @override
+  String get christianOrder => 'مسيحي';
+
+  @override
+  String get jewishOrder => 'يهودي';
+
+  @override
+  String get easyToHardOrder => 'من السهل إلى الصعب';
+
+  @override
   String get week => 'أسبوع';
 
   @override

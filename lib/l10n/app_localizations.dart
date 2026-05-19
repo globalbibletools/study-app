@@ -542,6 +542,24 @@ abstract class AppLocalizations {
   /// **'By Book'**
   String get byBook;
 
+  /// Tab label for ordering books by the Christian Bible order
+  ///
+  /// In en, this message translates to:
+  /// **'Christians'**
+  String get christianOrder;
+
+  /// Tab label for ordering books by the Jewish Bible order
+  ///
+  /// In en, this message translates to:
+  /// **'Jewish'**
+  String get jewishOrder;
+
+  /// Tab label for ordering books from easiest to hardest
+  ///
+  /// In en, this message translates to:
+  /// **'Easy To Hard'**
+  String get easyToHardOrder;
+
   /// Week tab
   ///
   /// In en, this message translates to:

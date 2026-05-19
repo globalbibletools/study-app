@@ -268,6 +268,15 @@ class AppLocalizationsPt extends AppLocalizations {
   String get byBook => 'Por livro';
 
   @override
+  String get christianOrder => 'Cristão';
+
+  @override
+  String get jewishOrder => 'Judaico';
+
+  @override
+  String get easyToHardOrder => 'Fácil ao difícil';
+
+  @override
   String get week => 'Semana';
 
   @override

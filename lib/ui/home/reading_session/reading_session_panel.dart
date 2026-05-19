@@ -44,8 +44,8 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
 
   @override
   void dispose() {
-    super.dispose();
     manager.dispose();
+    super.dispose();
   }
 
   @override
@@ -157,19 +157,14 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
   }
 
   Widget progressTabContent() {
-    return ValueListenableBuilder<List<RsBookProgress>>(
-      valueListenable: manager.booksProgressNotifier,
-      builder: (context, booksProgress, _) {
-        return Column(
-          children: [
-            _subTabsProgress(),
-            const SizedBox(height: 16),
-            _progressTabContent(),
-            const SizedBox(height: 20),
-            _startButtonOrNone(),
-          ],
-        );
-      },
+    return Column(
+      children: [
+        _subTabsProgress(),
+        const SizedBox(height: 16),
+        Expanded(child: _progressTabContent()),
+        const SizedBox(height: 20),
+        _startButtonOrNone(),
+      ],
     );
   }
 
@@ -275,64 +270,90 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
           }
         }
 
-        return Expanded(
-          child: ListView(
-            children: [
-              _bookCard(
-                latestOldTestament,
-                l10n.oldTestament,
-                oldTestamentBooksRead / totalOldTestament,
-                "$oldTestamentBooksRead/$totalOldTestament",
-                "",
-                latestOldTestament.id == null ? l10n.start : l10n.resume,
-              ),
+        return ListView(
+          children: [
+            _bookCard(
+              latestOldTestament,
+              l10n.oldTestament,
+              oldTestamentBooksRead / totalOldTestament,
+              "$oldTestamentBooksRead/$totalOldTestament",
+              "",
+              latestOldTestament.id == null ? l10n.start : l10n.resume,
+            ),
 
-              _bookCard(
-                latestNewTestament,
-                l10n.newTestament,
-                newTestamentBooksRead / totalNewTestament,
-                "$newTestamentBooksRead/$totalNewTestament",
-                "",
-                latestNewTestament.id == null ? l10n.start : l10n.resume,
-              ),
-            ],
-          ),
+            _bookCard(
+              latestNewTestament,
+              l10n.newTestament,
+              newTestamentBooksRead / totalNewTestament,
+              "$newTestamentBooksRead/$totalNewTestament",
+              "",
+              latestNewTestament.id == null ? l10n.start : l10n.resume,
+            ),
+          ],
         );
       },
     );
   }
 
   Widget _progressByBookTabContent() {
-    final l10n = AppLocalizations.of(context)!;
+    final content = ValueListenableBuilder<BookProgressTab>(
+      valueListenable: manager.selectedBPTabNotifier,
+      builder: (context, value, _) {
+        late final List<int> books;
+        switch (value) {
+          case BookProgressTab.christian:
+            books = BibleNavigation.christianBooks;
+            break;
+          case BookProgressTab.jewish:
+            books = BibleNavigation.jewishBooks;
+            break;
+          case BookProgressTab.easyToHard:
+            books = BibleNavigation.easyToHardest;
+            break;
+        }
+        return _booksFromList(books);
+      },
+    );
+    return Column(
+      children: [
+        _subBookTabsProgress(),
+        Expanded(child: content),
+      ],
+    );
+  }
+
+  Widget _booksFromList(List<int> books) {
     return ValueListenableBuilder<List<RsBookProgress>>(
       valueListenable: manager.booksProgressNotifier,
       builder: (context, booksProgress, _) {
-        return Expanded(
-          child: ListView(
-            children: booksProgress.map((book) {
-              final action = book.id == null ? l10n.start : l10n.resume;
-              final bookName = bookNameFromId(context, book.bookId);
-              final totalChapters = BibleNavigation.getChapterCount(
-                book.bookId,
-              );
-
-              int versesCount = 0;
-              for (int i = 1; i <= totalChapters; i++) {
-                versesCount += BibleNavigation.getVerseCount(book.bookId, i);
-              }
-
-              return _bookCard(
-                book,
-                bookName,
-                book.versesRead / versesCount,
-                "${book.versesRead}/$versesCount",
-                "${l10n.versesShort}. ".toUpperCase(),
-                action,
-              );
-            }).toList(),
-          ),
+        return ListView(
+          children: books.map((bookId) {
+            return _bookTitle(booksProgress[bookId - 1]);
+          }).toList(),
         );
       },
+    );
+  }
+
+  Widget _bookTitle(RsBookProgress book) {
+    final l10n = AppLocalizations.of(context)!;
+
+    final action = book.id == null ? l10n.start : l10n.resume;
+    final bookName = bookNameFromId(context, book.bookId);
+    final totalChapters = BibleNavigation.getChapterCount(book.bookId);
+
+    int versesCount = 0;
+    for (int i = 1; i <= totalChapters; i++) {
+      versesCount += BibleNavigation.getVerseCount(book.bookId, i);
+    }
+
+    return _bookCard(
+      book,
+      bookName,
+      book.versesRead / versesCount,
+      "${book.versesRead}/$versesCount",
+      "${l10n.versesShort}. ".toUpperCase(),
+      action,
     );
   }
 
@@ -424,6 +445,32 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
         _tab(l10n.week, manager.selectedGTabNotifier, GoalsTab.byWeek),
         const SizedBox(width: 8),
         _tab(l10n.month, manager.selectedGTabNotifier, GoalsTab.byMonth),
+      ],
+    );
+  }
+
+  Widget _subBookTabsProgress() {
+    final l10n = AppLocalizations.of(context)!;
+
+    return Row(
+      children: [
+        _tab(
+          l10n.christianOrder,
+          manager.selectedBPTabNotifier,
+          BookProgressTab.christian,
+        ),
+        const SizedBox(width: 8),
+        _tab(
+          l10n.jewishOrder,
+          manager.selectedBPTabNotifier,
+          BookProgressTab.jewish,
+        ),
+        const SizedBox(width: 8),
+        _tab(
+          l10n.easyToHardOrder,
+          manager.selectedBPTabNotifier,
+          BookProgressTab.easyToHard,
+        ),
       ],
     );
   }

@@ -269,6 +269,15 @@ class AppLocalizationsFr extends AppLocalizations {
   String get byBook => 'Par livre';
 
   @override
+  String get christianOrder => 'Chrétien';
+
+  @override
+  String get jewishOrder => 'Juif';
+
+  @override
+  String get easyToHardOrder => 'Facile à difficile';
+
+  @override
   String get week => 'Semaine';
 
   @override
