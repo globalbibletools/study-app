@@ -601,17 +601,7 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
           );
           return Padding(
             padding: const EdgeInsets.symmetric(vertical: 16),
-            child: SizedBox(
-              width: double.infinity,
-              child: GlowingButton(
-                primaryColor: Theme.of(context).colorScheme.primary,
-                duration: 4000,
-                borderRadius: 16,
-                glowInset: 4,
-                strokeWidth: 4,
-                child: child,
-              ),
-            ),
+            child: SizedBox(width: double.infinity, child: child),
           );
         }
       },
@@ -646,7 +636,7 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
                     SizedBox(
                       width: 30,
                       child: d.goalReached
-                          ? Icon(Icons.adjust, color: color, size: 18)
+                          ? Icon(Icons.check, color: color, size: 18)
                           : const SizedBox.shrink(),
                     ),
                   ],
@@ -684,36 +674,48 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
 
   Widget _dayCalendar(DayProgress progress, bool isToday) {
     final color = Theme.of(context).colorScheme.primary;
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(14),
         onTap: () => _openDetailedProgress(progress),
         child: Container(
           margin: const EdgeInsets.all(4),
-          padding: const EdgeInsets.all(6),
+          padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
             color: progress.goalReached
                 ? color
                 : Theme.of(context).colorScheme.surfaceContainerLow,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(14),
             border: isToday ? Border.all(color: color, width: 2) : null,
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Stack(
             children: [
-              Text(
-                "${progress.day.day}",
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+              Positioned(
+                top: 0,
+                left: 0,
+                child: Text(
+                  "${progress.day.day}",
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w500,
+                    color: progress.goalReached
+                        ? Colors.white.withValues(alpha: 0.9)
+                        : null,
+                  ),
+                ),
               ),
-              const Spacer(),
-              // if (!progress.empty)
-              //   Text(
-              //     "${progress.minutes}${l10n.minutesShort}|${progress.verses} ${l10n.versesShort}",
-              //     style: TextStyle(fontSize: 10),
-              //   )
-              // else
-              //   Text("--", style: TextStyle(fontSize: 10, color: Colors.grey)),
+
+              if (progress.goalReached)
+                const Center(
+                  child: Icon(
+                    Icons.check_rounded,
+                    color: Colors.white,
+                    size: 42,
+                    weight: 700,
+                  ),
+                ),
             ],
           ),
         ),
@@ -770,9 +772,7 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
       builder: (context, value, child) {
         return Row(
           children: [
-            value == GoalsTab.byWeek
-                ? Icon(Icons.adjust, color: color, size: 16)
-                : Icon(Icons.square, color: color, size: 16),
+            Icon(Icons.check, color: color, size: 16),
             const SizedBox(width: 8),
             Text("= ${l10n.dailyGoalReached}", style: TextStyle(color: color)),
           ],
@@ -822,11 +822,11 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
     return Center(
       child: KeyedSubtree(
         child: GlowingButton(
-          duration: 2000,
+          duration: 3000,
           primaryColor: colorScheme.primary,
           borderRadius: 28,
-          glowInset: 30,
-          strokeWidth: 10,
+          glowInset: 10,
+          strokeWidth: 3,
           child: ElevatedButton.icon(
             key: _goalButtonKey,
             style: ElevatedButton.styleFrom(
@@ -855,7 +855,6 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
                 manager.updateGoal(result.$1, result.$2);
               }
             },
-            icon: const Icon(Icons.adjust),
             label: ValueListenableBuilder(
               valueListenable: manager.dailyGoalNotifier,
               builder: (_, dailyGoal, child) {

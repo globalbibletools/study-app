@@ -55,7 +55,9 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
       actions: [
         //_readingSessionTimer(readingSessionStarted),
         IconButton(
+          padding: EdgeInsets.fromLTRB(0, 8, 4, 8),
           onPressed: onToggleReadingSession,
+          //constraints: BoxConstraints(),
           style: IconButton.styleFrom(
             backgroundColor: readingSessionStarted
                 ? Theme.of(
@@ -67,15 +69,28 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
                 : Theme.of(context).iconTheme.color,
           ),
           icon: Icon(
-            readingSessionStarted ? Icons.auto_stories_rounded : Icons.book_rounded,
+            readingSessionStarted
+                ? Icons.auto_stories_rounded
+                : Icons.book_rounded,
           ),
         ),
-        IconButton(onPressed: onPlayAudio, icon: Icon(Icons.play_arrow)),
-        IconButton(onPressed: onTogglePanel, icon: Icon(Icons.splitscreen)),
+        IconButton(
+          padding: EdgeInsets.fromLTRB(0, 8, 4, 8),
+          onPressed: onPlayAudio,
+          icon: Icon(Icons.play_arrow),
+          constraints: BoxConstraints(),
+        ),
+        IconButton(
+          padding: EdgeInsets.fromLTRB(0, 8, 8, 8),
+          onPressed: onTogglePanel,
+          icon: Icon(Icons.splitscreen),
+          constraints: BoxConstraints(),
+        ),
       ],
     );
   }
 
+  // ignore: unused_element
   Widget _readingSessionTimer(bool readingSessionStarted) {
     if (readingSessionStarted) {
       return ReadingSessionTimerView();

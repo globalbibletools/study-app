@@ -56,7 +56,7 @@ class ReadingSessionOverlay extends StatelessWidget {
               layoutBuilder: (currentChild, previousChildren) {
                 return Stack(
                   alignment: edgeAlignment,
-                  children: [...previousChildren, if (currentChild != null) currentChild],
+                  children: [...previousChildren, ?currentChild],
                 );
               },
               transitionBuilder: (child, animation) {
@@ -251,7 +251,7 @@ class _GoalProgressToggleButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        padding: const EdgeInsets.only(left: 10, right: 10, top: 6, bottom: 3),
         decoration: BoxDecoration(
           color: backgroundColor,
           border: Border.all(color: primaryColor),
@@ -259,12 +259,15 @@ class _GoalProgressToggleButton extends StatelessWidget {
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Text(
               label,
+              textAlign: TextAlign.center,
               style: TextStyle(
                 color: primaryColor,
                 fontWeight: FontWeight.w600,
+                height: 1.0,
               ),
             ),
             const SizedBox(width: 2),
