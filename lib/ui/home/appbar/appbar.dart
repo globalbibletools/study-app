@@ -55,10 +55,12 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
       actions: [
         //_readingSessionTimer(readingSessionStarted),
         IconButton(
-          padding: EdgeInsets.fromLTRB(0, 8, 4, 8),
+          padding: EdgeInsets.all(6),
+          visualDensity: VisualDensity.compact,
           onPressed: onToggleReadingSession,
-          //constraints: BoxConstraints(),
+          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
           style: IconButton.styleFrom(
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             backgroundColor: readingSessionStarted
                 ? Theme.of(
                     context,
@@ -75,16 +77,24 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
           ),
         ),
         IconButton(
-          padding: EdgeInsets.fromLTRB(0, 8, 4, 8),
+          padding: EdgeInsets.all(6),
+          visualDensity: VisualDensity.compact,
+          style: IconButton.styleFrom(
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
           onPressed: onPlayAudio,
           icon: Icon(Icons.play_arrow),
-          constraints: BoxConstraints(),
+          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
         ),
         IconButton(
-          padding: EdgeInsets.fromLTRB(0, 8, 8, 8),
+          padding: EdgeInsets.all(6),
+          visualDensity: VisualDensity.compact,
+          style: IconButton.styleFrom(
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
           onPressed: onTogglePanel,
           icon: Icon(Icons.splitscreen),
-          constraints: BoxConstraints(),
+          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
         ),
       ],
     );
