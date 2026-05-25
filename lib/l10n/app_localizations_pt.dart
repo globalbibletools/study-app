@@ -76,6 +76,16 @@ class AppLocalizationsPt extends AppLocalizations {
   String get cancel => 'Cancelar';
 
   @override
+  String get gotIt => 'Entendi';
+
+  @override
+  String get readingCheckboxGuideTitle => 'Marcar versículos como lidos';
+
+  @override
+  String get readingCheckboxGuideMessage =>
+      'Toque na caixa ao lado de um versículo cada vez que o ler. O número mostra quantas vezes você leu esse versículo hoje.';
+
+  @override
   String get downloadComplete => 'Download concluído.';
 
   @override

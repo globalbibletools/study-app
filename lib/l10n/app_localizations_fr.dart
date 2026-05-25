@@ -76,6 +76,16 @@ class AppLocalizationsFr extends AppLocalizations {
   String get cancel => 'Annuler';
 
   @override
+  String get gotIt => 'Compris';
+
+  @override
+  String get readingCheckboxGuideTitle => 'Marquer les versets comme lus';
+
+  @override
+  String get readingCheckboxGuideMessage =>
+      'Touchez la case à côté d’un verset chaque fois que vous le lisez. Le nombre indique combien de fois vous avez lu ce verset aujourd’hui.';
+
+  @override
   String get downloadComplete => 'Téléchargement terminé.';
 
   @override

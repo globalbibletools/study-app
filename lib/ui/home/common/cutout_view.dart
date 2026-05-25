@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 class SpotlightObject {
   final GlobalKey? key;
   final Rect? rect;
+  final bool isGlobalRect;
   final double inflate;
   final double radius;
 
@@ -10,13 +11,22 @@ class SpotlightObject {
     required GlobalKey this.key,
     this.inflate = 0,
     this.radius = 0,
-  }) : rect = null;
+  }) : rect = null,
+       isGlobalRect = false;
 
   const SpotlightObject.fromRect({
     required Rect this.rect,
     this.inflate = 0,
     this.radius = 0,
-  }) : key = null;
+  }) : key = null,
+       isGlobalRect = false;
+
+  const SpotlightObject.fromGlobalRect({
+    required Rect this.rect,
+    this.inflate = 0,
+    this.radius = 0,
+  }) : key = null,
+       isGlobalRect = true;
 }
 
 class CutoutRect {
@@ -28,6 +38,17 @@ class CutoutRect {
     required this.inflate,
     required this.radius,
   });
+
+  @override
+  bool operator ==(Object other) {
+    return other is CutoutRect &&
+        other.rect == rect &&
+        other.inflate == inflate &&
+        other.radius == radius;
+  }
+
+  @override
+  int get hashCode => Object.hash(rect, inflate, radius);
 }
 
 class CutoutView extends StatefulWidget {
@@ -100,8 +121,9 @@ class CutoutViewState extends State<CutoutView> {
       final Rect? resolvedRect;
 
       if (obj.rect != null) {
-        // Rect provided directly — use as-is (already in local/screen space)
-        resolvedRect = obj.rect;
+        resolvedRect = obj.isGlobalRect
+            ? panelBox.globalToLocal(obj.rect!.topLeft) & obj.rect!.size
+            : obj.rect;
       } else {
         // Resolve position from the GlobalKey
         final ctx = obj.key!.currentContext;

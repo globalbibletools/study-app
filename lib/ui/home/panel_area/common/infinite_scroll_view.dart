@@ -27,6 +27,7 @@ class InfiniteScrollView extends StatefulWidget {
     required this.chapter,
     required this.chapterBuilder,
     this.physics,
+    this.scrollingEnabled = true,
     this.syncController,
     this.onVisibleBookChanged,
   });
@@ -35,6 +36,7 @@ class InfiniteScrollView extends StatefulWidget {
   final int chapter;
   final ChapterBuilder chapterBuilder;
   final ScrollPhysics? physics;
+  final bool scrollingEnabled;
   final ScrollSyncController? syncController;
   final ValueChanged<int>? onVisibleBookChanged;
 
@@ -186,6 +188,11 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
     if (widget.bookId != oldWidget.bookId ||
         widget.chapter != oldWidget.chapter) {
       _resetChapters();
+    }
+    if (!widget.scrollingEnabled &&
+        oldWidget.scrollingEnabled &&
+        widget.syncController?.isSourceActive(_panelId) == true) {
+      widget.syncController!.clearActiveSource();
     }
   }
 
@@ -534,7 +541,9 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
       onNotification: _onScrollNotification,
       child: CustomScrollView(
         controller: _scrollController,
-        physics: widget.physics,
+        physics: widget.scrollingEnabled
+            ? widget.physics
+            : const NeverScrollableScrollPhysics(),
         center: _chapterKeys[_centerChapter],
         slivers: slivers,
       ),
@@ -543,6 +552,12 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
 
   bool _onScrollNotification(Notification notification) {
     if (widget.syncController == null) return false;
+
+    if (!widget.scrollingEnabled &&
+        notification is ScrollStartNotification &&
+        notification.dragDetails != null) {
+      return false;
+    }
 
     // Detect Start of Manual Drag
     if (notification is ScrollStartNotification) {

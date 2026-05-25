@@ -35,6 +35,8 @@ class HebrewGreekChapter extends StatefulWidget {
     required this.verseLayout,
     required this.readingModeEnabled,
     this.syncController,
+    this.onReadingCheckboxGuideRectChanged,
+    this.onReadingCheckboxGuideCompleted,
   });
 
   final int bookId;
@@ -43,6 +45,8 @@ class HebrewGreekChapter extends StatefulWidget {
   final VerseLayout verseLayout;
   final bool readingModeEnabled;
   final ScrollSyncController? syncController;
+  final ValueChanged<Rect?>? onReadingCheckboxGuideRectChanged;
+  final VoidCallback? onReadingCheckboxGuideCompleted;
 
   @override
   State<HebrewGreekChapter> createState() => HebrewGreekChapterState();
@@ -65,6 +69,10 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter>
     if (widget.readingModeEnabled) {
       manager.loadReadVerses(widget.bookId, widget.chapter);
     }
+
+    _textController.setSpotlightUpdatedCalllback(
+      _reportReadingCheckboxGuideRect,
+    );
   }
 
   @override
@@ -167,6 +175,11 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter>
                     highlightInfo.chapter == widget.chapter) {
                   verseToHighlight = highlightInfo.verse;
                 }
+
+                //always show first verse only (basic logic)
+                final spotlightVerse =
+                    widget.onReadingCheckboxGuideRectChanged != null ? 1 : null;
+
                 return Padding(
                   padding: const EdgeInsets.only(left: 16.0, right: 16.0),
                   child: Column(
@@ -186,6 +199,7 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter>
                         changedCheckedVerse: changedVerse,
                         resetCheckedVerses: resetCheckedVerses,
                         checkedVersesRevision: checkedVersesRevision,
+                        spotlightVerse: spotlightVerse,
                         controller: _textController,
                         textDirection: manager.isRtl(widget.bookId)
                             ? TextDirection.rtl
@@ -203,6 +217,11 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter>
                           ).dispatch(context);
                         },
                         onVerseCheckboxTap: (verse) async {
+                          if (widget.onReadingCheckboxGuideCompleted != null) {
+                            widget.onReadingCheckboxGuideCompleted!.call();
+                            return;
+                          }
+
                           int count = checkedVerses[verse] ?? 0;
                           if (count < ReadingSessionManager.maximumReadCount) {
                             await manager.markVerseAsRead(
@@ -286,6 +305,29 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter>
         );
       }
     }
+  }
+
+  void _reportReadingCheckboxGuideRect(Rect? localRect) {
+    if (!mounted ||
+        !widget.readingModeEnabled ||
+        localRect == null ||
+        widget.onReadingCheckboxGuideRectChanged == null) {
+      return;
+    }
+
+    final textRenderBox =
+        _hebrewGreekTextKey.currentContext?.findRenderObject() as RenderBox?;
+
+    if (textRenderBox == null) {
+      return;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final globalTopLeft = textRenderBox.localToGlobal(localRect.topLeft);
+      widget.onReadingCheckboxGuideRectChanged?.call(
+        globalTopLeft & localRect.size,
+      );
+    });
   }
 
   Future<void> _handleMissingResources(Locale locale) async {

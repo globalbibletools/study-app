@@ -13,12 +13,20 @@ class HebrewGreekPanel extends StatefulWidget {
     required this.chapter,
     this.syncController,
     required this.settingsVersion,
+    this.scrollingEnabled = true,
+    required this.showReadingCheckboxGuide,
+    this.onReadingCheckboxGuideRectChanged,
+    this.onReadingCheckboxGuideCompleted,
   });
 
   final int bookId;
   final int chapter;
   final ScrollSyncController? syncController;
   final int settingsVersion;
+  final bool scrollingEnabled;
+  final bool showReadingCheckboxGuide;
+  final ValueChanged<Rect?>? onReadingCheckboxGuideRectChanged;
+  final VoidCallback? onReadingCheckboxGuideCompleted;
 
   @override
   State<HebrewGreekPanel> createState() => HebrewGreekPanelState();
@@ -106,6 +114,7 @@ class HebrewGreekPanelState extends State<HebrewGreekPanel> {
                           bookId: widget.bookId,
                           chapter: widget.chapter,
                           syncController: widget.syncController,
+                          scrollingEnabled: widget.scrollingEnabled,
                           onVisibleBookChanged: _onVisibleBookChanged,
                           chapterBuilder: (context, bookId, chapter) {
                             final chapterIsHebrew = _manager.isHebrew(bookId);
@@ -114,6 +123,7 @@ class HebrewGreekPanelState extends State<HebrewGreekPanel> {
                                 : greekScale;
                             final fontSize =
                                 _manager.baseFontSize * chapterScale;
+
                             return HebrewGreekChapter(
                               key: ValueKey('page-$bookId-$chapter'),
                               bookId: bookId,
@@ -122,6 +132,18 @@ class HebrewGreekPanelState extends State<HebrewGreekPanel> {
                               syncController: widget.syncController,
                               verseLayout: verseLayout,
                               readingModeEnabled: readingModeEnabled,
+                              onReadingCheckboxGuideRectChanged:
+                                  bookId == widget.bookId &&
+                                      chapter == widget.chapter &&
+                                      widget.showReadingCheckboxGuide
+                                  ? widget.onReadingCheckboxGuideRectChanged
+                                  : null,
+                              onReadingCheckboxGuideCompleted:
+                                  bookId == widget.bookId &&
+                                      chapter == widget.chapter &&
+                                      widget.showReadingCheckboxGuide
+                                  ? widget.onReadingCheckboxGuideCompleted
+                                  : null,
                             );
                           },
                         );

@@ -24,6 +24,7 @@ class UserSettings {
   static const _currentBible = 'currentBible';
   static const _verseLayout = "verseLayout";
   static const _rsDailyGoalKey = 'rsDailyGoal';
+  static const _hasSeenReadingCheckboxGuideKey = '_hasSeenReadingCheckboxGuide';
 
   String? get themeMode {
     return _prefs.getString(_themeModeKey);
@@ -137,5 +138,13 @@ class UserSettings {
 
   String? get dailyGoal {
     return _prefs.getString(_rsDailyGoalKey);
+  }
+
+  bool get hasSeenReadingCheckboxGuide {
+    return _prefs.getBool(_hasSeenReadingCheckboxGuideKey) ?? false;
+  }
+
+  Future<void> setHasSeenReadingCheckboxGuide(bool value) async {
+    await _prefs.setBool(_hasSeenReadingCheckboxGuideKey, value);
   }
 }

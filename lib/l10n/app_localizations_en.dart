@@ -76,6 +76,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cancel => 'Cancel';
 
   @override
+  String get gotIt => 'Got it';
+
+  @override
+  String get readingCheckboxGuideTitle => 'Mark verses as read';
+
+  @override
+  String get readingCheckboxGuideMessage =>
+      'Tap a checkbox beside a verse each time you read it. The number shows how many times you have read that verse today.';
+
+  @override
   String get downloadComplete => 'Download complete.';
 
   @override
