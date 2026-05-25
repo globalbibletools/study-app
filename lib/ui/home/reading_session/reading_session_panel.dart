@@ -728,8 +728,8 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
         borderRadius: BorderRadius.circular(14),
         onTap: () => _openDetailedProgress(progress),
         child: Container(
-          margin: const EdgeInsets.all(4),
-          padding: const EdgeInsets.all(8),
+          margin: const EdgeInsets.all(2),
+          padding: const EdgeInsets.all(2),
           decoration: BoxDecoration(
             color: progress.goalReached
                 ? color
@@ -745,7 +745,7 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
                 child: Text(
                   "${progress.day.day}",
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: 16,
                     fontWeight: FontWeight.w500,
                     color: progress.goalReached
                         ? Colors.white.withValues(alpha: 0.9)
@@ -901,6 +901,8 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
               if (result != null) {
                 manager.updateGoal(result.$1, result.$2);
               }
+
+              setState(() {});
             },
             label: ValueListenableBuilder(
               valueListenable: manager.dailyGoalNotifier,
