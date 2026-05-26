@@ -55,8 +55,12 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
       actions: [
         //_readingSessionTimer(readingSessionStarted),
         IconButton(
+          padding: EdgeInsets.all(6),
+          visualDensity: VisualDensity.compact,
           onPressed: onToggleReadingSession,
+          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
           style: IconButton.styleFrom(
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             backgroundColor: readingSessionStarted
                 ? Theme.of(
                     context,
@@ -67,15 +71,36 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
                 : Theme.of(context).iconTheme.color,
           ),
           icon: Icon(
-            readingSessionStarted ? Icons.auto_stories_rounded : Icons.book_rounded,
+            readingSessionStarted
+                ? Icons.auto_stories_rounded
+                : Icons.book_rounded,
           ),
         ),
-        IconButton(onPressed: onPlayAudio, icon: Icon(Icons.play_arrow)),
-        IconButton(onPressed: onTogglePanel, icon: Icon(Icons.splitscreen)),
+        IconButton(
+          padding: EdgeInsets.all(6),
+          visualDensity: VisualDensity.compact,
+          style: IconButton.styleFrom(
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+          onPressed: onPlayAudio,
+          icon: Icon(Icons.play_arrow),
+          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+        ),
+        IconButton(
+          padding: EdgeInsets.all(6),
+          visualDensity: VisualDensity.compact,
+          style: IconButton.styleFrom(
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+          onPressed: onTogglePanel,
+          icon: Icon(Icons.splitscreen),
+          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+        ),
       ],
     );
   }
 
+  // ignore: unused_element
   Widget _readingSessionTimer(bool readingSessionStarted) {
     if (readingSessionStarted) {
       return ReadingSessionTimerView();

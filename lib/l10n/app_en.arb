@@ -88,6 +88,18 @@
   "@cancel": {
     "description": "Label for the cancel button"
   },
+  "gotIt": "Got it",
+  "@gotIt": {
+    "description": "Label for a button that dismisses an instructional overlay"
+  },
+  "readingCheckboxGuideTitle": "Mark verses as read",
+  "@readingCheckboxGuideTitle": {
+    "description": "Title for the reading mode checkbox guide overlay"
+  },
+  "readingCheckboxGuideMessage": "Tap a checkbox beside a verse each time you read it. The number shows how many times you have read that verse today.",
+  "@readingCheckboxGuideMessage": {
+    "description": "Instructional message explaining reading mode verse checkboxes"
+  },
   "downloadComplete": "Download complete.",
   "@downloadComplete": {
     "description": "Message shown when glosses finish downloading."
@@ -355,6 +367,18 @@
   "byBook": "By Book",
   "@byBook": {
     "description" : "By Book tab"
+  },
+  "christianOrder": "Christians",
+  "@christianOrder": {
+    "description": "Tab label for ordering books by the Christian Bible order"
+  },
+  "jewishOrder": "Jewish",
+  "@jewishOrder": {
+    "description": "Tab label for ordering books by the Jewish Bible order"
+  },
+  "easyToHardOrder": "Easy To Hard",
+  "@easyToHardOrder": {
+    "description": "Tab label for ordering books from easiest to hardest"
   },
   "week": "Week",
   "@week": {

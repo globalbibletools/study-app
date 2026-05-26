@@ -76,6 +76,16 @@ class AppLocalizationsEs extends AppLocalizations {
   String get cancel => 'Cancelar';
 
   @override
+  String get gotIt => 'Entendido';
+
+  @override
+  String get readingCheckboxGuideTitle => 'Marcar versículos como leídos';
+
+  @override
+  String get readingCheckboxGuideMessage =>
+      'Toca la casilla junto a un versículo cada vez que lo leas. El número muestra cuántas veces has leído ese versículo hoy.';
+
+  @override
   String get downloadComplete => 'Descarga completa.';
 
   @override
@@ -268,6 +278,15 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get byBook => 'Por libro';
+
+  @override
+  String get christianOrder => 'Cristianos';
+
+  @override
+  String get jewishOrder => 'Judío';
+
+  @override
+  String get easyToHardOrder => 'Fácil a difícil';
 
   @override
   String get week => 'Semana';

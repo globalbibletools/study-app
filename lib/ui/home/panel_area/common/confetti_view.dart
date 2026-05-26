@@ -64,7 +64,7 @@ class _ConfettiPainter extends CustomPainter {
 
       // smoother fade
       final opacity = (1.0 - math.pow(progress, 1.5)).clamp(0.0, 1.0);
-      final paint = Paint()..color = baseColor.withOpacity(opacity);
+      final paint = Paint()..color = baseColor.withValues(alpha: opacity);
 
       // pick a burst origin
       final origin = origins[i % origins.length];

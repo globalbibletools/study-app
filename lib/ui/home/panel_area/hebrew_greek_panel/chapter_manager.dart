@@ -16,35 +16,54 @@ class HebrewGreekChapterManager {
   final _settings = getIt<UserSettings>();
   final _rsmanager = getIt<ReadingSessionManager>();
 
-  final textNotifier = ValueNotifier<List<HebrewGreekWord>>([]);
+  final textNotifier = _SafeValueNotifier<List<HebrewGreekWord>>([]);
   final verseCheckboxNotifier = VerseCheckboxNotifier();
+  bool _disposed = false;
+  int _chapterLoadToken = 0;
+  int _readVersesLoadToken = 0;
 
   Future<void> loadChapterData(int bookId, int chapter) async {
+    final token = ++_chapterLoadToken;
+    if (_disposed) return;
     textNotifier.value = [];
-    textNotifier.value = await _hebrewGreekDb.getChapter(bookId, chapter);
+    final words = await _hebrewGreekDb.getChapter(bookId, chapter);
+    if (_disposed || token != _chapterLoadToken) return;
+    textNotifier.value = words;
   }
 
   Future<void> loadReadVerses(int bookId, int chapter) async {
+    final token = ++_readVersesLoadToken;
+    if (_disposed) return;
     verseCheckboxNotifier.clear();
-    verseCheckboxNotifier.setVersesRead(
-      await _rsmanager.getVersesReadForChapter(bookId, chapter),
-    );
-  }
-
-  Future<void> markVerseAsRead(int bookId, int chapter, int verse) async {
-    await _rsmanager.markVerseAsRead(bookId, chapter, verse);
-    verseCheckboxNotifier.setVersesRead(
-      await _rsmanager.getVersesReadForChapter(bookId, chapter),
-      changedVerse: verse,
-    );
-  }
-
-  Future<void> resetVerseProgress(int bookId, int chapter, int verse) async {
-    await _rsmanager.resetReadingCountForVerse(bookId, chapter, verse);
     final versesRead = await _rsmanager.getVersesReadForChapter(
       bookId,
       chapter,
     );
+    if (_disposed || token != _readVersesLoadToken) return;
+    verseCheckboxNotifier.setVersesRead(versesRead);
+  }
+
+  Future<void> markVerseAsRead(int bookId, int chapter, int verse) async {
+    if (_disposed) return;
+    await _rsmanager.markVerseAsRead(bookId, chapter, verse);
+    if (_disposed) return;
+    final versesRead = await _rsmanager.getVersesReadForChapter(
+      bookId,
+      chapter,
+    );
+    if (_disposed) return;
+    verseCheckboxNotifier.setVersesRead(versesRead, changedVerse: verse);
+  }
+
+  Future<void> resetVerseProgress(int bookId, int chapter, int verse) async {
+    if (_disposed) return;
+    await _rsmanager.resetReadingCountForVerse(bookId, chapter, verse);
+    if (_disposed) return;
+    final versesRead = await _rsmanager.getVersesReadForChapter(
+      bookId,
+      chapter,
+    );
+    if (_disposed) return;
     verseCheckboxNotifier.setVersesRead(versesRead, changedVerse: verse);
   }
 
@@ -122,6 +141,7 @@ class HebrewGreekChapterManager {
   }
 
   String getVerseText(int verse) {
+    if (_disposed) return '';
     final words = textNotifier.value;
     final verseWords = words
         .where((w) => (w.id ~/ 100) % 1000 == verse)
@@ -146,6 +166,9 @@ class HebrewGreekChapterManager {
   }
 
   void dispose() {
+    _disposed = true;
+    _chapterLoadToken++;
+    _readVersesLoadToken++;
     textNotifier.dispose();
     verseCheckboxNotifier.dispose();
   }
@@ -156,6 +179,7 @@ class VerseCheckboxNotifier extends ChangeNotifier {
   int? _changedVerse;
   bool _resetAll = true;
   int _revision = 0;
+  bool _disposed = false;
 
   Map<int, int> get value => _value;
   int? get changedVerse => _changedVerse;
@@ -163,6 +187,7 @@ class VerseCheckboxNotifier extends ChangeNotifier {
   int get revision => _revision;
 
   void setVersesRead(Map<int, int> versesRead, {int? changedVerse}) {
+    if (_disposed) return;
     _value = Map<int, int>.unmodifiable(versesRead);
     _changedVerse = changedVerse;
     _resetAll = changedVerse == null;
@@ -171,10 +196,35 @@ class VerseCheckboxNotifier extends ChangeNotifier {
   }
 
   void clear() {
+    if (_disposed) return;
     _value = const {};
     _changedVerse = null;
     _resetAll = true;
     _revision++;
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+}
+
+class _SafeValueNotifier<T> extends ValueNotifier<T> {
+  _SafeValueNotifier(super.value);
+
+  bool _disposed = false;
+
+  @override
+  set value(T newValue) {
+    if (_disposed) return;
+    super.value = newValue;
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
   }
 }

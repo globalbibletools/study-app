@@ -5,6 +5,7 @@ import 'package:studyapp/l10n/app_localizations.dart';
 import 'package:studyapp/l10n/book_names.dart';
 import 'package:studyapp/services/reading_session/rs_manager.dart';
 import 'package:studyapp/services/reading_session/rs_model.dart';
+import 'package:studyapp/ui/home/common/cutout_view.dart';
 import 'package:studyapp/ui/home/common/glowing_button.dart';
 import 'package:studyapp/ui/home/home_manager.dart';
 import 'package:studyapp/ui/home/reading_session/daily_goal_panel.dart';
@@ -24,6 +25,8 @@ class ReadingSessionPanel extends StatefulWidget {
 
 class ReadingSessionPanelState extends State<ReadingSessionPanel> {
   late final ReadingSessionPanelManager manager;
+  final _goalButtonKey = GlobalKey();
+
   @override
   void initState() {
     super.initState();
@@ -41,31 +44,47 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
 
   @override
   void dispose() {
-    super.dispose();
     manager.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
-    return Container(
-      height: screenHeight * 0.85,
-      padding: const EdgeInsets.all(16),
-      decoration: const BoxDecoration(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _handle(),
-          const SizedBox(height: 16),
 
-          _topTabs(),
-          const SizedBox(height: 12),
-
-          Flexible(child: _content()),
-        ],
-      ),
+    return ValueListenableBuilder<MainTab>(
+      valueListenable: manager.selectedMainTab,
+      builder: (context, selectedTab, _) {
+        return CutoutView(
+          enabled:
+              selectedTab == MainTab.goals &&
+              manager.dailyGoalNotifier.value == null,
+          objects: [
+            SpotlightObject.fromKey(
+              key: _goalButtonKey,
+              inflate: 3,
+              radius: 28,
+            ),
+          ],
+          content: Container(
+            height: screenHeight * 0.85,
+            padding: const EdgeInsets.all(16),
+            decoration: const BoxDecoration(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _handle(),
+                const SizedBox(height: 16),
+                _topTabs(),
+                const SizedBox(height: 12),
+                Flexible(child: _content()),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -138,19 +157,14 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
   }
 
   Widget progressTabContent() {
-    return ValueListenableBuilder<List<RsBookProgress>>(
-      valueListenable: manager.booksProgressNotifier,
-      builder: (context, booksProgress, _) {
-        return Column(
-          children: [
-            _subTabsProgress(),
-            const SizedBox(height: 16),
-            _progressTabContent(),
-            const SizedBox(height: 20),
-            _startButtonOrNone(),
-          ],
-        );
-      },
+    return Column(
+      children: [
+        _subTabsProgress(),
+        const SizedBox(height: 16),
+        Expanded(child: _progressTabContent()),
+        const SizedBox(height: 20),
+        _startButtonOrNone(),
+      ],
     );
   }
 
@@ -158,17 +172,14 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
     return Column(
       children: [
         _subTabsGoals(),
-        const SizedBox(height: 16),
+        const SizedBox(height: 10),
         _dailyGoalText(),
-        const SizedBox(height: 20),
         Expanded(child: _goalsTabContent()),
-        const SizedBox(height: 30),
+        const SizedBox(height: 5),
         _legend(),
-        const SizedBox(height: 20),
+        const SizedBox(height: 10),
         _totals(),
-        const SizedBox(height: 20),
         _changeGoalButton(),
-        const SizedBox(height: 20),
         _startButtonOrNone(),
       ],
     );
@@ -259,64 +270,90 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
           }
         }
 
-        return Expanded(
-          child: ListView(
-            children: [
-              _bookCard(
-                latestOldTestament,
-                l10n.oldTestament,
-                oldTestamentBooksRead / totalOldTestament,
-                "$oldTestamentBooksRead/$totalOldTestament",
-                "",
-                latestOldTestament.id == null ? l10n.start : l10n.resume,
-              ),
+        return ListView(
+          children: [
+            _bookCard(
+              latestOldTestament,
+              l10n.oldTestament,
+              oldTestamentBooksRead / totalOldTestament,
+              "$oldTestamentBooksRead/$totalOldTestament",
+              "",
+              latestOldTestament.id == null ? l10n.start : l10n.resume,
+            ),
 
-              _bookCard(
-                latestNewTestament,
-                l10n.newTestament,
-                newTestamentBooksRead / totalNewTestament,
-                "$newTestamentBooksRead/$totalNewTestament",
-                "",
-                latestNewTestament.id == null ? l10n.start : l10n.resume,
-              ),
-            ],
-          ),
+            _bookCard(
+              latestNewTestament,
+              l10n.newTestament,
+              newTestamentBooksRead / totalNewTestament,
+              "$newTestamentBooksRead/$totalNewTestament",
+              "",
+              latestNewTestament.id == null ? l10n.start : l10n.resume,
+            ),
+          ],
         );
       },
     );
   }
 
   Widget _progressByBookTabContent() {
-    final l10n = AppLocalizations.of(context)!;
+    final content = ValueListenableBuilder<BookProgressTab>(
+      valueListenable: manager.selectedBPTabNotifier,
+      builder: (context, value, _) {
+        late final List<int> books;
+        switch (value) {
+          case BookProgressTab.christian:
+            books = BibleNavigation.christianBooks;
+            break;
+          case BookProgressTab.jewish:
+            books = BibleNavigation.jewishBooks;
+            break;
+          case BookProgressTab.easyToHard:
+            books = BibleNavigation.easyToHardest;
+            break;
+        }
+        return _booksFromList(books);
+      },
+    );
+    return Column(
+      children: [
+        _subBookTabsProgress(),
+        Expanded(child: content),
+      ],
+    );
+  }
+
+  Widget _booksFromList(List<int> books) {
     return ValueListenableBuilder<List<RsBookProgress>>(
       valueListenable: manager.booksProgressNotifier,
       builder: (context, booksProgress, _) {
-        return Expanded(
-          child: ListView(
-            children: booksProgress.map((book) {
-              final action = book.id == null ? l10n.start : l10n.resume;
-              final bookName = bookNameFromId(context, book.bookId);
-              final totalChapters = BibleNavigation.getChapterCount(
-                book.bookId,
-              );
-
-              int versesCount = 0;
-              for (int i = 1; i <= totalChapters; i++) {
-                versesCount += BibleNavigation.getVerseCount(book.bookId, i);
-              }
-
-              return _bookCard(
-                book,
-                bookName,
-                book.versesRead / versesCount,
-                "${book.versesRead}/$versesCount",
-                "${l10n.versesShort}. ".toUpperCase(),
-                action,
-              );
-            }).toList(),
-          ),
+        return ListView(
+          children: books.map((bookId) {
+            return _bookTitle(booksProgress[bookId - 1]);
+          }).toList(),
         );
       },
+    );
+  }
+
+  Widget _bookTitle(RsBookProgress book) {
+    final l10n = AppLocalizations.of(context)!;
+
+    final action = book.id == null ? l10n.start : l10n.resume;
+    final bookName = bookNameFromId(context, book.bookId);
+    final totalChapters = BibleNavigation.getChapterCount(book.bookId);
+
+    int versesCount = 0;
+    for (int i = 1; i <= totalChapters; i++) {
+      versesCount += BibleNavigation.getVerseCount(book.bookId, i);
+    }
+
+    return _bookCard(
+      book,
+      bookName,
+      book.versesRead / versesCount,
+      "${book.versesRead}/$versesCount",
+      "${l10n.versesShort}. ".toUpperCase(),
+      action,
     );
   }
 
@@ -408,6 +445,32 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
         _tab(l10n.week, manager.selectedGTabNotifier, GoalsTab.byWeek),
         const SizedBox(width: 8),
         _tab(l10n.month, manager.selectedGTabNotifier, GoalsTab.byMonth),
+      ],
+    );
+  }
+
+  Widget _subBookTabsProgress() {
+    final l10n = AppLocalizations.of(context)!;
+
+    return Row(
+      children: [
+        _tab(
+          l10n.christianOrder,
+          manager.selectedBPTabNotifier,
+          BookProgressTab.christian,
+        ),
+        const SizedBox(width: 8),
+        _tab(
+          l10n.jewishOrder,
+          manager.selectedBPTabNotifier,
+          BookProgressTab.jewish,
+        ),
+        const SizedBox(width: 8),
+        _tab(
+          l10n.easyToHardOrder,
+          manager.selectedBPTabNotifier,
+          BookProgressTab.easyToHard,
+        ),
       ],
     );
   }
@@ -533,11 +596,12 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
         if (latestBookProgress == null) {
           return const SizedBox.shrink();
         } else {
+          const borderRadius = 16.0;
           final child = Material(
             color: Theme.of(context).colorScheme.primary,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(borderRadius),
             child: InkWell(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(borderRadius),
               onTap: () async {
                 log("starting reading session");
 
@@ -572,31 +636,40 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
                     Text(
                       l10n.startSession.toUpperCase(),
                       style: TextStyle(
-                        fontSize: 15,
+                        fontSize: 20,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(l10n.whereYouLeftOff, style: TextStyle(fontSize: 12)),
+                    // const SizedBox(height: 4),
+                    // Text(l10n.whereYouLeftOff, style: TextStyle(fontSize: 12)),
                   ],
                 ),
               ),
             ),
           );
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            child: SizedBox(
-              width: double.infinity,
-              child: GlowingButton(
-                primaryColor: Theme.of(context).colorScheme.primary,
-                duration: 4000,
-                borderRadius: 16,
-                glowInset: 4,
-                strokeWidth: 4,
-                child: child,
+
+          if (manager.dailyGoalNotifier.value == null) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              child: SizedBox(width: double.infinity, child: child),
+            );
+          } else {
+            final color = Theme.of(context).colorScheme.primary;
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              child: SizedBox(
+                width: double.infinity,
+                child: GlowingButton(
+                  duration: 6000,
+                  primaryColor: color,
+                  borderRadius: borderRadius,
+                  glowInset: 10,
+                  strokeWidth: 3,
+                  child: child,
+                ),
               ),
-            ),
-          );
+            );
+          }
         }
       },
     );
@@ -630,7 +703,7 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
                     SizedBox(
                       width: 30,
                       child: d.goalReached
-                          ? Icon(Icons.adjust, color: color, size: 18)
+                          ? Icon(Icons.check, color: color, size: 18)
                           : const SizedBox.shrink(),
                     ),
                   ],
@@ -668,36 +741,48 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
 
   Widget _dayCalendar(DayProgress progress, bool isToday) {
     final color = Theme.of(context).colorScheme.primary;
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(14),
         onTap: () => _openDetailedProgress(progress),
         child: Container(
-          margin: const EdgeInsets.all(4),
-          padding: const EdgeInsets.all(6),
+          margin: const EdgeInsets.all(2),
+          padding: const EdgeInsets.all(2),
           decoration: BoxDecoration(
             color: progress.goalReached
                 ? color
                 : Theme.of(context).colorScheme.surfaceContainerLow,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(14),
             border: isToday ? Border.all(color: color, width: 2) : null,
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Stack(
             children: [
-              Text(
-                "${progress.day.day}",
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+              Positioned(
+                top: 0,
+                left: 0,
+                child: Text(
+                  "${progress.day.day}",
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: progress.goalReached
+                        ? Colors.white.withValues(alpha: 0.9)
+                        : null,
+                  ),
+                ),
               ),
-              const Spacer(),
-              // if (!progress.empty)
-              //   Text(
-              //     "${progress.minutes}${l10n.minutesShort}|${progress.verses} ${l10n.versesShort}",
-              //     style: TextStyle(fontSize: 10),
-              //   )
-              // else
-              //   Text("--", style: TextStyle(fontSize: 10, color: Colors.grey)),
+
+              if (progress.goalReached)
+                const Center(
+                  child: Icon(
+                    Icons.check_rounded,
+                    color: Colors.white,
+                    size: 42,
+                    weight: 700,
+                  ),
+                ),
             ],
           ),
         ),
@@ -754,9 +839,7 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
       builder: (context, value, child) {
         return Row(
           children: [
-            value == GoalsTab.byWeek
-                ? Icon(Icons.adjust, color: color, size: 16)
-                : Icon(Icons.square, color: color, size: 16),
+            Icon(Icons.check, color: color, size: 16),
             const SizedBox(width: 8),
             Text("= ${l10n.dailyGoalReached}", style: TextStyle(color: color)),
           ],
@@ -803,51 +886,56 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
 
     final currentGoal = manager.dailyGoalNotifier.value;
 
-    return Center(
-      child: GlowingButton(
-        duration: 2000,
-        primaryColor: colorScheme.primary,
-        borderRadius: 28,
-        child: ElevatedButton.icon(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: colorScheme.surface,
-            foregroundColor: colorScheme.onSurface,
-            elevation: 0,
-            shadowColor: Colors.transparent,
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(28),
-            ),
+    final button = ElevatedButton.icon(
+      key: _goalButtonKey,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: colorScheme.surface,
+        foregroundColor: colorScheme.onSurface,
+        elevation: 0,
+        shadowColor: Colors.transparent,
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      ),
+      onPressed: () async {
+        final result = await showModalBottomSheet<(GoalType, int)>(
+          context: context,
+          isScrollControlled: true,
+          isDismissible: true,
+          backgroundColor: Colors.transparent,
+          builder: (_) => SetDailyGoalView(
+            initialGoalType: currentGoal?.type,
+            initialValue: currentGoal?.value,
           ),
-          onPressed: () async {
-            final result = await showModalBottomSheet<(GoalType, int)>(
-              context: context,
-              isScrollControlled: true,
-              isDismissible: true,
-              backgroundColor: Colors.transparent,
-              builder: (_) => SetDailyGoalView(
-                initialGoalType: currentGoal?.type,
-                initialValue: currentGoal?.value,
-              ),
-            );
+        );
 
-            if (result != null) {
-              manager.updateGoal(result.$1, result.$2);
-            }
-          },
-          icon: const Icon(Icons.adjust),
-          label: ValueListenableBuilder(
-            valueListenable: manager.dailyGoalNotifier,
-            builder: (_, dailyGoal, child) {
-              return Text(
-                dailyGoal == null
-                    ? l10n.setGoal.toUpperCase()
-                    : l10n.changeGoal.toUpperCase(),
-              );
-            },
-          ),
-        ),
+        if (result != null) {
+          manager.updateGoal(result.$1, result.$2);
+        }
+
+        setState(() {});
+      },
+      label: Text(
+        currentGoal == null
+            ? l10n.setGoal.toUpperCase()
+            : l10n.changeGoal.toUpperCase(),
       ),
     );
+
+    if (currentGoal == null) {
+      return Center(
+        child: KeyedSubtree(
+          child: GlowingButton(
+            duration: 3000,
+            primaryColor: colorScheme.primary,
+            borderRadius: 28,
+            glowInset: 10,
+            strokeWidth: 3,
+            child: button,
+          ),
+        ),
+      );
+    } else {
+      return Center(child: KeyedSubtree(child: button));
+    }
   }
 }

@@ -76,6 +76,16 @@ class AppLocalizationsAr extends AppLocalizations {
   String get cancel => 'إلغاء';
 
   @override
+  String get gotIt => 'فهمت';
+
+  @override
+  String get readingCheckboxGuideTitle => 'تمييز الآيات كمقروءة';
+
+  @override
+  String get readingCheckboxGuideMessage =>
+      'اضغط على مربع الاختيار بجانب الآية في كل مرة تقرأها. يوضح الرقم عدد المرات التي قرأت فيها تلك الآية اليوم.';
+
+  @override
   String get downloadComplete => 'اكتمل التنزيل.';
 
   @override
@@ -265,6 +275,15 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get byBook => 'حسب السفر';
+
+  @override
+  String get christianOrder => 'مسيحي';
+
+  @override
+  String get jewishOrder => 'يهودي';
+
+  @override
+  String get easyToHardOrder => 'من السهل إلى الصعب';
 
   @override
   String get week => 'أسبوع';

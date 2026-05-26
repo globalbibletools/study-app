@@ -13,12 +13,14 @@ class BiblePanel extends StatefulWidget {
     required this.chapter,
     this.syncController,
     required this.settingsVersion,
+    this.scrollingEnabled = true,
   });
 
   final int bookId;
   final int chapter;
   final ScrollSyncController? syncController;
   final int settingsVersion;
+  final bool scrollingEnabled;
 
   @override
   State<BiblePanel> createState() => BiblePanelState();
@@ -67,6 +69,7 @@ class BiblePanelState extends State<BiblePanel> {
                     bookId: widget.bookId,
                     chapter: widget.chapter,
                     syncController: widget.syncController,
+                    scrollingEnabled: widget.scrollingEnabled,
                     chapterBuilder: (context, bId, ch) {
                       return BibleChapter(
                         key: ValueKey('bible-$bId-$ch'),

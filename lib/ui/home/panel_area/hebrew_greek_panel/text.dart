@@ -42,6 +42,7 @@ class _LineMetrics {
 class HebrewGreekTextController {
   final Map<int, Rect> _verseRects = {};
   VerseAtOffsetCallback? _verseAtOffsetCallback;
+  ValueChanged<Rect?>? _spotlightSetCallback;
 
   /// Updates the controller with the latest verse rectangles.
   ///
@@ -54,6 +55,10 @@ class HebrewGreekTextController {
   /// Registers the callback from the RenderObject
   void _registerVerseFinder(VerseAtOffsetCallback callback) {
     _verseAtOffsetCallback = callback;
+  }
+
+  void setSpotlightUpdatedCalllback(ValueChanged<Rect?> callback) {
+    _spotlightSetCallback = callback;
   }
 
   /// Retrieves the [Rect] for a given verse number.
@@ -141,6 +146,7 @@ class HebrewGreekText extends LeafRenderObjectWidget {
     this.changedCheckedVerse,
     this.resetCheckedVerses = false,
     this.checkedVersesRevision = 0,
+    this.spotlightVerse,
   });
 
   /// The words that will rendered in the text layout
@@ -208,6 +214,7 @@ class HebrewGreekText extends LeafRenderObjectWidget {
   final int? changedCheckedVerse;
   final bool resetCheckedVerses;
   final int checkedVersesRevision;
+  final int? spotlightVerse;
 
   @override
   RenderHebrewGreekText createRenderObject(BuildContext context) {
@@ -246,6 +253,7 @@ class HebrewGreekText extends LeafRenderObjectWidget {
       changedCheckedVerse: changedCheckedVerse,
       resetCheckedVerses: resetCheckedVerses,
       checkedVersesRevision: checkedVersesRevision,
+      spotlightVerse: spotlightVerse,
       flashColor:
           flashColor ??
           effectiveVerseNumberStyle?.color?.withValues(alpha: 0.4) ??
@@ -301,6 +309,7 @@ class HebrewGreekText extends LeafRenderObjectWidget {
         resetAll: resetCheckedVerses,
         revision: checkedVersesRevision,
       )
+      ..spotlightVerse = spotlightVerse
       ..readingModeEnabled = readingModeEnabled
       ..flashColor =
           flashColor ??
@@ -389,6 +398,7 @@ class RenderHebrewGreekText extends RenderBox {
     int? changedCheckedVerse,
     bool resetCheckedVerses = false,
     int checkedVersesRevision = 0,
+    int? spotlightVerse,
     required Color primaryColor,
   }) : _words = words,
        _verses = _buildBlocks(words),
@@ -413,6 +423,7 @@ class RenderHebrewGreekText extends RenderBox {
            ? null
            : Map<int, int>.unmodifiable(checkedVerses),
        _checkedVersesRevision = checkedVersesRevision,
+       _spotlightVerse = spotlightVerse,
        _primaryColor = primaryColor {
     _updatePainters();
     _tapRecognizer = TapGestureRecognizer()..onTapUp = _handleTapUp;
@@ -447,6 +458,7 @@ class RenderHebrewGreekText extends RenderBox {
   bool _readingModeEnabled;
   Map<int, int>? _checkedVerses;
   int _checkedVersesRevision;
+  int? _spotlightVerse;
 
   static List<VerseLayoutBlock> _buildBlocks(List<HebrewGreekWord> words) {
     final blocks = <VerseLayoutBlock>[];
@@ -537,6 +549,11 @@ class RenderHebrewGreekText extends RenderBox {
     _needsCheckboxesUpdate = true;
     _checkboxesNeedFullUpdate = true;
     _updateCheckboxPainters();
+  }
+
+  set spotlightVerse(int? value) {
+    if (_spotlightVerse == value) return;
+    _spotlightVerse = value;
   }
 
   HebrewGreekTextController? _controller;
@@ -701,7 +718,7 @@ class RenderHebrewGreekText extends RenderBox {
   late TextPainter _spacePainter;
   final List<VerseRenderer> _verseRenderer = [];
 
-  void _updatePainters() {
+  void _updatePainters({bool duringLayout = false}) {
     if (_needsTextPaintersUpdate || _needsResetVersesRenderers) {
       _spacePainter = TextPainter(
         text: TextSpan(text: ' ', style: _textStyle),
@@ -720,11 +737,11 @@ class RenderHebrewGreekText extends RenderBox {
     }
 
     if (_needsCheckboxesUpdate) {
-      _updateCheckboxPainters();
+      _updateCheckboxPainters(duringLayout: duringLayout);
     }
   }
 
-  void _updateCheckboxPainters() {
+  void _updateCheckboxPainters({bool duringLayout = false}) {
     if (!_needsCheckboxesUpdate) return;
     bool sizeChanged = false;
 
@@ -757,6 +774,10 @@ class RenderHebrewGreekText extends RenderBox {
     _needsCheckboxesUpdate = false;
     _checkboxesNeedFullUpdate = false;
     _checkboxesToUpdate.clear();
+
+    if (duringLayout) {
+      return;
+    }
 
     if (sizeChanged) {
       markNeedsLayout();
@@ -944,10 +965,9 @@ class RenderHebrewGreekText extends RenderBox {
 
   Size _performLayout(BoxConstraints constraints) {
     if (_needsTextPaintersUpdate || _needsCheckboxesUpdate) {
-      _updatePainters();
+      _updatePainters(duringLayout: true);
     }
     _lineMetrics.clear();
-    //_verseRenderer.clear();
 
     double mainAxisOffset = 0.0;
     double crossAxisOffset = 0.0;
@@ -965,6 +985,7 @@ class RenderHebrewGreekText extends RenderBox {
     mainAxisOffset = isLtr ? 0.0 : availableWidth;
 
     final Map<int, Rect> verseRectsMap = {};
+    Rect? spotlightRect;
 
     for (int i = 0; i < _verseRenderer.length; i++) {
       VerseRenderer verse = _verseRenderer[i];
@@ -1004,6 +1025,12 @@ class RenderHebrewGreekText extends RenderBox {
         }
       }
 
+      if (_spotlightVerse != null &&
+          _readingModeEnabled &&
+          _spotlightVerse == verse.verse) {
+        spotlightRect = verse.readingCheckboxRect!;
+      }
+
       verseRectsMap[verse.verse] = verse.verseNumberRect!;
     }
 
@@ -1015,6 +1042,10 @@ class RenderHebrewGreekText extends RenderBox {
     );
 
     controller?._updateVerseRects(verseRectsMap);
+
+    if (spotlightRect != null) {
+      controller?._spotlightSetCallback?.call(spotlightRect);
+    }
 
     final double finalHeight = crossAxisOffset + currentLineMaxHeight;
     final double finalWidth = constraints.hasBoundedWidth
@@ -1640,6 +1671,7 @@ class RenderHebrewGreekText extends RenderBox {
   void _paintCheckboxes(Canvas canvas, VerseRenderer verse) {
     final readingCount = verse.readingCount;
     final isChecked = readingCount > 0;
+    final isHighlighted = _spotlightVerse == verse.verse;
 
     final rect = verse.readingCheckboxRect!;
 
@@ -1656,12 +1688,25 @@ class RenderHebrewGreekText extends RenderBox {
                 baseColor.withValues(alpha: 0.9),
                 baseColor.withValues(alpha: 0.6),
               ]
-            : [uncheckedTop, uncheckedBottom],
+            : (isHighlighted
+                  ? [
+                      baseColor.withValues(alpha: 0.9),
+                      baseColor.withValues(alpha: 0.2),
+                    ]
+                  : [uncheckedTop, uncheckedBottom]),
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       ).createShader(rect);
 
     canvas.drawRRect(rrect, paint);
+
+    if (isHighlighted) {
+      final paint = Paint()
+        ..color = Colors.white
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2;
+      canvas.drawRRect(rrect.inflate(-1), paint);
+    }
 
     if (isChecked) {
       final countPainter = verse.verseReadingCountPainter!;

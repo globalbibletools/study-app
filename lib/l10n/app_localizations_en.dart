@@ -76,6 +76,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cancel => 'Cancel';
 
   @override
+  String get gotIt => 'Got it';
+
+  @override
+  String get readingCheckboxGuideTitle => 'Mark verses as read';
+
+  @override
+  String get readingCheckboxGuideMessage =>
+      'Tap a checkbox beside a verse each time you read it. The number shows how many times you have read that verse today.';
+
+  @override
   String get downloadComplete => 'Download complete.';
 
   @override
@@ -265,6 +275,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get byBook => 'By Book';
+
+  @override
+  String get christianOrder => 'Christians';
+
+  @override
+  String get jewishOrder => 'Jewish';
+
+  @override
+  String get easyToHardOrder => 'Easy To Hard';
 
   @override
   String get week => 'Week';

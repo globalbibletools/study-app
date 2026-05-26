@@ -236,6 +236,24 @@ abstract class AppLocalizations {
   /// **'Cancel'**
   String get cancel;
 
+  /// Label for a button that dismisses an instructional overlay
+  ///
+  /// In en, this message translates to:
+  /// **'Got it'**
+  String get gotIt;
+
+  /// Title for the reading mode checkbox guide overlay
+  ///
+  /// In en, this message translates to:
+  /// **'Mark verses as read'**
+  String get readingCheckboxGuideTitle;
+
+  /// Instructional message explaining reading mode verse checkboxes
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a checkbox beside a verse each time you read it. The number shows how many times you have read that verse today.'**
+  String get readingCheckboxGuideMessage;
+
   /// Message shown when glosses finish downloading.
   ///
   /// In en, this message translates to:
@@ -541,6 +559,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'By Book'**
   String get byBook;
+
+  /// Tab label for ordering books by the Christian Bible order
+  ///
+  /// In en, this message translates to:
+  /// **'Christians'**
+  String get christianOrder;
+
+  /// Tab label for ordering books by the Jewish Bible order
+  ///
+  /// In en, this message translates to:
+  /// **'Jewish'**
+  String get jewishOrder;
+
+  /// Tab label for ordering books from easiest to hardest
+  ///
+  /// In en, this message translates to:
+  /// **'Easy To Hard'**
+  String get easyToHardOrder;
 
   /// Week tab
   ///
