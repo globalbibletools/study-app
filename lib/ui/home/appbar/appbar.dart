@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:studyapp/l10n/book_names.dart';
+import 'package:studyapp/services/app_guide/global_rect.dart';
 import 'package:studyapp/ui/home/appbar/reading_session_timer_view.dart';
 import 'reference_chooser/reference_chooser.dart';
 
@@ -17,6 +18,7 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
   final ValueChanged<ReferenceInputMode> onInputModeChanged;
   final ValueChanged<Set<int>>? onAvailableDigitsChanged;
   final VoidCallback onToggleReadingSession;
+  final ValueChanged<Rect?>? onReadingSessionButtonRectChanged;
 
   const HomeAppBar({
     super.key,
@@ -33,6 +35,7 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
     required this.onToggleReadingSession,
     required this.readingSessionStarted,
     this.onAvailableDigitsChanged,
+    this.onReadingSessionButtonRectChanged,
   });
 
   @override
@@ -54,26 +57,29 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
       ),
       actions: [
         //_readingSessionTimer(readingSessionStarted),
-        IconButton(
-          padding: EdgeInsets.all(6),
-          visualDensity: VisualDensity.compact,
-          onPressed: onToggleReadingSession,
-          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-          style: IconButton.styleFrom(
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            backgroundColor: readingSessionStarted
-                ? Theme.of(
-                    context,
-                  ).colorScheme.primaryContainer.withValues(alpha: 0.4)
-                : Colors.transparent,
-            foregroundColor: readingSessionStarted
-                ? Theme.of(context).colorScheme.primary
-                : Theme.of(context).iconTheme.color,
-          ),
-          icon: Icon(
-            readingSessionStarted
-                ? Icons.auto_stories_rounded
-                : Icons.book_rounded,
+        GlobalRectReporter(
+          onRectChanged: onReadingSessionButtonRectChanged,
+          child: IconButton(
+            padding: EdgeInsets.all(6),
+            visualDensity: VisualDensity.compact,
+            onPressed: onToggleReadingSession,
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            style: IconButton.styleFrom(
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              backgroundColor: readingSessionStarted
+                  ? Theme.of(
+                      context,
+                    ).colorScheme.primaryContainer.withValues(alpha: 0.4)
+                  : Colors.transparent,
+              foregroundColor: readingSessionStarted
+                  ? Theme.of(context).colorScheme.primary
+                  : Theme.of(context).iconTheme.color,
+            ),
+            icon: Icon(
+              readingSessionStarted
+                  ? Icons.auto_stories_rounded
+                  : Icons.book_rounded,
+            ),
           ),
         ),
         IconButton(

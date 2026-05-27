@@ -251,8 +251,20 @@ abstract class AppLocalizations {
   /// Instructional message explaining reading mode verse checkboxes
   ///
   /// In en, this message translates to:
-  /// **'Tap a checkbox beside a verse each time you read it. The number shows how many times you have read that verse today.'**
+  /// **'Tap a box each time you read a verse.'**
   String get readingCheckboxGuideMessage;
+
+  /// Title for the reading session guide overlay
+  ///
+  /// In en, this message translates to:
+  /// **'Reading sessions'**
+  String get readingSessionGuideTitle;
+
+  /// Instructional message explaining reading sessions
+  ///
+  /// In en, this message translates to:
+  /// **'Reading sessions save your progress and help you reach your daily goals.'**
+  String get readingSessionGuideMessage;
 
   /// Message shown when glosses finish downloading.
   ///
@@ -542,6 +554,12 @@ abstract class AppLocalizations {
   /// **'Progress'**
   String get progress;
 
+  /// Books tab
+  ///
+  /// In en, this message translates to:
+  /// **'books'**
+  String get books;
+
   /// Description Tab
   ///
   /// In en, this message translates to:
@@ -563,19 +581,19 @@ abstract class AppLocalizations {
   /// Tab label for ordering books by the Christian Bible order
   ///
   /// In en, this message translates to:
-  /// **'Christians'**
+  /// **'Christian Order'**
   String get christianOrder;
 
   /// Tab label for ordering books by the Jewish Bible order
   ///
   /// In en, this message translates to:
-  /// **'Jewish'**
+  /// **'Jewish Order'**
   String get jewishOrder;
 
   /// Tab label for ordering books from easiest to hardest
   ///
   /// In en, this message translates to:
-  /// **'Easy To Hard'**
+  /// **'Easy to Hardest'**
   String get easyToHardOrder;
 
   /// Week tab

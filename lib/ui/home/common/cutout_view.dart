@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 
 class SpotlightObject {
   final GlobalKey? key;
@@ -51,12 +52,15 @@ class CutoutRect {
   int get hashCode => Object.hash(rect, inflate, radius);
 }
 
+enum TouchState { allowAll, allowUnderSpotlight, disableAll }
+
 class CutoutView extends StatefulWidget {
   final _panelStackKey = GlobalKey();
   final Widget content;
   final List<SpotlightObject> objects;
   final bool enabled;
   final int intensity;
+  final TouchState touchState;
 
   CutoutView({
     super.key,
@@ -64,6 +68,7 @@ class CutoutView extends StatefulWidget {
     required this.enabled,
     this.intensity = 200,
     this.objects = const [],
+    this.touchState = TouchState.allowUnderSpotlight,
   });
 
   @override
@@ -76,11 +81,16 @@ class CutoutViewState extends State<CutoutView> {
   @override
   Widget build(BuildContext context) {
     final enabled = widget.enabled;
+    if (!enabled || widget.objects.isEmpty) {
+      return widget.content;
+    }
+
     if (enabled) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _updateSpotlightRect();
       });
     }
+
     return Stack(
       key: widget._panelStackKey,
       children: [widget.content, if (enabled) _drawSpotlights()],
@@ -88,16 +98,32 @@ class CutoutViewState extends State<CutoutView> {
   }
 
   Widget _drawSpotlights() {
-    return Positioned.fill(
-      child: IgnorePointer(
+    final Widget child;
+
+    if (widget.touchState == TouchState.allowAll) {
+      child = IgnorePointer(
         child: CustomPaint(
           painter: _SpotlightPainter(
             cutouts: cutouts,
             intensity: widget.intensity,
           ),
         ),
-      ),
-    );
+      );
+    } else {
+      child = _CutoutHitBlocker(
+        cutouts: widget.touchState == TouchState.allowUnderSpotlight
+            ? cutouts
+            : [],
+        child: CustomPaint(
+          painter: _SpotlightPainter(
+            cutouts: cutouts,
+            intensity: widget.intensity,
+          ),
+        ),
+      );
+    }
+
+    return Positioned.fill(child: child);
   }
 
   void _updateSpotlightRect() {
@@ -159,6 +185,53 @@ class CutoutViewState extends State<CutoutView> {
     for (int i = 0; i < cutouts.length; i++) {
       if (cutouts[i] != nextSpotlights[i]) return false;
     }
+    return true;
+  }
+}
+
+class _CutoutHitBlocker extends SingleChildRenderObjectWidget {
+  final List<CutoutRect> cutouts;
+
+  const _CutoutHitBlocker({required this.cutouts, required super.child});
+
+  @override
+  RenderObject createRenderObject(BuildContext context) {
+    return _RenderCutoutHitBlocker(cutouts);
+  }
+
+  @override
+  void updateRenderObject(
+    BuildContext context,
+    covariant _RenderCutoutHitBlocker renderObject,
+  ) {
+    renderObject.cutouts = cutouts;
+  }
+}
+
+class _RenderCutoutHitBlocker extends RenderProxyBox {
+  List<CutoutRect> _cutouts;
+
+  _RenderCutoutHitBlocker(this._cutouts);
+
+  set cutouts(List<CutoutRect> value) {
+    if (_cutouts == value) return;
+    _cutouts = value;
+    markNeedsPaint();
+  }
+
+  @override
+  bool hitTest(BoxHitTestResult result, {required Offset position}) {
+    for (final cutout in _cutouts) {
+      final rect = cutout.rect.inflate(cutout.inflate);
+
+      // Allow touches to pass through spotlight areas.
+      if (rect.contains(position)) {
+        return false;
+      }
+    }
+
+    // Block touches outside spotlight areas.
+    result.add(BoxHitTestEntry(this, position));
     return true;
   }
 }

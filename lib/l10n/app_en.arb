@@ -96,9 +96,17 @@
   "@readingCheckboxGuideTitle": {
     "description": "Title for the reading mode checkbox guide overlay"
   },
-  "readingCheckboxGuideMessage": "Tap a checkbox beside a verse each time you read it. The number shows how many times you have read that verse today.",
+  "readingCheckboxGuideMessage": "Tap a box each time you read a verse.",
   "@readingCheckboxGuideMessage": {
     "description": "Instructional message explaining reading mode verse checkboxes"
+  },
+  "readingSessionGuideTitle": "Reading sessions",
+  "@readingSessionGuideTitle": {
+    "description": "Title for the reading session guide overlay"
+  },
+  "readingSessionGuideMessage": "Reading sessions save your progress and help you reach your daily goals.",
+  "@readingSessionGuideMessage": {
+    "description": "Instructional message explaining reading sessions"
   },
   "downloadComplete": "Download complete.",
   "@downloadComplete": {
@@ -356,6 +364,10 @@
   "@progress": {
     "description" : "Progress Tab"
   },
+  "books": "books",
+  "@books": {
+    "description": "Books tab"
+  },
   "goals": "Goals",
   "@goals": {
     "description": "Description Tab"
@@ -368,15 +380,15 @@
   "@byBook": {
     "description" : "By Book tab"
   },
-  "christianOrder": "Christians",
+  "christianOrder": "Christian Order",
   "@christianOrder": {
     "description": "Tab label for ordering books by the Christian Bible order"
   },
-  "jewishOrder": "Jewish",
+  "jewishOrder": "Jewish Order",
   "@jewishOrder": {
     "description": "Tab label for ordering books by the Jewish Bible order"
   },
-  "easyToHardOrder": "Easy To Hard",
+  "easyToHardOrder": "Easy to Hardest",
   "@easyToHardOrder": {
     "description": "Tab label for ordering books from easiest to hardest"
   },
