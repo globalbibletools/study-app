@@ -52,7 +52,9 @@ class BiblePanelArea extends StatelessWidget {
           final disableScrolling = manager.appGuideManager.anyGuideShown();
 
           final content = AnimatedPadding(
-            duration: const Duration(milliseconds: 220),
+            duration: Duration(
+              milliseconds: shouldShowReadingCheckboxGuide ? 0 : 220,
+            ),
             curve: Curves.easeOutCubic,
             padding: EdgeInsets.only(top: shouldOffsetForProgress ? 44 : 0),
             child: Column(
