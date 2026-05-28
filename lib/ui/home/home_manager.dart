@@ -7,6 +7,7 @@ import 'package:studyapp/common/reference.dart';
 import 'package:studyapp/l10n/app_languages.dart';
 import 'package:studyapp/l10n/app_localizations.dart';
 import 'package:studyapp/l10n/book_names.dart';
+import 'package:studyapp/services/app_guide/app_guide_manager.dart';
 import 'package:studyapp/services/resources/remote_asset_service.dart';
 import 'package:studyapp/services/bible/bible_service.dart';
 import 'package:studyapp/services/download/cancel_token.dart';
@@ -58,6 +59,7 @@ class HomeManager {
   final _downloadService = getIt<DownloadService>();
   final _assetService = getIt<RemoteAssetService>();
   final readingSessionManager = getIt<ReadingSessionManager>();
+  final appGuideManager = getIt<AppGuideManager>();
 
   int? _lastSavedBook;
   int? _lastSavedChapter;

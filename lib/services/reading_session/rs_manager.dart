@@ -35,9 +35,6 @@ class ReadingSessionManager {
   final List<VoidCallback> _booksProgressListeners = [];
   final List<VoidCallback> _statsListeners = [];
 
-  final checkBoxSpotlightRect = ValueNotifier<Rect?>(null);
-  final readingCheckboxGuideDismissedNotifier = ValueNotifier<bool>(false);
-
   void subsribeForBookProgress(VoidCallback cb) {
     _booksProgressListeners.add(cb);
   }
@@ -778,20 +775,7 @@ class ReadingSessionManager {
     return sessions;
   }
 
-  bool get shouldShowReadingCheckboxGuide {
-    return readingModeNotifier.value &&
-        !_settings.hasSeenReadingCheckboxGuide &&
-        !readingCheckboxGuideDismissedNotifier.value;
-  }
-
-  Future<void> dismissReadingCheckboxGuide() async {
-    if (readingCheckboxGuideDismissedNotifier.value) return;
-    readingCheckboxGuideDismissedNotifier.value = true;
-    await _settings.setHasSeenReadingCheckboxGuide(true);
-  }
-
   void dispose() {
-    readingCheckboxGuideDismissedNotifier.dispose();
     endReadingSession();
     _rsdbManager.dispose();
     _timer?.cancel();

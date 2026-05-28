@@ -6,7 +6,7 @@ class GuideBubble extends StatefulWidget {
     required this.targetGlobalRect,
     required this.panelAreaKey,
     required this.onDismiss,
-    required this.title,
+    this.title,
     required this.text,
     required this.dismissText,
   });
@@ -14,7 +14,7 @@ class GuideBubble extends StatefulWidget {
   final Rect targetGlobalRect;
   final GlobalKey panelAreaKey;
   final VoidCallback onDismiss;
-  final String title;
+  final String? title;
   final String text;
   final String dismissText;
 
@@ -83,13 +83,15 @@ class _GuideBubbleState extends State<GuideBubble> {
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          widget.title,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
+                        if (widget.title != null)
+                          Text(
+                            widget.title!,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 8),
+                        if (widget.title != null) const SizedBox(height: 8),
+
                         Text(widget.text, style: theme.textTheme.bodyMedium),
                         const SizedBox(height: 12),
                         Align(

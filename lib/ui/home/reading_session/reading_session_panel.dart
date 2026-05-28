@@ -66,21 +66,24 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
               radius: 28,
             ),
           ],
-          content: Container(
-            height: screenHeight * 0.85,
-            padding: const EdgeInsets.all(16),
-            decoration: const BoxDecoration(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _handle(),
-                const SizedBox(height: 16),
-                _topTabs(),
-                const SizedBox(height: 12),
-                Flexible(child: _content()),
-              ],
+          content: SafeArea(
+            top: false,
+            child: Container(
+              height: screenHeight * 0.85,
+              padding: const EdgeInsets.all(16),
+              decoration: const BoxDecoration(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _handle(),
+                  const SizedBox(height: 16),
+                  _topTabs(),
+                  const SizedBox(height: 12),
+                  Flexible(child: _content()),
+                ],
+              ),
             ),
           ),
         );
@@ -99,7 +102,13 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
     );
   }
 
-  Widget _tab<T>(String text, ValueNotifier<T> notifierValue, T value) {
+  Widget _tab<T>(
+    String text,
+    ValueNotifier<T> notifierValue,
+    T value, {
+    double font = 15,
+    bool toUpperCase = true,
+  }) {
     return ValueListenableBuilder<T>(
       valueListenable: notifierValue,
       builder: (context, v, _) {
@@ -118,9 +127,15 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 alignment: Alignment.center,
-                child: Text(
-                  text.toUpperCase(),
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    toUpperCase ? text.toUpperCase() : text,
+                    style: TextStyle(
+                      fontSize: font,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -179,6 +194,7 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
         _legend(),
         const SizedBox(height: 10),
         _totals(),
+        const SizedBox(height: 5),
         _changeGoalButton(),
         _startButtonOrNone(),
       ],
@@ -277,7 +293,7 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
               l10n.oldTestament,
               oldTestamentBooksRead / totalOldTestament,
               "$oldTestamentBooksRead/$totalOldTestament",
-              "",
+              " ${l10n.books}",
               latestOldTestament.id == null ? l10n.start : l10n.resume,
             ),
 
@@ -286,7 +302,7 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
               l10n.newTestament,
               newTestamentBooksRead / totalNewTestament,
               "$newTestamentBooksRead/$totalNewTestament",
-              "",
+              " ${l10n.books}",
               latestNewTestament.id == null ? l10n.start : l10n.resume,
             ),
           ],
@@ -352,7 +368,7 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
       bookName,
       book.versesRead / versesCount,
       "${book.versesRead}/$versesCount",
-      "${l10n.versesShort}. ".toUpperCase(),
+      " ${l10n.verses}",
       action,
     );
   }
@@ -451,6 +467,9 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
 
   Widget _subBookTabsProgress() {
     final l10n = AppLocalizations.of(context)!;
+    final separatorColor = Theme.of(
+      context,
+    ).colorScheme.outline.withValues(alpha: 0.3);
 
     return Row(
       children: [
@@ -458,18 +477,28 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
           l10n.christianOrder,
           manager.selectedBPTabNotifier,
           BookProgressTab.christian,
+          font: 11,
+          toUpperCase: false,
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 4),
+        Container(width: 1, height: 24, color: separatorColor),
+        const SizedBox(width: 4),
         _tab(
           l10n.jewishOrder,
           manager.selectedBPTabNotifier,
           BookProgressTab.jewish,
+          font: 13,
+          toUpperCase: false,
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 4),
+        Container(width: 1, height: 24, color: separatorColor),
+        const SizedBox(width: 4),
         _tab(
           l10n.easyToHardOrder,
           manager.selectedBPTabNotifier,
           BookProgressTab.easyToHard,
+          font: 13,
+          toUpperCase: false,
         ),
       ],
     );
@@ -480,7 +509,7 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
     String title,
     double progress,
     String progressLabel,
-    String progressPrefix,
+    String progressSuffix,
     String action,
   ) {
     return Container(
@@ -552,7 +581,7 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
                 Row(
                   children: [
                     Text(
-                      "$progressPrefix$progressLabel",
+                      "$progressLabel$progressSuffix",
                       style: const TextStyle(fontSize: 12),
                     ),
                     const Spacer(),
@@ -725,10 +754,7 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
                 child: Center(
                   child: Text(
                     "${d.verses} $verseLabel",
-                    style: const TextStyle(
-                      color: Colors.pinkAccent,
-                      fontSize: 16,
-                    ),
+                    style: TextStyle(color: color, fontSize: 16),
                   ),
                 ),
               ),
@@ -870,7 +896,7 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
                 const TextSpan(text: " • "),
                 TextSpan(
                   text: "$totalVerses ${l10n.verses}",
-                  style: const TextStyle(color: Colors.pinkAccent),
+                  style: TextStyle(color: color),
                 ),
               ],
             ),

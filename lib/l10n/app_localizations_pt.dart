@@ -83,7 +83,14 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get readingCheckboxGuideMessage =>
-      'Toque na caixa ao lado de um versículo cada vez que o ler. O número mostra quantas vezes você leu esse versículo hoje.';
+      'Toque em uma caixa cada vez que ler um versículo.';
+
+  @override
+  String get readingSessionGuideTitle => 'Sessões de leitura';
+
+  @override
+  String get readingSessionGuideMessage =>
+      'As sessões de leitura salvam seu progresso e ajudam você a alcançar suas metas diárias.';
 
   @override
   String get downloadComplete => 'Download concluído.';
@@ -269,6 +276,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get progress => 'Progresso';
 
   @override
+  String get books => 'livros';
+
+  @override
   String get goals => 'Metas';
 
   @override
@@ -278,13 +288,13 @@ class AppLocalizationsPt extends AppLocalizations {
   String get byBook => 'Por livro';
 
   @override
-  String get christianOrder => 'Cristão';
+  String get christianOrder => 'Ordem cristã';
 
   @override
-  String get jewishOrder => 'Judaico';
+  String get jewishOrder => 'Ordem judaica';
 
   @override
-  String get easyToHardOrder => 'Fácil ao difícil';
+  String get easyToHardOrder => 'Do fácil ao mais difícil';
 
   @override
   String get week => 'Semana';

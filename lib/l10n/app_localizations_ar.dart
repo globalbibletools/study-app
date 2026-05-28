@@ -83,7 +83,14 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get readingCheckboxGuideMessage =>
-      'اضغط على مربع الاختيار بجانب الآية في كل مرة تقرأها. يوضح الرقم عدد المرات التي قرأت فيها تلك الآية اليوم.';
+      'اضغط على مربع في كل مرة تقرأ فيها آية.';
+
+  @override
+  String get readingSessionGuideTitle => 'جلسات القراءة';
+
+  @override
+  String get readingSessionGuideMessage =>
+      'تحفظ جلسات القراءة تقدمك وتساعدك على تحقيق أهدافك اليومية.';
 
   @override
   String get downloadComplete => 'اكتمل التنزيل.';
@@ -268,6 +275,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get progress => 'التقدم';
 
   @override
+  String get books => 'الأسفار';
+
+  @override
   String get goals => 'الأهداف';
 
   @override
@@ -277,13 +287,13 @@ class AppLocalizationsAr extends AppLocalizations {
   String get byBook => 'حسب السفر';
 
   @override
-  String get christianOrder => 'مسيحي';
+  String get christianOrder => 'الترتيب المسيحي';
 
   @override
-  String get jewishOrder => 'يهودي';
+  String get jewishOrder => 'الترتيب اليهودي';
 
   @override
-  String get easyToHardOrder => 'من السهل إلى الصعب';
+  String get easyToHardOrder => 'من الأسهل إلى الأصعب';
 
   @override
   String get week => 'أسبوع';
