@@ -324,7 +324,7 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
             books = BibleNavigation.jewishBooks;
             break;
           case BookProgressTab.easyToHard:
-            books = BibleNavigation.easyToHardest;
+            books = BibleNavigation.easyToHard;
             break;
         }
         return _booksFromList(books);
