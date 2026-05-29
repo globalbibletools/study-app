@@ -294,7 +294,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get jewishOrder => 'Ordem judaica';
 
   @override
-  String get easyToHardOrder => 'Do fácil ao mais difícil';
+  String get easyToHardOrder => 'Fácil a difícil';
 
   @override
   String get week => 'Semana';
@@ -323,7 +323,7 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String get startSession => 'Iniciar sessão';
+  String get startSession => 'Iniciar';
 
   @override
   String get start => 'Iniciar';

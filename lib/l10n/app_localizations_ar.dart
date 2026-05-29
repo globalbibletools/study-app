@@ -293,7 +293,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get jewishOrder => 'الترتيب اليهودي';
 
   @override
-  String get easyToHardOrder => 'من الأسهل إلى الأصعب';
+  String get easyToHardOrder => 'من السهل إلى الصعب';
 
   @override
   String get week => 'أسبوع';
@@ -322,7 +322,7 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String get startSession => 'ابدأ الجلسة';
+  String get startSession => 'ابدأ';
 
   @override
   String get start => 'ابدأ';

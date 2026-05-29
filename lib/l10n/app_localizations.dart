@@ -593,7 +593,7 @@ abstract class AppLocalizations {
   /// Tab label for ordering books from easiest to hardest
   ///
   /// In en, this message translates to:
-  /// **'Easy to Hardest'**
+  /// **'Easy to Hard'**
   String get easyToHardOrder;
 
   /// Week tab
@@ -617,7 +617,7 @@ abstract class AppLocalizations {
   /// Start Session button
   ///
   /// In en, this message translates to:
-  /// **'Start Session'**
+  /// **'Start'**
   String get startSession;
 
   /// Start
