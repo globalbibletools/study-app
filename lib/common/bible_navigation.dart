@@ -247,7 +247,7 @@ class BibleNavigation {
     14, // 2 Chronicles
   ];
 
-  static const List<int> easyToHardest = [
+  static const List<int> easyToHard = [
     32, // Jonah
     8, // Ruth
     1, // Genesis
@@ -273,14 +273,11 @@ class BibleNavigation {
     21, // Ecclesiastes
     23, // Isaiah
     24, // Jeremiah
-
     26, // Ezekiel
-
     28, // Hosea
     29, // Joel
     30, // Amos
     31, // Obadiah
-
     33, // Micah
     34, // Nahum
     35, // Habakkuk
@@ -290,6 +287,34 @@ class BibleNavigation {
     39, // Malachi
     22, // Song of Solomon
     18, // Job
+
+    62, // 1 John
+    63, // 2 John
+    64, // 3 John
+    43, // John
+    66, // Revelation
+    41, // Mark
+    40, // Matthew
+    52, // 1 Thessalonians
+    53, // 2 Thessalonians
+    48, // Galatians
+    50, // Philippians
+    57, // Philemon
+    46, // 1 Corinthians
+    42, // Luke
+    51, // Colossians
+    49, // Ephesians
+    45, // Romans
+    59, // James
+    60, // 1 Peter
+    54, // 1 Timothy
+    55, // 2 Timothy
+    56, // Titus
+    65, // Jude
+    44, // Acts
+    58, // Hebrews
+    47, // 2 Corinthians
+    61, // 2 Peter
   ];
 
   static int getVerseCount(int bookId, int chapter) {
