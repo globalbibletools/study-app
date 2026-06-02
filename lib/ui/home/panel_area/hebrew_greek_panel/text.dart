@@ -1138,6 +1138,7 @@ class RenderHebrewGreekText extends RenderBox {
         checkboxSize,
         verseNumberSize,
         spaceWidth,
+        effectiveSpaceWidth,
       );
     } else {
       mainAxisOffset = _layoutRTL(
@@ -1171,6 +1172,7 @@ class RenderHebrewGreekText extends RenderBox {
     TextPainter? verseNumberPainter,
     Size? checkboxSize,
     Size verseNumberSize,
+    double spaceWidth,
     double effectiveSpaceWidth,
   ) {
     // 1. Position verse reading checkbox if it exists
@@ -1182,7 +1184,7 @@ class RenderHebrewGreekText extends RenderBox {
         checkboxSize.height,
       );
       verse.readingCheckboxRect = checkboxRect;
-      mainAxisOffset += checkboxSize.width;
+      mainAxisOffset += checkboxSize.width + spaceWidth;
     }
     // 2. Position verse number if it exists
     if (verseNumberPainter != null) {
@@ -1193,7 +1195,7 @@ class RenderHebrewGreekText extends RenderBox {
         verseNumberSize.height,
       );
       verse.verseNumberRect = verseRect;
-      mainAxisOffset += verseNumberSize.width;
+      mainAxisOffset += verseNumberSize.width + spaceWidth;
     }
     // 3. Position the word
     final wordRect = Rect.fromLTWH(
@@ -1218,8 +1220,8 @@ class RenderHebrewGreekText extends RenderBox {
     TextPainter? verseNumberPainter,
     Size? checkboxSize,
     Size verseNumberSize,
-    double effectiveSpaceWidth,
     double spaceWidth,
+    double effectiveSpaceWidth,
   ) {
     // RTL
     // 1. Position verse reading checkbox if it exists

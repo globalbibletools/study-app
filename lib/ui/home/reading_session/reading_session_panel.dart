@@ -291,6 +291,7 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
             _bookCard(
               latestOldTestament,
               l10n.oldTestament,
+              null,
               oldTestamentBooksRead / totalOldTestament,
               "$oldTestamentBooksRead/$totalOldTestament",
               " ${l10n.books}",
@@ -300,6 +301,7 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
             _bookCard(
               latestNewTestament,
               l10n.newTestament,
+              null,
               newTestamentBooksRead / totalNewTestament,
               "$newTestamentBooksRead/$totalNewTestament",
               " ${l10n.books}",
@@ -356,6 +358,7 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
 
     final action = book.id == null ? l10n.start : l10n.resume;
     final bookName = bookNameFromId(context, book.bookId);
+    final orgBookName = orgBookNameFromId(book.bookId);
     final totalChapters = BibleNavigation.getChapterCount(book.bookId);
 
     int versesCount = 0;
@@ -366,6 +369,7 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
     return _bookCard(
       book,
       bookName,
+      orgBookName,
       book.versesRead / versesCount,
       "${book.versesRead}/$versesCount",
       " ${l10n.verses}",
@@ -507,6 +511,7 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
   Widget _bookCard(
     RsBookProgress bookProgress,
     String title,
+    String? midTitle,
     double progress,
     String progressLabel,
     String progressSuffix,
@@ -549,6 +554,18 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
                     Expanded(
                       child: Text(title, style: const TextStyle(fontSize: 18)),
                     ),
+
+                    if (midTitle != null)
+                      Expanded(
+                        child: Text(
+                          midTitle,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontFamily: 'sbl',
+                          ),
+                        ),
+                      ),
+
                     Text(
                       "${(progress * 100).toInt()}%",
                       style: TextStyle(
