@@ -140,3 +140,143 @@ String bookNameFromId(BuildContext context, int bookId) {
       return '';
   }
 }
+
+String orgBookNameFromId(int bookId) {
+  switch (bookId) {
+    case 1:
+      return "בְּרֵאשִׁית";
+    case 2:
+      return "שְׁמוֹת";
+    case 3:
+      return "וַיִּקְרָא";
+    case 4:
+      return "בְּמִדְבַּר";
+    case 5:
+      return "דְּבָרִים";
+    case 6:
+      return "יְהוֹשֻׁעַ";
+    case 7:
+      return "שֹׁפְטִים";
+    case 8:
+      return "רוּת";
+    case 9:
+      return "שְׁמוּאֵל א";
+    case 10:
+      return "שְׁמוּאֵל ב";
+    case 11:
+      return "מְלָכִים א";
+    case 12:
+      return "מְלָכִים ב";
+    case 13:
+      return "דִּבְרֵי הַיָּמִים א";
+    case 14:
+      return "דִּבְרֵי הַיָּמִים ב";
+    case 15:
+      return "עֶזְרָא";
+    case 16:
+      return "נְחֶמְיָה";
+    case 17:
+      return "אֶסְתֵּר";
+    case 18:
+      return "אִיּוֹב";
+    case 19:
+      return "תְּהִלִּים";
+    case 20:
+      return "מִשְׁלֵי";
+    case 21:
+      return "קֹהֶלֶת";
+    case 22:
+      return "שִׁיר הַשִּׁירִים";
+    case 23:
+      return "יְשַׁעְיָהוּ";
+    case 24:
+      return "יִרְמְיָהוּ";
+    case 25:
+      return "אֵיכָה";
+    case 26:
+      return "יְחֶזְקֵאל";
+    case 27:
+      return "דָּנִיֵּאל";
+    case 28:
+      return "הוֹשֵׁעַ";
+    case 29:
+      return "יוֹאֵל";
+    case 30:
+      return "עָמוֹס";
+    case 31:
+      return "עֹבַדְיָה";
+    case 32:
+      return "יוֹנָה";
+    case 33:
+      return "מִיכָה";
+    case 34:
+      return "נַחוּם";
+    case 35:
+      return "חֲבַקּוּק";
+    case 36:
+      return "צְפַנְיָה";
+    case 37:
+      return "חַגַּי";
+    case 38:
+      return "זְכַרְיָה";
+    case 39:
+      return "מַלְאָכִי";
+    case 40:
+      return "Κατὰ Μαθθαῖον";
+    case 41:
+      return "Κατὰ Μᾶρκον";
+    case 42:
+      return "Κατὰ Λουκᾶν";
+    case 43:
+      return "Κατὰ Ἰωάννην";
+    case 44:
+      return "Πράξεις Ἀποστόλων";
+    case 45:
+      return "Πρὸς Ῥωμαίους";
+    case 46:
+      return "Πρὸς Κορινθίους Α΄";
+    case 47:
+      return "Πρὸς Κορινθίους Β΄";
+    case 48:
+      return "Πρὸς Γαλάτας";
+    case 49:
+      return "Πρὸς Ἐφεσίους";
+    case 50:
+      return "Πρὸς Φιλιππησίους";
+    case 51:
+      return "Πρὸς Κολοσσαεῖς";
+    case 52:
+      return "Πρὸς Θεσσαλονικεῖς Α΄";
+    case 53:
+      return "Πρὸς Θεσσαλονικεῖς Β΄";
+    case 54:
+      return "Πρὸς Τιμόθεον Α΄";
+    case 55:
+      return "Πρὸς Τιμόθεον Β΄";
+    case 56:
+      return "Πρὸς Τίτον";
+    case 57:
+      return "Πρὸς Φιλήμονα";
+    case 58:
+      return "Πρὸς Ἑβραίους";
+    case 59:
+      return "Ἰακώβου";
+    case 60:
+      return "Πέτρου Α΄";
+    case 61:
+      return "Πέτρου Β΄";
+    case 62:
+      return "Ἰωάννου Α΄";
+    case 63:
+      return "Ἰωάννου Β΄";
+    case 64:
+      return "Ἰωάννου Γ΄";
+    case 65:
+      return "Ἰούδα";
+    case 66:
+      return "Ἀποκάλυψις Ἰωάννου";
+
+    default:
+      return '';
+  }
+}
