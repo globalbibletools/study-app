@@ -1,9 +1,12 @@
-## 1.1.0 
+## 1.1.5 - June 4, 2026
 
-- Enable line-by-line verse layout in addition to paragraph layout.
-- Auto-play next chapter when streaming (#62).
-- Scroll gloss popups into view when under the appbar (#43).
+- Fix for file picker not working on iOS.
+
+## 1.1.4 - June 2, 2026
+
 - Reading mode (@abouzaidan-tony) (#76).
+- Enable line-by-line verse layout in addition to paragraph layout (@abouzaidan-tony).
+- Auto-play next chapter when streaming (#62).
 
 ## 1.0.1 - April 3, 2026
 

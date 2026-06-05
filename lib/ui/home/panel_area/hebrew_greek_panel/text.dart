@@ -231,8 +231,6 @@ class HebrewGreekText extends LeafRenderObjectWidget {
       popupTextStyle,
     );
 
-    log("Creating render object");
-
     return RenderHebrewGreekText(
       words: words,
       controller: controller,
@@ -285,8 +283,6 @@ class HebrewGreekText extends LeafRenderObjectWidget {
       fontSize: 20,
       color: Color(0xFFFFFFFF),
     ).merge(popupTextStyle);
-
-    log("update render object");
 
     renderObject
       ..words = words
@@ -787,7 +783,6 @@ class RenderHebrewGreekText extends RenderBox {
   }
 
   void _initializeVerseRenderers() {
-    log("Creating verse painters");
     //for each verse of the chapter
     for (final verse in verses) {
       final verseNumberPainter = TextPainter(
