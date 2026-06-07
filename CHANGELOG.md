@@ -1,6 +1,10 @@
+## 1.1.6 - June 7, 2026
+
+- Fix gloss popup not showing for words on last line of a verse (@abouzaidan-tony) (#88).
+
 ## 1.1.5 - June 4, 2026
 
-- Fix for file picker not working on iOS.
+- Fix for file picker not working on iOS (@abouzaidan-tony).
 
 ## 1.1.4 - June 2, 2026
 
