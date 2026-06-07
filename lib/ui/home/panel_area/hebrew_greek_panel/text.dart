@@ -31,10 +31,18 @@ class _LineMetrics {
   // The verse to show if this line is visible
   final int labelVerse;
 
+  //the minimum verse number on a given line
+  final int lowestVerseOnLine;
   //the maximum verse number on a given line
   final int highestVerseOnLine;
 
-  _LineMetrics(this.top, this.bottom, this.labelVerse, this.highestVerseOnLine);
+  _LineMetrics(
+    this.top,
+    this.bottom,
+    this.labelVerse,
+    this.lowestVerseOnLine,
+    this.highestVerseOnLine,
+  );
 }
 
 /// A way for the outside world (such as scroll controllers) to obtain the
@@ -954,7 +962,15 @@ class RenderHebrewGreekText extends RenderBox {
 
     // Priority: Start Verse > Lowest Visible
     final label = bestStartVerse ?? lowestVerseOnLine ?? 1;
-    _lineMetrics.add(_LineMetrics(top, bottom, label, highestVerseOnLine ?? 1));
+    _lineMetrics.add(
+      _LineMetrics(
+        top,
+        bottom,
+        label,
+        lowestVerseOnLine ?? 1,
+        highestVerseOnLine ?? 1,
+      ),
+    );
     wordIds.clear();
   }
 
@@ -1355,7 +1371,7 @@ class RenderHebrewGreekText extends RenderBox {
     }
 
     for (
-      int i = verse.labelVerse - 1;
+      int i = verse.lowestVerseOnLine - 1;
       i < verse.highestVerseOnLine && i < _verseRenderer.length;
       i++
     ) {
