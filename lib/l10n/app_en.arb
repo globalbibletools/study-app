@@ -526,6 +526,38 @@
   "@goalReachedMessage": {
     "description": "Message shown when the user reaches their daily goal"
   },
+  "previousMonth": "Previous month",
+  "@previousMonth": {
+    "description": "Navigate to previous month in goals view"
+  },
+  "nextMonth": "Next month",
+  "@nextMonth": {
+    "description": "Navigate to next month in goals view"
+  },
+  "previousWeek": "Previous week",
+  "@previousWeek": {
+    "description": "Navigate to previous week in goals view"
+  },
+  "nextWeek": "Next week",
+  "@nextWeek": {
+    "description": "Navigate to next week in goals view"
+  },
+  "noReadingLogged": "No reading logged for this day.",
+  "@noReadingLogged": {
+    "description": "Message shown when a day has no reading sessions"
+  },
+  "addReading": "Add reading",
+  "@addReading": {
+    "description": "Button to manually log reading for a day"
+  },
+  "logReadingTitle": "Log reading",
+  "@logReadingTitle": {
+    "description": "Title for manual reading log dialog"
+  },
+  "logReadingMessage": "Add reading you completed on this day. This updates your daily goal but not verse-by-verse progress.",
+  "@logReadingMessage": {
+    "description": "Explanation for manual reading log dialog"
+  },
   "continueReadingPrompt": "Continue your reading session?",
   "@continueReadingPrompt": {
     "description": "Prompt asking if the user wants to continue reading"

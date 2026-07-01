@@ -423,6 +423,31 @@ class AppLocalizationsEs extends AppLocalizations {
   String get goalReachedMessage => 'Has alcanzado tu objetivo 🎉';
 
   @override
+  String get previousMonth => 'Mes anterior';
+
+  @override
+  String get nextMonth => 'Mes siguiente';
+
+  @override
+  String get previousWeek => 'Semana anterior';
+
+  @override
+  String get nextWeek => 'Semana siguiente';
+
+  @override
+  String get noReadingLogged => 'No hay lectura registrada para este día.';
+
+  @override
+  String get addReading => 'Añadir lectura';
+
+  @override
+  String get logReadingTitle => 'Registrar lectura';
+
+  @override
+  String get logReadingMessage =>
+      'Añade la lectura que completaste este día. Esto actualiza tu objetivo diario, pero no el progreso versículo por versículo.';
+
+  @override
   String get continueReadingPrompt => '¿Continuar tu sesión de lectura?';
 
   @override

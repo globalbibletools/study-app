@@ -421,6 +421,31 @@ class AppLocalizationsPt extends AppLocalizations {
   String get goalReachedMessage => 'Você atingiu sua meta 🎉';
 
   @override
+  String get previousMonth => 'Mês anterior';
+
+  @override
+  String get nextMonth => 'Próximo mês';
+
+  @override
+  String get previousWeek => 'Semana anterior';
+
+  @override
+  String get nextWeek => 'Próxima semana';
+
+  @override
+  String get noReadingLogged => 'Nenhuma leitura registrada para este dia.';
+
+  @override
+  String get addReading => 'Adicionar leitura';
+
+  @override
+  String get logReadingTitle => 'Registrar leitura';
+
+  @override
+  String get logReadingMessage =>
+      'Adicione a leitura que você concluiu neste dia. Isso atualiza sua meta diária, mas não o progresso versículo por versículo.';
+
+  @override
   String get continueReadingPrompt => 'Continuar sua sessão de leitura?';
 
   @override
