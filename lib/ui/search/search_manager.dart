@@ -2,11 +2,11 @@ import 'package:database_builder/database_builder.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
 import 'package:flutter/services.dart';
-import 'package:studyapp/common/reference.dart';
-import 'package:studyapp/common/word.dart';
-import 'package:studyapp/services/hebrew_greek/database.dart';
-import 'package:studyapp/services/service_locator.dart';
-import 'package:studyapp/services/settings/user_settings.dart';
+import 'package:gbt/common/reference.dart';
+import 'package:gbt/common/word.dart';
+import 'package:gbt/services/hebrew_greek/database.dart';
+import 'package:gbt/services/service_locator.dart';
+import 'package:gbt/services/settings/user_settings.dart';
 
 class SearchPageManager {
   final candidatesNotifier = ValueNotifier<List<String>>([]);

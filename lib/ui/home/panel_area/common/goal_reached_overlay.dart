@@ -1,9 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:studyapp/l10n/app_localizations.dart';
-import 'package:studyapp/services/reading_session/rs_manager.dart';
-import 'package:studyapp/ui/home/panel_area/common/confetti_view.dart';
+import 'package:gbt/l10n/app_localizations.dart';
+import 'package:gbt/services/reading_session/rs_manager.dart';
+import 'package:gbt/ui/home/panel_area/common/confetti_view.dart';
 
 class GoalReachedOverlay extends StatefulWidget {
   const GoalReachedOverlay({super.key, required this.manager});

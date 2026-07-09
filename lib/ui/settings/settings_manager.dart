@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:studyapp/app_state.dart';
-import 'package:studyapp/l10n/app_languages.dart';
-import 'package:studyapp/services/service_locator.dart';
-import 'package:studyapp/services/settings/user_settings.dart';
+import 'package:gbt/app_state.dart';
+import 'package:gbt/l10n/app_languages.dart';
+import 'package:gbt/services/service_locator.dart';
+import 'package:gbt/services/settings/user_settings.dart';
 
 class SettingsManager extends ChangeNotifier {
   final _settings = getIt<UserSettings>();

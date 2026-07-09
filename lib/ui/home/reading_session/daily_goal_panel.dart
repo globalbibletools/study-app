@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:studyapp/l10n/app_localizations.dart';
-import 'package:studyapp/services/reading_session/rs_manager.dart';
-import 'package:studyapp/ui/home/keypad/numeric_keypad.dart';
+import 'package:gbt/l10n/app_localizations.dart';
+import 'package:gbt/services/reading_session/rs_manager.dart';
+import 'package:gbt/ui/home/keypad/numeric_keypad.dart';
 
 class SetDailyGoalView extends StatefulWidget {
   final GoalType? initialGoalType;

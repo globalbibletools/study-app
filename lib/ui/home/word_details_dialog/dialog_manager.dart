@@ -2,11 +2,11 @@ import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
-import 'package:studyapp/services/gloss/gloss_service.dart';
-import 'package:studyapp/services/hebrew_greek/database.dart';
-import 'package:studyapp/services/lexicon/database.dart';
-import 'package:studyapp/services/service_locator.dart';
-import 'package:studyapp/services/settings/user_settings.dart';
+import 'package:gbt/services/gloss/gloss_service.dart';
+import 'package:gbt/services/hebrew_greek/database.dart';
+import 'package:gbt/services/lexicon/database.dart';
+import 'package:gbt/services/service_locator.dart';
+import 'package:gbt/services/settings/user_settings.dart';
 
 class WordDetailsDialogManager extends ChangeNotifier {
   final _hebrewGreekDb = getIt<HebrewGreekDatabase>();

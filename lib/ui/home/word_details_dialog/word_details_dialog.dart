@@ -2,9 +2,9 @@ import 'dart:async';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:studyapp/ui/home/common/zoom_wrapper.dart';
-import 'package:studyapp/ui/home/word_details_dialog/similar_verses/similar_verses_page.dart';
-import 'package:studyapp/ui/home/word_details_dialog/dialog_manager.dart';
+import 'package:gbt/ui/home/common/zoom_wrapper.dart';
+import 'package:gbt/ui/home/word_details_dialog/similar_verses/similar_verses_page.dart';
+import 'package:gbt/ui/home/word_details_dialog/dialog_manager.dart';
 
 class WordDetailsDialog extends StatefulWidget {
   const WordDetailsDialog({

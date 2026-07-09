@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:studyapp/l10n/app_localizations.dart';
-import 'package:studyapp/services/download/cancel_token.dart';
-import 'package:studyapp/services/resources/resource_service.dart';
-import 'package:studyapp/services/service_locator.dart';
-import 'package:studyapp/ui/common/download_progress_dialog.dart';
+import 'package:gbt/l10n/app_localizations.dart';
+import 'package:gbt/services/download/cancel_token.dart';
+import 'package:gbt/services/resources/resource_service.dart';
+import 'package:gbt/services/service_locator.dart';
+import 'package:gbt/ui/common/download_progress_dialog.dart';
 
 class ResourceUIHelper {
   /// Unified method to prompt for download.

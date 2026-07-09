@@ -3,10 +3,10 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:studyapp/l10n/app_localizations.dart';
-import 'package:studyapp/services/reading_session/rs_database.dart';
-import 'package:studyapp/services/reading_session/rs_manager.dart';
-import 'package:studyapp/services/service_locator.dart';
+import 'package:gbt/l10n/app_localizations.dart';
+import 'package:gbt/services/reading_session/rs_database.dart';
+import 'package:gbt/services/reading_session/rs_manager.dart';
+import 'package:gbt/services/service_locator.dart';
 
 class BackupRestorePage extends StatefulWidget {
   const BackupRestorePage({super.key});

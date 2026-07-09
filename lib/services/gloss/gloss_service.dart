@@ -2,14 +2,14 @@ import 'dart:developer';
 import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
-import 'package:studyapp/l10n/app_localizations.dart';
-import 'package:studyapp/services/resources/remote_asset_service.dart';
-import 'package:studyapp/services/download/cancel_token.dart';
-import 'package:studyapp/services/download/download.dart';
-import 'package:studyapp/services/gloss/english_database.dart';
-import 'package:studyapp/services/gloss/gloss_database.dart';
-import 'package:studyapp/services/service_locator.dart';
-import 'package:studyapp/services/settings/user_settings.dart';
+import 'package:gbt/l10n/app_localizations.dart';
+import 'package:gbt/services/resources/remote_asset_service.dart';
+import 'package:gbt/services/download/cancel_token.dart';
+import 'package:gbt/services/download/download.dart';
+import 'package:gbt/services/gloss/english_database.dart';
+import 'package:gbt/services/gloss/gloss_database.dart';
+import 'package:gbt/services/service_locator.dart';
+import 'package:gbt/services/settings/user_settings.dart';
 
 class GlossService {
   final _settings = getIt<UserSettings>();

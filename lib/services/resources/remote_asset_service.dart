@@ -1,5 +1,5 @@
-import 'package:studyapp/l10n/app_languages.dart';
-import 'package:studyapp/services/files/file_service.dart'; // Import your FileType enum
+import 'package:gbt/l10n/app_languages.dart';
+import 'package:gbt/services/files/file_service.dart'; // Import your FileType enum
 
 class RemoteAsset {
   final String remoteUrl;

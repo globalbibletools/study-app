@@ -1,5 +1,5 @@
 import 'package:flutter/widgets.dart';
-import 'package:studyapp/l10n/app_localizations.dart';
+import 'package:gbt/l10n/app_localizations.dart';
 
 String bookNameFromId(BuildContext context, int bookId) {
   switch (bookId) {

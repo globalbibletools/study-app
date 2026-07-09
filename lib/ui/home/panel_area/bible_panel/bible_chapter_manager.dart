@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:scripture/scripture.dart'; // For UsfmLine
-import 'package:studyapp/services/bible/bible_service.dart';
-import 'package:studyapp/services/service_locator.dart';
+import 'package:gbt/services/bible/bible_service.dart';
+import 'package:gbt/services/service_locator.dart';
 
 class BibleChapterManager {
   final _bibleService = getIt<BibleService>();

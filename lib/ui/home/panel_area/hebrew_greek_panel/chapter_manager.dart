@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:studyapp/app_state.dart';
-import 'package:studyapp/common/word.dart';
-import 'package:studyapp/services/bible/bible_service.dart';
-import 'package:studyapp/services/download/cancel_token.dart';
-import 'package:studyapp/services/gloss/gloss_service.dart';
-import 'package:studyapp/services/hebrew_greek/database.dart';
-import 'package:studyapp/services/reading_session/rs_manager.dart';
-import 'package:studyapp/services/service_locator.dart';
-import 'package:studyapp/services/settings/user_settings.dart';
+import 'package:gbt/app_state.dart';
+import 'package:gbt/common/word.dart';
+import 'package:gbt/services/bible/bible_service.dart';
+import 'package:gbt/services/download/cancel_token.dart';
+import 'package:gbt/services/gloss/gloss_service.dart';
+import 'package:gbt/services/hebrew_greek/database.dart';
+import 'package:gbt/services/reading_session/rs_manager.dart';
+import 'package:gbt/services/service_locator.dart';
+import 'package:gbt/services/settings/user_settings.dart';
 
 class HebrewGreekChapterManager {
   final _hebrewGreekDb = getIt<HebrewGreekDatabase>();

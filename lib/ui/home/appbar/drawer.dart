@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:studyapp/ui/about/about.dart';
-import 'package:studyapp/l10n/app_localizations.dart';
-import 'package:studyapp/ui/backup_restore/backup_restore.dart';
-import 'package:studyapp/ui/download/download_manager_page.dart';
-import 'package:studyapp/ui/search/search.dart';
-import 'package:studyapp/ui/settings/settings_page.dart';
+import 'package:gbt/ui/about/about.dart';
+import 'package:gbt/l10n/app_localizations.dart';
+import 'package:gbt/ui/backup_restore/backup_restore.dart';
+import 'package:gbt/ui/download/download_manager_page.dart';
+import 'package:gbt/ui/search/search.dart';
+import 'package:gbt/ui/settings/settings_page.dart';
 
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key, required this.onSettingsClosed});

@@ -1,16 +1,16 @@
 import 'dart:developer';
 import 'package:flutter/material.dart';
-import 'package:studyapp/common/bible_navigation.dart';
-import 'package:studyapp/l10n/app_localizations.dart';
-import 'package:studyapp/l10n/book_names.dart';
-import 'package:studyapp/services/reading_session/rs_manager.dart';
-import 'package:studyapp/services/reading_session/rs_model.dart';
-import 'package:studyapp/ui/home/common/cutout_view.dart';
-import 'package:studyapp/ui/home/common/glowing_button.dart';
-import 'package:studyapp/ui/home/home_manager.dart';
-import 'package:studyapp/ui/home/reading_session/daily_goal_panel.dart';
-import 'package:studyapp/ui/home/reading_session/detailed_progress_panel.dart';
-import 'package:studyapp/ui/home/reading_session/reading_session_panel_manager.dart';
+import 'package:gbt/common/bible_navigation.dart';
+import 'package:gbt/l10n/app_localizations.dart';
+import 'package:gbt/l10n/book_names.dart';
+import 'package:gbt/services/reading_session/rs_manager.dart';
+import 'package:gbt/services/reading_session/rs_model.dart';
+import 'package:gbt/ui/home/common/cutout_view.dart';
+import 'package:gbt/ui/home/common/glowing_button.dart';
+import 'package:gbt/ui/home/home_manager.dart';
+import 'package:gbt/ui/home/reading_session/daily_goal_panel.dart';
+import 'package:gbt/ui/home/reading_session/detailed_progress_panel.dart';
+import 'package:gbt/ui/home/reading_session/reading_session_panel_manager.dart';
 
 class ReadingSessionPanel extends StatefulWidget {
   final HomeManager homeManager;

@@ -1,9 +1,9 @@
 import 'dart:developer';
 import 'package:database_builder/database_builder.dart'; // Assuming this is where GlossSchema lives
 import 'package:sqflite/sqflite.dart';
-import 'package:studyapp/l10n/app_languages.dart';
-import 'package:studyapp/services/files/file_service.dart';
-import 'package:studyapp/services/service_locator.dart';
+import 'package:gbt/l10n/app_languages.dart';
+import 'package:gbt/services/files/file_service.dart';
+import 'package:gbt/services/service_locator.dart';
 
 class GlossDatabase {
   final _fileService = getIt<FileService>();

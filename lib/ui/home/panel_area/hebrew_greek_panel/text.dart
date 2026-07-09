@@ -5,8 +5,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:studyapp/common/word.dart';
-import 'package:studyapp/services/settings/user_settings.dart';
+import 'package:gbt/common/word.dart';
+import 'package:gbt/services/settings/user_settings.dart';
 
 /// A function that is called when a word is long-pressed.
 ///

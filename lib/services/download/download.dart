@@ -3,10 +3,10 @@ import 'dart:io';
 
 import 'package:archive/archive_io.dart';
 import 'package:flutter/foundation.dart';
-import 'package:studyapp/services/resources/remote_asset_service.dart';
-import 'package:studyapp/services/download/cancel_token.dart'; // Import this
-import 'package:studyapp/services/files/file_service.dart';
-import 'package:studyapp/services/service_locator.dart';
+import 'package:gbt/services/resources/remote_asset_service.dart';
+import 'package:gbt/services/download/cancel_token.dart'; // Import this
+import 'package:gbt/services/files/file_service.dart';
+import 'package:gbt/services/service_locator.dart';
 
 class DownloadService {
   final HttpClient _httpClient = HttpClient();

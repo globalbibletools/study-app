@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:studyapp/l10n/book_names.dart';
-import 'package:studyapp/ui/home/panel_area/bible_panel/bible_panel.dart';
-import 'package:studyapp/ui/home/panel_area/common/goal_reached_overlay.dart';
-import 'package:studyapp/ui/home/panel_area/common/reading_session_overlay.dart';
-import 'package:studyapp/ui/home/panel_area/hebrew_greek_panel/chapter.dart';
-import 'package:studyapp/ui/home/panel_area/hebrew_greek_panel/panel.dart';
-import 'package:studyapp/ui/home/home_manager.dart';
+import 'package:gbt/l10n/book_names.dart';
+import 'package:gbt/ui/home/panel_area/bible_panel/bible_panel.dart';
+import 'package:gbt/ui/home/panel_area/common/goal_reached_overlay.dart';
+import 'package:gbt/ui/home/panel_area/common/reading_session_overlay.dart';
+import 'package:gbt/ui/home/panel_area/hebrew_greek_panel/chapter.dart';
+import 'package:gbt/ui/home/panel_area/hebrew_greek_panel/panel.dart';
+import 'package:gbt/ui/home/home_manager.dart';
 
 class BiblePanelArea extends StatelessWidget {
   const BiblePanelArea({super.key, required this.manager});

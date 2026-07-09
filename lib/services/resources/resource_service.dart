@@ -1,9 +1,9 @@
 import 'dart:ui';
 import 'package:flutter/foundation.dart';
-import 'package:studyapp/services/bible/bible_service.dart';
-import 'package:studyapp/services/gloss/gloss_service.dart';
-import 'package:studyapp/services/service_locator.dart';
-import 'package:studyapp/services/download/cancel_token.dart';
+import 'package:gbt/services/bible/bible_service.dart';
+import 'package:gbt/services/gloss/gloss_service.dart';
+import 'package:gbt/services/service_locator.dart';
+import 'package:gbt/services/download/cancel_token.dart';
 
 class ResourceService {
   final _bibleService = getIt<BibleService>();

@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:just_audio/just_audio.dart';
 import 'package:just_audio_background/just_audio_background.dart';
-import 'package:studyapp/services/audio/position_data.dart';
+import 'package:gbt/services/audio/position_data.dart';
 
 class AudioPlayerHandler {
   final player = AudioPlayer();

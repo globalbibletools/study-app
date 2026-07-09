@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:studyapp/common/reference.dart';
-import 'package:studyapp/l10n/book_names.dart';
-import 'package:studyapp/ui/home/audio/audio_player.dart';
-import 'package:studyapp/ui/home/home_manager.dart';
+import 'package:gbt/common/reference.dart';
+import 'package:gbt/l10n/book_names.dart';
+import 'package:gbt/ui/home/audio/audio_player.dart';
+import 'package:gbt/ui/home/home_manager.dart';
 
 class AudioLayer extends StatelessWidget {
   const AudioLayer({super.key, required this.manager});

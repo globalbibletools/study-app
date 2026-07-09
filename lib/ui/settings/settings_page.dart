@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:studyapp/l10n/app_languages.dart';
-import 'package:studyapp/l10n/app_localizations.dart';
-import 'package:studyapp/ui/common/resource_ui_helper.dart';
-import 'package:studyapp/services/settings/user_settings.dart';
+import 'package:gbt/l10n/app_languages.dart';
+import 'package:gbt/l10n/app_localizations.dart';
+import 'package:gbt/ui/common/resource_ui_helper.dart';
+import 'package:gbt/services/settings/user_settings.dart';
 
 import 'settings_manager.dart';
 
@@ -258,7 +258,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Future<VerseLayout?> _chooseVerseLayout() async {
     final l10n = AppLocalizations.of(context)!;
-    
+
     return await showDialog(
       context: context,
       builder: (context) => AlertDialog(
