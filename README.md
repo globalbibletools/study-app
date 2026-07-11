@@ -31,3 +31,8 @@ However, the app also makes use of other resources that are not in the public do
 
 - SBL Hebrew/Greek font. Non-commercial use allowed. See the license in the [assets/fonts](https://github.com/globalbibletools/study-app/tree/main/assets/fonts) folder.
 - [UBS Dictionary of Biblical Hebrew/Greek](https://github.com/ubsicap/ubs-open-license/tree/main/dictionaries): [Creative Commons Attribution-ShareAlike 4.0 International License](https://creativecommons.org/licenses/by-sa/4.0/).
+
+## Local development
+
+Run `docker compose up` to start ministack to be able to test asset downloads.
+Assets stored in `ministack/assets` are available for the app to fetch.
