@@ -39,7 +39,7 @@ class RemoteAssetService {
       kReleaseMode ? _prodBaseHost : _devBaseHost;
 
   /// The resolved asset base URL (no trailing slash). Other services (e.g.
-  /// [ManifestSource]) use this to build their own URLs.
+  /// [ResourceManager]) use this to build their own URLs.
   String get baseHost => _baseHost;
 
   // --- BIBLE ASSETS ---

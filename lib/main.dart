@@ -7,6 +7,7 @@ import 'package:gbt/services/gloss/gloss_service.dart';
 import 'package:gbt/services/hebrew_greek/database.dart';
 import 'package:gbt/services/lexicon/database.dart';
 import 'package:gbt/services/reading_session/rs_database.dart';
+import 'package:gbt/services/resources/resource_manager.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/services/settings/user_settings.dart';
 import 'package:gbt/ui/home/home.dart';
@@ -25,6 +26,7 @@ Future<void> main() async {
   await getIt<BibleService>().init();
   await getIt<AudioDatabase>().init();
   await getIt<ReadingSessionDatabase>().init();
+  await getIt<ResourceManager>().init();
   await JustAudioBackground.init(
     androidNotificationChannelId: 'com.ryanheise.bg_demo.channel.audio',
     androidNotificationChannelName: 'Audio playback',

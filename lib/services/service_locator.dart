@@ -4,6 +4,7 @@ import 'package:gbt/services/app_guide/app_guide_manager.dart';
 import 'package:gbt/services/reading_session/rs_database.dart';
 import 'package:gbt/services/reading_session/rs_manager.dart';
 import 'package:gbt/services/resources/remote_asset_service.dart';
+import 'package:gbt/services/resources/resource_manager.dart';
 import 'package:gbt/services/audio/audio_database.dart';
 import 'package:gbt/services/bible/bible_service.dart';
 import 'package:gbt/services/download/download.dart';
@@ -29,6 +30,7 @@ void setupServiceLocator() {
   getIt.registerSingleton<BibleService>(BibleService());
   getIt.registerLazySingleton<AudioDatabase>(() => AudioDatabase());
   getIt.registerLazySingleton<ResourceService>(() => ResourceService());
+  getIt.registerLazySingleton<ResourceManager>(() => ResourceManager());
   getIt.registerLazySingleton<ReadingSessionDatabase>(
     () => ReadingSessionDatabase(),
   );
