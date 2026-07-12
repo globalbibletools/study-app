@@ -86,6 +86,15 @@
               echo "$NIX_FLUTTER_SRC" > "$STAMP"
             fi
 
+            # The top-level bin/dart is the raw Dart VM, which looks for its
+            # snapshots next to itself (bin/snapshots). In the Flutter SDK the
+            # snapshots live under bin/cache/dart-sdk/bin/snapshots, so without
+            # this symlink `dart language-server` (and other dartdev-based
+            # subcommands) fail with "Unable to find snapshot:
+            # dartdev_aot.dart.snapshot".
+            ln -sfn "$FLUTTER_ROOT/bin/cache/dart-sdk/bin/snapshots" \
+                    "$FLUTTER_ROOT/bin/snapshots"
+
             export PATH="$FLUTTER_ROOT/bin:$PATH"
 
             # Keep android/local.properties in sync with the writable SDK.
