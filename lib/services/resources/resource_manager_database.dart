@@ -57,6 +57,17 @@ class ResourceManagerDatabase {
     );
   }
 
+  Future<List<Resource>> getByType(String type) async {
+    final db = await init();
+    final rows = await db.query(
+      'resource',
+      where: 'type = ?',
+      whereArgs: [type],
+      orderBy: 'resource_name ASC',
+    );
+    return rows.map(Resource.fromMap).toList();
+  }
+
   /// Returns the [Resource] for `(type, id)`, or `null` if no row exists.
   Future<Resource?> getById(String type, String id) async {
     final db = await init();

@@ -245,6 +245,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get bibles => 'Bíblias';
 
   @override
+  String get glosses => 'Idiomas de Glossário';
+
+  @override
   String get lexicons => 'Léxicos';
 
   @override

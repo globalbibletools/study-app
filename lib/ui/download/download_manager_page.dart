@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/common/book_name.dart';
 import 'package:gbt/l10n/app_localizations.dart';
+import 'package:gbt/services/resources/resource.dart';
 import 'package:gbt/services/resources/resource_manager.dart';
 import 'package:gbt/services/resources/remote_asset_service.dart';
 import 'package:gbt/services/download/cancel_token.dart';
@@ -20,7 +21,21 @@ class DownloadManagerPage extends StatefulWidget {
 }
 
 class _DownloadManagerPageState extends State<DownloadManagerPage> {
-  final _resourceManager = ResourceManager();
+  final _resourceManager = getIt<ResourceManager>();
+
+  late Future<List<Resource>> _glossResourcesFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _glossResourcesFuture = _resourceManager.getResources('gloss');
+  }
+
+  void _reloadGlosses() {
+    setState(() {
+      _glossResourcesFuture = _resourceManager.getResources('gloss');
+    });
+  }
 
   Future<void> _checkForUpdates() async {
     try {
@@ -29,6 +44,7 @@ class _DownloadManagerPageState extends State<DownloadManagerPage> {
         typeVersion: 1,
       );
       if (!mounted) return;
+      _reloadGlosses();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Checked glosses: ${entries.length} entries')),
       );
@@ -58,6 +74,7 @@ class _DownloadManagerPageState extends State<DownloadManagerPage> {
       body: ListView(
         children: [
           _buildAudioSection(context, l10n),
+          _buildGlossSection(context, l10n),
           // _buildPlaceholderSection(l10n.bibles, Icons.book),
           // _buildPlaceholderSection(l10n.lexicons, Icons.translate),
         ],
@@ -204,6 +221,50 @@ class _DownloadManagerPageState extends State<DownloadManagerPage> {
         }),
 
         const SizedBox(height: 16),
+      ],
+    );
+  }
+
+  // --- GLOSS SECTION ---
+
+  Widget _buildGlossSection(BuildContext context, AppLocalizations l10n) {
+    return ExpansionTile(
+      key: const PageStorageKey('gloss_section_main'),
+      leading: const Icon(Icons.translate),
+      title: Text(l10n.glosses),
+      initiallyExpanded: false,
+      children: [
+        FutureBuilder<List<Resource>>(
+          future: _glossResourcesFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Padding(
+                padding: EdgeInsets.all(24),
+                child: Center(child: CircularProgressIndicator()),
+              );
+            }
+
+            final resources = snapshot.data ?? [];
+
+            if (resources.isEmpty) {
+              return Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text('No resources available. Tap "Check for Updates" to fetch the catalog.'),
+              );
+            }
+
+            return Column(
+              children: [
+                for (final resource in resources)
+                  _GlossResourceTile(
+                    key: PageStorageKey('gloss_${resource.id}'),
+                    resource: resource,
+                  ),
+                const SizedBox(height: 16),
+              ],
+            );
+          },
+        ),
       ],
     );
   }
@@ -528,5 +589,35 @@ class _BookDownloadTileState extends State<_BookDownloadTile> {
     setState(() {
       _missingChaptersFuture = _checkMissingChapters();
     });
+  }
+}
+
+class _GlossResourceTile extends StatelessWidget {
+  final Resource resource;
+
+  const _GlossResourceTile({
+    super.key,
+    required this.resource,
+  });
+
+  String _formatSize(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(0)} KB';
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final subtitle = <String>[
+      if (resource.creatorName != null) resource.creatorName!,
+      if (resource.size != null) _formatSize(resource.size!),
+      if (resource.localUpdatedAt != null) 'Installed' else 'Not installed',
+    ].join(' • ');
+
+    return ListTile(
+      contentPadding: const EdgeInsets.only(left: 32, right: 16),
+      title: Text(resource.resourceName ?? resource.id),
+      subtitle: Text(subtitle),
+    );
   }
 }

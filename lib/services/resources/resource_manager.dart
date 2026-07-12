@@ -27,6 +27,9 @@ class ResourceManager {
 
   Future<void> init() => _database.init();
 
+  Future<List<Resource>> getResources(String type) =>
+      _database.getByType(type);
+
   Future<List<ManifestResource>> checkUpdates({
     required String type,
     required int typeVersion,

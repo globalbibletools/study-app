@@ -244,6 +244,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get bibles => 'الكتاب المقدس';
 
   @override
+  String get glosses => 'لغات التفسير';
+
+  @override
   String get lexicons => 'المعاجم';
 
   @override

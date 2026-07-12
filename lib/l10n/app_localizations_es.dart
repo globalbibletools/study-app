@@ -247,6 +247,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get bibles => 'Biblias';
 
   @override
+  String get glosses => 'Idiomas de Glosado';
+
+  @override
   String get lexicons => 'Léxicos';
 
   @override

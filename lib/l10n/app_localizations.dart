@@ -512,6 +512,12 @@ abstract class AppLocalizations {
   /// **'Bibles'**
   String get bibles;
 
+  /// Section header for Glossing Language downloads
+  ///
+  /// In en, this message translates to:
+  /// **'Glossing Languages'**
+  String get glosses;
+
   /// Section header for Lexicon downloads
   ///
   /// In en, this message translates to:

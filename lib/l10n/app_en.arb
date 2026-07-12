@@ -323,6 +323,10 @@
   "@bibles": {
     "description": "Section header for Bible downloads"
   },
+  "glosses": "Glossing Languages",
+  "@glosses": {
+    "description": "Section header for Glossing Language downloads"
+  },
   "lexicons": "Lexicons",
   "@lexicons": {
     "description": "Section header for Lexicon downloads"
