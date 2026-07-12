@@ -1,0 +1,26 @@
+services:
+  ministack:
+    image: ministackorg/ministack:latest
+    container_name: ministack
+    ports:
+      - 4566:4566
+    environment:
+      PERSIST_STATE: "1"
+      S3_PERSIST: "1"
+      MINISTACK_REGION: us-east-1
+      SERVICES: "s3,iam,sts"
+    volumes:
+      - ministack-state:/tmp/ministack-state
+      - ministack-s3:/tmp/ministack-data/s3
+      - ./ministack/init/ready.d:/etc/localstack/init/ready.d:ro
+      - ./ministack/assets:/seed:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_ministack/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  ministack-state:
+  ministack-s3:
