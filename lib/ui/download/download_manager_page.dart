@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/common/book_name.dart';
 import 'package:gbt/l10n/app_localizations.dart';
+import 'package:gbt/services/resources/manifest_source.dart';
 import 'package:gbt/services/resources/remote_asset_service.dart';
 import 'package:gbt/services/download/cancel_token.dart';
 import 'package:gbt/services/download/download.dart';
@@ -19,12 +20,41 @@ class DownloadManagerPage extends StatefulWidget {
 }
 
 class _DownloadManagerPageState extends State<DownloadManagerPage> {
+  final _manifestSource = ManifestSource();
+
+  Future<void> _checkForUpdates() async {
+    try {
+      final entries = await _manifestSource.fetchManifest(
+        resourceType: 'glosses',
+        typeVersion: 1,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Glosses manifest: ${entries.length} entries')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.downloads)),
+      appBar: AppBar(
+        title: Text(l10n.downloads),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Check for Updates',
+            onPressed: _checkForUpdates,
+          ),
+        ],
+      ),
       body: ListView(
         children: [
           _buildAudioSection(context, l10n),
