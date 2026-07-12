@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:archive/archive_io.dart';
@@ -117,5 +118,42 @@ class DownloadService {
         await tempFile.delete();
       }
     }
+  }
+
+  /// Downloads a JSONL (newline-delimited JSON) document from [url] and
+  /// converts each line into a [T] using [convert].
+  ///
+  /// Blank lines are skipped. Returns a list of converted objects in the
+  /// order they appeared in the stream.
+  Future<List<T>> getJsonl<T>(
+    String url, {
+    required T Function(Map<String, dynamic> json) convert,
+  }) async {
+    final request = await _httpClient.getUrl(Uri.parse(url));
+    final response = await request.close();
+
+    if (response.statusCode != HttpStatus.ok) {
+      throw HttpException('Failed to download: ${response.statusCode}');
+    }
+
+    final results = <T>[];
+
+    final lines = response.transform(utf8.decoder).transform(const LineSplitter());
+
+    await for (final line in lines) {
+      final trimmed = line.trim();
+      if (trimmed.isEmpty) continue;
+
+      final decoded = jsonDecode(trimmed);
+      if (decoded is Map<String, dynamic>) {
+        results.add(convert(decoded));
+      } else {
+        throw FormatException(
+          'Expected a JSON object on each line, got: ${decoded.runtimeType}',
+        );
+      }
+    }
+
+    return results;
   }
 }
