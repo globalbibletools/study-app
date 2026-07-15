@@ -6,6 +6,7 @@ class Resource {
   String? serverUpdatedAt;
   String? sha256;
   int? size;
+  String? url;
   String? resourceName;
   String? creatorName;
   String? localUpdatedAt;
@@ -16,6 +17,7 @@ class Resource {
     this.serverUpdatedAt,
     this.sha256,
     this.size,
+    this.url,
     this.resourceName,
     this.creatorName,
     this.localUpdatedAt,
@@ -31,6 +33,7 @@ class Resource {
       serverUpdatedAt: manifest.updatedAt,
       sha256: manifest.sha256,
       size: manifest.size,
+      url: manifest.url,
       resourceName: manifest.resourceName,
       creatorName: manifest.creatorName,
       localUpdatedAt: null,
@@ -41,8 +44,13 @@ class Resource {
     serverUpdatedAt = manifest.updatedAt;
     sha256 = manifest.sha256;
     size = manifest.size;
+    url = manifest.url;
     resourceName = manifest.resourceName;
     creatorName = manifest.creatorName;
+  }
+
+  void markInstalled() {
+    localUpdatedAt = serverUpdatedAt;
   }
 
   Map<String, Object?> toMap() => {
@@ -51,6 +59,7 @@ class Resource {
         'server_updated_at': serverUpdatedAt,
         'sha256': sha256,
         'size': size,
+        'url': url,
         'resource_name': resourceName,
         'creator_name': creatorName,
         'local_updated_at': localUpdatedAt,
@@ -63,6 +72,7 @@ class Resource {
       serverUpdatedAt: map['server_updated_at'] as String?,
       sha256: map['sha256'] as String?,
       size: map['size'] as int?,
+      url: map['url'] as String?,
       resourceName: map['resource_name'] as String?,
       creatorName: map['creator_name'] as String?,
       localUpdatedAt: map['local_updated_at'] as String?,

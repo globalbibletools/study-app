@@ -3,6 +3,7 @@ class ManifestResource {
   final String updatedAt;
   final String sha256;
   final int size;
+  final String url;
   final String resourceName;
   final String creatorName;
 
@@ -11,6 +12,7 @@ class ManifestResource {
     required this.updatedAt,
     required this.sha256,
     required this.size,
+    required this.url,
     required this.resourceName,
     required this.creatorName,
   });
@@ -26,6 +28,7 @@ class ManifestResource {
     final updatedAt = json['updatedAt'];
     final sha256 = json['sha256'];
     final size = json['size'];
+    final url = json['url'];
     final resourceName = json['resourceName'];
     final creatorName = json['creatorName'];
 
@@ -52,6 +55,12 @@ class ManifestResource {
         "got ${size.runtimeType}",
       );
     }
+    if (url is! String) {
+      throw FormatException(
+        "Manifest resource field 'url' must be a String, "
+        "got ${url.runtimeType}",
+      );
+    }
     if (resourceName is! String) {
       throw FormatException(
         "Manifest resource field 'resourceName' must be a String, "
@@ -70,6 +79,7 @@ class ManifestResource {
       updatedAt: updatedAt,
       sha256: sha256,
       size: size,
+      url: url,
       resourceName: resourceName,
       creatorName: creatorName,
     );

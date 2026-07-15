@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+import 'package:gbt/services/download/cancel_token.dart';
 import 'package:gbt/services/download/download.dart';
 import 'package:gbt/services/resources/manifest_resource.dart';
 import 'package:gbt/services/resources/remote_asset_service.dart';
@@ -6,7 +8,12 @@ import 'package:gbt/services/resources/resource_manager_database.dart';
 import 'package:gbt/services/service_locator.dart';
 
 class ResourceManager {
-  static const _typeToPathSegment = {
+  static const _typeToURLPrefix = {
+    'bible': 'bibles/v1',
+    'gloss': 'glosses/v1',
+    'audio': 'audio',
+  };
+  static const _typeToLocalPrefix = {
     'bible': 'bibles',
     'gloss': 'glosses',
     'audio': 'audio',
@@ -30,13 +37,46 @@ class ResourceManager {
   Future<List<Resource>> getResources(String type) =>
       _database.getByType(type);
 
+  Future<void> downloadResource({
+      required String type,
+      required String id,
+      ValueChanged<double>? onProgress,
+      CancelToken? cancelToken,
+  }) async {
+    final resource = await _database.getById(type, id);
+    if (resource == null) {
+        // TODO: throw an error here
+        return;
+    }
+
+    final localPath = getLocalPathForType(resource.type, resource.id);
+    await _downloadService.getFile(
+        url: '${_remoteAssetService.baseHost}/${resource.url}',
+        localRelativePath: localPath,
+        onProgress: onProgress,
+        cancelToken: cancelToken,
+    );
+
+    resource.markInstalled();
+    await _database.upsert(resource);
+  }
+
+  String getLocalPathForType(String type, String id) {
+      switch (type) {
+          case "gloss": {
+              return 'glosses/$id.db';
+          }
+          default: {
+              throw Exception('Cannot get local path for type $type');
+          }
+      }
+  }
+
   Future<List<ManifestResource>> checkUpdates({
     required String type,
-    required int typeVersion,
   }) async {
     final entries = await fetchManifest(
         resourceType: type,
-        typeVersion: typeVersion
     );
 
     for (final entry in entries) {
@@ -56,11 +96,10 @@ class ResourceManager {
 
   Future<List<ManifestResource>> fetchManifest({
     required String resourceType,
-    required int typeVersion,
   }) {
-    final pathSegment = _typeToPathSegment[resourceType] ?? resourceType;
+    final pathPrefix = _typeToURLPrefix[resourceType];
     return _downloadService.getJsonl(
-      '${_remoteAssetService.baseHost}/$pathSegment/v$typeVersion/manifest.jsonl',
+      '${_remoteAssetService.baseHost}/$pathPrefix/manifest.jsonl',
       convert: ManifestResource.fromJson,
     );
   }

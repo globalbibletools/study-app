@@ -1,4 +1,4 @@
-{"id":"are","updatedAt":"2025-01-15T00:00:00Z","sha256":"0c2de3bf9d7477437d0c764ca787016037caec9d23c006180be681f4ecd36641","size":3232825,"resourceName":"Arabic Glosses","creatorName":"GBT"}
-{"id":"fra","updatedAt":"2025-01-15T00:00:00Z","sha256":"0a8421667056449a3876941cd10c78b9435d7a4c45300de37e077bf9ac7a333f","size":3335108,"resourceName":"French Glosses","creatorName":"GBT"}
-{"id":"por","updatedAt":"2025-01-15T00:00:00Z","sha256":"0a22d29b83a8a82681c80daa3f2d9eb1b57f8f83619abbcfa9a553ad3dc3e465","size":3183203,"resourceName":"Portuguese Glosses","creatorName":"GBT"}
-{"id":"spa","updatedAt":"2025-01-15T00:00:00Z","sha256":"9176c4bf210ff3354fc28123db7c717909e4a78083c86c52e78bc52f3779a3a8","size":3248324,"resourceName":"Spanish Glosses","creatorName":"GBT"}
+{"id":"are","updatedAt":"2025-01-15T00:00:00Z","sha256":"0c2de3bf9d7477437d0c764ca787016037caec9d23c006180be681f4ecd36641","size":3232825,"url":"glosses/v1/are.db.zip","resourceName":"Arabic Glosses","creatorName":"GBT"}
+{"id":"fra","updatedAt":"2025-01-15T00:00:00Z","sha256":"0a8421667056449a3876941cd10c78b9435d7a4c45300de37e077bf9ac7a333f","size":3335108,"url":"glosses/v1/fra.db.zip","resourceName":"French Glosses","creatorName":"GBT"}
+{"id":"por","updatedAt":"2025-01-15T00:00:00Z","sha256":"0a22d29b83a8a82681c80daa3f2d9eb1b57f8f83619abbcfa9a553ad3dc3e465","size":3183203,"url":"glosses/v1/por.db.zip","resourceName":"Portuguese Glosses","creatorName":"GBT"}
+{"id":"spa","updatedAt":"2025-01-15T00:00:00Z","sha256":"9176c4bf210ff3354fc28123db7c717909e4a78083c86c52e78bc52f3779a3a8","size":3248324,"url":"glosses/v1/spa.db.zip","resourceName":"Spanish Glosses","creatorName":"GBT"}

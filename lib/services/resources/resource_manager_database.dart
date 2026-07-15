@@ -4,7 +4,7 @@ import 'package:gbt/services/resources/resource.dart';
 
 class ResourceManagerDatabase {
   static const _databaseName = 'resource_manager.db';
-  static const _databaseVersion = 1;
+  static const _databaseVersion = 2;
 
   Database? _database;
   Future<Database>? _initFuture;
@@ -38,12 +38,18 @@ class ResourceManagerDatabase {
             server_updated_at TEXT,
             sha256            TEXT,
             size              INTEGER,
+            url               TEXT,
             resource_name     TEXT,
             creator_name      TEXT,
             local_updated_at  TEXT,
             PRIMARY KEY (type, id)
           )
         ''');
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute('ALTER TABLE resource ADD COLUMN url TEXT');
+        }
       },
     );
   }

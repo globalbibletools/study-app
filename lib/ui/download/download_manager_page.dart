@@ -41,7 +41,6 @@ class _DownloadManagerPageState extends State<DownloadManagerPage> {
     try {
       final entries = await _resourceManager.checkUpdates(
         type: 'gloss',
-        typeVersion: 1,
       );
       if (!mounted) return;
       _reloadGlosses();
@@ -259,6 +258,7 @@ class _DownloadManagerPageState extends State<DownloadManagerPage> {
                   _GlossResourceTile(
                     key: PageStorageKey('gloss_${resource.id}'),
                     resource: resource,
+                    onDownloaded: _reloadGlosses,
                   ),
                 const SizedBox(height: 16),
               ],
@@ -592,13 +592,22 @@ class _BookDownloadTileState extends State<_BookDownloadTile> {
   }
 }
 
-class _GlossResourceTile extends StatelessWidget {
+class _GlossResourceTile extends StatefulWidget {
   final Resource resource;
+  final VoidCallback onDownloaded;
 
   const _GlossResourceTile({
     super.key,
     required this.resource,
+    required this.onDownloaded,
   });
+
+  @override
+  State<_GlossResourceTile> createState() => _GlossResourceTileState();
+}
+
+class _GlossResourceTileState extends State<_GlossResourceTile> {
+  final _resourceManager = getIt<ResourceManager>();
 
   String _formatSize(int bytes) {
     if (bytes < 1024) return '$bytes B';
@@ -606,18 +615,49 @@ class _GlossResourceTile extends StatelessWidget {
     return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
   }
 
+  Future<void> _download() async {
+    try {
+      await DownloadProgressDialog.show(
+        context: context,
+        task: (progress, cancelToken) async {
+          await _resourceManager.downloadResource(
+            type: "gloss",
+            id: widget.resource.id, 
+            onProgress: (p) => progress.value = p,
+            cancelToken: cancelToken,
+          );
+        },
+      );
+      widget.onDownloaded();
+    } catch (e) {
+      if (mounted && e is! DownloadCanceledException) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final resource = widget.resource;
     final subtitle = <String>[
       if (resource.creatorName != null) resource.creatorName!,
       if (resource.size != null) _formatSize(resource.size!),
       if (resource.localUpdatedAt != null) 'Installed' else 'Not installed',
     ].join(' • ');
 
+    final isInstalled = resource.localUpdatedAt != null;
+
     return ListTile(
       contentPadding: const EdgeInsets.only(left: 32, right: 16),
       title: Text(resource.resourceName ?? resource.id),
       subtitle: Text(subtitle),
+      trailing: IconButton(
+        icon: Icon(isInstalled ? Icons.delete : Icons.download),
+        color: Theme.of(context).colorScheme.primary,
+        onPressed: _download,
+      ),
     );
   }
 }
