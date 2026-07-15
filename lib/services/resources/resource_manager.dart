@@ -11,15 +11,30 @@ import 'package:gbt/services/service_locator.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 
+class ResourceNeedsDownloadException implements Exception {
+  final String type;
+  final String id;
+
+  ResourceNeedsDownloadException(this.type, this.id);
+
+  @override
+  String toString() => 'ResourceNeedsDownloadException: type=$type, id=$id';
+}
+
+class ResourceNotFoundException implements Exception {
+  final String type;
+  final String id;
+
+  ResourceNotFoundException(this.type, this.id);
+
+  @override
+  String toString() => 'ResourceNotFoundException: type=$type, id=$id';
+}
+
 class ResourceManager {
   static const _typeToURLPrefix = {
     'bible': 'bibles/v1',
     'gloss': 'glosses/v1',
-    'audio': 'audio',
-  };
-  static const _typeToLocalPrefix = {
-    'bible': 'bibles',
-    'gloss': 'glosses',
     'audio': 'audio',
   };
 
@@ -41,14 +56,31 @@ class ResourceManager {
   Future<List<Resource>> getResources(String type) =>
       _database.getByType(type);
 
+  Future<String> getResourcePath({
+      required String type,
+      required String id,
+  }) async {
+    final resource = await _database.getById(type, id);
+    if (resource == null) {
+        throw ResourceNotFoundException(type, id);
+    }
+
+    if (resource.localUpdatedAt == null) {
+        throw ResourceNeedsDownloadException(type, id);
+    }
+
+    final docDir = await getApplicationDocumentsDirectory();
+    final localRelativePath = getLocalPathForType(resource.type, resource.id);
+    return join(docDir.path, localRelativePath);
+  }
+
   Future<void> removeResource({
       required String type,
       required String id,
   }) async {
     final resource = await _database.getById(type, id);
     if (resource == null) {
-        // TODO: throw an error here
-        return;
+        throw ResourceNotFoundException(type, id);
     }
 
     final docDir = await getApplicationDocumentsDirectory();
@@ -72,8 +104,7 @@ class ResourceManager {
   }) async {
     final resource = await _database.getById(type, id);
     if (resource == null) {
-        // TODO: throw an error here
-        return;
+        throw ResourceNotFoundException(type, id);
     }
 
     final localPath = getLocalPathForType(resource.type, resource.id);

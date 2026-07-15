@@ -4,12 +4,14 @@ class LanguageConfig {
   final String code; // Flutter Locale code (e.g., 'es')
   final String bibleFilename; // Server filename (e.g., 'spa_blm.db')
   final String glossFilename; // Server filename (e.g., 'spa.db')
+  final String glossLangCode; 
   final String nativeName; // For UI selection (e.g., 'Español')
 
   const LanguageConfig({
     required this.code,
     required this.bibleFilename,
     required this.glossFilename,
+    required this.glossLangCode,
     required this.nativeName,
   });
 }
@@ -22,6 +24,7 @@ class AppLanguages {
       code: 'en',
       bibleFilename: 'eng_bsb.db',
       glossFilename: 'eng.db',
+      glossLangCode: 'eng',
       nativeName: 'English',
     ),
 
@@ -30,6 +33,7 @@ class AppLanguages {
       code: 'es',
       bibleFilename: 'spa_blm.db',
       glossFilename: 'spa.db',
+      glossLangCode: 'spa',
       nativeName: 'Español',
     ),
 
@@ -38,6 +42,7 @@ class AppLanguages {
       code: 'fr',
       bibleFilename: 'fra_lsg.db',
       glossFilename: 'fra.db',
+      glossLangCode: 'fra',
       nativeName: 'Français',
     ),
 
@@ -46,6 +51,7 @@ class AppLanguages {
       code: 'pt',
       bibleFilename: 'por_blj.db',
       glossFilename: 'por.db',
+      glossLangCode: 'por',
       nativeName: 'Português',
     ),
 
@@ -54,6 +60,7 @@ class AppLanguages {
       code: 'ar',
       bibleFilename: 'arb_vdv.db',
       glossFilename: 'are.db',
+      glossLangCode: 'are',
       nativeName: 'العربية',
     ),
   ];

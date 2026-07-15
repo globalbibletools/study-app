@@ -1,5 +1,8 @@
 import 'dart:developer';
+import 'dart:io';
 import 'package:database_builder/database_builder.dart'; // Assuming this is where GlossSchema lives
+import 'package:flutter/material.dart';
+import 'package:gbt/services/resources/resource_manager.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:gbt/l10n/app_languages.dart';
 import 'package:gbt/services/files/file_service.dart';
@@ -7,6 +10,7 @@ import 'package:gbt/services/service_locator.dart';
 
 class GlossDatabase {
   final _fileService = getIt<FileService>();
+  final _resourceManager = getIt<ResourceManager>();
 
   Database? _database;
   String _currentLangCode = '';
@@ -25,10 +29,31 @@ class GlossDatabase {
       return;
     }
 
-    final filename = getDbFilename(langCode);
-    final exists = await _fileService.checkFileExists(FileType.gloss, filename);
+    final glossLangCode = AppLanguages.getConfig(langCode).glossLangCode;
 
-    if (!exists) {
+    String filename = '';
+    try {
+        filename = await _resourceManager.getResourcePath(type: "gloss", id: glossLangCode);
+    } catch (err) {
+        if (err is ResourceNeedsDownloadException) {
+            log('Database for $langCode needs to be downloaded');
+        }
+        else if (err is ResourceNotFoundException) {
+            log('Database for $langCode does not exist');
+        }
+        else {
+            log('Unknown error: ${err.toString()}');
+        }
+
+        debugPrint("Error getting resource path for gloss db: ${err.toString()}");
+
+        return;
+    }
+
+    debugPrint("Gloss db at: $filename");
+
+    final dbExists = await File(filename).exists();
+    if (!dbExists) {
       log('Database for $langCode does not exist at $filename');
       return;
     }
@@ -39,11 +64,8 @@ class GlossDatabase {
       _currentLangCode = '';
     }
 
-    // Get the absolute path from FileService to open the DB
-    final path = await _fileService.getLocalPath(FileType.gloss, filename);
-
     try {
-      _database = await openDatabase(path, readOnly: true);
+      _database = await openDatabase(filename, readOnly: true);
       _currentLangCode = langCode;
     } catch (e) {
       log("Error opening gloss DB: $e");
