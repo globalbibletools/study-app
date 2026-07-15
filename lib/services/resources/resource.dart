@@ -53,6 +53,10 @@ class Resource {
     localUpdatedAt = serverUpdatedAt;
   }
 
+  void markRemoved() {
+    localUpdatedAt = null;
+  }
+
   Map<String, Object?> toMap() => {
         'type': type,
         'id': id,

@@ -259,6 +259,7 @@ class _DownloadManagerPageState extends State<DownloadManagerPage> {
                     key: PageStorageKey('gloss_${resource.id}'),
                     resource: resource,
                     onDownloaded: _reloadGlosses,
+                    onRemoved: _reloadGlosses,
                   ),
                 const SizedBox(height: 16),
               ],
@@ -595,11 +596,13 @@ class _BookDownloadTileState extends State<_BookDownloadTile> {
 class _GlossResourceTile extends StatefulWidget {
   final Resource resource;
   final VoidCallback onDownloaded;
+  final VoidCallback onRemoved;
 
   const _GlossResourceTile({
     super.key,
     required this.resource,
     required this.onDownloaded,
+    required this.onRemoved,
   });
 
   @override
@@ -638,6 +641,22 @@ class _GlossResourceTileState extends State<_GlossResourceTile> {
     }
   }
 
+  Future<void> _remove() async {
+    try {
+      await _resourceManager.removeResource(
+        type: "gloss",
+        id: widget.resource.id, 
+      );
+      widget.onRemoved();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final resource = widget.resource;
@@ -656,7 +675,7 @@ class _GlossResourceTileState extends State<_GlossResourceTile> {
       trailing: IconButton(
         icon: Icon(isInstalled ? Icons.delete : Icons.download),
         color: Theme.of(context).colorScheme.primary,
-        onPressed: _download,
+        onPressed: isInstalled ? _remove : _download,
       ),
     );
   }
