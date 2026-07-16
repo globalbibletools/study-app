@@ -1,7 +1,6 @@
 import 'dart:developer';
 import 'package:database_builder/database_builder.dart'; // Assuming this is where GlossSchema lives
 import 'package:sqflite/sqflite.dart';
-import 'package:gbt/l10n/app_languages.dart';
 import 'package:gbt/services/files/file_service.dart';
 import 'package:gbt/services/service_locator.dart';
 
@@ -19,7 +18,7 @@ class GlossDatabase {
   String _currentLangCode = '';
 
   String getDbFilename(String langCode) {
-    return AppLanguages.getConfig(langCode).glossFilename;
+    return '$langCode.db';
   }
 
   List<GlossResource> getGlossResources() {
@@ -38,7 +37,7 @@ class GlossDatabase {
   }
 
   Future<void> initDb(String langCode) async {
-    if (langCode == 'en' || _currentLangCode == langCode) {
+    if (langCode == 'eng' || _currentLangCode == langCode) {
       return;
     }
 

@@ -55,9 +55,8 @@ class RemoteAssetService {
 
   // --- GLOSS ASSETS ---
 
-  /// Returns the asset config for a gloss database.
   RemoteAsset getGlossAsset(String langCode) {
-    final filename = AppLanguages.getConfig(langCode).glossFilename;
+    final filename = '$langCode.db';
 
     return RemoteAsset(
       remoteUrl: '$_baseHost/glosses/v1/$filename.zip',

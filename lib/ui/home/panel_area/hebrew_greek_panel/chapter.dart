@@ -249,11 +249,9 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter>
                           color: Theme.of(context).colorScheme.onInverseSurface,
                         ),
                         popupWordProvider: (wordId) {
-                          final locale = Localizations.localeOf(context);
                           return manager.getPopupTextForId(
-                            locale,
                             wordId,
-                            (locale) => _handleMissingResources(locale),
+                            (langCode) => _handleMissingGloss(langCode),
                           );
                         },
                         onPopupShown: _ensurePopupIsVisible,
@@ -330,15 +328,15 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter>
     });
   }
 
-  Future<void> _handleMissingResources(Locale locale) async {
+  Future<void> _handleMissingGloss(String langCode) async {
     // Use the shared helper logic
-    final success = await ResourceUIHelper.ensureResources(context, locale);
+    final success = await ResourceUIHelper.ensureGloss(context, langCode);
 
     if (!success && mounted) {
       // If they clicked "Cancel" or download failed,
       // tell the manager to stop trying to load localized glosses
       // for this session so they aren't prompted on every single tap.
-      manager.setLanguageToEnglish(locale);
+      manager.setGlossToEnglish();
     } else if (success && mounted) {
       // Refresh the UI so the words show the newly downloaded glosses
       setState(() {});

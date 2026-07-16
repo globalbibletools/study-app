@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:gbt/app_state.dart';
 import 'package:gbt/common/word.dart';
-import 'package:gbt/services/bible/bible_service.dart';
-import 'package:gbt/services/download/cancel_token.dart';
 import 'package:gbt/services/gloss/gloss_service.dart';
 import 'package:gbt/services/hebrew_greek/database.dart';
 import 'package:gbt/services/reading_session/rs_manager.dart';
@@ -12,7 +9,6 @@ import 'package:gbt/services/settings/user_settings.dart';
 class HebrewGreekChapterManager {
   final _hebrewGreekDb = getIt<HebrewGreekDatabase>();
   final _glossService = getIt<GlossService>();
-  final _bibleService = getIt<BibleService>();
   final _settings = getIt<UserSettings>();
   final _rsmanager = getIt<ReadingSessionManager>();
 
@@ -73,71 +69,18 @@ class HebrewGreekChapterManager {
   }
 
   Future<String?> getPopupTextForId(
-    Locale uiLocale,
     int wordId,
-    void Function(Locale)? onGlossDownloadNeeded,
+    void Function(String)? onGlossDownloadNeeded,
   ) async {
     return _glossService.glossForId(
-      locale: uiLocale,
       wordId: wordId,
       onDatabaseMissing: onGlossDownloadNeeded,
     );
   }
 
-  // Called from the UI when user agrees to download.
-  Future<void> downloadResources(
-    Locale locale, {
-    required ValueNotifier<double> progressNotifier,
-    required CancelToken cancelToken,
-  }) async {
-    // Reuse the exact same logic as SettingsManager
-    // 1. Determine tasks
-    final needGloss = !await _glossService.glossesExists(locale);
-    final needBible = !await _bibleService.bibleExists(locale);
-
-    int tasksToRun = (needGloss ? 1 : 0) + (needBible ? 1 : 0);
-    int tasksCompleted = 0;
-
-    void updateProgress(double fileProgress) {
-      if (tasksToRun == 0) {
-        progressNotifier.value = 1.0;
-        return;
-      }
-      final overall =
-          (tasksCompleted / tasksToRun) + (fileProgress / tasksToRun);
-      progressNotifier.value = overall;
-    }
-
-    // 2. Glosses
-    if (needGloss) {
-      if (cancelToken.isCancelled) return;
-      await _glossService.downloadGlosses(
-        locale,
-        cancelToken: cancelToken,
-        onProgress: updateProgress,
-      );
-      tasksCompleted++;
-    }
-
-    // 3. Bible
-    if (needBible) {
-      if (cancelToken.isCancelled) return;
-      updateProgress(0.0);
-      await _bibleService.downloadBible(
-        locale,
-        cancelToken: cancelToken,
-        onProgress: updateProgress,
-      );
-      tasksCompleted++;
-    }
-
-    progressNotifier.value = 1.0;
-  }
-
   // Called from the UI when user wants to use English instead of downloading.
-  Future<void> setLanguageToEnglish(Locale originalLocale) async {
-    await _settings.setLocale('en');
-    getIt<AppState>().init();
+  Future<void> setGlossToEnglish() async {
+    await _settings.setGlossLang('eng');
   }
 
   String getVerseText(int verse) {
