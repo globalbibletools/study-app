@@ -19,6 +19,7 @@ class UserSettings {
   static const _bibleFontScaleKey = 'bibleFontScale';
   static const _wordDetailsFontScaleKey = 'wordDetailsFontScale';
   static const _localeKey = 'locale';
+  static const _glossLangKey = 'glossLang';
   static const _isHebrewSearchKey = 'isHebrewSearch';
   static const _useSystemKeyboardKey = 'useSystemKeyboard';
   static const _currentBible = 'currentBible';
@@ -90,6 +91,14 @@ class UserSettings {
     } else {
       await _prefs.setString(_localeKey, localeCode);
     }
+  }
+
+  String get glossLang {
+    return _prefs.getString(_glossLangKey) ?? 'eng';
+  }
+
+  Future<void> setGlossLang(String code) async {
+    await _prefs.setString(_glossLangKey, code);
   }
 
   bool get isHebrewSearch {

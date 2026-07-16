@@ -19,6 +19,9 @@ class GlossService {
   final _englishGlossDb = EnglishDatabase();
   final _glossDb = GlossDatabase();
 
+  /// The list of available gloss resources (languages).
+  List<GlossResource> get glossResources => _glossDb.getGlossResources();
+
   Future<void> init() async {
     await _englishGlossDb.init();
     final langCode = _settings.locale.languageCode;

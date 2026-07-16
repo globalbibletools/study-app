@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:gbt/l10n/app_languages.dart';
 import 'package:gbt/l10n/app_localizations.dart';
+import 'package:gbt/services/gloss/gloss_database.dart';
 import 'package:gbt/ui/common/resource_ui_helper.dart';
 import 'package:gbt/services/settings/user_settings.dart';
 
@@ -27,6 +28,24 @@ class _SettingsPageState extends State<SettingsPage> {
             return SimpleDialogOption(
               onPressed: () => Navigator.pop(context, Locale(config.code)),
               child: Text(config.nativeName, style: textStyle),
+            );
+          }).toList(),
+        );
+      },
+    );
+  }
+
+  Future<GlossResource?> _chooseGlossLanguage() async {
+    return await showDialog<GlossResource>(
+      context: context,
+      builder: (BuildContext context) {
+        final textStyle = Theme.of(context).textTheme.bodyLarge;
+        return SimpleDialog(
+          title: Text(AppLocalizations.of(context)!.glossLanguage),
+          children: manager.glossResources.map((resource) {
+            return SimpleDialogOption(
+              onPressed: () => Navigator.pop(context, resource),
+              child: Text(resource.name, style: textStyle),
             );
           }).toList(),
         );
@@ -73,6 +92,23 @@ class _SettingsPageState extends State<SettingsPage> {
                     // Revert if they cancelled or it failed
                     await manager.setLocale(previousLocale);
                   }
+                },
+              ),
+
+              // Gloss Language
+              ListTile(
+                title: Text(l10n.glossLanguage),
+                trailing: Text(
+                  manager.currentGlossLangName,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                onTap: () async {
+                  final selected = await _chooseGlossLanguage();
+                  if (selected == null ||
+                      selected.code == manager.currentGlossLangCode) {
+                    return;
+                  }
+                  await manager.setGlossLang(selected.code);
                 },
               ),
 

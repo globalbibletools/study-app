@@ -40,6 +40,10 @@
   "@language": {
     "description": "Settings menu item to change the app language"
   },
+  "glossLanguage": "Gloss Language",
+  "@glossLanguage": {
+    "description": "Settings menu item to change the gloss (translation) language"
+  },
   "currentLanguage": "English",
   "@currentLanguage": {
     "description": "The name of the language for this locale"

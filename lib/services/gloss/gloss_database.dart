@@ -5,6 +5,13 @@ import 'package:gbt/l10n/app_languages.dart';
 import 'package:gbt/services/files/file_service.dart';
 import 'package:gbt/services/service_locator.dart';
 
+class GlossResource {
+  final String name;
+  final String code;
+
+  const GlossResource({required this.name, required this.code});
+}
+
 class GlossDatabase {
   final _fileService = getIt<FileService>();
 
@@ -13,6 +20,16 @@ class GlossDatabase {
 
   String getDbFilename(String langCode) {
     return AppLanguages.getConfig(langCode).glossFilename;
+  }
+
+  List<GlossResource> getGlossResources() {
+    return const [
+      GlossResource(name: 'English', code: 'eng'),
+      GlossResource(name: 'Español', code: 'spa'),
+      GlossResource(name: 'Français', code: 'fra'),
+      GlossResource(name: 'Português', code: 'por'),
+      GlossResource(name: 'العربية', code: 'are'),
+    ];
   }
 
   Future<bool> glossDbExists(String langCode) async {
