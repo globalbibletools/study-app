@@ -113,8 +113,6 @@ class _SettingsPageState extends State<SettingsPage> {
                   // Immediately set so the UI reflects the selection
                   await manager.setGlossLang(selected.code);
 
-                  // English is built-in, no download needed
-                  if (selected.code == 'eng') return;
                   if (!context.mounted) return;
 
                   final success = await ResourceUIHelper.ensureGloss(
