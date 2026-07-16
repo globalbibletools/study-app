@@ -1,8 +1,6 @@
 import 'dart:developer';
-import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
-import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/services/resources/remote_asset_service.dart';
 import 'package:gbt/services/download/cancel_token.dart';
 import 'package:gbt/services/download/download.dart';
@@ -19,21 +17,22 @@ class GlossService {
   final _englishGlossDb = EnglishDatabase();
   final _glossDb = GlossDatabase();
 
+  /// The list of available gloss resources (languages).
+  List<GlossResource> get glossResources => _glossDb.getGlossResources();
+
   Future<void> init() async {
     await _englishGlossDb.init();
-    final langCode = _settings.locale.languageCode;
-    if (langCode != 'en') {
+    final langCode = _settings.glossLang;
+    if (langCode != 'eng') {
       await _glossDb.initDb(langCode);
     }
   }
 
-  /// Downloads the gloss database for the given locale.
   Future<void> downloadGlosses(
-    Locale locale, {
+    String langCode, {
     ValueChanged<double>? onProgress,
     CancelToken? cancelToken,
   }) async {
-    final langCode = locale.languageCode;
     final asset = _assetService.getGlossAsset(langCode);
 
     log('Downloading glosses for $langCode from ${asset.remoteUrl}');
@@ -54,18 +53,15 @@ class GlossService {
   }
 
   Future<String?> glossForId({
-    required Locale locale,
     required int wordId,
-    void Function(Locale)? onDatabaseMissing,
+    void Function(String)? onDatabaseMissing,
   }) async {
-    final glossLocale = _settings.locale;
+    final langCode = _settings.glossLang;
 
     // 1. If English, use English DB directly
-    if (!_isDownloadableLanguage(glossLocale)) {
+    if (langCode == 'eng') {
       return await _englishGlossDb.getGloss(wordId);
     }
-
-    final langCode = glossLocale.languageCode;
 
     // 2. Check if localized DB exists
     final dbExists = await _glossDb.glossDbExists(langCode);
@@ -77,22 +73,14 @@ class GlossService {
       return localizedGloss ?? await _englishGlossDb.getGloss(wordId);
     } else {
       // 4. Trigger UI callback to prompt download
-      onDatabaseMissing?.call(Locale(langCode));
+      onDatabaseMissing?.call(langCode);
       // Fallback to English while waiting
       return await _englishGlossDb.getGloss(wordId);
     }
   }
 
-  bool _isDownloadableLanguage(Locale locale) {
-    if (locale.languageCode == 'en') return false;
-    return AppLocalizations.supportedLocales.any(
-      (l) => l.languageCode == locale.languageCode,
-    );
-  }
-
-  Future<bool> glossesExists(Locale selectedLocale) async {
-    final langCode = selectedLocale.languageCode;
-    if (langCode == 'en') return true;
+  Future<bool> glossesExists(String langCode) async {
+    if (langCode == 'eng') return true;
     return await _glossDb.glossDbExists(langCode);
   }
 }

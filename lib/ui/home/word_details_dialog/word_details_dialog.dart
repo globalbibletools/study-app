@@ -28,8 +28,7 @@ class _WordDetailsDialogState extends State<WordDetailsDialog> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final locale = Localizations.localeOf(context);
-    manager.init(locale, widget.wordId);
+    manager.init(widget.wordId);
     // Note: Styles are now defined inside the build method to react to scaling
   }
 
