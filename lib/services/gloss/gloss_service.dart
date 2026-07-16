@@ -83,8 +83,4 @@ class GlossService {
     if (langCode == 'eng') return true;
     return await _glossDb.glossDbExists(langCode);
   }
-
-  Future<bool> currentGlossExists() async {
-    return await glossesExists(_settings.glossLang);
-  }
 }
