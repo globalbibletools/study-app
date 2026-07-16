@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:studyapp/common/bible_navigation.dart';
+import 'package:gbt/common/bible_navigation.dart';
 
 import 'book_selector.dart';
 import 'number_selector.dart';

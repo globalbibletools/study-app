@@ -39,6 +39,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get language => 'Langue';
 
   @override
+  String get glossLanguage => 'Langue du glossaire';
+
+  @override
   String get currentLanguage => 'Français';
 
   @override

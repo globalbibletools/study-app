@@ -1,17 +1,17 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:studyapp/common/book_name.dart';
-import 'package:studyapp/common/word.dart';
-import 'package:studyapp/l10n/app_localizations.dart';
-import 'package:studyapp/services/reading_session/rs_manager.dart';
-import 'package:studyapp/ui/common/resource_ui_helper.dart';
-import 'package:studyapp/services/settings/user_settings.dart';
-import 'package:studyapp/ui/home/panel_area/common/infinite_scroll_view.dart';
-import 'package:studyapp/ui/home/common/scroll_sync_controller.dart';
-import 'package:studyapp/ui/home/panel_area/hebrew_greek_panel/chapter_manager.dart';
-import 'package:studyapp/ui/home/panel_area/hebrew_greek_panel/text.dart';
-import 'package:studyapp/ui/home/word_details_dialog/word_details_dialog.dart';
+import 'package:gbt/common/book_name.dart';
+import 'package:gbt/common/word.dart';
+import 'package:gbt/l10n/app_localizations.dart';
+import 'package:gbt/services/reading_session/rs_manager.dart';
+import 'package:gbt/ui/common/resource_ui_helper.dart';
+import 'package:gbt/services/settings/user_settings.dart';
+import 'package:gbt/ui/home/panel_area/common/infinite_scroll_view.dart';
+import 'package:gbt/ui/home/common/scroll_sync_controller.dart';
+import 'package:gbt/ui/home/panel_area/hebrew_greek_panel/chapter_manager.dart';
+import 'package:gbt/ui/home/panel_area/hebrew_greek_panel/text.dart';
+import 'package:gbt/ui/home/word_details_dialog/word_details_dialog.dart';
 
 class VerseNumberTapNotification extends Notification {
   final int bookId;
@@ -249,11 +249,9 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter>
                           color: Theme.of(context).colorScheme.onInverseSurface,
                         ),
                         popupWordProvider: (wordId) {
-                          final locale = Localizations.localeOf(context);
                           return manager.getPopupTextForId(
-                            locale,
                             wordId,
-                            (locale) => _handleMissingResources(locale),
+                            (langCode) => _handleMissingGloss(langCode),
                           );
                         },
                         onPopupShown: _ensurePopupIsVisible,
@@ -330,15 +328,15 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter>
     });
   }
 
-  Future<void> _handleMissingResources(Locale locale) async {
+  Future<void> _handleMissingGloss(String langCode) async {
     // Use the shared helper logic
-    final success = await ResourceUIHelper.ensureResources(context, locale);
+    final success = await ResourceUIHelper.ensureGloss(context, langCode);
 
     if (!success && mounted) {
       // If they clicked "Cancel" or download failed,
       // tell the manager to stop trying to load localized glosses
       // for this session so they aren't prompted on every single tap.
-      manager.setLanguageToEnglish(locale);
+      manager.setGlossToEnglish();
     } else if (success && mounted) {
       // Refresh the UI so the words show the newly downloaded glosses
       setState(() {});

@@ -1,15 +1,15 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
-import 'package:studyapp/common/bible_navigation.dart';
-import 'package:studyapp/services/resources/remote_asset_service.dart';
-import 'package:studyapp/services/audio/audio_database.dart';
-import 'package:studyapp/services/audio/audio_player_handler.dart';
-import 'package:studyapp/services/audio/audio_timing.dart';
-import 'package:studyapp/services/files/file_service.dart';
-import 'package:studyapp/services/service_locator.dart';
-import 'package:studyapp/ui/home/audio/audio_logic.dart';
-import 'package:studyapp/ui/home/common/scroll_sync_controller.dart';
+import 'package:gbt/common/bible_navigation.dart';
+import 'package:gbt/services/resources/remote_asset_service.dart';
+import 'package:gbt/services/audio/audio_database.dart';
+import 'package:gbt/services/audio/audio_player_handler.dart';
+import 'package:gbt/services/audio/audio_timing.dart';
+import 'package:gbt/services/files/file_service.dart';
+import 'package:gbt/services/service_locator.dart';
+import 'package:gbt/ui/home/audio/audio_logic.dart';
+import 'package:gbt/ui/home/common/scroll_sync_controller.dart';
 
 class AudioMissingException implements Exception {
   final int bookId;

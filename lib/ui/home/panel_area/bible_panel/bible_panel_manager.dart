@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
-import 'package:studyapp/services/service_locator.dart';
-import 'package:studyapp/services/settings/user_settings.dart';
+import 'package:gbt/services/service_locator.dart';
+import 'package:gbt/services/settings/user_settings.dart';
 
 class BiblePanelManager {
   final _settings = getIt<UserSettings>();

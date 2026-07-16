@@ -5,8 +5,8 @@ import 'package:database_builder/database_builder.dart';
 import 'package:flutter/services.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
-import 'package:studyapp/common/reference.dart';
-import 'package:studyapp/common/word.dart';
+import 'package:gbt/common/reference.dart';
+import 'package:gbt/common/word.dart';
 
 class HebrewGreekDatabase {
   static const _databaseName = 'hebrew_greek.db';
@@ -139,7 +139,8 @@ class HebrewGreekDatabase {
   }
 
   Future<String?> strongsCodeRoot(String strongsCode) async {
-    final String sql = '''
+    final String sql =
+        '''
     SELECT ${HebrewGreekSchema.strongsColRoot}
     FROM ${HebrewGreekSchema.strongsTable}
     WHERE ${HebrewGreekSchema.strongsColCode} = ?
@@ -272,7 +273,8 @@ class HebrewGreekDatabase {
     // e.g., Genesis 1:1 -> 1001001
     final verseIdCalc = 'v.${HebrewGreekSchema.versesColId} / 100';
 
-    final sql = '''
+    final sql =
+        '''
     SELECT
       $verseIdCalc AS verse_id
     FROM
@@ -327,7 +329,8 @@ class HebrewGreekDatabase {
 
     // The SQL query now joins the verses and text tables, but filters the
     // WHERE clause on the 'no_punctuation' column for a flexible match.
-    const String sql = '''
+    const String sql =
+        '''
       SELECT v.${HebrewGreekSchema.versesColId}
       FROM ${HebrewGreekSchema.versesTable} AS v
       INNER JOIN ${HebrewGreekSchema.textTable} AS t 

@@ -2,11 +2,11 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:studyapp/common/bible_navigation.dart';
-import 'package:studyapp/services/reading_session/rs_database.dart';
-import 'package:studyapp/services/reading_session/rs_model.dart';
-import 'package:studyapp/services/service_locator.dart';
-import 'package:studyapp/services/settings/user_settings.dart';
+import 'package:gbt/common/bible_navigation.dart';
+import 'package:gbt/services/reading_session/rs_database.dart';
+import 'package:gbt/services/reading_session/rs_model.dart';
+import 'package:gbt/services/service_locator.dart';
+import 'package:gbt/services/settings/user_settings.dart';
 
 enum StatsType { weekly, monthly }
 

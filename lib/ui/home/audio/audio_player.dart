@@ -1,9 +1,9 @@
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
-import 'package:studyapp/l10n/app_localizations.dart';
-import 'package:studyapp/services/audio/position_data.dart';
-import 'package:studyapp/ui/home/audio/audio_logic.dart';
+import 'package:gbt/l10n/app_localizations.dart';
+import 'package:gbt/services/audio/position_data.dart';
+import 'package:gbt/ui/home/audio/audio_logic.dart';
 
 import 'audio_manager.dart';
 

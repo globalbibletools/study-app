@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:studyapp/services/download/cancel_token.dart';
+import 'package:gbt/services/download/cancel_token.dart';
 
 class DownloadProgressDialog extends StatelessWidget {
   final ValueNotifier<double> progressNotifier;

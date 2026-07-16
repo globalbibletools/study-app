@@ -1,10 +1,10 @@
 import 'package:database_builder/database_builder.dart';
 import 'package:flutter/material.dart';
-import 'package:studyapp/common/book_name.dart';
-import 'package:studyapp/common/reference.dart';
-import 'package:studyapp/l10n/app_localizations.dart';
-import 'package:studyapp/ui/search/keyboard.dart';
-import 'package:studyapp/ui/common/verse_list_item.dart';
+import 'package:gbt/common/book_name.dart';
+import 'package:gbt/common/reference.dart';
+import 'package:gbt/l10n/app_localizations.dart';
+import 'package:gbt/ui/search/keyboard.dart';
+import 'package:gbt/ui/common/verse_list_item.dart';
 
 import 'search_manager.dart';
 

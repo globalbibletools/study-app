@@ -39,6 +39,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get language => 'Language';
 
   @override
+  String get glossLanguage => 'Gloss Language';
+
+  @override
   String get currentLanguage => 'English';
 
   @override

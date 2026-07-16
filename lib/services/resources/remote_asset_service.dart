@@ -1,5 +1,6 @@
-import 'package:studyapp/l10n/app_languages.dart';
-import 'package:studyapp/services/files/file_service.dart'; // Import your FileType enum
+import 'package:flutter/foundation.dart';
+import 'package:gbt/l10n/app_languages.dart';
+import 'package:gbt/services/files/file_service.dart'; // Import your FileType enum
 
 class RemoteAsset {
   final String remoteUrl;
@@ -16,7 +17,26 @@ class RemoteAsset {
 }
 
 class RemoteAssetService {
-  static const String _baseHost = "https://assets.globalbibletools.com";
+  /// Production asset host (used in release builds).
+  static const String _prodBaseHost = "https://assets.globalbibletools.com";
+
+  /// Local development asset host. Override at build time for the target:
+  ///
+  ///   * Android emulator:   --dart-define=ASSETS_BASE_URL=http://10.0.2.2:4566/assets
+  ///   * iOS simulator:       --dart-define=ASSETS_BASE_URL=http://localhost:4566/assets
+  ///   * Physical device:     --dart-define=ASSETS_BASE_URL=http://YOUR_LAN_IP:4566/assets
+  ///
+  /// Defaults to the Android emulator address so `flutter run` on an emulator
+  /// works out of the box against the local MiniStack instance.
+  static const String _devBaseHost = String.fromEnvironment(
+    'ASSETS_BASE_URL',
+    defaultValue: 'http://10.0.2.2:4566/assets',
+  );
+
+  /// Resolved asset base URL. Release builds hit the CDN; debug builds hit the
+  /// local MiniStack S3 bucket (overridable via --dart-define).
+  static final String _baseHost =
+      kReleaseMode ? _prodBaseHost : _devBaseHost;
 
   // --- BIBLE ASSETS ---
 
@@ -35,9 +55,8 @@ class RemoteAssetService {
 
   // --- GLOSS ASSETS ---
 
-  /// Returns the asset config for a gloss database.
   RemoteAsset getGlossAsset(String langCode) {
-    final filename = AppLanguages.getConfig(langCode).glossFilename;
+    final filename = '$langCode.db';
 
     return RemoteAsset(
       remoteUrl: '$_baseHost/glosses/v1/$filename.zip',

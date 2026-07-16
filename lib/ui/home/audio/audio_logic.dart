@@ -1,4 +1,4 @@
-import 'package:studyapp/ui/home/audio/audio_manager.dart';
+import 'package:gbt/ui/home/audio/audio_manager.dart';
 
 class AudioLogic {
   static const int _firstNtBook = 40;

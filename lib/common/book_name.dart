@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:studyapp/l10n/app_localizations.dart';
+import 'package:gbt/l10n/app_localizations.dart';
 
 String bookNameForId(BuildContext context, int bookId) {
   final l10n = AppLocalizations.of(context)!;

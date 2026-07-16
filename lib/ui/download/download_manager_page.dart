@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:studyapp/common/bible_navigation.dart';
-import 'package:studyapp/common/book_name.dart';
-import 'package:studyapp/l10n/app_localizations.dart';
-import 'package:studyapp/services/resources/remote_asset_service.dart';
-import 'package:studyapp/services/download/cancel_token.dart';
-import 'package:studyapp/services/download/download.dart';
-import 'package:studyapp/services/files/file_service.dart';
-import 'package:studyapp/services/service_locator.dart';
-import 'package:studyapp/ui/common/download_progress_dialog.dart';
-import 'package:studyapp/ui/home/audio/audio_logic.dart';
-import 'package:studyapp/ui/home/audio/audio_manager.dart';
+import 'package:gbt/common/bible_navigation.dart';
+import 'package:gbt/common/book_name.dart';
+import 'package:gbt/l10n/app_localizations.dart';
+import 'package:gbt/services/resources/remote_asset_service.dart';
+import 'package:gbt/services/download/cancel_token.dart';
+import 'package:gbt/services/download/download.dart';
+import 'package:gbt/services/files/file_service.dart';
+import 'package:gbt/services/service_locator.dart';
+import 'package:gbt/ui/common/download_progress_dialog.dart';
+import 'package:gbt/ui/home/audio/audio_logic.dart';
+import 'package:gbt/ui/home/audio/audio_manager.dart';
 
 class DownloadManagerPage extends StatefulWidget {
   const DownloadManagerPage({super.key});

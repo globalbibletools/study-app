@@ -1,9 +1,15 @@
 import 'dart:developer';
 import 'package:database_builder/database_builder.dart'; // Assuming this is where GlossSchema lives
 import 'package:sqflite/sqflite.dart';
-import 'package:studyapp/l10n/app_languages.dart';
-import 'package:studyapp/services/files/file_service.dart';
-import 'package:studyapp/services/service_locator.dart';
+import 'package:gbt/services/files/file_service.dart';
+import 'package:gbt/services/service_locator.dart';
+
+class GlossResource {
+  final String name;
+  final String code;
+
+  const GlossResource({required this.name, required this.code});
+}
 
 class GlossDatabase {
   final _fileService = getIt<FileService>();
@@ -12,7 +18,17 @@ class GlossDatabase {
   String _currentLangCode = '';
 
   String getDbFilename(String langCode) {
-    return AppLanguages.getConfig(langCode).glossFilename;
+    return '$langCode.db';
+  }
+
+  List<GlossResource> getGlossResources() {
+    return const [
+      GlossResource(name: 'English', code: 'eng'),
+      GlossResource(name: 'Español', code: 'spa'),
+      GlossResource(name: 'Français', code: 'fra'),
+      GlossResource(name: 'Português', code: 'por'),
+      GlossResource(name: 'العربية', code: 'are'),
+    ];
   }
 
   Future<bool> glossDbExists(String langCode) async {
@@ -21,7 +37,7 @@ class GlossDatabase {
   }
 
   Future<void> initDb(String langCode) async {
-    if (langCode == 'en' || _currentLangCode == langCode) {
+    if (langCode == 'eng' || _currentLangCode == langCode) {
       return;
     }
 

@@ -2,8 +2,8 @@ import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:scripture/scripture.dart';
-import 'package:studyapp/common/book_name.dart';
-import 'package:studyapp/services/settings/user_settings.dart';
+import 'package:gbt/common/book_name.dart';
+import 'package:gbt/services/settings/user_settings.dart';
 import 'bible_chapter_manager.dart';
 
 class BibleChapter extends StatefulWidget {

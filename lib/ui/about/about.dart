@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:studyapp/l10n/app_localizations.dart';
+import 'package:gbt/l10n/app_localizations.dart';
 
 import 'markdown_viewer.dart';
 

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:studyapp/ui/home/appbar/reference_chooser/reference_chooser.dart';
-import 'package:studyapp/ui/home/keypad/numeric_keypad.dart';
-import 'package:studyapp/ui/home/home_manager.dart';
+import 'package:gbt/ui/home/appbar/reference_chooser/reference_chooser.dart';
+import 'package:gbt/ui/home/keypad/numeric_keypad.dart';
+import 'package:gbt/ui/home/home_manager.dart';
 
 class KeypadLayer extends StatelessWidget {
   const KeypadLayer({super.key, required this.manager});

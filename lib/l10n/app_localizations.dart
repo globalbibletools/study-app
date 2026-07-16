@@ -164,6 +164,12 @@ abstract class AppLocalizations {
   /// **'Language'**
   String get language;
 
+  /// Settings menu item to change the gloss (translation) language
+  ///
+  /// In en, this message translates to:
+  /// **'Gloss Language'**
+  String get glossLanguage;
+
   /// The name of the language for this locale
   ///
   /// In en, this message translates to:

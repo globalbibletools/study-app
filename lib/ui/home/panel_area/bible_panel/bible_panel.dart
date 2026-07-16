@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:studyapp/services/settings/user_settings.dart';
-import 'package:studyapp/ui/home/panel_area/common/infinite_scroll_view.dart';
-import 'package:studyapp/ui/home/common/scroll_sync_controller.dart';
-import 'package:studyapp/ui/home/common/zoom_wrapper.dart';
+import 'package:gbt/services/settings/user_settings.dart';
+import 'package:gbt/ui/home/panel_area/common/infinite_scroll_view.dart';
+import 'package:gbt/ui/home/common/scroll_sync_controller.dart';
+import 'package:gbt/ui/home/common/zoom_wrapper.dart';
 import 'bible_chapter.dart';
 import 'bible_panel_manager.dart';
 

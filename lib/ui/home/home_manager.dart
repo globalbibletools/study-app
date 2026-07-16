@@ -2,25 +2,25 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:scripture/scripture.dart';
-import 'package:studyapp/app_state.dart';
-import 'package:studyapp/common/reference.dart';
-import 'package:studyapp/l10n/app_languages.dart';
-import 'package:studyapp/l10n/app_localizations.dart';
-import 'package:studyapp/l10n/book_names.dart';
-import 'package:studyapp/services/app_guide/app_guide_manager.dart';
-import 'package:studyapp/services/resources/remote_asset_service.dart';
-import 'package:studyapp/services/bible/bible_service.dart';
-import 'package:studyapp/services/download/cancel_token.dart';
-import 'package:studyapp/services/download/download.dart';
-import 'package:studyapp/services/service_locator.dart';
-import 'package:studyapp/services/settings/user_settings.dart';
-import 'package:studyapp/ui/common/download_progress_dialog.dart';
-import 'package:studyapp/ui/common/resource_ui_helper.dart';
-import 'package:studyapp/ui/home/appbar/reference_chooser/reference_chooser.dart';
-import 'package:studyapp/ui/home/audio/audio_logic.dart';
-import 'package:studyapp/ui/home/audio/audio_manager.dart';
-import 'package:studyapp/ui/home/common/scroll_sync_controller.dart';
-import 'package:studyapp/services/reading_session/rs_manager.dart';
+import 'package:gbt/app_state.dart';
+import 'package:gbt/common/reference.dart';
+import 'package:gbt/l10n/app_languages.dart';
+import 'package:gbt/l10n/app_localizations.dart';
+import 'package:gbt/l10n/book_names.dart';
+import 'package:gbt/services/app_guide/app_guide_manager.dart';
+import 'package:gbt/services/resources/remote_asset_service.dart';
+import 'package:gbt/services/bible/bible_service.dart';
+import 'package:gbt/services/download/cancel_token.dart';
+import 'package:gbt/services/download/download.dart';
+import 'package:gbt/services/service_locator.dart';
+import 'package:gbt/services/settings/user_settings.dart';
+import 'package:gbt/ui/common/download_progress_dialog.dart';
+import 'package:gbt/ui/common/resource_ui_helper.dart';
+import 'package:gbt/ui/home/appbar/reference_chooser/reference_chooser.dart';
+import 'package:gbt/ui/home/audio/audio_logic.dart';
+import 'package:gbt/ui/home/audio/audio_manager.dart';
+import 'package:gbt/ui/home/common/scroll_sync_controller.dart';
+import 'package:gbt/services/reading_session/rs_manager.dart';
 
 class HomeManager {
   final currentReference = ValueNotifier<Reference>(

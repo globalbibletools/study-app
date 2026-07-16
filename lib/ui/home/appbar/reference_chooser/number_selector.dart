@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:studyapp/ui/home/appbar/reference_chooser/reference_input_field.dart';
+import 'package:gbt/ui/home/appbar/reference_chooser/reference_input_field.dart';
 
 import 'swipeable_selector.dart';
 
