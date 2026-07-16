@@ -22,7 +22,11 @@ class GlossService {
     // English ships bundled in the app assets. Seed it into the same on-disk
     // location used for downloaded glosses so it's treated uniformly.
     await _glossDb.seedBundledGloss('eng');
-    await _glossDb.initDb(_settings.glossLang);
+
+    final langCode = _settings.glossLang;
+    if (langCode != null) {
+      await _glossDb.initDb(langCode);
+    }
   }
 
   Future<void> downloadGlosses(
@@ -55,12 +59,16 @@ class GlossService {
   }) async {
     final langCode = _settings.glossLang;
 
+    // No gloss language chosen yet — there is nothing to look up.
+    if (langCode == null) return null;
+
     final dbExists = await _glossDb.glossDbExists(langCode);
 
     if (dbExists) {
       return await _glossDb.getGloss(langCode, wordId);
     } else {
       onDatabaseMissing?.call(langCode);
+      return null;
     }
   }
 

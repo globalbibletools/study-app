@@ -9,6 +9,11 @@ class UserSettings {
 
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
+
+    if (!(_prefs.getBool(_glossLangChosenKey) ?? false)) {
+      await _prefs.setString(_glossLangKey, 'eng');
+      await _prefs.setBool(_glossLangChosenKey, true);
+    }
   }
 
   static const _themeModeKey = 'themeMode';
@@ -20,6 +25,7 @@ class UserSettings {
   static const _wordDetailsFontScaleKey = 'wordDetailsFontScale';
   static const _localeKey = 'locale';
   static const _glossLangKey = 'glossLang';
+  static const _glossLangChosenKey = 'glossLangChosen';
   static const _isHebrewSearchKey = 'isHebrewSearch';
   static const _useSystemKeyboardKey = 'useSystemKeyboard';
   static const _currentBible = 'currentBible';
@@ -93,12 +99,17 @@ class UserSettings {
     }
   }
 
-  String get glossLang {
-    return _prefs.getString(_glossLangKey) ?? 'eng';
+  String? get glossLang {
+    return _prefs.getString(_glossLangKey);
   }
 
-  Future<void> setGlossLang(String code) async {
-    await _prefs.setString(_glossLangKey, code);
+  Future<void> setGlossLang(String? code) async {
+    if (code == null) {
+      await _prefs.remove(_glossLangKey);
+    } else {
+      await _prefs.setString(_glossLangKey, code);
+    }
+    await _prefs.setBool(_glossLangChosenKey, true);
   }
 
   bool get isHebrewSearch {

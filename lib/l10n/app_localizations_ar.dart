@@ -42,6 +42,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get glossLanguage => 'لغة التفسير';
 
   @override
+  String get glossNone => 'لا شيء';
+
+  @override
   String get currentLanguage => 'العربية';
 
   @override

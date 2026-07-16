@@ -170,6 +170,12 @@ abstract class AppLocalizations {
   /// **'Gloss Language'**
   String get glossLanguage;
 
+  /// Displayed in settings when no gloss language is selected
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get glossNone;
+
   /// The name of the language for this locale
   ///
   /// In en, this message translates to:
