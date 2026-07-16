@@ -94,7 +94,7 @@ class UserSettings {
   }
 
   String? get glossLang {
-    const lang = _prefs.getString(_glossLangKey);
+    final lang = _prefs.getString(_glossLangKey);
     if (lang == null) return "eng";
     if (lang == "") return null;
     return lang;
@@ -102,7 +102,7 @@ class UserSettings {
 
   Future<void> setGlossLang(String? code) async {
     if (code == null) {
-      await _prefs.setString("");
+      await _prefs.setString(_glossLangKey, "");
     } else {
       await _prefs.setString(_glossLangKey, code);
     }
