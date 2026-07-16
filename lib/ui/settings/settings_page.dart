@@ -103,12 +103,29 @@ class _SettingsPageState extends State<SettingsPage> {
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
                 onTap: () async {
+                  final previousCode = manager.currentGlossLangCode;
                   final selected = await _chooseGlossLanguage();
                   if (selected == null ||
-                      selected.code == manager.currentGlossLangCode) {
+                      selected.code == previousCode) {
                     return;
                   }
+
+                  // Immediately set so the UI reflects the selection
                   await manager.setGlossLang(selected.code);
+
+                  // English is built-in, no download needed
+                  if (selected.code == 'eng') return;
+                  if (!context.mounted) return;
+
+                  final success = await ResourceUIHelper.ensureGloss(
+                    context,
+                    selected.code,
+                  );
+
+                  if (!success && context.mounted) {
+                    // Revert if they cancelled or it failed
+                    await manager.setGlossLang(previousCode);
+                  }
                 },
               ),
 
