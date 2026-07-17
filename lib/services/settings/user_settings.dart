@@ -93,12 +93,19 @@ class UserSettings {
     }
   }
 
-  String get glossLang {
-    return _prefs.getString(_glossLangKey) ?? 'eng';
+  String? get glossLang {
+    final lang = _prefs.getString(_glossLangKey);
+    if (lang == null) return "eng";
+    if (lang == "") return null;
+    return lang;
   }
 
-  Future<void> setGlossLang(String code) async {
-    await _prefs.setString(_glossLangKey, code);
+  Future<void> setGlossLang(String? code) async {
+    if (code == null) {
+      await _prefs.setString(_glossLangKey, "");
+    } else {
+      await _prefs.setString(_glossLangKey, code);
+    }
   }
 
   bool get isHebrewSearch {

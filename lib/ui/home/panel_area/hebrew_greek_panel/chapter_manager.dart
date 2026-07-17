@@ -78,9 +78,8 @@ class HebrewGreekChapterManager {
     );
   }
 
-  // Called from the UI when user wants to use English instead of downloading.
-  Future<void> setGlossToEnglish() async {
-    await _settings.setGlossLang('eng');
+  Future<void> unsetGlossLang() async {
+    await _settings.setGlossLang(null);
   }
 
   String getVerseText(int verse) {

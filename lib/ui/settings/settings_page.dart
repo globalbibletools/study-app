@@ -35,6 +35,9 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
+  /// Sentinel representing "no gloss language" in the picker.
+  static final _noneGloss = GlossResource(name: '', code: '');
+
   Future<GlossResource?> _chooseGlossLanguage() async {
     return await showDialog<GlossResource>(
       context: context,
@@ -42,12 +45,18 @@ class _SettingsPageState extends State<SettingsPage> {
         final textStyle = Theme.of(context).textTheme.bodyLarge;
         return SimpleDialog(
           title: Text(AppLocalizations.of(context)!.glossLanguage),
-          children: manager.glossResources.map((resource) {
-            return SimpleDialogOption(
-              onPressed: () => Navigator.pop(context, resource),
-              child: Text(resource.name, style: textStyle),
-            );
-          }).toList(),
+          children: [
+            SimpleDialogOption(
+              onPressed: () => Navigator.pop(context, _noneGloss),
+              child: Text(AppLocalizations.of(context)!.glossNone, style: textStyle),
+            ),
+            ...manager.glossResources.map((resource) {
+              return SimpleDialogOption(
+                onPressed: () => Navigator.pop(context, resource),
+                child: Text(resource.name, style: textStyle),
+              );
+            }),
+          ],
         );
       },
     );
@@ -99,22 +108,28 @@ class _SettingsPageState extends State<SettingsPage> {
               ListTile(
                 title: Text(l10n.glossLanguage),
                 trailing: Text(
-                  manager.currentGlossLangName,
+                  manager.currentGlossLangName ?? l10n.glossNone,
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
                 onTap: () async {
                   final previousCode = manager.currentGlossLangCode;
                   final selected = await _chooseGlossLanguage();
-                  if (selected == null ||
-                      selected.code == previousCode) {
+                  // Dismissed without a selection.
+                  if (selected == null) return;
+
+                  // User chose "None" — unset the gloss language.
+                  if (selected == _noneGloss) {
+                    await manager.setGlossLang(null);
+                    return;
+                  }
+
+                  if (selected.code == previousCode) {
                     return;
                   }
 
                   // Immediately set so the UI reflects the selection
                   await manager.setGlossLang(selected.code);
 
-                  // English is built-in, no download needed
-                  if (selected.code == 'eng') return;
                   if (!context.mounted) return;
 
                   final success = await ResourceUIHelper.ensureGloss(

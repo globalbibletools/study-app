@@ -11,6 +11,7 @@
     "settings": "Ajustes",
     "language": "Idioma",
     "glossLanguage": "Idioma del glosario",
+    "glossNone": "Ninguno",
     "currentLanguage": "Español",
     "textSize": "Tamaño del texto",
     "hebrewTextSize": "Hebreo",

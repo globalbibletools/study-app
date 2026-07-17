@@ -42,6 +42,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get glossLanguage => 'Idioma do glossário';
 
   @override
+  String get glossNone => 'Nenhum';
+
+  @override
   String get currentLanguage => 'Português';
 
   @override

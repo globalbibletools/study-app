@@ -44,6 +44,10 @@
   "@glossLanguage": {
     "description": "Settings menu item to change the gloss (translation) language"
   },
+  "glossNone": "None",
+  "@glossNone": {
+    "description": "Displayed in settings when no gloss language is selected"
+  },
   "currentLanguage": "English",
   "@currentLanguage": {
     "description": "The name of the language for this locale"

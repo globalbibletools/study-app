@@ -1,5 +1,8 @@
 import 'dart:developer';
+import 'dart:io';
+
 import 'package:database_builder/database_builder.dart'; // Assuming this is where GlossSchema lives
+import 'package:flutter/services.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:gbt/services/files/file_service.dart';
 import 'package:gbt/services/service_locator.dart';
@@ -36,8 +39,29 @@ class GlossDatabase {
     return _fileService.checkFileExists(FileType.gloss, filename);
   }
 
+  Future<void> seedBundledGloss(String langCode) async {
+    final filename = getDbFilename(langCode);
+    final exists = await _fileService.checkFileExists(FileType.gloss, filename);
+    if (exists) return;
+
+    final destPath = await _fileService.getLocalPath(FileType.gloss, filename);
+    await _fileService.ensureDirectoryExists(destPath);
+
+    try {
+      final data = await rootBundle.load('assets/databases/$filename');
+      final bytes = data.buffer.asUint8List(
+        data.offsetInBytes,
+        data.lengthInBytes,
+      );
+      await File(destPath).writeAsBytes(bytes, flush: true);
+      log('Seeded bundled gloss for $langCode at $destPath');
+    } catch (e, s) {
+      log('Failed to seed bundled gloss for $langCode', error: e, stackTrace: s);
+    }
+  }
+
   Future<void> initDb(String langCode) async {
-    if (langCode == 'eng' || _currentLangCode == langCode) {
+    if (_currentLangCode == langCode) {
       return;
     }
 

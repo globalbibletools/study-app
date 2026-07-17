@@ -11,6 +11,7 @@
     "settings": "الإعدادات",
     "language": "اللغة",
     "glossLanguage": "لغة التفسير",
+    "glossNone": "لا شيء",
     "currentLanguage": "العربية",
     "textSize": "حجم النص",
     "hebrewTextSize": "العبرية",

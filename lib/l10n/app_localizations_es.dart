@@ -42,6 +42,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get glossLanguage => 'Idioma del glosario';
 
   @override
+  String get glossNone => 'Ninguno';
+
+  @override
   String get currentLanguage => 'Español';
 
   @override

@@ -43,10 +43,11 @@ class SettingsManager extends ChangeNotifier {
     return _glossDb.glossResources;
   }
 
-  String get currentGlossLangCode => _settings.glossLang;
+  String? get currentGlossLangCode => _settings.glossLang;
 
-  String get currentGlossLangName {
+  String? get currentGlossLangName {
     final code = currentGlossLangCode;
+    if (code == null) return null;
     return glossResources
         .firstWhere(
           (r) => r.code == code,
@@ -55,7 +56,7 @@ class SettingsManager extends ChangeNotifier {
         .name;
   }
 
-  Future<void> setGlossLang(String code) async {
+  Future<void> setGlossLang(String? code) async {
     await _settings.setGlossLang(code);
     notifyListeners();
   }
