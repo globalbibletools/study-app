@@ -6,6 +6,8 @@ import 'package:flutter/services.dart';
 import 'package:gbt/services/bible/bible_service.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/services/download/cancel_token.dart';
+import 'package:gbt/services/download/download.dart';
+import 'package:gbt/services/resources/remote_asset_service.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -61,6 +63,9 @@ class ResourceService {
     Resource(name: 'العربية', id: 'are'),
   ];
 
+  final _downloadService = getIt<DownloadService>();
+  final _assetService = getIt<RemoteAssetService>();
+
   Future<List<Resource>> getResourcesByType(ResourceType resourceType) async {
       return glossResources;
   }
@@ -90,6 +95,30 @@ class ResourceService {
     }
 
     return filePath;
+  }
+
+  Future<void> downloadResource(
+    ResourceType resourceType,
+    String id, {
+    ValueChanged<double>? onProgress,
+    required CancelToken cancelToken,
+  }) async {
+    final asset = _assetService.getGlossAsset(id);
+
+    log('Downloading glosses for $id from ${asset.remoteUrl}');
+
+    try {
+      await _downloadService.downloadAsset(
+        asset: asset,
+        onProgress: onProgress,
+        cancelToken: cancelToken,
+      );
+
+      log('Gloss download successful.');
+    } catch (e) {
+      log('Gloss download failed for $id', error: e);
+      rethrow;
+    }
   }
 
   Future<void> seedBundledResource(

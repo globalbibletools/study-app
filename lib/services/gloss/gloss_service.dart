@@ -28,30 +28,6 @@ class GlossService {
     }
   }
 
-  Future<void> downloadGlosses(
-    String langCode, {
-    ValueChanged<double>? onProgress,
-    CancelToken? cancelToken,
-  }) async {
-    final asset = _assetService.getGlossAsset(langCode);
-
-    log('Downloading glosses for $langCode from ${asset.remoteUrl}');
-
-    try {
-      await _downloadService.downloadAsset(
-        asset: asset,
-        onProgress: onProgress,
-        cancelToken: cancelToken,
-      );
-
-      await _glossDb.initDb(langCode);
-      log('Gloss download and initialization successful.');
-    } catch (e) {
-      log('Gloss download failed for $langCode: $e');
-      rethrow;
-    }
-  }
-
   Future<String?> glossForId({
     required int wordId,
     void Function(String)? onDatabaseMissing,
