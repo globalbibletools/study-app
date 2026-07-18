@@ -7,11 +7,13 @@ import 'package:gbt/services/download/download.dart';
 import 'package:gbt/services/gloss/gloss_database.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/services/settings/user_settings.dart';
+import 'package:gbt/services/resources/resource_service.dart';
 
 class GlossService {
   final _settings = getIt<UserSettings>();
   final _downloadService = getIt<DownloadService>();
   final _assetService = getIt<RemoteAssetService>();
+  final _resourceService = getIt<ResourceService>();
 
   final _glossDb = GlossDatabase();
 
@@ -21,7 +23,7 @@ class GlossService {
   Future<void> init() async {
     // English ships bundled in the app assets. Seed it into the same on-disk
     // location used for downloaded glosses so it's treated uniformly.
-    await _glossDb.seedBundledGloss('eng');
+    await _resourceService.seedBundledResource(ResourceType.Gloss, 'eng');
 
     final langCode = _settings.glossLang;
     if (langCode != null) {
