@@ -11,13 +11,6 @@ class SettingsManager extends ChangeNotifier {
   final _settings = getIt<UserSettings>();
   final appState = getIt<AppState>();
 
-  ThemeMode get currentThemeMode => appState.themeMode;
-
-  void setThemeMode(ThemeMode mode) {
-    appState.updateThemeMode(mode);
-    notifyListeners();
-  }
-
   Locale get currentLocale => _settings.locale;
 
   String get currentLanguageName {
