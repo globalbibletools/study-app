@@ -50,7 +50,7 @@ class SettingsManager extends ChangeNotifier {
     if (code == null) return null;
     return glossResources
         .firstWhere(
-          (r) => r.code == code,
+          (r) => r.id == code,
           orElse: () => glossResources.first,
         )
         .name;

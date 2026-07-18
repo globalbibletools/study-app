@@ -24,16 +24,6 @@ class GlossDatabase {
     return '$langCode.db';
   }
 
-  List<GlossResource> getGlossResources() {
-    return const [
-      GlossResource(name: 'English', code: 'eng'),
-      GlossResource(name: 'Español', code: 'spa'),
-      GlossResource(name: 'Français', code: 'fra'),
-      GlossResource(name: 'Português', code: 'por'),
-      GlossResource(name: 'العربية', code: 'are'),
-    ];
-  }
-
   Future<bool> glossDbExists(String langCode) async {
     final filename = getDbFilename(langCode);
     return _fileService.checkFileExists(FileType.gloss, filename);

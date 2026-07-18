@@ -18,7 +18,9 @@ class GlossService {
   final _glossDb = GlossDatabase();
 
   /// The list of available gloss resources (languages).
-  List<GlossResource> get glossResources => _glossDb.getGlossResources();
+  Future<List<Resource>> getGlossResources() async {
+    return _resourceService.getResourcesByType(ResourceType.Gloss);
+  }
 
   Future<void> init() async {
     // English ships bundled in the app assets. Seed it into the same on-disk

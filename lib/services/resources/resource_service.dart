@@ -23,6 +23,16 @@ class ResourceTypeConfig {
   });
 }
 
+class Resource {
+    String id;
+    String name;
+
+    const Resource({
+      required this.id,
+      required this.name,
+    });
+}
+
 class ResourceMissingException implements Exception {
   final ResourceType resourceType;
   final String id;
@@ -43,19 +53,16 @@ class ResourceService {
       prebundledPathTemplate: 'databases/{id}.db',
     ),
   };
+  static const List<Resource> glossResources = [
+    Resource(name: 'English', id: 'eng'),
+    Resource(name: 'Español', id: 'spa'),
+    Resource(name: 'Français', id: 'fra'),
+    Resource(name: 'Português', id: 'por'),
+    Resource(name: 'العربية', id: 'are'),
+  ];
 
-  Future<String> _resolveLocalFilePath(
-    ResourceType resourceType,
-    String id,
-  ) async {
-    final config = resourceConfigs[resourceType];
-    if (config == null) {
-        throw Exception('Config not found for resource ${resourceType.name}');
-    }
-
-    final relativePath = config.localPathTemplate.replaceAll('{id}', id);
-    final docDir = await getApplicationDocumentsDirectory();
-    return join(docDir.path, relativePath);
+  Future<List<Resource>> getResourcesByType(ResourceType resourceType) async {
+      return glossResources;
   }
 
   Future<bool> resourceExists(
@@ -125,6 +132,20 @@ class ResourceService {
         stackTrace: s
       );
     }
+  }
+
+  Future<String> _resolveLocalFilePath(
+    ResourceType resourceType,
+    String id,
+  ) async {
+    final config = resourceConfigs[resourceType];
+    if (config == null) {
+        throw Exception('Config not found for resource ${resourceType.name}');
+    }
+
+    final relativePath = config.localPathTemplate.replaceAll('{id}', id);
+    final docDir = await getApplicationDocumentsDirectory();
+    return join(docDir.path, relativePath);
   }
 
   final _bibleService = getIt<BibleService>();
