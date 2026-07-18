@@ -24,8 +24,8 @@ class ResourceTypeConfig {
 }
 
 class Resource {
-    String id;
-    String name;
+    final String id;
+    final String name;
 
     const Resource({
       required this.id,
