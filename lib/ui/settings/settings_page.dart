@@ -4,8 +4,10 @@ import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/services/gloss/gloss_database.dart';
 import 'package:gbt/ui/common/resource_ui_helper.dart';
 import 'package:gbt/services/settings/user_settings.dart';
+import 'package:gbt/services/service_locator.dart';
 
 import 'settings_manager.dart';
+import 'section_font_size.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -185,68 +187,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 },
               ),
 
-              // EXPANDABLE TEXT SIZE SECTION
-              ExpansionTile(
-                title: Text(l10n.textSize),
-                children: [
-                  // 1. Hebrew
-                  ListTile(
-                    title: Text(l10n.hebrewTextSize),
-                    trailing: Text('${manager.hebrewTextSize.toInt()}'),
-                    contentPadding: const EdgeInsets.only(left: 32, right: 16),
-                    onTap: () {
-                      _showFontSizeDialog(
-                        context,
-                        previewText: 'א',
-                        currentValue: manager.hebrewTextSize,
-                        onChanged: manager.setHebrewTextSize,
-                      );
-                    },
-                  ),
-                  // 2. Greek
-                  ListTile(
-                    title: Text(l10n.greekTextSize),
-                    trailing: Text('${manager.greekTextSize.toInt()}'),
-                    contentPadding: const EdgeInsets.only(left: 32, right: 16),
-                    onTap: () {
-                      _showFontSizeDialog(
-                        context,
-                        previewText: 'α',
-                        currentValue: manager.greekTextSize,
-                        onChanged: manager.setGreekTextSize,
-                      );
-                    },
-                  ),
-                  // 3. Second Panel
-                  ListTile(
-                    title: Text(l10n.secondPanelTextSize),
-                    trailing: Text('${manager.bibleTextSize.toInt()}'),
-                    contentPadding: const EdgeInsets.only(left: 32, right: 16),
-                    onTap: () {
-                      _showFontSizeDialog(
-                        context,
-                        previewText: 'A a',
-                        currentValue: manager.bibleTextSize,
-                        onChanged: manager.setBibleTextSize,
-                      );
-                    },
-                  ),
-                  // 4. Lexicon
-                  ListTile(
-                    title: Text(l10n.lexiconTextSize),
-                    trailing: Text('${manager.lexiconTextSize.toInt()}'),
-                    contentPadding: const EdgeInsets.only(left: 32, right: 16),
-                    onTap: () {
-                      _showFontSizeDialog(
-                        context,
-                        previewText: 'A a',
-                        currentValue: manager.lexiconTextSize,
-                        onChanged: manager.setLexiconTextSize,
-                      );
-                    },
-                  ),
-                ],
-              ),
+              FontSizeSection(),
             ],
           );
         },
@@ -284,45 +225,6 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  Future<dynamic> _showFontSizeDialog(
-    BuildContext context, {
-    required double currentValue,
-    required Function(double) onChanged,
-    required String previewText,
-  }) {
-    return showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        content: SizedBox(
-          height: 150,
-          child: StatefulBuilder(
-            builder: (context, setState) {
-              return Column(
-                children: [
-                  const Spacer(),
-                  Text(previewText, style: TextStyle(fontSize: currentValue)),
-                  const Spacer(),
-                  Slider(
-                    value: currentValue,
-                    min: manager.minFontSize,
-                    max: manager.maxFontSize,
-                    divisions: manager.fontSizeDivisions,
-                    label: currentValue.toStringAsFixed(1),
-                    onChanged: (value) {
-                      onChanged(value);
-                      setState(() {
-                        currentValue = value;
-                      });
-                    },
-                  ),
-                ],
-              );
-            },
-          ),
-        ),
-      ),
-    );
-  }
 
   Future<VerseLayout?> _chooseVerseLayout() async {
     final l10n = AppLocalizations.of(context)!;
@@ -352,3 +254,4 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 }
+

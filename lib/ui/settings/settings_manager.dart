@@ -60,44 +60,4 @@ class SettingsManager extends ChangeNotifier {
     await _settings.setGlossLang(code);
     notifyListeners();
   }
-
-  double get minFontSize => 10;
-  double get maxFontSize => 60;
-  int get fontSizeDivisions => 50;
-
-  double get hebrewTextSize =>
-      (_settings.baseFontSize * _settings.hebrewFontScale).roundToDouble();
-
-  Future<void> setHebrewTextSize(double fontSize) async {
-    final scale = fontSize / _settings.baseFontSize;
-    await _settings.setHebrewFontScale(scale);
-    notifyListeners();
-  }
-
-  double get greekTextSize =>
-      (_settings.baseFontSize * _settings.greekFontScale).roundToDouble();
-
-  Future<void> setGreekTextSize(double fontSize) async {
-    final scale = fontSize / _settings.baseFontSize;
-    await _settings.setGreekFontScale(scale);
-    notifyListeners();
-  }
-
-  double get bibleTextSize =>
-      (_settings.baseFontSize * _settings.bibleFontScale).roundToDouble();
-
-  Future<void> setBibleTextSize(double fontSize) async {
-    final scale = fontSize / _settings.baseFontSize;
-    await _settings.setBibleFontScale(scale);
-    notifyListeners();
-  }
-
-  double get lexiconTextSize =>
-      (_settings.baseFontSize * _settings.wordDetailsFontScale).roundToDouble();
-
-  Future<void> setLexiconTextSize(double fontSize) async {
-    final scale = fontSize / _settings.baseFontSize;
-    await _settings.setWordDetailsFontScale(scale);
-    notifyListeners();
-  }
 }
