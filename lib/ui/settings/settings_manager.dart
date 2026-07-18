@@ -4,6 +4,7 @@ import 'package:gbt/l10n/app_languages.dart';
 import 'package:gbt/services/gloss/gloss_database.dart';
 import 'package:gbt/services/gloss/gloss_service.dart';
 import 'package:gbt/services/service_locator.dart';
+
 import 'package:gbt/services/settings/user_settings.dart';
 
 class SettingsManager extends ChangeNotifier {
@@ -12,15 +13,8 @@ class SettingsManager extends ChangeNotifier {
 
   ThemeMode get currentThemeMode => appState.themeMode;
 
-  VerseLayout get verseLayout => _settings.verseLayout;
-
   void setThemeMode(ThemeMode mode) {
     appState.updateThemeMode(mode);
-    notifyListeners();
-  }
-
-  void setVerseLayout(VerseLayout value) {
-    _settings.setVerseLayout(value);
     notifyListeners();
   }
 
