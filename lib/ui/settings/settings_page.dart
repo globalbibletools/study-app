@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:gbt/l10n/app_languages.dart';
 import 'package:gbt/l10n/app_localizations.dart';
-import 'package:gbt/services/gloss/gloss_database.dart';
 import 'package:gbt/ui/common/resource_ui_helper.dart';
 import 'package:gbt/services/settings/user_settings.dart';
 import 'package:gbt/services/service_locator.dart';
 
 import 'settings_manager.dart';
 import 'section_font_size.dart';
+import 'section_gloss_language.dart';
 import 'section_theme.dart';
 import 'section_verse_layout.dart';
 
@@ -34,33 +34,6 @@ class _SettingsPageState extends State<SettingsPage> {
               child: Text(config.nativeName, style: textStyle),
             );
           }).toList(),
-        );
-      },
-    );
-  }
-
-  /// Sentinel representing "no gloss language" in the picker.
-  static final _noneGloss = GlossResource(name: '', code: '');
-
-  Future<GlossResource?> _chooseGlossLanguage() async {
-    return await showDialog<GlossResource>(
-      context: context,
-      builder: (BuildContext context) {
-        final textStyle = Theme.of(context).textTheme.bodyLarge;
-        return SimpleDialog(
-          title: Text(AppLocalizations.of(context)!.glossLanguage),
-          children: [
-            SimpleDialogOption(
-              onPressed: () => Navigator.pop(context, _noneGloss),
-              child: Text(AppLocalizations.of(context)!.glossNone, style: textStyle),
-            ),
-            ...manager.glossResources.map((resource) {
-              return SimpleDialogOption(
-                onPressed: () => Navigator.pop(context, resource),
-                child: Text(resource.name, style: textStyle),
-              );
-            }),
-          ],
         );
       },
     );
@@ -108,45 +81,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 },
               ),
 
-              // Gloss Language
-              ListTile(
-                title: Text(l10n.glossLanguage),
-                trailing: Text(
-                  manager.currentGlossLangName ?? l10n.glossNone,
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-                onTap: () async {
-                  final previousCode = manager.currentGlossLangCode;
-                  final selected = await _chooseGlossLanguage();
-                  // Dismissed without a selection.
-                  if (selected == null) return;
-
-                  // User chose "None" — unset the gloss language.
-                  if (selected == _noneGloss) {
-                    await manager.setGlossLang(null);
-                    return;
-                  }
-
-                  if (selected.code == previousCode) {
-                    return;
-                  }
-
-                  // Immediately set so the UI reflects the selection
-                  await manager.setGlossLang(selected.code);
-
-                  if (!context.mounted) return;
-
-                  final success = await ResourceUIHelper.ensureGloss(
-                    context,
-                    selected.code,
-                  );
-
-                  if (!success && context.mounted) {
-                    // Revert if they cancelled or it failed
-                    await manager.setGlossLang(previousCode);
-                  }
-                },
-              ),
+              GlossLanguageSection(),
 
               ThemeSection(),
 
