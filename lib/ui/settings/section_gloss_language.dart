@@ -2,8 +2,6 @@ import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:gbt/l10n/app_localizations.dart';
-import 'package:gbt/services/gloss/gloss_database.dart';
-import 'package:gbt/services/gloss/gloss_service.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/services/settings/user_settings.dart';
 import 'package:gbt/services/resources/resource_service.dart';
@@ -18,7 +16,7 @@ class GlossLanguageSection extends StatefulWidget {
 
 class _GlossLanguageSectionState extends State<GlossLanguageSection> {
   final _settings = getIt<UserSettings>();
-  final _glossService = getIt<GlossService>();
+  final _resourceService = getIt<ResourceService>();
 
   List<Resource> glossResources = [];
 
@@ -28,7 +26,7 @@ class _GlossLanguageSectionState extends State<GlossLanguageSection> {
 
   Future<void> _initGlossResources() async {
     try {
-      glossResources = await _glossService.getGlossResources();
+      glossResources = await _resourceService.getResourcesByType(ResourceType.Gloss);
       setState(() {});
     } catch (err, stack) {
       log('Failed to initialize gloss resources', error: err, stackTrace: stack);
