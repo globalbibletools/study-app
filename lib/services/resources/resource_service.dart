@@ -66,6 +66,12 @@ class ResourceService {
   final _downloadService = getIt<DownloadService>();
   final _assetService = getIt<RemoteAssetService>();
 
+  ResourceService() {
+    seedBundledResource(ResourceType.Gloss, 'eng').catchError((e) {
+        log("Error copying bundled resources to resource manager", error: e);
+    });
+  }
+
   Future<List<Resource>> getResourcesByType(ResourceType resourceType) async {
       return glossResources;
   }

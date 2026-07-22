@@ -10,12 +10,6 @@ class GlossService {
   GlossDatabase? _db;
   String? _currentLangCode;
 
-  Future<void> init() async {
-    // English ships bundled in the app assets. Seed it into the same on-disk
-    // location used for downloaded glosses so it's treated uniformly.
-    await _resourceService.seedBundledResource(ResourceType.Gloss, 'eng');
-  }
-
   Future<bool> glossesExists(String langCode) async {
     return _resourceService.resourceExists(ResourceType.Gloss, langCode);
   }
