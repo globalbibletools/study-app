@@ -78,7 +78,7 @@ class ResourceService {
     return await File(filePath).exists();
   }
 
-  Future<String?> getResourceLocalPath(
+  Future<String> getResourceLocalPath(
     ResourceType resourceType,
     String id,
   ) async {
