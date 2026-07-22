@@ -19,7 +19,6 @@ Future<void> main() async {
   setupServiceLocator();
   await getIt<UserSettings>().init();
   await getIt<HebrewGreekDatabase>().init();
-  await getIt<GlossService>().init();
   // TODO: Maybe we should delay loading the lexicon until it is needed.
   await getIt<LexiconsDatabase>().init();
   await getIt<BibleService>().init();

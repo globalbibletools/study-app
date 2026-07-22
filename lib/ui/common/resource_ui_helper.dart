@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/services/download/cancel_token.dart';
-import 'package:gbt/services/gloss/gloss_service.dart';
 import 'package:gbt/services/resources/resource_service.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/common/download_progress_dialog.dart';
@@ -73,8 +72,10 @@ class ResourceUIHelper {
     BuildContext context,
     String langCode,
   ) async {
-    final glossService = getIt<GlossService>();
-    if (await glossService.glossesExists(langCode)) return true;
+    final resourceService = getIt<ResourceService>();
+    if (await resourceService.resourceExists(ResourceType.Gloss, langCode)) {
+      return true;
+    }
 
     if (!context.mounted) return false;
     final l10n = AppLocalizations.of(context)!;
@@ -107,7 +108,8 @@ class ResourceUIHelper {
       if (!context.mounted) throw Exception('Context not mounted');
       await DownloadProgressDialog.show(
         context: context,
-        task: (progress, token) => glossService.downloadGlosses(
+        task: (progress, token) => resourceService.downloadResource(
+          ResourceType.Gloss,
           langCode,
           onProgress: (p) => progress.value = p,
           cancelToken: token,

@@ -1,9 +1,10 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:gbt/l10n/app_localizations.dart';
-import 'package:gbt/services/gloss/gloss_database.dart';
-import 'package:gbt/services/gloss/gloss_service.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/services/settings/user_settings.dart';
+import 'package:gbt/services/resources/resource_service.dart';
 import 'package:gbt/ui/common/resource_ui_helper.dart';
 
 class GlossLanguageSection extends StatefulWidget {
@@ -15,24 +16,38 @@ class GlossLanguageSection extends StatefulWidget {
 
 class _GlossLanguageSectionState extends State<GlossLanguageSection> {
   final _settings = getIt<UserSettings>();
-  final _glossDb = getIt<GlossService>();
+  final _resourceService = getIt<ResourceService>();
+
+  List<Resource> glossResources = [];
+
+  void initState() {
+    _initGlossResources();
+  }
+
+  Future<void> _initGlossResources() async {
+    try {
+      glossResources = await _resourceService.getResourcesByType(ResourceType.Gloss);
+      setState(() {});
+    } catch (err, stack) {
+      log('Failed to initialize gloss resources', error: err, stackTrace: stack);
+    }
+  }
+
 
   /// Sentinel representing "no gloss language" in the picker.
-  static final _noneGloss = GlossResource(name: '', code: '');
-
-  List<GlossResource> get glossResources => _glossDb.glossResources;
+  static final _noneGloss = Resource(name: '', id: '');
 
   String? get currentGlossLangCode => _settings.glossLang;
 
   String? get currentGlossLangName {
     final code = currentGlossLangCode;
     if (code == null) return null;
-    return glossResources
-        .firstWhere(
-          (r) => r.code == code,
-          orElse: () => glossResources.first,
-        )
-        .name;
+
+    try {
+      return glossResources.firstWhere((r) => r.id == code).name;
+    } catch (err) {
+      return null;
+    }
   }
 
   Future<void> setGlossLang(String? code) async {
@@ -45,7 +60,7 @@ class _GlossLanguageSectionState extends State<GlossLanguageSection> {
     final textStyle = Theme.of(context).textTheme.bodyLarge;
     final previousCode = currentGlossLangCode;
 
-    final selected = await showDialog<GlossResource>(
+    final selected = await showDialog<Resource>(
       context: context,
       builder: (BuildContext context) {
         return SimpleDialog(
@@ -66,19 +81,19 @@ class _GlossLanguageSectionState extends State<GlossLanguageSection> {
       },
     );
 
-    if (selected == null || selected.code == previousCode) return;
+    if (selected == null || selected.id == previousCode) return;
 
     if (selected == _noneGloss) {
       await setGlossLang(null);
       return;
     }
 
-    await setGlossLang(selected.code);
+    await setGlossLang(selected.id);
 
     if (!context.mounted) return;
     final success = await ResourceUIHelper.ensureGloss(
       context,
-      selected.code,
+      selected.id,
     );
 
     // Revert if they cancelled or it failed
