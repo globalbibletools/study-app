@@ -794,6 +794,54 @@ abstract class AppLocalizations {
   /// **'You reached your goal 🎉'**
   String get goalReachedMessage;
 
+  /// Navigate to previous month in goals view
+  ///
+  /// In en, this message translates to:
+  /// **'Previous month'**
+  String get previousMonth;
+
+  /// Navigate to next month in goals view
+  ///
+  /// In en, this message translates to:
+  /// **'Next month'**
+  String get nextMonth;
+
+  /// Navigate to previous week in goals view
+  ///
+  /// In en, this message translates to:
+  /// **'Previous week'**
+  String get previousWeek;
+
+  /// Navigate to next week in goals view
+  ///
+  /// In en, this message translates to:
+  /// **'Next week'**
+  String get nextWeek;
+
+  /// Message shown when a day has no reading sessions
+  ///
+  /// In en, this message translates to:
+  /// **'No reading logged for this day.'**
+  String get noReadingLogged;
+
+  /// Button to manually log reading for a day
+  ///
+  /// In en, this message translates to:
+  /// **'Add reading'**
+  String get addReading;
+
+  /// Title for manual reading log dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Log reading'**
+  String get logReadingTitle;
+
+  /// Explanation for manual reading log dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Add reading you completed on this day. This updates your daily goal but not verse-by-verse progress.'**
+  String get logReadingMessage;
+
   /// Prompt asking if the user wants to continue reading
   ///
   /// In en, this message translates to:

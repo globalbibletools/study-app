@@ -1,19 +1,38 @@
 import 'package:flutter/material.dart';
-import 'package:gbt/common/book_name.dart';
-import 'package:gbt/l10n/app_localizations.dart';
-import 'package:gbt/services/reading_session/rs_model.dart';
-import 'package:gbt/ui/home/reading_session/detailed_progress_panel_manager.dart';
+import 'package:studyapp/common/book_name.dart';
+import 'package:studyapp/l10n/app_localizations.dart';
+import 'package:studyapp/services/reading_session/rs_model.dart';
+import 'package:studyapp/ui/home/reading_session/detailed_progress_panel_manager.dart';
+import 'package:studyapp/ui/home/reading_session/manual_day_log_panel.dart';
+
+typedef ManualLogSavedCallback = Future<void> Function(int minutes, int verses);
 
 class DetailedProgressPanel extends StatefulWidget {
   final DetailedProgressPanelManager manager;
-  DetailedProgressPanel({super.key, required DateTime date})
-    : manager = DetailedProgressPanelManager(date);
+  final ManualLogSavedCallback? onManualLogSaved;
+
+  DetailedProgressPanel({
+    super.key,
+    required DateTime date,
+    this.onManualLogSaved,
+  }) : manager = DetailedProgressPanelManager(date);
 
   @override
   State<DetailedProgressPanel> createState() => _DetailedProgressPanelState();
 }
 
 class _DetailedProgressPanelState extends State<DetailedProgressPanel> {
+  bool get _canAddReading {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final date = DateTime(
+      widget.manager.date.year,
+      widget.manager.date.month,
+      widget.manager.date.day,
+    );
+    return !date.isAfter(today);
+  }
+
   @override
   void dispose() {
     widget.manager.dispose();
@@ -43,6 +62,11 @@ class _DetailedProgressPanelState extends State<DetailedProgressPanel> {
                 const SizedBox(height: 10),
 
                 _readingSection(),
+
+                if (_canAddReading) ...[
+                  const SizedBox(height: 12),
+                  _addReadingButton(),
+                ],
 
                 const SizedBox(height: 30),
 
@@ -100,9 +124,26 @@ class _DetailedProgressPanelState extends State<DetailedProgressPanel> {
 
   Widget _readingSection() {
     final screenHeight = MediaQuery.of(context).size.height;
+    final l10n = AppLocalizations.of(context)!;
     return ValueListenableBuilder<List<Session>>(
       valueListenable: widget.manager.details,
       builder: (context, data, _) {
+        if (data.isEmpty) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24),
+            child: Text(
+              l10n.noReadingLogged,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: Theme.of(context).colorScheme.onSurface.withValues(
+                  alpha: 0.6,
+                ),
+              ),
+            ),
+          );
+        }
+
         return ConstrainedBox(
           constraints: BoxConstraints(maxHeight: screenHeight * 0.5),
           child: ListView(
@@ -112,6 +153,39 @@ class _DetailedProgressPanelState extends State<DetailedProgressPanel> {
         );
       },
     );
+  }
+
+  Widget _addReadingButton() {
+    final l10n = AppLocalizations.of(context)!;
+
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: _openManualLogPanel,
+        icon: const Icon(Icons.add),
+        label: Text(l10n.addReading),
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openManualLogPanel() async {
+    final result = await showDialog<(int, int)>(
+      context: context,
+      builder: (context) => const ManualDayLogPanel(),
+    );
+
+    if (result == null || !mounted) {
+      return;
+    }
+
+    await widget.onManualLogSaved?.call(result.$1, result.$2);
+    await widget.manager.reload();
   }
 
   Widget _sessionCard(Session session) {

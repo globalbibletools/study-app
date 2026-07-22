@@ -61,6 +61,47 @@ class ReadingSessionPanelManager {
     dailyGoalNotifier.value = DailyGoal(type, value);
   }
 
+  DateTime get viewingMonth => _rsManager.viewingMonth;
+  DateTime get viewingWeekStart => _rsManager.viewingWeekStart;
+
+  bool get canGoToNextPeriod {
+    if (selectedGTabNotifier.value == GoalsTab.byMonth) {
+      return _rsManager.canGoToNextMonth;
+    }
+    return _rsManager.canGoToNextWeek;
+  }
+
+  Future<void> goToPreviousPeriod() async {
+    if (selectedGTabNotifier.value == GoalsTab.byMonth) {
+      await _rsManager.goToPreviousMonth();
+    } else {
+      await _rsManager.goToPreviousWeek();
+    }
+    onStatsUpdated();
+  }
+
+  Future<void> goToNextPeriod() async {
+    if (selectedGTabNotifier.value == GoalsTab.byMonth) {
+      await _rsManager.goToNextMonth();
+    } else {
+      await _rsManager.goToNextWeek();
+    }
+    onStatsUpdated();
+  }
+
+  Future<void> logManualDayEntry(
+    DateTime date,
+    int minutes,
+    int verses,
+  ) async {
+    await _rsManager.logManualDayEntry(
+      date,
+      minutes: minutes,
+      verses: verses,
+    );
+    onStatsUpdated();
+  }
+
   void dispose() {
     _rsManager.unsubsribeForBookProgress(onBookProgressUpdated);
     _rsManager.unsubsribeForStats(onStatsUpdated);

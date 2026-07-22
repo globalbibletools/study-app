@@ -426,6 +426,31 @@ class AppLocalizationsAr extends AppLocalizations {
   String get goalReachedMessage => 'لقد وصلت إلى هدفك 🎉';
 
   @override
+  String get previousMonth => 'الشهر السابق';
+
+  @override
+  String get nextMonth => 'الشهر التالي';
+
+  @override
+  String get previousWeek => 'الأسبوع السابق';
+
+  @override
+  String get nextWeek => 'الأسبوع التالي';
+
+  @override
+  String get noReadingLogged => 'لم يتم تسجيل أي قراءة لهذا اليوم.';
+
+  @override
+  String get addReading => 'إضافة قراءة';
+
+  @override
+  String get logReadingTitle => 'تسجيل القراءة';
+
+  @override
+  String get logReadingMessage =>
+      'أضف القراءة التي أنجزتها في هذا اليوم. يحدّث ذلك هدفك اليومي، ولكن ليس التقدم آية بآية.';
+
+  @override
   String get continueReadingPrompt => 'هل تريد متابعة جلسة القراءة؟';
 
   @override
