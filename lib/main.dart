@@ -9,6 +9,7 @@ import 'package:gbt/services/lexicon/database.dart';
 import 'package:gbt/services/reading_session/rs_database.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/services/settings/user_settings.dart';
+import 'package:gbt/services/resources/resource_service.dart';
 import 'package:gbt/ui/home/home.dart';
 
 import 'app_state.dart';
@@ -29,6 +30,8 @@ Future<void> main() async {
     androidNotificationChannelName: 'Audio playback',
     androidNotificationOngoing: true,
   );
+  // Don't await this to not block launching the app.
+  getIt<ResourceService>().refreshResources();
   runApp(const GbtStudyApp());
 }
 

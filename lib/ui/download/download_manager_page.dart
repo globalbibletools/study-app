@@ -6,6 +6,7 @@ import 'package:gbt/services/resources/remote_asset_service.dart';
 import 'package:gbt/services/download/cancel_token.dart';
 import 'package:gbt/services/download/download.dart';
 import 'package:gbt/services/files/file_service.dart';
+import 'package:gbt/services/resources/resource_service.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/common/download_progress_dialog.dart';
 import 'package:gbt/ui/home/audio/audio_logic.dart';
@@ -19,12 +20,38 @@ class DownloadManagerPage extends StatefulWidget {
 }
 
 class _DownloadManagerPageState extends State<DownloadManagerPage> {
+  final _resourceService = getIt<ResourceService>();
+  bool _refreshing = false;
+
+  Future<void> _refreshResources() async {
+    setState(() => _refreshing = true);
+    try {
+      await _resourceService.refreshResources();
+    } finally {
+      if (mounted) setState(() => _refreshing = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.downloads)),
+      appBar: AppBar(
+        title: Text(l10n.downloads),
+        actions: [
+          IconButton(
+            icon: _refreshing
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.refresh),
+            onPressed: _refreshing ? null : _refreshResources,
+          ),
+        ],
+      ),
       body: ListView(
         children: [
           _buildAudioSection(context, l10n),
