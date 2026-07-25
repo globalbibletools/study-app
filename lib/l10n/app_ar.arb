@@ -71,6 +71,7 @@
     "audio": "الصوت",
     "bibles": "الكتاب المقدس",
     "lexicons": "المعاجم",
+    "glosses": "التفاسير",
     "oldTestament": "العهد القديم",
     "newTestament": "العهد الجديد",
     "deleteAudioConfirmation": "هل تريد حذف جميع ملفات الصوت لسفر {book}؟",

@@ -255,6 +255,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get lexicons => 'Lexiques';
 
   @override
+  String get glosses => 'Glosses';
+
+  @override
   String get oldTestament => 'Ancien Testament';
 
   @override

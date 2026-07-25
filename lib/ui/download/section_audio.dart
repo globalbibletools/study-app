@@ -32,7 +32,7 @@ class _AudioSectionState extends State<AudioSection> {
       key: const PageStorageKey('audio_section_main'),
       leading: const Icon(Icons.headphones),
       title: Text(l10n.audio),
-      initiallyExpanded: true,
+      initiallyExpanded: false,
       children: [
         // ==========================================
         // OLD TESTAMENT

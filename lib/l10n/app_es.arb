@@ -71,6 +71,7 @@
     "audio": "Audio",
     "bibles": "Biblias",
     "lexicons": "Léxicos",
+    "glosses": "Glosas",
     "oldTestament": "Antiguo Testamento",
     "newTestament": "Nuevo Testamento",
     "deleteAudioConfirmation": "¿Eliminar todo el audio de {book}?",
