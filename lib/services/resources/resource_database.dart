@@ -24,6 +24,7 @@ class ResourceDatabase {
             id text primary key,
             resource_type text not null,
             server_state text not null,
+            install_state text not null default 'NotInstalled',
             server_updated_at text not null,
             sha_256 text not null,
             size integer not null,
@@ -63,7 +64,17 @@ class ResourceDatabase {
             resource_name = excluded.resource_name,
             creator_name = excluded.creator_name;
         ''',
-        [resource.id, resourceType.toString(), ServerState.Available.toString(), resource.updatedAt, resource.sha256, resource.size, resource.url, resource.resourceName, resource.creatorName],
+        [
+          resource.id,
+          resourceType.toString(),
+          ServerState.Available.toString(),
+          resource.updatedAt,
+          resource.sha256,
+          resource.size,
+          resource.url,
+          resource.resourceName,
+          resource.creatorName
+        ],
       );
     }
 
@@ -78,7 +89,7 @@ class ResourceDatabase {
       'resource',
       where: 'resource_type = ? AND server_state = ?',
       whereArgs: [resourceType.toString(), ServerState.Available.toString()],
-      columns: ['id', 'resource_name', 'creator_name', 'size'],
+      columns: ['id', 'resource_name', 'creator_name', 'size', 'install_state'],
     );
 
     return rows
@@ -88,9 +99,24 @@ class ResourceDatabase {
             resourceName: row['resource_name'] as String,
             creatorName: row['creator_name'] as String?,
             size: row['size'] as int,
+            installState: InstallState.values.firstWhere(
+              (s) => s.name == row['install_state'],
+              orElse: () => InstallState.NotInstalled,
+            ),
           ),
         )
         .toList();
+  }
+
+  Future<void> setInstallState(
+    String id,
+    InstallState installState,
+  ) async {
+    final db = await _database;
+    await db.rawUpdate(
+      'update resource set install_state = ? where id = ?;',
+      [installState.toString(), id],
+    );
   }
 }
 

@@ -106,6 +106,8 @@ class ResourceService {
         cancelToken: cancelToken,
       );
 
+      await _resourceDatabase.setInstallState(id, InstallState.Installed);
+
       log('Gloss download successful.');
     } catch (e) {
       log('Gloss download failed for $id', error: e);

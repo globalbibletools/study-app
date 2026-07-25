@@ -108,14 +108,16 @@ class _GlossDownloadTileState extends State<_GlossDownloadTile> {
     final l10n = AppLocalizations.of(context)!;
     final primaryColor = Theme.of(context).colorScheme.primary;
 
+    final isInstalled = widget.resource.installState == InstallState.Installed;
+
     return ListTile(
       contentPadding: const EdgeInsets.only(left: 32, right: 16),
       title: Text(widget.resource.resourceName),
       trailing: IconButton(
-        icon: const Icon(Icons.download),
+        icon: Icon(isInstalled ? Icons.delete : Icons.download),
         color: primaryColor,
-        onPressed: _downloading ? null : _download,
-        tooltip: l10n.download,
+        onPressed: (isInstalled || _downloading) ? null : _download,
+        tooltip: isInstalled ? l10n.delete : l10n.download,
       ),
     );
   }
