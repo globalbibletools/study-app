@@ -9,12 +9,12 @@ import 'package:gbt/services/download/cancel_token.dart';
 import 'package:gbt/services/download/download.dart';
 import 'package:gbt/services/resources/manifest_resource.dart';
 import 'package:gbt/services/resources/remote_asset_service.dart';
+import 'package:gbt/services/resources/resource.dart';
+import 'package:gbt/services/resources/resource_database.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 
-enum ResourceType {
-  Gloss
-}
+export 'package:gbt/services/resources/resource.dart';
 
 class ResourceTypeConfig {
   final String localPathTemplate;
@@ -24,16 +24,6 @@ class ResourceTypeConfig {
     required this.localPathTemplate,
     this.prebundledPathTemplate = null,
   });
-}
-
-class Resource {
-    final String id;
-    final String name;
-
-    const Resource({
-      required this.id,
-      required this.name,
-    });
 }
 
 class ResourceMissingException implements Exception {
@@ -56,16 +46,11 @@ class ResourceService {
       prebundledPathTemplate: 'databases/{id}.db',
     ),
   };
-  static const List<Resource> glossResources = [
-    Resource(name: 'English', id: 'eng'),
-    Resource(name: 'Español', id: 'spa'),
-    Resource(name: 'Français', id: 'fra'),
-    Resource(name: 'Português', id: 'por'),
-    Resource(name: 'العربية', id: 'are'),
-  ];
 
   final _downloadService = getIt<DownloadService>();
   final _assetService = getIt<RemoteAssetService>();
+
+  final ResourceDatabase _resourceDatabase = ResourceDatabase();
 
   ResourceService() {
     seedBundledResource(ResourceType.Gloss, 'eng').catchError((e) {
@@ -73,8 +58,8 @@ class ResourceService {
     });
   }
 
-  Future<List<Resource>> getResourcesByType(ResourceType resourceType) async {
-      return glossResources;
+  Future<List<ResourceView>> getResourcesByType(ResourceType resourceType) async {
+      return _resourceDatabase.getResourceViews(resourceType);
   }
 
   Future<bool> resourceExists(
@@ -201,6 +186,8 @@ class ResourceService {
     );
 
     debugPrint('Gloss manifest contained ${entries.length} entries');
+
+    await _resourceDatabase.updateResourcesFromManifest(ResourceType.Gloss, entries);
   }
 
   Future<void> downloadResources(

@@ -1,0 +1,96 @@
+import 'dart:developer';
+
+import 'package:path/path.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:sqflite/sqflite.dart';
+import 'manifest_resource.dart';
+import 'resource.dart';
+
+class ResourceDatabase {
+  final Future<Database> _database;
+
+  ResourceDatabase()
+      : _database = _open();
+
+  static Future<Database> _open() async {
+    final docDir = await getApplicationDocumentsDirectory();
+    final path = join(docDir.path, "resources.db");
+    return openDatabase(
+      path,
+      version: 1,
+      onCreate: (db, version) async {
+        await db.execute('''
+          create table resource (
+            id text primary key,
+            resource_type text not null,
+            server_state text not null,
+            server_updated_at text not null,
+            sha_256 text not null,
+            size integer not null,
+            url text not null, 
+            resource_name text not null,
+            creator_name text
+          );
+        ''');
+      },
+    );
+  }
+
+  Future<void> updateResourcesFromManifest(ResourceType resourceType, List<ManifestResource> resources) async {
+    final db = await _database;
+    final batch = db.batch();
+
+    batch.rawUpdate(
+      '''
+        update resource set
+          server_state = ?
+        where resource_type = ?;
+      ''',
+      [ServerState.Removed.toString(), resourceType.toString()],
+    );
+
+    for (var resource in resources) {
+      batch.rawInsert(
+        '''
+          insert into resource (id, resource_type, server_state, server_updated_at, sha_256, size, url, resource_name, creator_name)
+          values (?, ?, ?, ?, ?, ?, ?, ?, ?)
+          on conflict(id) do update set
+            server_state = excluded.server_state,
+            server_updated_at = excluded.server_updated_at,
+            sha_256 = excluded.sha_256,
+            size = excluded.size,
+            url = excluded.url,
+            resource_name = excluded.resource_name,
+            creator_name = excluded.creator_name;
+        ''',
+        [resource.id, resourceType.toString(), ServerState.Available.toString(), resource.updatedAt, resource.sha256, resource.size, resource.url, resource.resourceName, resource.creatorName],
+      );
+    }
+
+    await batch.commit(noResult: true);
+  }
+
+  Future<List<ResourceView>> getResourceViews(
+    ResourceType resourceType,
+  ) async {
+    final db = await _database;
+    final rows = await db.query(
+      'resource',
+      where: 'resource_type = ? AND server_state = ?',
+      whereArgs: [resourceType.toString(), ServerState.Available.toString()],
+      columns: ['id', 'resource_name', 'creator_name', 'size'],
+    );
+
+    return rows
+        .map(
+          (row) => ResourceView(
+            id: row['id'] as String,
+            resourceName: row['resource_name'] as String,
+            creatorName: row['creator_name'] as String?,
+            size: row['size'] as int,
+          ),
+        )
+        .toList();
+  }
+}
+

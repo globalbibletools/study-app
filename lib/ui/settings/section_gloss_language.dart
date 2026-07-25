@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/services/settings/user_settings.dart';
+import 'package:gbt/services/resources/resource.dart';
 import 'package:gbt/services/resources/resource_service.dart';
 import 'package:gbt/ui/common/resource_ui_helper.dart';
 
@@ -18,7 +19,7 @@ class _GlossLanguageSectionState extends State<GlossLanguageSection> {
   final _settings = getIt<UserSettings>();
   final _resourceService = getIt<ResourceService>();
 
-  List<Resource> glossResources = [];
+  List<ResourceView> glossResources = [];
 
   void initState() {
     _initGlossResources();
@@ -35,7 +36,11 @@ class _GlossLanguageSectionState extends State<GlossLanguageSection> {
 
 
   /// Sentinel representing "no gloss language" in the picker.
-  static final _noneGloss = Resource(name: '', id: '');
+  static final _noneGloss = ResourceView(
+    id: '',
+    resourceName: '',
+    size: 0,
+  );
 
   String? get currentGlossLangCode => _settings.glossLang;
 
@@ -44,7 +49,7 @@ class _GlossLanguageSectionState extends State<GlossLanguageSection> {
     if (code == null) return null;
 
     try {
-      return glossResources.firstWhere((r) => r.id == code).name;
+      return glossResources.firstWhere((r) => r.id == code).resourceName;
     } catch (err) {
       return null;
     }
@@ -60,7 +65,7 @@ class _GlossLanguageSectionState extends State<GlossLanguageSection> {
     final textStyle = Theme.of(context).textTheme.bodyLarge;
     final previousCode = currentGlossLangCode;
 
-    final selected = await showDialog<Resource>(
+    final selected = await showDialog<ResourceView>(
       context: context,
       builder: (BuildContext context) {
         return SimpleDialog(
@@ -73,7 +78,7 @@ class _GlossLanguageSectionState extends State<GlossLanguageSection> {
             ...glossResources.map((resource) {
               return SimpleDialogOption(
                 onPressed: () => Navigator.pop(context, resource),
-                child: Text(resource.name, style: textStyle),
+                child: Text(resource.resourceName, style: textStyle),
               );
             }),
           ],
