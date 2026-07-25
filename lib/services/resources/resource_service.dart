@@ -7,6 +7,7 @@ import 'package:gbt/services/bible/bible_service.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/services/download/cancel_token.dart';
 import 'package:gbt/services/download/download.dart';
+import 'package:gbt/services/resources/manifest_resource.dart';
 import 'package:gbt/services/resources/remote_asset_service.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
@@ -188,6 +189,18 @@ class ResourceService {
   Future<bool> areResourcesDownloaded(Locale locale) async {
     if (locale.languageCode == 'en') return true;
     return await _bibleService.bibleExists(locale);
+  }
+
+  Future<void> refreshResources() async {
+    final manifestUrl = '${_assetService.baseHost}/glosses/v1/manifest.jsonl';
+    log('Refreshing gloss resources from $manifestUrl');
+
+    final entries = await _downloadService.getJsonl(
+      manifestUrl,
+      convert: ManifestResource.fromJson,
+    );
+
+    debugPrint('Gloss manifest contained ${entries.length} entries');
   }
 
   Future<void> downloadResources(
