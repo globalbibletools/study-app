@@ -75,10 +75,10 @@ class _GlossDownloadTile extends StatefulWidget {
 
 class _GlossDownloadTileState extends State<_GlossDownloadTile> {
   final _resourceService = getIt<ResourceService>();
-  bool _downloading = false;
+  bool _busy = false;
 
   Future<void> _download() async {
-    setState(() => _downloading = true);
+    setState(() => _busy = true);
     try {
       await DownloadProgressDialog.show(
         context: context,
@@ -98,7 +98,26 @@ class _GlossDownloadTileState extends State<_GlossDownloadTile> {
         ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
-      if (mounted) setState(() => _downloading = false);
+      if (mounted) setState(() => _busy = false);
+      widget.onChanged();
+    }
+  }
+
+  Future<void> _delete() async {
+    setState(() => _busy = true);
+    try {
+      await _resourceService.deleteResource(
+        ResourceType.Gloss,
+        widget.resource.id,
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
       widget.onChanged();
     }
   }
@@ -116,7 +135,7 @@ class _GlossDownloadTileState extends State<_GlossDownloadTile> {
       trailing: IconButton(
         icon: Icon(isInstalled ? Icons.delete : Icons.download),
         color: primaryColor,
-        onPressed: (isInstalled || _downloading) ? null : _download,
+        onPressed: _busy ? null : (isInstalled ? _delete : _download),
         tooltip: isInstalled ? l10n.delete : l10n.download,
       ),
     );
