@@ -253,6 +253,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get lexicons => 'المعاجم';
 
   @override
+  String get glosses => 'التفاسير';
+
+  @override
   String get oldTestament => 'العهد القديم';
 
   @override

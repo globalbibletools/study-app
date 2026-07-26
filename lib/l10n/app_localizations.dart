@@ -530,6 +530,12 @@ abstract class AppLocalizations {
   /// **'Lexicons'**
   String get lexicons;
 
+  /// Section header for Gloss downloads
+  ///
+  /// In en, this message translates to:
+  /// **'Glosses'**
+  String get glosses;
+
   /// Label for Old Testament audio selection
   ///
   /// In en, this message translates to:

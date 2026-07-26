@@ -335,6 +335,10 @@
   "@lexicons": {
     "description": "Section header for Lexicon downloads"
   },
+  "glosses": "Glosses",
+  "@glosses": {
+    "description": "Section header for Gloss downloads"
+  },
   "oldTestament": "Old Testament",
   "@oldTestament": {
     "description": "Label for Old Testament audio selection"

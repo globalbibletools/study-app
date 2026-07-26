@@ -13,6 +13,14 @@ enum ServerState {
   String toString() => name;
 }
 
+enum InstallState {
+  NotInstalled,
+  Installed;
+
+  @override
+  String toString() => name;
+}
+
 class Resource {
   String id;
   ResourceType type;
@@ -23,6 +31,7 @@ class Resource {
   String url;
   String resourceName;
   String? creatorName;
+  InstallState installState;
 
   Resource({
     this.id = '',
@@ -34,6 +43,7 @@ class Resource {
     this.url = '',
     this.resourceName = '',
     this.creatorName,
+    this.installState = InstallState.NotInstalled,
   });
 
   ResourceView toView() => ResourceView(
@@ -41,6 +51,7 @@ class Resource {
         resourceName: resourceName,
         creatorName: creatorName,
         size: size,
+        installState: installState,
       );
 
   Map<String, Object?> toMap() {
@@ -54,6 +65,7 @@ class Resource {
       'url': url,
       'resource_name': resourceName,
       'creator_name': creatorName,
+      'install_state': installState,
     };
   }
 }
@@ -63,12 +75,14 @@ class ResourceView {
   final String resourceName;
   final String? creatorName;
   final int size;
+  final InstallState installState;
 
   const ResourceView({
     required this.id,
     required this.resourceName,
-    required this.size,
+    this.size = 0,
     this.creatorName,
+    this.installState = InstallState.NotInstalled,
   });
 }
 

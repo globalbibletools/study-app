@@ -89,6 +89,20 @@ class ResourceService {
     return filePath;
   }
 
+  Future<void> deleteResource(
+    ResourceType resourceType,
+    String id,
+  ) async {
+    await _resourceDatabase.setInstallState(id, InstallState.NotInstalled);
+
+    final filePath = await _resolveLocalFilePath(resourceType, id);
+    final file = File(filePath);
+    if (await file.exists()) {
+      await file.delete();
+      log('Deleted resource file at $filePath');
+    }
+  }
+
   Future<void> downloadResource(
     ResourceType resourceType,
     String id, {
@@ -105,6 +119,8 @@ class ResourceService {
         onProgress: onProgress,
         cancelToken: cancelToken,
       );
+
+      await _resourceDatabase.setInstallState(id, InstallState.Installed);
 
       log('Gloss download successful.');
     } catch (e) {
