@@ -23,6 +23,23 @@ class _GlossesSectionState extends State<GlossesSection> {
   @override
   void initState() {
     super.initState();
+    _resourceService.addResourceChangeListener(
+      ResourceType.Gloss,
+      _onResourcesChanged,
+    );
+    _loadResources();
+  }
+
+  @override
+  void dispose() {
+    _resourceService.removeResourceChangeListener(
+      ResourceType.Gloss,
+      _onResourcesChanged,
+    );
+    super.dispose();
+  }
+
+  void _onResourcesChanged(ResourceType type) {
     _loadResources();
   }
 
@@ -31,10 +48,6 @@ class _GlossesSectionState extends State<GlossesSection> {
         await _resourceService.getResourcesByType(ResourceType.Gloss);
     if (!mounted) return;
     setState(() => _resources = resources);
-  }
-
-  Future<void> _reload() async {
-    _loadResources();
   }
 
   @override
@@ -51,7 +64,6 @@ class _GlossesSectionState extends State<GlossesSection> {
           (resource) => _GlossDownloadTile(
             key: ValueKey('gloss_${resource.id}'),
             resource: resource,
-            onChanged: _reload,
           ),
         )
         .toList(),
@@ -61,12 +73,10 @@ class _GlossesSectionState extends State<GlossesSection> {
 
 class _GlossDownloadTile extends StatefulWidget {
   final ResourceView resource;
-  final VoidCallback onChanged;
 
   const _GlossDownloadTile({
     super.key,
     required this.resource,
-    required this.onChanged,
   });
 
   @override
@@ -99,7 +109,6 @@ class _GlossDownloadTileState extends State<_GlossDownloadTile> {
       }
     } finally {
       if (mounted) setState(() => _busy = false);
-      widget.onChanged();
     }
   }
 
@@ -118,7 +127,6 @@ class _GlossDownloadTileState extends State<_GlossDownloadTile> {
       }
     } finally {
       if (mounted) setState(() => _busy = false);
-      widget.onChanged();
     }
   }
 

@@ -16,6 +16,8 @@ import 'package:path_provider/path_provider.dart';
 
 export 'package:gbt/services/resources/resource.dart';
 
+typedef ResourceChangeListener = void Function(ResourceType type);
+
 class ResourceTypeConfig {
   final String localPathTemplate;
   final String? prebundledPathTemplate;
@@ -51,6 +53,36 @@ class ResourceService {
   final _assetService = getIt<RemoteAssetService>();
 
   final ResourceDatabase _resourceDatabase = ResourceDatabase();
+
+  final Map<ResourceType, List<ResourceChangeListener>> _listeners = {
+    for (final type in ResourceType.values) type: <ResourceChangeListener>[],
+  };
+
+  void addResourceChangeListener(
+    ResourceType type,
+    ResourceChangeListener listener,
+  ) {
+    _listeners[type]?.add(listener);
+  }
+
+  void removeResourceChangeListener(
+    ResourceType type,
+    ResourceChangeListener listener,
+  ) {
+    _listeners[type]?.remove(listener);
+  }
+
+  void _notifyResourceChange(ResourceType type) {
+    final listeners = _listeners[type];
+    if (listeners == null) return;
+    for (final listener in listeners) {
+      try {
+        listener(type);
+      } catch (e, stackTrace) {
+        log('Resource change listener threw', error: e, stackTrace: stackTrace);
+      }
+    }
+  }
 
   ResourceService() {
     seedBundledResource(ResourceType.Gloss, 'eng').catchError((e) {
@@ -101,6 +133,8 @@ class ResourceService {
       await file.delete();
       log('Deleted resource file at $filePath');
     }
+
+    _notifyResourceChange(resourceType);
   }
 
   Future<void> downloadResource(
@@ -123,6 +157,7 @@ class ResourceService {
       await _resourceDatabase.setInstallState(id, InstallState.Installed);
 
       log('Gloss download successful.');
+      _notifyResourceChange(resourceType);
     } catch (e) {
       log('Gloss download failed for $id', error: e);
       rethrow;
@@ -204,6 +239,7 @@ class ResourceService {
     debugPrint('Gloss manifest contained ${entries.length} entries');
 
     await _resourceDatabase.updateResourcesFromManifest(ResourceType.Gloss, entries);
+    _notifyResourceChange(ResourceType.Gloss);
   }
 
   Future<void> downloadResources(
