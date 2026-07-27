@@ -32,6 +32,7 @@ class Resource {
   String resourceName;
   String? creatorName;
   InstallState installState;
+  String? localUpdatedAt;
 
   Resource({
     this.id = '',
@@ -44,6 +45,7 @@ class Resource {
     this.resourceName = '',
     this.creatorName,
     this.installState = InstallState.NotInstalled,
+    this.localUpdatedAt,
   });
 
   ResourceView toView() => ResourceView(
@@ -52,6 +54,8 @@ class Resource {
         creatorName: creatorName,
         size: size,
         installState: installState,
+        serverUpdatedAt: serverUpdatedAt,
+        localUpdatedAt: localUpdatedAt,
       );
 
   Map<String, Object?> toMap() {
@@ -59,7 +63,8 @@ class Resource {
       'id': id,
       'resource_type': type,
       'server_state': serverState,
-      'server_updated_ at': serverUpdatedAt,
+      'server_updated_at': serverUpdatedAt,
+      'local_updated_at': localUpdatedAt,
       'sha_256': sha256,
       'size': size,
       'url': url,
@@ -76,13 +81,17 @@ class ResourceView {
   final String? creatorName;
   final int size;
   final InstallState installState;
+  final String serverUpdatedAt;
+  final String? localUpdatedAt;
 
   const ResourceView({
     required this.id,
     required this.resourceName,
+    this.serverUpdatedAt = '',
     this.size = 0,
     this.creatorName,
     this.installState = InstallState.NotInstalled,
+    this.localUpdatedAt,
   });
 }
 

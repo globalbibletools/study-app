@@ -128,16 +128,41 @@ class _GlossDownloadTileState extends State<_GlossDownloadTile> {
     final primaryColor = Theme.of(context).colorScheme.primary;
 
     final isInstalled = widget.resource.installState == InstallState.Installed;
+    final needsUpdate = isInstalled &&
+        widget.resource.localUpdatedAt != widget.resource.serverUpdatedAt;
 
-    return ListTile(
-      contentPadding: const EdgeInsets.only(left: 32, right: 16),
-      title: Text(widget.resource.resourceName),
-      trailing: IconButton(
+    Widget trailing;
+    if (needsUpdate) {
+      trailing = Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            color: primaryColor,
+            onPressed: _busy ? null : _download,
+            tooltip: l10n.download,
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete),
+            color: primaryColor,
+            onPressed: _busy ? null : _delete,
+            tooltip: l10n.delete,
+          ),
+        ],
+      );
+    } else {
+      trailing = IconButton(
         icon: Icon(isInstalled ? Icons.delete : Icons.download),
         color: primaryColor,
         onPressed: _busy ? null : (isInstalled ? _delete : _download),
         tooltip: isInstalled ? l10n.delete : l10n.download,
-      ),
+      );
+    }
+
+    return ListTile(
+      contentPadding: const EdgeInsets.only(left: 32, right: 16),
+      title: Text(widget.resource.resourceName),
+      trailing: trailing,
     );
   }
 }
