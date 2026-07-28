@@ -54,7 +54,8 @@ class ResourceService {
 
   final ResourceDatabase _resourceDatabase = ResourceDatabase();
 
-  final ValueNotifier<int> outdatedResourceCount = ValueNotifier<int>(0);
+  final outdatedResourceCounts =
+      ValueNotifier<OutdatedResourceCounts>(const OutdatedResourceCounts());
 
   final Map<ResourceType, List<ResourceChangeListener>> _listeners = {
     for (final type in ResourceType.values) type: <ResourceChangeListener>[],
@@ -74,13 +75,15 @@ class ResourceService {
     _listeners[type]?.remove(listener);
   }
 
-  Future<void> _recomputeOutdatedCount() async {
-    outdatedResourceCount.value =
-        await _resourceDatabase.countOutdatedResources();
+  Future<void> _recomputeOutdatedCounts() async {
+    final byType = await _resourceDatabase.countOutdatedResourcesByType();
+    final total = byType.values.fold(0, (sum, n) => sum + n);
+    outdatedResourceCounts.value =
+        OutdatedResourceCounts(total: total, byType: byType);
   }
 
   void _notifyResourceChange(ResourceType type) {
-    _recomputeOutdatedCount();
+    _recomputeOutdatedCounts();
 
     final listeners = _listeners[type];
     if (listeners == null) return;
@@ -98,7 +101,7 @@ class ResourceService {
         log("Error copying bundled resources to resource manager", error: e);
     });
 
-    _recomputeOutdatedCount();
+    _recomputeOutdatedCounts();
   }
 
   Future<List<ResourceView>> getResourcesByType(ResourceType resourceType) async {

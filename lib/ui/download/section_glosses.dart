@@ -56,7 +56,17 @@ class _GlossesSectionState extends State<GlossesSection> {
 
     return ExpansionTile(
       key: const PageStorageKey('glosses_section_main'),
-      leading: const Icon(Icons.translate),
+      leading: ValueListenableBuilder<OutdatedResourceCounts>(
+        valueListenable: _resourceService.outdatedResourceCounts,
+        builder: (context, counts, _) {
+          return Badge.count(
+            count: counts.of(ResourceType.Gloss),
+            isLabelVisible: counts.of(ResourceType.Gloss) > 0,
+            backgroundColor: Colors.orange,
+            child: const Icon(Icons.translate),
+          );
+        },
+      ),
       title: Text(l10n.glosses),
       initiallyExpanded: false,
       children: _resources

@@ -59,13 +59,13 @@ class AppDrawer extends StatelessWidget {
             ),
             ListTile(
               title: Text(AppLocalizations.of(context)!.downloads),
-              leading: ValueListenableBuilder<int>(
+              leading: ValueListenableBuilder<OutdatedResourceCounts>(
                 valueListenable:
-                    getIt<ResourceService>().outdatedResourceCount,
-                builder: (context, count, _) {
+                    getIt<ResourceService>().outdatedResourceCounts,
+                builder: (context, counts, _) {
                   return Badge.count(
-                    count: count,
-                    isLabelVisible: count > 0,
+                    count: counts.total,
+                    isLabelVisible: counts.total > 0,
                     backgroundColor: Colors.orange,
                     child: const Icon(Icons.download),
                   );

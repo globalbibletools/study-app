@@ -21,6 +21,15 @@ enum InstallState {
   String toString() => name;
 }
 
+class OutdatedResourceCounts {
+  final int total;
+  final Map<ResourceType, int> byType;
+
+  const OutdatedResourceCounts({this.total = 0, this.byType = const {}});
+
+  int of(ResourceType type) => byType[type] ?? 0;
+}
+
 class Resource {
   String id;
   ResourceType type;

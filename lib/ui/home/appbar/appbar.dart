@@ -45,11 +45,11 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
     return AppBar(
       centerTitle: false,
       titleSpacing: 0,
-      leading: ValueListenableBuilder<int>(
-        valueListenable: getIt<ResourceService>().outdatedResourceCount,
-        builder: (context, count, _) {
+      leading: ValueListenableBuilder<OutdatedResourceCounts>(
+        valueListenable: getIt<ResourceService>().outdatedResourceCounts,
+        builder: (context, counts, _) {
           return Badge(
-            isLabelVisible: count > 0,
+            isLabelVisible: counts.total > 0,
             backgroundColor: Colors.orange,
             alignment: const Alignment(0.2, -0.5),
             child: IconButton(
