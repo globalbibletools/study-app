@@ -111,6 +111,20 @@ class ResourceDatabase {
         .toList();
   }
 
+  Future<int> countOutdatedResources() async {
+    final db = await _database;
+    final rows = await db.rawQuery(
+      '''
+        select count(*) as cnt from resource
+        where server_state = 'Available'
+          and install_state = 'Installed'
+          and local_updated_at is not null
+          and local_updated_at != server_updated_at;
+      ''',
+    );
+    return Sqflite.firstIntValue(rows) ?? 0;
+  }
+
   Future<void> setInstallState(
     String id,
     InstallState installState,
