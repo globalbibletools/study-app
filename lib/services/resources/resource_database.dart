@@ -26,6 +26,7 @@ class ResourceDatabase {
             server_state text not null,
             install_state text not null default 'NotInstalled',
             server_updated_at text not null,
+            local_updated_at text,
             sha_256 text not null,
             size integer not null,
             url text not null, 
@@ -89,7 +90,7 @@ class ResourceDatabase {
       'resource',
       where: 'resource_type = ? AND server_state = ?',
       whereArgs: [resourceType.toString(), ServerState.Available.toString()],
-      columns: ['id', 'resource_name', 'creator_name', 'size', 'install_state'],
+      columns: ['id', 'resource_name', 'creator_name', 'size', 'install_state', 'server_updated_at', 'local_updated_at'],
     );
 
     return rows
@@ -103,9 +104,33 @@ class ResourceDatabase {
               (s) => s.name == row['install_state'],
               orElse: () => InstallState.NotInstalled,
             ),
+            serverUpdatedAt: row['server_updated_at'] as String,
+            localUpdatedAt: row['local_updated_at'] as String?,
           ),
         )
         .toList();
+  }
+
+  Future<Map<ResourceType, int>> countOutdatedResourcesByType() async {
+    final db = await _database;
+    final rows = await db.rawQuery(
+      '''
+        select resource_type, count(*) as cnt from resource
+        where server_state = 'Available'
+          and install_state = 'Installed'
+          and local_updated_at is not null
+          and local_updated_at != server_updated_at
+        group by resource_type;
+      ''',
+    );
+    final result = <ResourceType, int>{};
+    for (final row in rows) {
+      final type = ResourceType.values.firstWhere(
+        (t) => t.name == row['resource_type'],
+      );
+      result[type] = (row['cnt'] as int?) ?? 0;
+    }
+    return result;
   }
 
   Future<void> setInstallState(
@@ -113,9 +138,15 @@ class ResourceDatabase {
     InstallState installState,
   ) async {
     final db = await _database;
+    final state = installState.toString();
     await db.rawUpdate(
-      'update resource set install_state = ? where id = ?;',
-      [installState.toString(), id],
+      '''
+        update resource set
+          install_state = ?,
+          local_updated_at = case when ? = 'Installed' then server_updated_at else null end
+        where id = ?;
+      ''',
+      [state, state, id],
     );
   }
 }

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:gbt/services/resources/resource_service.dart';
+import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/about/about.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/ui/backup_restore/backup_restore.dart';
@@ -57,7 +59,18 @@ class AppDrawer extends StatelessWidget {
             ),
             ListTile(
               title: Text(AppLocalizations.of(context)!.downloads),
-              leading: const Icon(Icons.download),
+              leading: ValueListenableBuilder<OutdatedResourceCounts>(
+                valueListenable:
+                    getIt<ResourceService>().outdatedResourceCounts,
+                builder: (context, counts, _) {
+                  return Badge.count(
+                    count: counts.total,
+                    isLabelVisible: counts.total > 0,
+                    backgroundColor: Colors.orange,
+                    child: const Icon(Icons.download),
+                  );
+                },
+              ),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(

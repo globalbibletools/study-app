@@ -16,6 +16,8 @@ import 'package:path_provider/path_provider.dart';
 
 export 'package:gbt/services/resources/resource.dart';
 
+typedef ResourceChangeListener = void Function(ResourceType type);
+
 class ResourceTypeConfig {
   final String localPathTemplate;
   final String? prebundledPathTemplate;
@@ -52,10 +54,54 @@ class ResourceService {
 
   final ResourceDatabase _resourceDatabase = ResourceDatabase();
 
+  final outdatedResourceCounts =
+      ValueNotifier<OutdatedResourceCounts>(const OutdatedResourceCounts());
+
+  final Map<ResourceType, List<ResourceChangeListener>> _listeners = {
+    for (final type in ResourceType.values) type: <ResourceChangeListener>[],
+  };
+
+  void addResourceChangeListener(
+    ResourceType type,
+    ResourceChangeListener listener,
+  ) {
+    _listeners[type]?.add(listener);
+  }
+
+  void removeResourceChangeListener(
+    ResourceType type,
+    ResourceChangeListener listener,
+  ) {
+    _listeners[type]?.remove(listener);
+  }
+
+  Future<void> _recomputeOutdatedCounts() async {
+    final byType = await _resourceDatabase.countOutdatedResourcesByType();
+    final total = byType.values.fold(0, (sum, n) => sum + n);
+    outdatedResourceCounts.value =
+        OutdatedResourceCounts(total: total, byType: byType);
+  }
+
+  void _notifyResourceChange(ResourceType type) {
+    _recomputeOutdatedCounts();
+
+    final listeners = _listeners[type];
+    if (listeners == null) return;
+    for (final listener in listeners) {
+      try {
+        listener(type);
+      } catch (e, stackTrace) {
+        log('Resource change listener threw', error: e, stackTrace: stackTrace);
+      }
+    }
+  }
+
   ResourceService() {
     seedBundledResource(ResourceType.Gloss, 'eng').catchError((e) {
         log("Error copying bundled resources to resource manager", error: e);
     });
+
+    _recomputeOutdatedCounts();
   }
 
   Future<List<ResourceView>> getResourcesByType(ResourceType resourceType) async {
@@ -101,6 +147,8 @@ class ResourceService {
       await file.delete();
       log('Deleted resource file at $filePath');
     }
+
+    _notifyResourceChange(resourceType);
   }
 
   Future<void> downloadResource(
@@ -123,6 +171,7 @@ class ResourceService {
       await _resourceDatabase.setInstallState(id, InstallState.Installed);
 
       log('Gloss download successful.');
+      _notifyResourceChange(resourceType);
     } catch (e) {
       log('Gloss download failed for $id', error: e);
       rethrow;
@@ -204,6 +253,7 @@ class ResourceService {
     debugPrint('Gloss manifest contained ${entries.length} entries');
 
     await _resourceDatabase.updateResourcesFromManifest(ResourceType.Gloss, entries);
+    _notifyResourceChange(ResourceType.Gloss);
   }
 
   Future<void> downloadResources(

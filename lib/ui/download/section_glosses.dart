@@ -23,6 +23,23 @@ class _GlossesSectionState extends State<GlossesSection> {
   @override
   void initState() {
     super.initState();
+    _resourceService.addResourceChangeListener(
+      ResourceType.Gloss,
+      _onResourcesChanged,
+    );
+    _loadResources();
+  }
+
+  @override
+  void dispose() {
+    _resourceService.removeResourceChangeListener(
+      ResourceType.Gloss,
+      _onResourcesChanged,
+    );
+    super.dispose();
+  }
+
+  void _onResourcesChanged(ResourceType type) {
     _loadResources();
   }
 
@@ -33,17 +50,23 @@ class _GlossesSectionState extends State<GlossesSection> {
     setState(() => _resources = resources);
   }
 
-  Future<void> _reload() async {
-    _loadResources();
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
     return ExpansionTile(
       key: const PageStorageKey('glosses_section_main'),
-      leading: const Icon(Icons.translate),
+      leading: ValueListenableBuilder<OutdatedResourceCounts>(
+        valueListenable: _resourceService.outdatedResourceCounts,
+        builder: (context, counts, _) {
+          return Badge.count(
+            count: counts.of(ResourceType.Gloss),
+            isLabelVisible: counts.of(ResourceType.Gloss) > 0,
+            backgroundColor: Colors.orange,
+            child: const Icon(Icons.translate),
+          );
+        },
+      ),
       title: Text(l10n.glosses),
       initiallyExpanded: false,
       children: _resources
@@ -51,7 +74,6 @@ class _GlossesSectionState extends State<GlossesSection> {
           (resource) => _GlossDownloadTile(
             key: ValueKey('gloss_${resource.id}'),
             resource: resource,
-            onChanged: _reload,
           ),
         )
         .toList(),
@@ -61,12 +83,10 @@ class _GlossesSectionState extends State<GlossesSection> {
 
 class _GlossDownloadTile extends StatefulWidget {
   final ResourceView resource;
-  final VoidCallback onChanged;
 
   const _GlossDownloadTile({
     super.key,
     required this.resource,
-    required this.onChanged,
   });
 
   @override
@@ -99,7 +119,6 @@ class _GlossDownloadTileState extends State<_GlossDownloadTile> {
       }
     } finally {
       if (mounted) setState(() => _busy = false);
-      widget.onChanged();
     }
   }
 
@@ -118,7 +137,6 @@ class _GlossDownloadTileState extends State<_GlossDownloadTile> {
       }
     } finally {
       if (mounted) setState(() => _busy = false);
-      widget.onChanged();
     }
   }
 
@@ -128,16 +146,41 @@ class _GlossDownloadTileState extends State<_GlossDownloadTile> {
     final primaryColor = Theme.of(context).colorScheme.primary;
 
     final isInstalled = widget.resource.installState == InstallState.Installed;
+    final needsUpdate = isInstalled &&
+        widget.resource.localUpdatedAt != widget.resource.serverUpdatedAt;
 
-    return ListTile(
-      contentPadding: const EdgeInsets.only(left: 32, right: 16),
-      title: Text(widget.resource.resourceName),
-      trailing: IconButton(
+    Widget trailing;
+    if (needsUpdate) {
+      trailing = Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            color: primaryColor,
+            onPressed: _busy ? null : _download,
+            tooltip: l10n.download,
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete),
+            color: primaryColor,
+            onPressed: _busy ? null : _delete,
+            tooltip: l10n.delete,
+          ),
+        ],
+      );
+    } else {
+      trailing = IconButton(
         icon: Icon(isInstalled ? Icons.delete : Icons.download),
         color: primaryColor,
         onPressed: _busy ? null : (isInstalled ? _delete : _download),
         tooltip: isInstalled ? l10n.delete : l10n.download,
-      ),
+      );
+    }
+
+    return ListTile(
+      contentPadding: const EdgeInsets.only(left: 32, right: 16),
+      title: Text(widget.resource.resourceName),
+      trailing: trailing,
     );
   }
 }
