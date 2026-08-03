@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:gbt/services/bible/bible_service.dart';
+import 'package:gbt/services/files/file_service.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/services/download/cancel_token.dart';
 import 'package:gbt/services/download/download.dart';
@@ -45,6 +46,10 @@ class ResourceService {
   static const Map<ResourceType, ResourceTypeConfig> resourceConfigs = {
     ResourceType.Gloss: ResourceTypeConfig(
       localPathTemplate: 'glosses/{id}.db',
+      prebundledPathTemplate: 'databases/{id}.db',
+    ),
+    ResourceType.bible: ResourceTypeConfig(
+      localPathTemplate: 'bibles/{id}.db',
       prebundledPathTemplate: 'databases/{id}.db',
     ),
   };
@@ -98,7 +103,10 @@ class ResourceService {
 
   ResourceService() {
     seedBundledResource(ResourceType.Gloss, 'eng').catchError((e) {
-        log("Error copying bundled resources to resource manager", error: e);
+        log("Error copying bundled glosses to resource manager", error: e);
+    });
+    seedBundledResource(ResourceType.bible, 'eng_bsb').catchError((e) {
+        log("Error copying bundled bible to resource manager", error: e);
     });
 
     _recomputeOutdatedCounts();
@@ -157,7 +165,21 @@ class ResourceService {
     ValueChanged<double>? onProgress,
     required CancelToken cancelToken,
   }) async {
-    final asset = _assetService.getGlossAsset(id);
+    final filePath = await _resolveLocalFilePath(resourceType, id);
+
+    final asset = resourceType == ResourceType.Gloss ? 
+        RemoteAsset(
+          remoteUrl: '${_assetService.baseHost}/glosses/v1/$id.db.zip',
+          localRelativePath: filePath,
+          fileType: FileType.gloss,
+          isZip: true,
+        ) : 
+        RemoteAsset(
+          remoteUrl: '${_assetService.baseHost}/bibles/v1/$id.db.zip',
+          localRelativePath: filePath,
+          fileType: FileType.bible,
+          isZip: true,
+        );
     final version = await _resourceDatabase.getResourceVersion(resourceType, id);
 
     log('Downloading glosses for $id from ${asset.remoteUrl}');

@@ -1,5 +1,6 @@
 enum ResourceType {
-  Gloss;
+  Gloss,
+  bible;
 
   @override
   String toString() => name;
@@ -45,7 +46,7 @@ class Resource {
 
   Resource({
     this.id = '',
-    this.type = ResourceType.Gloss,
+    required this.type,
     this.serverState = ServerState.Available,
     this.serverUpdatedAt = '',
     this.sha256 = '',
