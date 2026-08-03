@@ -5,7 +5,7 @@ class ManifestResource {
   final int size;
   final String url;
   final String resourceName;
-  final String creatorName;
+  final String? creatorName;
 
   ManifestResource({
     required this.id,
@@ -67,7 +67,7 @@ class ManifestResource {
         "got ${resourceName.runtimeType}",
       );
     }
-    if (creatorName is! String) {
+    if (creatorName != null && creatorName is! String) {
       throw FormatException(
         "Manifest resource field 'creatorName' must be a String, "
         "got ${creatorName.runtimeType}",

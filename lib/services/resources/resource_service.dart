@@ -158,12 +158,14 @@ class ResourceService {
     required CancelToken cancelToken,
   }) async {
     final asset = _assetService.getGlossAsset(id);
+    final version = await _resourceDatabase.getResourceVersion(resourceType, id);
 
     log('Downloading glosses for $id from ${asset.remoteUrl}');
 
     try {
       await _downloadService.downloadAsset(
         asset: asset,
+        version: version,
         onProgress: onProgress,
         cancelToken: cancelToken,
       );

@@ -133,6 +133,22 @@ class ResourceDatabase {
     return result;
   }
 
+  Future<String?> getResourceVersion(
+    ResourceType resourceType,
+    String id,
+  ) async {
+    final db = await _database;
+    final rows = await db.query(
+      'resource',
+      where: 'resource_type = ? AND id = ?',
+      whereArgs: [resourceType.toString(), id],
+      columns: ['local_updated_at'],
+      limit: 1,
+    );
+    if (rows.isEmpty) return null;
+    return rows.first['local_updated_at'] as String?;
+  }
+
   Future<void> setInstallState(
     String id,
     InstallState installState,

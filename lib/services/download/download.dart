@@ -15,6 +15,7 @@ class DownloadService {
 
   Future<void> downloadAsset({
     required RemoteAsset asset,
+    String? version,
     ValueChanged<double>? onProgress,
     CancelToken? cancelToken,
   }) async {
@@ -36,7 +37,17 @@ class DownloadService {
       // Check cancellation before starting
       if (cancelToken?.isCancelled ?? false) throw DownloadCanceledException();
 
-      final request = await _httpClient.getUrl(Uri.parse(asset.remoteUrl));
+      var url = Uri.parse(asset.remoteUrl);
+      if (version != null) {
+        url = url.replace(
+          queryParameters: {
+            ...url.queryParameters,
+            'v': version,
+          },
+        );
+      }
+
+      final request = await _httpClient.getUrl(url);
       final response = await request.close();
 
       if (response.statusCode != HttpStatus.ok) {
@@ -128,7 +139,7 @@ class DownloadService {
     final response = await request.close();
 
     if (response.statusCode != HttpStatus.ok) {
-      throw HttpException('Failed to download: ${response.statusCode}');
+      throw HttpException('Failed to download: url=${url}, statusCode=${response.statusCode}');
     }
 
     final results = <T>[];
