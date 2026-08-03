@@ -68,12 +68,13 @@ class ResourceUIHelper {
     }
   }
 
-  static Future<bool> ensureGloss(
+  static Future<bool> ensureResource(
     BuildContext context,
-    String langCode,
+    ResourceType resourceType,
+    String id,
   ) async {
     final resourceService = getIt<ResourceService>();
-    if (await resourceService.resourceExists(ResourceType.Gloss, langCode)) {
+    if (await resourceService.resourceExists(resourceType, id)) {
       return true;
     }
 
@@ -109,8 +110,8 @@ class ResourceUIHelper {
       await DownloadProgressDialog.show(
         context: context,
         task: (progress, token) => resourceService.downloadResource(
-          ResourceType.Gloss,
-          langCode,
+          resourceType,
+          id,
           onProgress: (p) => progress.value = p,
           cancelToken: token,
         ),

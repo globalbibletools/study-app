@@ -44,6 +44,10 @@
   "@glossLanguage": {
     "description": "Settings menu item to change the gloss (translation) language"
   },
+  "bibleTranslation": "Bible Translation",
+  "@bibleTranslation": {
+    "description": "Settings menu item to change the Bible translation"
+  },
   "glossNone": "None",
   "@glossNone": {
     "description": "Displayed in settings when no gloss language is selected"

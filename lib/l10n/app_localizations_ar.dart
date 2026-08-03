@@ -42,6 +42,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get glossLanguage => 'لغة التفسير';
 
   @override
+  String get bibleTranslation => 'ترجمة الكتاب المقدس';
+
+  @override
   String get glossNone => 'لا شيء';
 
   @override

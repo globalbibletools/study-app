@@ -170,6 +170,12 @@ abstract class AppLocalizations {
   /// **'Gloss Language'**
   String get glossLanguage;
 
+  /// Settings menu item to change the Bible translation
+  ///
+  /// In en, this message translates to:
+  /// **'Bible Translation'**
+  String get bibleTranslation;
+
   /// Displayed in settings when no gloss language is selected
   ///
   /// In en, this message translates to:
