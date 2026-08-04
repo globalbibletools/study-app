@@ -22,11 +22,15 @@ typedef ResourceChangeListener = void Function(ResourceType type);
 class ResourceTypeConfig {
   final String localPathTemplate;
   final String? prebundledPathTemplate;
+  final String manifestPath;
 
   const ResourceTypeConfig({
     required this.localPathTemplate,
+    required this.manifestPath,
     this.prebundledPathTemplate = null,
   });
+
+  String manifestUrl(String baseHost) => '$baseHost/$manifestPath';
 }
 
 class ResourceMissingException implements Exception {
@@ -47,10 +51,12 @@ class ResourceService {
     ResourceType.Gloss: ResourceTypeConfig(
       localPathTemplate: 'glosses/{id}.db',
       prebundledPathTemplate: 'databases/{id}.db',
+      manifestPath: 'glosses/v1/manifest.jsonl',
     ),
     ResourceType.bible: ResourceTypeConfig(
       localPathTemplate: 'bibles/{id}.db',
       prebundledPathTemplate: 'databases/{id}.db',
+      manifestPath: 'bibles/v1/manifest.jsonl',
     ),
   };
 
@@ -266,18 +272,23 @@ class ResourceService {
   }
 
   Future<void> refreshResources() async {
-    final manifestUrl = '${_assetService.baseHost}/glosses/v1/manifest.jsonl';
-    log('Refreshing gloss resources from $manifestUrl');
+    for (final type in ResourceType.values) {
+      final config = resourceConfigs[type];
+      if (config == null) continue;
 
-    final entries = await _downloadService.getJsonl(
-      manifestUrl,
-      convert: ManifestResource.fromJson,
-    );
+      final manifestUrl = config.manifestUrl(_assetService.baseHost);
+      log('Refreshing ${type.name} resources from $manifestUrl');
 
-    debugPrint('Gloss manifest contained ${entries.length} entries');
+      final entries = await _downloadService.getJsonl(
+        manifestUrl,
+        convert: ManifestResource.fromJson,
+      );
 
-    await _resourceDatabase.updateResourcesFromManifest(ResourceType.Gloss, entries);
-    _notifyResourceChange(ResourceType.Gloss);
+      debugPrint('${type.name} manifest contained ${entries.length} entries');
+
+      await _resourceDatabase.updateResourcesFromManifest(type, entries);
+      _notifyResourceChange(type);
+    }
   }
 
   Future<void> downloadResources(
