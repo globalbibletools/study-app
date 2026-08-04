@@ -3,6 +3,7 @@ import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/services/resources/resource_service.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/download/section_audio.dart';
+import 'package:gbt/ui/download/section_bibles.dart';
 import 'package:gbt/ui/download/section_glosses.dart';
 
 class DownloadManagerPage extends StatefulWidget {
@@ -47,9 +48,9 @@ class _DownloadManagerPageState extends State<DownloadManagerPage> {
       ),
       body: ListView(
         children: [
+          const BiblesSection(),
           const GlossesSection(),
           const AudioSection(),
-          // _buildPlaceholderSection(l10n.bibles, Icons.book),
           // _buildPlaceholderSection(l10n.lexicons, Icons.translate),
         ],
       ),
