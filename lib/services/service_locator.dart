@@ -26,7 +26,7 @@ void setupServiceLocator() {
   getIt.registerLazySingleton<UserSettings>(() => UserSettings());
   getIt.registerLazySingleton<AppState>(() => AppState());
   getIt.registerLazySingleton<DownloadService>(() => DownloadService());
-  getIt.registerSingleton<BibleService>(BibleService());
+  getIt.registerLazySingleton<BibleService>(() => BibleService());
   getIt.registerLazySingleton<AudioDatabase>(() => AudioDatabase());
   getIt.registerLazySingleton<ResourceService>(() => ResourceService());
   getIt.registerLazySingleton<ReadingSessionDatabase>(

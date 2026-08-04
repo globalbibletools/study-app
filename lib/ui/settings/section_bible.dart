@@ -4,78 +4,79 @@ import 'package:flutter/material.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/services/settings/user_settings.dart';
-import 'package:gbt/services/resources/resource.dart';
 import 'package:gbt/services/resources/resource_service.dart';
 import 'package:gbt/ui/common/resource_ui_helper.dart';
 
-class GlossLanguageSection extends StatefulWidget {
-  const GlossLanguageSection({super.key});
+class BibleSection extends StatefulWidget {
+  const BibleSection({super.key});
 
   @override
-  State<GlossLanguageSection> createState() => _GlossLanguageSectionState();
+  State<BibleSection> createState() => _BibleSectionState();
 }
 
-class _GlossLanguageSectionState extends State<GlossLanguageSection> {
+class _BibleSectionState extends State<BibleSection> {
   final _settings = getIt<UserSettings>();
   final _resourceService = getIt<ResourceService>();
 
-  List<ResourceView> glossResources = [];
+  List<ResourceView> bibleResources = [];
 
+  @override
   void initState() {
-    _initGlossResources();
+    super.initState();
+    _initBibleResources();
   }
 
-  Future<void> _initGlossResources() async {
+  Future<void> _initBibleResources() async {
     try {
-      glossResources = await _resourceService.getResourcesByType(ResourceType.Gloss);
+      bibleResources = await _resourceService.getResourcesByType(ResourceType.bible);
       setState(() {});
     } catch (err, stack) {
-      log('Failed to initialize gloss resources', error: err, stackTrace: stack);
+      log('Failed to initialize bible resources', error: err, stackTrace: stack);
     }
   }
 
 
   /// Sentinel representing "no gloss language" in the picker.
-  static final _noneGloss = ResourceView(
+  static final _noneBible = ResourceView(
     id: '',
     resourceName: '',
     size: 0,
   );
 
-  String? get currentGlossLangCode => _settings.glossLang;
+  String? get currentBibleId => _settings.currentBible;
 
-  String? get currentGlossLangName {
-    final code = currentGlossLangCode;
+  String? get currentBibleName {
+    final code = currentBibleId;
     if (code == null) return null;
 
     try {
-      return glossResources.firstWhere((r) => r.id == code).resourceName;
+      return bibleResources.firstWhere((r) => r.id == code).resourceName;
     } catch (err) {
       return null;
     }
   }
 
-  Future<void> setGlossLang(String? code) async {
-    await _settings.setGlossLang(code);
+  Future<void> setBible(String? id) async {
+    await _settings.setCurrentBible(id);
     setState(() {});
   }
 
-  Future<void> _chooseGlossLanguage() async {
+  Future<void> _chooseBible() async {
     final l10n = AppLocalizations.of(context)!;
     final textStyle = Theme.of(context).textTheme.bodyLarge;
-    final previousCode = currentGlossLangCode;
+    final previousBibleId = currentBibleId;
 
     final selected = await showDialog<ResourceView>(
       context: context,
       builder: (BuildContext context) {
         return SimpleDialog(
-          title: Text(l10n.glossLanguage),
+          title: Text(l10n.bibleTranslation),
           children: [
             SimpleDialogOption(
-              onPressed: () => Navigator.pop(context, _noneGloss),
+              onPressed: () => Navigator.pop(context, _noneBible),
               child: Text(l10n.glossNone, style: textStyle),
             ),
-            ...glossResources.map((resource) {
+            ...bibleResources.map((resource) {
               return SimpleDialogOption(
                 onPressed: () => Navigator.pop(context, resource),
                 child: Text(resource.resourceName, style: textStyle),
@@ -86,25 +87,25 @@ class _GlossLanguageSectionState extends State<GlossLanguageSection> {
       },
     );
 
-    if (selected == null || selected.id == previousCode) return;
+    if (selected == null || selected.id == previousBibleId) return;
 
-    if (selected == _noneGloss) {
-      await setGlossLang(null);
+    if (selected == _noneBible) {
+      await setBible(null);
       return;
     }
 
-    await setGlossLang(selected.id);
+    await setBible(selected.id);
 
     if (!context.mounted) return;
     final success = await ResourceUIHelper.ensureResource(
       context,
-      ResourceType.Gloss,
+      ResourceType.bible,
       selected.id,
     );
 
     // Revert if they cancelled or it failed
     if (!success && context.mounted) {
-      await setGlossLang(previousCode);
+      await setBible(previousBibleId);
     }
   }
 
@@ -113,14 +114,15 @@ class _GlossLanguageSectionState extends State<GlossLanguageSection> {
     final l10n = AppLocalizations.of(context)!;
 
     return ListTile(
-      title: Text(l10n.glossLanguage),
+      title: Text(l10n.bibleTranslation),
       trailing: Text(
-        currentGlossLangName ?? l10n.glossNone,
+        currentBibleName ?? l10n.glossNone,
         style: Theme.of(context).textTheme.bodyMedium,
       ),
       onTap: () {
-        _chooseGlossLanguage();
+        _chooseBible();
       },
     );
   }
 }
+

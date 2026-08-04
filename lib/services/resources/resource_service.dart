@@ -1,9 +1,8 @@
 import 'dart:developer';
-import 'dart:ui';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:gbt/services/bible/bible_service.dart';
+import 'package:gbt/services/files/file_service.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/services/download/cancel_token.dart';
 import 'package:gbt/services/download/download.dart';
@@ -21,11 +20,15 @@ typedef ResourceChangeListener = void Function(ResourceType type);
 class ResourceTypeConfig {
   final String localPathTemplate;
   final String? prebundledPathTemplate;
+  final String manifestPath;
 
   const ResourceTypeConfig({
     required this.localPathTemplate,
+    required this.manifestPath,
     this.prebundledPathTemplate = null,
   });
+
+  String manifestUrl(String baseHost) => '$baseHost/$manifestPath';
 }
 
 class ResourceMissingException implements Exception {
@@ -46,6 +49,12 @@ class ResourceService {
     ResourceType.Gloss: ResourceTypeConfig(
       localPathTemplate: 'glosses/{id}.db',
       prebundledPathTemplate: 'databases/{id}.db',
+      manifestPath: 'glosses/v1/manifest.jsonl',
+    ),
+    ResourceType.bible: ResourceTypeConfig(
+      localPathTemplate: 'bibles/{id}.db',
+      prebundledPathTemplate: 'databases/{id}.db',
+      manifestPath: 'bibles/v1/manifest.jsonl',
     ),
   };
 
@@ -98,7 +107,10 @@ class ResourceService {
 
   ResourceService() {
     seedBundledResource(ResourceType.Gloss, 'eng').catchError((e) {
-        log("Error copying bundled resources to resource manager", error: e);
+        log("Error copying bundled glosses to resource manager", error: e);
+    });
+    seedBundledResource(ResourceType.bible, 'eng_bsb').catchError((e) {
+        log("Error copying bundled bible to resource manager", error: e);
     });
 
     _recomputeOutdatedCounts();
@@ -157,7 +169,21 @@ class ResourceService {
     ValueChanged<double>? onProgress,
     required CancelToken cancelToken,
   }) async {
-    final asset = _assetService.getGlossAsset(id);
+    final filePath = await _resolveLocalFilePath(resourceType, id);
+
+    final asset = resourceType == ResourceType.Gloss ? 
+        RemoteAsset(
+          remoteUrl: '${_assetService.baseHost}/glosses/v1/$id.db.zip',
+          localRelativePath: filePath,
+          fileType: FileType.gloss,
+          isZip: true,
+        ) : 
+        RemoteAsset(
+          remoteUrl: '${_assetService.baseHost}/bibles/v1/$id.db.zip',
+          localRelativePath: filePath,
+          fileType: FileType.bible,
+          isZip: true,
+        );
     final version = await _resourceDatabase.getResourceVersion(resourceType, id);
 
     log('Downloading glosses for $id from ${asset.remoteUrl}');
@@ -236,50 +262,23 @@ class ResourceService {
     return join(docDir.path, relativePath);
   }
 
-  final _bibleService = getIt<BibleService>();
-
-  Future<bool> areResourcesDownloaded(Locale locale) async {
-    if (locale.languageCode == 'en') return true;
-    return await _bibleService.bibleExists(locale);
-  }
-
   Future<void> refreshResources() async {
-    final manifestUrl = '${_assetService.baseHost}/glosses/v1/manifest.jsonl';
-    log('Refreshing gloss resources from $manifestUrl');
+    for (final type in ResourceType.values) {
+      final config = resourceConfigs[type];
+      if (config == null) continue;
 
-    final entries = await _downloadService.getJsonl(
-      manifestUrl,
-      convert: ManifestResource.fromJson,
-    );
+      final manifestUrl = config.manifestUrl(_assetService.baseHost);
+      log('Refreshing ${type.name} resources from $manifestUrl');
 
-    debugPrint('Gloss manifest contained ${entries.length} entries');
+      final entries = await _downloadService.getJsonl(
+        manifestUrl,
+        convert: ManifestResource.fromJson,
+      );
 
-    await _resourceDatabase.updateResourcesFromManifest(ResourceType.Gloss, entries);
-    _notifyResourceChange(ResourceType.Gloss);
-  }
+      debugPrint('${type.name} manifest contained ${entries.length} entries');
 
-  Future<void> downloadResources(
-    Locale locale, {
-    required ValueNotifier<double> progressNotifier,
-    required CancelToken cancelToken,
-  }) async {
-    final needBible = !await _bibleService.bibleExists(locale);
-
-    if (!needBible) {
-      progressNotifier.value = 1.0;
-      return;
+      await _resourceDatabase.updateResourcesFromManifest(type, entries);
+      _notifyResourceChange(type);
     }
-
-    void updateProgress(double fileProgress) {
-      progressNotifier.value = fileProgress;
-    }
-
-    updateProgress(0.0);
-    await _bibleService.downloadBible(
-      locale,
-      cancelToken: cancelToken,
-      onProgress: updateProgress,
-    );
-    progressNotifier.value = 1.0;
   }
 }

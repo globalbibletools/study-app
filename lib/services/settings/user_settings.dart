@@ -125,7 +125,10 @@ class UserSettings {
   }
 
   String? get currentBible {
-    return _prefs.getString(_currentBible);
+    final bible = _prefs.getString(_currentBible);
+    if (bible == null) return "eng_bsb";
+    if (bible == "") return null;
+    return bible;
   }
 
   VerseLayout get verseLayout {
@@ -136,15 +139,11 @@ class UserSettings {
     await _prefs.setInt(_verseLayout, value.index);
   }
 
-  /// Set language and version of the currently selected Bible
-  ///
-  /// Example: eng_bsb (English - Berean Standard Bible)
-  /// null means the user has not downloaded a Bible or non is selected.
   Future<void> setCurrentBible(String? bibleCode) async {
     if (bibleCode == null) {
-      _prefs.remove(_currentBible);
+      await _prefs.setString(_currentBible, "");
     } else {
-      await _prefs.setString((_currentBible), bibleCode);
+      await _prefs.setString(_currentBible, bibleCode);
     }
   }
 

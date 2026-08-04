@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gbt/l10n/app_localizations.dart';
+import 'package:gbt/ui/settings/section_bible.dart';
 
 import 'section_font_size.dart';
 import 'section_gloss_language.dart';
@@ -20,6 +21,7 @@ class SettingsPage extends StatelessWidget {
         children: const [
           LanguageSection(),
           GlossLanguageSection(),
+          BibleSection(),
           ThemeSection(),
           VerseLayoutSection(),
           FontSizeSection(),

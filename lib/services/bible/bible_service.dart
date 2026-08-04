@@ -1,93 +1,57 @@
-import 'dart:developer';
-import 'dart:ui';
-
-import 'package:flutter/foundation.dart';
 import 'package:scripture/scripture.dart';
-import 'package:gbt/services/resources/remote_asset_service.dart';
-import 'package:gbt/services/bible/english_bible_database.dart';
-import 'package:gbt/services/bible/localized_bible_database.dart';
-import 'package:gbt/services/download/cancel_token.dart';
-import 'package:gbt/services/download/download.dart';
+import 'package:gbt/services/bible/bible_database.dart';
+import 'package:gbt/services/resources/resource_service.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/services/settings/user_settings.dart';
 
 class BibleService {
   final _settings = getIt<UserSettings>();
-  final _downloadService = getIt<DownloadService>();
-  final _assetService = getIt<RemoteAssetService>();
+  final _resourceService = getIt<ResourceService>();
 
-  // The two data sources
-  final _englishDb = EnglishBibleDatabase();
-  final _localizedDb = LocalizedBibleDatabase();
+  BibleDatabase? _db;
+  String? currentBibleId;
 
-  Future<void> init() async {
-    await _englishDb.init();
-
-    // Check if we need to init the localized DB immediately on startup
-    final langCode = _settings.locale.languageCode;
-    if (langCode != 'en') {
-      await _localizedDb.initDb(langCode);
-    }
+  Future<bool> bibleExists(String bibleId) async {
+    return _resourceService.resourceExists(ResourceType.bible, bibleId);
   }
 
-  /// Checks if the bible database for the specific locale exists.
-  Future<bool> bibleExists(Locale locale) async {
-    final langCode = locale.languageCode;
-    if (langCode == 'en') return true;
-    return await _localizedDb.bibleDbExists(langCode);
-  }
-
-  /// Downloads the bible database for the given locale.
-  Future<void> downloadBible(
-    Locale locale, {
-    ValueChanged<double>? onProgress,
-    CancelToken? cancelToken,
+  Future<List<UsfmLine>> getChapter(
+    int bookId,
+    int chapter, {
+    void Function(String bibleId)? onDatabaseMissing,
   }) async {
-    final langCode = locale.languageCode;
-    final asset = _assetService.getBibleAsset(langCode);
+    final bibleId = _settings.currentBible;
+    if (bibleId == null) return [];
 
-    log('Downloading bible for $langCode from ${asset.remoteUrl}');
-
-    try {
-      await _downloadService.downloadAsset(
-        asset: asset,
-        onProgress: onProgress,
-        cancelToken: cancelToken,
-      );
-
-      await _localizedDb.initDb(langCode);
-      log('Bible download and initialization successful.');
-    } catch (e) {
-      log('Bible download failed for $langCode: $e');
-      rethrow;
-    }
-  }
-
-  /// Gets the chapter text.
-  /// Uses Localized DB if available for current locale, otherwise falls back to English.
-  Future<List<UsfmLine>> getChapter(int bookId, int chapter) async {
-    final currentLocale = _settings.locale;
-    final langCode = currentLocale.languageCode;
-
-    // 1. If English, use English DB
-    if (langCode == 'en') {
-      return await _englishDb.getChapter(bookId, chapter);
-    }
-
-    // 2. Check if localized DB exists
-    final dbExists = await _localizedDb.bibleDbExists(langCode);
-
-    if (dbExists) {
-      // 3. Try to get localized text
-      final lines = await _localizedDb.getChapter(langCode, bookId, chapter);
-
-      if (lines.isNotEmpty) {
-        return lines;
+    // Ensure the active database matches the current bible.
+    if (currentBibleId != bibleId) {
+      try {
+        await _openForBible(bibleId);
+      } on ResourceMissingException {
+        onDatabaseMissing?.call(bibleId);
+        return [];
       }
     }
 
-    // 4. Fallback: If DB missing or chapter missing in DB, return English
-    log('Fallback to English Bible for $langCode ($bookId:$chapter)');
-    return await _englishDb.getChapter(bookId, chapter);
+    return _db!.getChapter(bookId, chapter);
+  }
+
+  Future<void> _openForBible(String bibleId) async {
+    // Already the active database.
+    if (currentBibleId == bibleId && _db != null) return;
+
+    final path = await _resourceService.getResourceLocalPath(
+      ResourceType.bible,
+      bibleId,
+    );
+
+    if (_db != null) {
+      await _db!.close();
+      _db = null;
+      currentBibleId = null;
+    }
+
+    _db = await BibleDatabase.open(path);
+    currentBibleId = bibleId;
   }
 }

@@ -77,6 +77,7 @@ class BiblePanelState extends State<BiblePanel> {
                         chapter: ch,
                         fontSize: fontSize,
                         verseLayout: verseLayout,
+                        settingsVersion: widget.settingsVersion,
                       );
                     },
                   ),
