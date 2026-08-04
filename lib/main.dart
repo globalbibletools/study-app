@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:just_audio_background/just_audio_background.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/services/audio/audio_database.dart';
-import 'package:gbt/services/bible/bible_service.dart';
-import 'package:gbt/services/gloss/gloss_service.dart';
 import 'package:gbt/services/hebrew_greek/database.dart';
 import 'package:gbt/services/lexicon/database.dart';
 import 'package:gbt/services/reading_session/rs_database.dart';
@@ -22,7 +20,6 @@ Future<void> main() async {
   await getIt<HebrewGreekDatabase>().init();
   // TODO: Maybe we should delay loading the lexicon until it is needed.
   await getIt<LexiconsDatabase>().init();
-  await getIt<BibleService>().init();
   await getIt<AudioDatabase>().init();
   await getIt<ReadingSessionDatabase>().init();
   await JustAudioBackground.init(
