@@ -3,7 +3,9 @@ import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:scripture/scripture.dart';
 import 'package:gbt/common/book_name.dart';
+import 'package:gbt/services/resources/resource.dart';
 import 'package:gbt/services/settings/user_settings.dart';
+import 'package:gbt/ui/common/resource_ui_helper.dart';
 import 'bible_chapter_manager.dart';
 
 class BibleChapter extends StatefulWidget {
@@ -30,7 +32,7 @@ class _BibleChapterState extends State<BibleChapter> {
   @override
   void initState() {
     super.initState();
-    manager.loadChapterData(widget.bookId, widget.chapter);
+    _loadChapterData();
   }
 
   @override
@@ -38,7 +40,7 @@ class _BibleChapterState extends State<BibleChapter> {
     super.didUpdateWidget(oldWidget);
     if (widget.bookId != oldWidget.bookId ||
         widget.chapter != oldWidget.chapter) {
-      manager.loadChapterData(widget.bookId, widget.chapter);
+      _loadChapterData();
     }
   }
 
@@ -46,6 +48,27 @@ class _BibleChapterState extends State<BibleChapter> {
   void dispose() {
     manager.dispose();
     super.dispose();
+  }
+
+  void _loadChapterData() {
+    manager.loadChapterData(
+      widget.bookId,
+      widget.chapter,
+      onDatabaseMissing: _handleMissingBible,
+    );
+  }
+
+  Future<void> _handleMissingBible(String bibleId) async {
+    final success = await ResourceUIHelper.ensureResource(
+      context,
+      ResourceType.bible,
+      bibleId,
+    );
+
+    if (success && mounted) {
+      // Retry the chapter load now that the bible is downloaded.
+      _loadChapterData();
+    }
   }
 
   @override

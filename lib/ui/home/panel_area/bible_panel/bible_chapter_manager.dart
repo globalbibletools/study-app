@@ -7,8 +7,16 @@ class BibleChapterManager {
   final _bibleService = getIt<BibleService>();
   final textNotifier = ValueNotifier<List<UsfmLine>>([]);
 
-  Future<void> loadChapterData(int bookId, int chapter) async {
-    textNotifier.value = await _bibleService.getChapter(bookId, chapter);
+  Future<void> loadChapterData(
+    int bookId,
+    int chapter, {
+    void Function(String bibleId)? onDatabaseMissing,
+  }) async {
+    textNotifier.value = await _bibleService.getChapter(
+      bookId,
+      chapter,
+      onDatabaseMissing: onDatabaseMissing,
+    );
   }
 
   void dispose() {
