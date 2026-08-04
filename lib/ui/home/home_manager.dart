@@ -15,7 +15,6 @@ import 'package:gbt/services/download/download.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/services/settings/user_settings.dart';
 import 'package:gbt/ui/common/download_progress_dialog.dart';
-import 'package:gbt/ui/common/resource_ui_helper.dart';
 import 'package:gbt/ui/home/appbar/reference_chooser/reference_chooser.dart';
 import 'package:gbt/ui/home/audio/audio_logic.dart';
 import 'package:gbt/ui/home/audio/audio_manager.dart';
@@ -104,17 +103,7 @@ class HomeManager {
       (l) => l.code == systemLocale.languageCode,
     );
 
-    if (isSupported && systemLocale.languageCode != 'en') {
-      final success = await ResourceUIHelper.ensureResources(
-        context,
-        systemLocale,
-      );
-
-      // Set locale based on outcome
-      await settings.setLocale(success ? systemLocale.languageCode : 'en');
-    } else {
-      await settings.setLocale('en');
-    }
+    await settings.setLocale(isSupported ? systemLocale.languageCode : 'en');
 
     getIt<AppState>().init();
   }

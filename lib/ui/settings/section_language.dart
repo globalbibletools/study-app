@@ -4,7 +4,6 @@ import 'package:gbt/l10n/app_languages.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/services/settings/user_settings.dart';
-import 'package:gbt/ui/common/resource_ui_helper.dart';
 
 class LanguageSection extends StatefulWidget {
   const LanguageSection({super.key});
@@ -54,20 +53,6 @@ class _LanguageSectionState extends State<LanguageSection> {
 
     // Immediately set locale so UI language changes
     await setLocale(selectedLocale);
-
-    // English needs no downloaded resources
-    if (selectedLocale.languageCode == 'en') return;
-
-    if (!context.mounted) return;
-    final success = await ResourceUIHelper.ensureResources(
-      context,
-      selectedLocale,
-    );
-
-    // Revert if they cancelled or it failed
-    if (!success && context.mounted) {
-      await setLocale(previousLocale);
-    }
   }
 
   @override
