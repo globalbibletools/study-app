@@ -1,53 +1,57 @@
-import 'dart:developer';
-
 import 'package:scripture/scripture.dart';
-import 'package:gbt/services/bible/english_bible_database.dart';
-import 'package:gbt/services/bible/localized_bible_database.dart';
+import 'package:gbt/services/bible/bible_database.dart';
+import 'package:gbt/services/resources/resource_service.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/services/settings/user_settings.dart';
 
 class BibleService {
   final _settings = getIt<UserSettings>();
+  final _resourceService = getIt<ResourceService>();
 
-  // The two data sources
-  final _englishDb = EnglishBibleDatabase();
-  final _localizedDb = LocalizedBibleDatabase();
+  BibleDatabase? _db;
+  String? _currentBibleId;
 
-  Future<void> init() async {
-    await _englishDb.init();
-
-    // Check if we need to init the localized DB immediately on startup
-    final langCode = _settings.locale.languageCode;
-    if (langCode != 'en') {
-      await _localizedDb.initDb(langCode);
-    }
+  Future<bool> bibleExists(String bibleId) async {
+    return _resourceService.resourceExists(ResourceType.bible, bibleId);
   }
 
-  /// Gets the chapter text.
-  /// Uses Localized DB if available for current locale, otherwise falls back to English.
-  Future<List<UsfmLine>> getChapter(int bookId, int chapter) async {
-    final currentLocale = _settings.locale;
-    final langCode = currentLocale.languageCode;
+  Future<List<UsfmLine>> getChapter(
+    int bookId,
+    int chapter, {
+    void Function(String bibleId)? onDatabaseMissing,
+  }) async {
+    final bibleId = _settings.currentBible;
+    if (bibleId == null) return [];
 
-    // 1. If English, use English DB
-    if (langCode == 'en') {
-      return await _englishDb.getChapter(bookId, chapter);
-    }
-
-    // 2. Check if localized DB exists
-    final dbExists = await _localizedDb.bibleDbExists(langCode);
-
-    if (dbExists) {
-      // 3. Try to get localized text
-      final lines = await _localizedDb.getChapter(langCode, bookId, chapter);
-
-      if (lines.isNotEmpty) {
-        return lines;
+    // Ensure the active database matches the current bible.
+    if (_currentBibleId != bibleId) {
+      try {
+        await _openForBible(bibleId);
+      } on ResourceMissingException {
+        onDatabaseMissing?.call(bibleId);
+        return [];
       }
     }
 
-    // 4. Fallback: If DB missing or chapter missing in DB, return English
-    log('Fallback to English Bible for $langCode ($bookId:$chapter)');
-    return await _englishDb.getChapter(bookId, chapter);
+    return _db!.getChapter(bookId, chapter);
+  }
+
+  Future<void> _openForBible(String bibleId) async {
+    // Already the active database.
+    if (_currentBibleId == bibleId && _db != null) return;
+
+    final path = await _resourceService.getResourceLocalPath(
+      ResourceType.bible,
+      bibleId,
+    );
+
+    if (_db != null) {
+      await _db!.close();
+      _db = null;
+      _currentBibleId = null;
+    }
+
+    _db = await BibleDatabase.open(path);
+    _currentBibleId = bibleId;
   }
 }
