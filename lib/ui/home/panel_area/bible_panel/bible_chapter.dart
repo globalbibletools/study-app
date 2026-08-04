@@ -15,12 +15,14 @@ class BibleChapter extends StatefulWidget {
     required this.chapter,
     required this.verseLayout,
     this.fontSize = 20.0,
+    this.settingsVersion = 0,
   });
 
   final int bookId;
   final int chapter;
   final double fontSize;
   final VerseLayout verseLayout;
+  final int settingsVersion;
 
   @override
   State<BibleChapter> createState() => _BibleChapterState();
@@ -40,6 +42,9 @@ class _BibleChapterState extends State<BibleChapter> {
     super.didUpdateWidget(oldWidget);
     if (widget.bookId != oldWidget.bookId ||
         widget.chapter != oldWidget.chapter) {
+      _loadChapterData();
+    } else if (widget.settingsVersion != oldWidget.settingsVersion &&
+        manager.bibleChanged) {
       _loadChapterData();
     }
   }

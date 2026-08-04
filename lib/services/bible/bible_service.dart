@@ -9,7 +9,7 @@ class BibleService {
   final _resourceService = getIt<ResourceService>();
 
   BibleDatabase? _db;
-  String? _currentBibleId;
+  String? currentBibleId;
 
   Future<bool> bibleExists(String bibleId) async {
     return _resourceService.resourceExists(ResourceType.bible, bibleId);
@@ -24,7 +24,7 @@ class BibleService {
     if (bibleId == null) return [];
 
     // Ensure the active database matches the current bible.
-    if (_currentBibleId != bibleId) {
+    if (currentBibleId != bibleId) {
       try {
         await _openForBible(bibleId);
       } on ResourceMissingException {
@@ -38,7 +38,7 @@ class BibleService {
 
   Future<void> _openForBible(String bibleId) async {
     // Already the active database.
-    if (_currentBibleId == bibleId && _db != null) return;
+    if (currentBibleId == bibleId && _db != null) return;
 
     final path = await _resourceService.getResourceLocalPath(
       ResourceType.bible,
@@ -48,10 +48,10 @@ class BibleService {
     if (_db != null) {
       await _db!.close();
       _db = null;
-      _currentBibleId = null;
+      currentBibleId = null;
     }
 
     _db = await BibleDatabase.open(path);
-    _currentBibleId = bibleId;
+    currentBibleId = bibleId;
   }
 }
