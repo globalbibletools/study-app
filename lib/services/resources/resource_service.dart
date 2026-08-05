@@ -2,7 +2,6 @@ import 'dart:developer';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:gbt/services/files/file_service.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/services/download/cancel_token.dart';
 import 'package:gbt/services/download/download.dart';
@@ -171,27 +170,27 @@ class ResourceService {
   }) async {
     final filePath = await _resolveLocalFilePath(resourceType, id);
 
-    final asset = resourceType == ResourceType.Gloss ? 
-        RemoteAsset(
-          remoteUrl: '${_assetService.baseHost}/glosses/v1/$id.db.zip',
-          localRelativePath: filePath,
-          fileType: FileType.gloss,
-          isZip: true,
-        ) : 
-        RemoteAsset(
-          remoteUrl: '${_assetService.baseHost}/bibles/v1/$id.db.zip',
-          localRelativePath: filePath,
-          fileType: FileType.bible,
-          isZip: true,
-        );
+    final remoteUrl = resourceType == ResourceType.Gloss
+        ? '${_assetService.baseHost}/glosses/v1/$id.db.zip'
+        : '${_assetService.baseHost}/bibles/v1/$id.db.zip';
     final version = await _resourceDatabase.getResourceVersion(resourceType, id);
 
-    log('Downloading glosses for $id from ${asset.remoteUrl}');
+    var url = Uri.parse(remoteUrl);
+    if (version != null) {
+      url = url.replace(
+        queryParameters: {
+          ...url.queryParameters,
+          'v': version,
+        },
+      );
+    }
+
+    log('Downloading glosses for $id from $remoteUrl');
 
     try {
-      await _downloadService.downloadAsset(
-        asset: asset,
-        version: version,
+      await _downloadService.downloadZip(
+        url: url.toString(),
+        localPath: filePath,
         onProgress: onProgress,
         cancelToken: cancelToken,
       );

@@ -320,13 +320,18 @@ class _BookDownloadTileState extends State<_BookDownloadTile> {
     );
 
     if (asset == null) return;
+    final localPath = await _fileService.getLocalPath(
+      asset.fileType,
+      asset.localRelativePath,
+    );
 
     try {
       await DownloadProgressDialog.show(
         context: context,
         task: (progress, cancelToken) async {
-          await _downloadService.downloadAsset(
-            asset: asset,
+          await _downloadService.downloadFile(
+            url: asset.remoteUrl,
+            localPath: localPath,
             onProgress: (p) => progress.value = p,
             cancelToken: cancelToken,
           );
@@ -457,9 +462,14 @@ class _BookDownloadTileState extends State<_BookDownloadTile> {
             );
 
             if (asset == null) continue;
+            final localPath = await _fileService.getLocalPath(
+              asset.fileType,
+              asset.localRelativePath,
+            );
 
-            await _downloadService.downloadAsset(
-              asset: asset,
+            await _downloadService.downloadFile(
+              url: asset.remoteUrl,
+              localPath: localPath,
               cancelToken: cancelToken,
               onProgress: (fileProgress) {
                 final overall = (i / total) + (fileProgress / total);

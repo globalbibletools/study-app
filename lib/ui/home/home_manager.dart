@@ -8,6 +8,7 @@ import 'package:gbt/l10n/app_languages.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/l10n/book_names.dart';
 import 'package:gbt/services/app_guide/app_guide_manager.dart';
+import 'package:gbt/services/files/file_service.dart';
 import 'package:gbt/services/resources/remote_asset_service.dart';
 import 'package:gbt/services/bible/bible_service.dart';
 import 'package:gbt/services/download/cancel_token.dart';
@@ -57,6 +58,7 @@ class HomeManager {
   final _settings = getIt<UserSettings>();
   final _downloadService = getIt<DownloadService>();
   final _assetService = getIt<RemoteAssetService>();
+  final _fileService = getIt<FileService>();
   final readingSessionManager = getIt<ReadingSessionManager>();
   final appGuideManager = getIt<AppGuideManager>();
 
@@ -322,10 +324,15 @@ class HomeManager {
       recordingId: recordingId,
     );
     if (asset == null) return;
-    await _downloadService.downloadAsset(
-      asset: asset,
-      cancelToken: cancelToken,
+    final localPath = await _fileService.getLocalPath(
+      asset.fileType,
+      asset.localRelativePath,
+    );
+    await _downloadService.downloadFile(
+      url: asset.remoteUrl,
+      localPath: localPath,
       onProgress: (p) => progressNotifier.value = p,
+      cancelToken: cancelToken,
     );
   }
 

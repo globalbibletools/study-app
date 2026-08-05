@@ -4,7 +4,6 @@ import 'dart:io';
 
 import 'package:archive/archive_io.dart';
 import 'package:flutter/foundation.dart';
-import 'package:gbt/services/resources/remote_asset_service.dart';
 import 'package:gbt/services/download/cancel_token.dart'; // Import this
 import 'package:gbt/services/files/file_service.dart';
 import 'package:gbt/services/service_locator.dart';
@@ -119,44 +118,6 @@ class DownloadService {
         await extractDir.delete(recursive: true);
       }
       rethrow;
-    }
-  }
-
-  Future<void> downloadAsset({
-    required RemoteAsset asset,
-    String? version,
-    ValueChanged<double>? onProgress,
-    CancelToken? cancelToken,
-  }) async {
-    final localPath = await _fileService.getLocalPath(
-      asset.fileType,
-      asset.localRelativePath,
-    );
-
-    var url = Uri.parse(asset.remoteUrl);
-    if (version != null) {
-      url = url.replace(
-        queryParameters: {
-          ...url.queryParameters,
-          'v': version,
-        },
-      );
-    }
-
-    if (asset.isZip) {
-      await downloadZip(
-        url: url.toString(),
-        localPath: localPath,
-        onProgress: onProgress,
-        cancelToken: cancelToken,
-      );
-    } else {
-      await downloadFile(
-        url: url.toString(),
-        localPath: localPath,
-        onProgress: onProgress,
-        cancelToken: cancelToken,
-      );
     }
   }
 
