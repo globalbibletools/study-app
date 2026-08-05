@@ -56,6 +56,10 @@ class ResourceService {
       prebundledPathTemplate: 'databases/{id}.db',
       manifestPath: 'bibles/v1/manifest.jsonl',
     ),
+    ResourceType.audio: ResourceTypeConfig(
+      localPathTemplate: 'audio/{id}',
+      manifestPath: 'audio/v1/manifest.jsonl',
+    ),
   };
 
   final _downloadService = getIt<DownloadService>();

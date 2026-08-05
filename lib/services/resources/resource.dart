@@ -1,6 +1,7 @@
 enum ResourceType {
   Gloss,
-  bible;
+  bible,
+  audio;
 
   @override
   String toString() => name;
