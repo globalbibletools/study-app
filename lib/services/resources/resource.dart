@@ -35,10 +35,10 @@ class Resource {
   String id;
   ResourceType type;
   ServerState serverState;
-  String serverUpdatedAt;
-  String sha256;
-  int size;
-  String url;
+  String? serverUpdatedAt;
+  String? sha256;
+  int? size;
+  String? url;
   String resourceName;
   String? creatorName;
   InstallState installState;
@@ -48,10 +48,10 @@ class Resource {
     this.id = '',
     required this.type,
     this.serverState = ServerState.Available,
-    this.serverUpdatedAt = '',
-    this.sha256 = '',
-    this.size = 0,
-    this.url = '',
+    this.serverUpdatedAt,
+    this.sha256,
+    this.size,
+    this.url,
     this.resourceName = '',
     this.creatorName,
     this.installState = InstallState.NotInstalled,
@@ -89,16 +89,16 @@ class ResourceView {
   final String id;
   final String resourceName;
   final String? creatorName;
-  final int size;
+  final int? size;
   final InstallState installState;
-  final String serverUpdatedAt;
+  final String? serverUpdatedAt;
   final String? localUpdatedAt;
 
   const ResourceView({
     required this.id,
     required this.resourceName,
-    this.serverUpdatedAt = '',
-    this.size = 0,
+    this.serverUpdatedAt,
+    this.size,
     this.creatorName,
     this.installState = InstallState.NotInstalled,
     this.localUpdatedAt,

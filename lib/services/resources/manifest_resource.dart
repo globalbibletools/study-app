@@ -1,20 +1,22 @@
 class ManifestResource {
   final String id;
-  final String updatedAt;
-  final String sha256;
-  final int size;
-  final String url;
+  final String? updatedAt;
+  final String? sha256;
+  final int? size;
+  final String? url;
   final String resourceName;
   final String? creatorName;
 
+  bool get isLeaf => url != null;
+
   ManifestResource({
     required this.id,
-    required this.updatedAt,
-    required this.sha256,
-    required this.size,
-    required this.url,
+    this.updatedAt,
+    this.sha256,
+    this.size,
+    this.url,
     required this.resourceName,
-    required this.creatorName,
+    this.creatorName,
   });
 
   static ManifestResource fromJson(dynamic json) {
@@ -37,27 +39,27 @@ class ManifestResource {
         "Manifest resource field 'id' must be a String, got ${id.runtimeType}",
       );
     }
-    if (updatedAt is! String) {
+    if (updatedAt != null && updatedAt is! String) {
       throw FormatException(
-        "Manifest resource field 'updatedAt' must be a String, "
+        "Manifest resource field 'updatedAt' must be a String or null, "
         "got ${updatedAt.runtimeType}",
       );
     }
-    if (sha256 is! String) {
+    if (sha256 != null && sha256 is! String) {
       throw FormatException(
-        "Manifest resource field 'sha256' must be a String, "
+        "Manifest resource field 'sha256' must be a String or null, "
         "got ${sha256.runtimeType}",
       );
     }
-    if (size is! int) {
+    if (size != null && size is! int) {
       throw FormatException(
-        "Manifest resource field 'size' must be an int, "
+        "Manifest resource field 'size' must be an int or null, "
         "got ${size.runtimeType}",
       );
     }
-    if (url is! String) {
+    if (url != null && url is! String) {
       throw FormatException(
-        "Manifest resource field 'url' must be a String, "
+        "Manifest resource field 'url' must be a String or null, "
         "got ${url.runtimeType}",
       );
     }
@@ -71,6 +73,17 @@ class ManifestResource {
       throw FormatException(
         "Manifest resource field 'creatorName' must be a String, "
         "got ${creatorName.runtimeType}",
+      );
+    }
+
+    // Leaf vs. group is a data property: a leaf carries all of
+    // sha256/size/url; a group carries none. Mixed presence is invalid.
+    final hasAll = sha256 != null && size != null && url != null;
+    final hasAny = sha256 != null || size != null || url != null;
+    if (hasAny && !hasAll) {
+      throw FormatException(
+        "Manifest resource '$id' must have either all or none of "
+        "'sha256'/'size'/'url' (leaf vs. group); got a mix.",
       );
     }
 

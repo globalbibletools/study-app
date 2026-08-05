@@ -25,11 +25,11 @@ class ResourceDatabase {
             resource_type text not null,
             server_state text not null,
             install_state text not null default 'NotInstalled',
-            server_updated_at text not null,
+            server_updated_at text,
             local_updated_at text,
-            sha_256 text not null,
-            size integer not null,
-            url text not null, 
+            sha_256 text,
+            size integer,
+            url text,
             resource_name text not null,
             creator_name text
           );
@@ -99,12 +99,12 @@ class ResourceDatabase {
             id: row['id'] as String,
             resourceName: row['resource_name'] as String,
             creatorName: row['creator_name'] as String?,
-            size: row['size'] as int,
+            size: row['size'] as int?,
             installState: InstallState.values.firstWhere(
               (s) => s.name == row['install_state'],
               orElse: () => InstallState.NotInstalled,
             ),
-            serverUpdatedAt: row['server_updated_at'] as String,
+            serverUpdatedAt: row['server_updated_at'] as String?,
             localUpdatedAt: row['local_updated_at'] as String?,
           ),
         )
