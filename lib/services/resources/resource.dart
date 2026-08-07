@@ -68,6 +68,75 @@ class Resource {
         localUpdatedAt: localUpdatedAt,
       );
 
+  factory Resource.fromJson(ResourceType type, dynamic json) {
+    if (json is! Map<String, dynamic>) {
+      throw FormatException(
+        'Manifest resource must be a JSON object, got ${json.runtimeType}',
+      );
+    }
+
+    final id = json['id'];
+    final updatedAt = json['updatedAt'];
+    final sha256 = json['sha256'];
+    final size = json['size'];
+    final url = json['url'];
+    final resourceName = json['resourceName'];
+    final creatorName = json['creatorName'];
+
+    if (id is! String) {
+      throw FormatException(
+        "Manifest resource field 'id' must be a String, got ${id.runtimeType}",
+      );
+    }
+    if (updatedAt is! String) {
+      throw FormatException(
+        "Manifest resource field 'updatedAt' must be a String, "
+        "got ${updatedAt.runtimeType}",
+      );
+    }
+    if (sha256 is! String) {
+      throw FormatException(
+        "Manifest resource field 'sha256' must be a String, "
+        "got ${sha256.runtimeType}",
+      );
+    }
+    if (size is! int) {
+      throw FormatException(
+        "Manifest resource field 'size' must be an int, "
+        "got ${size.runtimeType}",
+      );
+    }
+    if (url is! String) {
+      throw FormatException(
+        "Manifest resource field 'url' must be a String, "
+        "got ${url.runtimeType}",
+      );
+    }
+    if (resourceName is! String) {
+      throw FormatException(
+        "Manifest resource field 'resourceName' must be a String, "
+        "got ${resourceName.runtimeType}",
+      );
+    }
+    if (creatorName != null && creatorName is! String) {
+      throw FormatException(
+        "Manifest resource field 'creatorName' must be a String, "
+        "got ${creatorName.runtimeType}",
+      );
+    }
+
+    return Resource(
+      id: id,
+      type: type,
+      serverUpdatedAt: updatedAt,
+      sha256: sha256,
+      size: size,
+      url: url,
+      resourceName: resourceName,
+      creatorName: creatorName,
+    );
+  }
+
   Map<String, Object?> toMap() {
     return <String, Object?>{
       'id': id,

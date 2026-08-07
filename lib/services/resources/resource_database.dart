@@ -3,7 +3,6 @@ import 'dart:developer';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
-import 'manifest_resource.dart';
 import 'resource.dart';
 
 class ResourceDatabase {
@@ -38,7 +37,7 @@ class ResourceDatabase {
     );
   }
 
-  Future<void> updateResourcesFromManifest(ResourceType resourceType, List<ManifestResource> resources) async {
+  Future<void> updateResourcesFromManifest(ResourceType resourceType, List<Resource> resources) async {
     final db = await _database;
     final batch = db.batch();
 
@@ -69,7 +68,7 @@ class ResourceDatabase {
           resource.id,
           resourceType.toString(),
           ServerState.Available.toString(),
-          resource.updatedAt,
+          resource.serverUpdatedAt,
           resource.sha256,
           resource.size,
           resource.url,
