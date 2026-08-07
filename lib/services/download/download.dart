@@ -4,130 +4,120 @@ import 'dart:io';
 
 import 'package:archive/archive_io.dart';
 import 'package:flutter/foundation.dart';
-import 'package:gbt/services/resources/remote_asset_service.dart';
 import 'package:gbt/services/download/cancel_token.dart'; // Import this
 import 'package:gbt/services/files/file_service.dart';
 import 'package:gbt/services/service_locator.dart';
+import 'package:path/path.dart' as p;
 
 class DownloadService {
   final HttpClient _httpClient = HttpClient();
   final _fileService = getIt<FileService>();
 
-  Future<void> downloadAsset({
-    required RemoteAsset asset,
-    String? version,
+  Future<void> downloadFile({
+    required String url,
+    required String localPath,
     ValueChanged<double>? onProgress,
     CancelToken? cancelToken,
   }) async {
     File? tempFile;
 
     try {
-      final localPath = await _fileService.getLocalPath(
-        asset.fileType,
-        asset.localRelativePath,
-      );
-
       await _fileService.ensureDirectoryExists(localPath);
 
-      final downloadTarget = asset.isZip
-          ? '$localPath.temp.zip'
-          : '$localPath.part';
+      final downloadTarget = '$localPath.part';
       tempFile = File(downloadTarget);
 
-      // Check cancellation before starting
       if (cancelToken?.isCancelled ?? false) throw DownloadCanceledException();
 
-      var url = Uri.parse(asset.remoteUrl);
-      if (version != null) {
-        url = url.replace(
-          queryParameters: {
-            ...url.queryParameters,
-            'v': version,
-          },
-        );
-      }
-
-      final request = await _httpClient.getUrl(url);
-      final response = await request.close();
-
-      if (response.statusCode != HttpStatus.ok) {
-        throw HttpException('Failed to download: ${response.statusCode}');
-      }
-
-      final totalBytes = response.contentLength;
-      int receivedBytes = 0;
-      final IOSink fileSink = tempFile.openWrite();
-
-      StreamSubscription? subscription;
-      final completer = Completer<void>();
-
-      // Listen to cancellation to abort the stream immediately
-      cancelToken?.addListener(() {
-        if (!completer.isCompleted) {
-          subscription?.cancel();
-          fileSink.close();
-          completer.completeError(DownloadCanceledException());
-        }
-      });
-
-      subscription = response.listen(
-        (List<int> chunk) {
-          fileSink.add(chunk);
-          receivedBytes += chunk.length;
-          if (onProgress != null && totalBytes != -1) {
-            onProgress(receivedBytes / totalBytes);
-          }
-        },
-        onDone: () async {
-          await fileSink.close();
-          if (!completer.isCompleted) completer.complete();
-        },
-        onError: (e) {
-          fileSink.close();
-          if (!completer.isCompleted) completer.completeError(e);
-        },
-        cancelOnError: true,
+      await _streamToFile(
+        url: url,
+        target: tempFile,
+        onProgress: onProgress,
+        cancelToken: cancelToken,
       );
 
-      // Wait for stream to finish or be canceled
-      await completer.future;
+      if (cancelToken?.isCancelled ?? false) throw DownloadCanceledException();
 
-      // Unzipping / Finalizing
-      if (asset.isZip) {
-        if (cancelToken?.isCancelled ?? false) {
-          throw DownloadCanceledException();
-        }
+      debugPrint('Attempting to rename temp file to: $localPath');
+      await tempFile.rename(localPath);
+      tempFile = null;
 
-        debugPrint('Extracting archive...');
-        final inputStream = InputFileStream(downloadTarget);
-        final archive = ZipDecoder().decodeStream(inputStream);
-
-        final extractDir = File(localPath).parent.path;
-        extractArchiveToDisk(archive, extractDir);
-
-        await inputStream.close();
-      } else {
-        debugPrint('Attempting to rename temp file to: $localPath');
-
-        // Rename .part to actual file name
-        await tempFile.rename(localPath);
-
-        final exists = await File(localPath).exists(); // <--- ADD THIS
-        debugPrint('File renamed. Exists at $localPath? $exists');
-
-        // tempFile is now invalid, but that's okay as we renamed it
-        tempFile = null;
-      }
+      final exists = await File(localPath).exists();
+      debugPrint('File renamed. Exists at $localPath? $exists');
     } catch (e) {
-      // Clean up temp files on error or cancel
       if (tempFile != null && await tempFile.exists()) {
         await tempFile.delete();
       }
       rethrow;
-    } finally {
-      if (asset.isZip && tempFile != null && await tempFile.exists()) {
-        await tempFile.delete();
+    }
+  }
+
+  Future<void> downloadZip({
+    required String url,
+    required String localPath,
+    ValueChanged<double>? onProgress,
+    CancelToken? cancelToken,
+  }) async {
+    Directory? extractDir;
+
+    try {
+      await _fileService.ensureDirectoryExists(localPath);
+      final parent = p.dirname(localPath);
+      final base = p.basename(localPath);
+      final extractDirPath =
+          p.join(parent, '.$base.extract-${DateTime.now().microsecondsSinceEpoch}');
+      extractDir = await Directory(extractDirPath).create(recursive: true);
+      final zipPath = p.join(extractDir.path, 'download.zip');
+
+      if (cancelToken?.isCancelled ?? false) throw DownloadCanceledException();
+
+      await _streamToFile(
+        url: url,
+        target: File(zipPath),
+        onProgress: onProgress,
+        cancelToken: cancelToken,
+      );
+
+      if (cancelToken?.isCancelled ?? false) throw DownloadCanceledException();
+
+      debugPrint('Extracting archive...');
+      final inputStream = InputFileStream(zipPath);
+      try {
+        final archive = ZipDecoder().decodeStream(inputStream);
+        extractArchiveToDisk(archive, extractDir.path);
+      } finally {
+        await inputStream.close();
       }
+
+      final zipFile = File(zipPath);
+      if (await zipFile.exists()) {
+        await zipFile.delete();
+      }
+
+      final extracted = extractDir.listSync();
+      if (extracted.length != 1) {
+        throw FormatException(
+          'Expected exactly one file or root directory in the zip, '
+          'found ${extracted.length}.',
+        );
+      }
+
+      final extractedEntity = extracted.first;
+
+      final destFile = File(localPath);
+      final destDir = Directory(localPath);
+      if (await destFile.exists()) {
+        await destFile.delete();
+      } else if (await destDir.exists()) {
+        await destDir.delete(recursive: true);
+      }
+
+      await extractedEntity.rename(localPath);
+    } catch (e) {
+      if (extractDir != null && await extractDir.exists()) {
+        await extractDir.delete(recursive: true);
+      }
+      rethrow;
     }
   }
 
@@ -139,7 +129,7 @@ class DownloadService {
     final response = await request.close();
 
     if (response.statusCode != HttpStatus.ok) {
-      throw HttpException('Failed to download: url=${url}, statusCode=${response.statusCode}');
+      throw HttpException('Failed to download: url=$url, statusCode=${response.statusCode}');
     }
 
     final results = <T>[];
@@ -161,5 +151,55 @@ class DownloadService {
     }
 
     return results;
+  }
+
+  Future<void> _streamToFile({
+    required String url,
+    required File target,
+    ValueChanged<double>? onProgress,
+    CancelToken? cancelToken,
+  }) async {
+    final request = await _httpClient.getUrl(Uri.parse(url));
+    final response = await request.close();
+
+    if (response.statusCode != HttpStatus.ok) {
+      throw HttpException('Failed to download: ${response.statusCode}');
+    }
+
+    final totalBytes = response.contentLength;
+    int receivedBytes = 0;
+    final IOSink fileSink = target.openWrite();
+
+    StreamSubscription? subscription;
+    final completer = Completer<void>();
+
+    cancelToken?.addListener(() {
+      if (!completer.isCompleted) {
+        subscription?.cancel();
+        fileSink.close();
+        completer.completeError(DownloadCanceledException());
+      }
+    });
+
+    subscription = response.listen(
+      (List<int> chunk) {
+        fileSink.add(chunk);
+        receivedBytes += chunk.length;
+        if (onProgress != null && totalBytes != -1) {
+          onProgress(receivedBytes / totalBytes);
+        }
+      },
+      onDone: () async {
+        await fileSink.close();
+        if (!completer.isCompleted) completer.complete();
+      },
+      onError: (e) {
+        fileSink.close();
+        if (!completer.isCompleted) completer.completeError(e);
+      },
+      cancelOnError: true,
+    );
+
+    await completer.future;
   }
 }
