@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/services/download/cancel_token.dart';
 import 'package:gbt/services/download/download.dart';
-import 'package:gbt/services/resources/manifest_resource.dart';
 import 'package:gbt/services/resources/remote_asset_service.dart';
 import 'package:gbt/services/resources/resource.dart';
 import 'package:gbt/services/resources/resource_database.dart';
@@ -275,7 +274,7 @@ class ResourceService {
 
       final entries = await _downloadService.getJsonl(
         manifestUrl,
-        convert: ManifestResource.fromJson,
+        convert: (json) => Resource.fromJson(json, type: type),
       );
 
       debugPrint('${type.name} manifest contained ${entries.length} entries');
