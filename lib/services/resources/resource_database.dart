@@ -59,7 +59,6 @@ class ResourceDatabase {
           values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           on conflict(id) do update set
             server_state = excluded.server_state,
-            install_state = excluded.install_state,
             server_updated_at = excluded.server_updated_at,
             sha_256 = excluded.sha_256,
             size = excluded.size,
