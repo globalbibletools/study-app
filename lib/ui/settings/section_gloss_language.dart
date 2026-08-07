@@ -19,7 +19,7 @@ class _GlossLanguageSectionState extends State<GlossLanguageSection> {
   final _settings = getIt<UserSettings>();
   final _resourceService = getIt<ResourceService>();
 
-  List<ResourceView> glossResources = [];
+  List<GlossLanguageOption> glossResources = [];
 
   void initState() {
     _initGlossResources();
@@ -27,8 +27,10 @@ class _GlossLanguageSectionState extends State<GlossLanguageSection> {
 
   Future<void> _initGlossResources() async {
     try {
-      glossResources = await _resourceService.getResourcesByType(ResourceType.Gloss);
-      setState(() {});
+      final resources = await _resourceService.getResourcesByType(ResourceType.Gloss);
+      setState(() {
+          glossResources = resources.map((resource) => GlossLanguageOption(resource.id, resource.resourceName)).toList();
+      });
     } catch (err, stack) {
       log('Failed to initialize gloss resources', error: err, stackTrace: stack);
     }
@@ -36,11 +38,7 @@ class _GlossLanguageSectionState extends State<GlossLanguageSection> {
 
 
   /// Sentinel representing "no gloss language" in the picker.
-  static final _noneGloss = ResourceView(
-    id: '',
-    type: ResourceType.Gloss,
-    resourceName: '',
-  );
+  static final _noneGloss = GlossLanguageOption('', '');
 
   String? get currentGlossLangCode => _settings.glossLang;
 
@@ -49,7 +47,7 @@ class _GlossLanguageSectionState extends State<GlossLanguageSection> {
     if (code == null) return null;
 
     try {
-      return glossResources.firstWhere((r) => r.id == code).resourceName;
+      return glossResources.firstWhere((r) => r.id == code).name;
     } catch (err) {
       return null;
     }
@@ -65,7 +63,7 @@ class _GlossLanguageSectionState extends State<GlossLanguageSection> {
     final textStyle = Theme.of(context).textTheme.bodyLarge;
     final previousCode = currentGlossLangCode;
 
-    final selected = await showDialog<ResourceView>(
+    final selected = await showDialog<GlossLanguageOption>(
       context: context,
       builder: (BuildContext context) {
         return SimpleDialog(
@@ -78,7 +76,7 @@ class _GlossLanguageSectionState extends State<GlossLanguageSection> {
             ...glossResources.map((resource) {
               return SimpleDialogOption(
                 onPressed: () => Navigator.pop(context, resource),
-                child: Text(resource.resourceName, style: textStyle),
+                child: Text(resource.name, style: textStyle),
               );
             }),
           ],
@@ -123,4 +121,11 @@ class _GlossLanguageSectionState extends State<GlossLanguageSection> {
       },
     );
   }
+}
+
+class GlossLanguageOption {
+    String id;
+    String name;
+
+    GlossLanguageOption(this.id, this.name);
 }

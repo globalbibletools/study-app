@@ -83,46 +83,57 @@ class ResourceDatabase {
     await batch.commit(noResult: true);
   }
 
-  Future<List<ResourceView>> getResourceViews(
+  Future<List<Resource>> getAllForType(
     ResourceType resourceType,
   ) async {
     final db = await _database;
     final rows = await db.query(
       'resource',
-      where: 'resource_type = ? AND server_state = ?',
-      whereArgs: [resourceType.name, ServerState.Available.name],
-      columns: ['id', 'resource_name', 'creator_name', 'size', 'install_state', 'server_updated_at', 'local_updated_at'],
+      where: 'resource_type = ?',
+      whereArgs: [resourceType.name],
     );
 
     return rows.map((row) {
       final size = row['size'] as int?;
+      final sha256 = row['sha256'] as String?;
+      final url = row['sha256'] as String?;
       final serverUpdatedAt = row['server_updated_at'] as String?;
-      final installStateStr = row['install_state'] as String?;
       final localUpdatedAt = row['local_updated_at'] as String?;
+      final installStateStr = row['install_state'] as String?;
+      final serverStateStr = row['server_state'] as String?;
 
       // Build the nested view only when all installable fields are present.
       final hasInstallable =
-          size != null && serverUpdatedAt != null && installStateStr != null;
+          size != null &&
+          sha256 != null &&
+          url != null &&
+          serverUpdatedAt != null &&
+          localUpdatedAt != null &&
+          installStateStr != null &&
+          serverStateStr != null;
+
       final installableDetails = hasInstallable
-          ? InstallableDetailsView(
+          ? InstallableDetails(
               size: size,
+              sha256: sha256,
+              url: url,
               installState: InstallState.values.firstWhere(
                 (s) => s.name == installStateStr,
                 orElse: () => InstallState.NotInstalled,
+              ),
+              serverState: ServerState.values.firstWhere(
+                (s) => s.name == installStateStr,
+                orElse: () => ServerState.Removed,
               ),
               serverUpdatedAt: serverUpdatedAt,
               localUpdatedAt: localUpdatedAt,
             )
           : null;
 
-      return ResourceView(
+      return Resource(
         id: row['id'] as String,
         type: ResourceType.values.firstWhere(
           (s) => s.name == row['resource_type'],
-          orElse: () {
-              debugPrint("Missing resource type for ${row['resource_type']}");
-              return ResourceType.Gloss;
-          }
         ),
         resourceName: row['resource_name'] as String,
         creatorName: row['creator_name'] as String?,

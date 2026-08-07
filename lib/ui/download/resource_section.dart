@@ -5,6 +5,7 @@ import 'package:gbt/services/resources/resource_service.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/common/download_progress_dialog.dart';
 
+
 class ResourceSection extends StatefulWidget {
   final ResourceType resourceType;
   final String title;
@@ -23,7 +24,7 @@ class ResourceSection extends StatefulWidget {
 
 class _ResourceSectionState extends State<ResourceSection> {
   final _resourceService = getIt<ResourceService>();
-  List<ResourceView> _resources = [];
+  List<ResourceTreeNode> _resources = [];
 
   @override
   void initState() {
@@ -54,7 +55,7 @@ class _ResourceSectionState extends State<ResourceSection> {
     final resources =
         await _resourceService.getResourcesByType(widget.resourceType);
     if (!mounted) return;
-    setState(() => _resources = resources);
+    setState(() => _resources = ResourceTreeNode.buildTree(resources));
   }
 
   @override
@@ -81,6 +82,7 @@ class _ResourceSectionState extends State<ResourceSection> {
           (resource) => _DownloadTile(
             key: ValueKey('${widget.resourceType.name}_${resource.id}'),
             resource: resource,
+            resourceType: widget.resourceType,
           ),
         )
         .toList(),
@@ -89,10 +91,12 @@ class _ResourceSectionState extends State<ResourceSection> {
 }
 
 class _DownloadTile extends StatefulWidget {
-  final ResourceView resource;
+  final ResourceTreeNode resource;
+  final ResourceType resourceType;
 
   const _DownloadTile({
     super.key,
+    required this.resourceType,
     required this.resource,
   });
 
@@ -111,7 +115,7 @@ class _DownloadTileState extends State<_DownloadTile> {
         context: context,
         task: (progress, cancelToken) async {
           await _resourceService.downloadResource(
-            widget.resource.type,
+            widget.resourceType,
             widget.resource.id,
             onProgress: (p) => progress.value = p,
             cancelToken: cancelToken,
@@ -133,7 +137,7 @@ class _DownloadTileState extends State<_DownloadTile> {
     setState(() => _busy = true);
     try {
       await _resourceService.deleteResource(
-        widget.resource.type,
+        widget.resourceType,
         widget.resource.id,
       );
     } catch (e) {
@@ -152,13 +156,8 @@ class _DownloadTileState extends State<_DownloadTile> {
     final l10n = AppLocalizations.of(context)!;
     final primaryColor = Theme.of(context).colorScheme.primary;
 
-    final details = widget.resource.installableDetails;
-    final isInstalled = details?.installState == InstallState.Installed;
-    final needsUpdate =
-        isInstalled && details?.localUpdatedAt != details?.serverUpdatedAt;
-
     Widget trailing;
-    if (needsUpdate) {
+    if (widget.resource.needsUpdate) {
       trailing = Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -178,10 +177,10 @@ class _DownloadTileState extends State<_DownloadTile> {
       );
     } else {
       trailing = IconButton(
-        icon: Icon(isInstalled ? Icons.delete : Icons.download),
+        icon: Icon(widget.resource.isInstalled ? Icons.delete : Icons.download),
         color: primaryColor,
-        onPressed: _busy ? null : (isInstalled ? _delete : _download),
-        tooltip: isInstalled ? l10n.delete : l10n.download,
+        onPressed: _busy ? null : (widget.resource.isInstalled ? _delete : _download),
+        tooltip: widget.resource.isInstalled ? l10n.delete : l10n.download,
       );
     }
 
@@ -193,3 +192,72 @@ class _DownloadTileState extends State<_DownloadTile> {
   }
 }
 
+class ResourceTreeNode {
+    final String id;
+    final String resourceName;
+    final bool isInstalled;
+    final bool needsUpdate;
+    final List<ResourceTreeNode> children;
+
+    ResourceTreeNode({
+        required this.id,
+        required this.resourceName,
+        required this.isInstalled,
+        required this.needsUpdate,
+        this.children = const [],
+    });
+
+    static List<ResourceTreeNode> buildTree(List<Resource> resourceList) {
+        Map<int, Map<String, List<Resource>>> parentMap = {};
+
+        for (final resource in resourceList) {
+            var depth = 0;
+            var lastIndex = 0;
+            for (var i = 0; i < resource.id.length; i++) {
+                if (resource.id[i] == '/') {
+                    depth += 1;
+                    lastIndex = i;
+                }
+            }
+            final parentId = resource.id.substring(0, lastIndex);
+
+            var depthMap = parentMap[depth];
+            if (depthMap == null) {
+                depthMap = {};
+                parentMap[depth] = depthMap;
+            }
+
+            var siblings = depthMap[parentId];
+            if (siblings == null) {
+                siblings = [];
+                depthMap[parentId] = siblings;
+            }
+
+            siblings.add(resource);
+        }
+
+        List<ResourceTreeNode> buildTree(int depth, String parentId) {
+            final depthMap = parentMap[depth]; 
+            if (depthMap == null) return const [];
+
+            final children = depthMap[parentId] ?? [];
+            
+            return children.map((child) {
+                final details = child.installableDetails;
+                final isInstalled = details?.installState == InstallState.Installed;
+                final needsUpdate =
+                    isInstalled && details?.localUpdatedAt != details?.serverUpdatedAt;
+
+                return ResourceTreeNode(
+                    id: child.id,
+                    resourceName: child.resourceName,
+                    isInstalled: isInstalled,
+                    needsUpdate: needsUpdate,
+                    children: buildTree(depth + 1, child.id)
+                );
+            }).toList();
+        }
+
+        return buildTree(0, '');
+    }
+}

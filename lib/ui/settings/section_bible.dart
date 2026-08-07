@@ -18,7 +18,7 @@ class _BibleSectionState extends State<BibleSection> {
   final _settings = getIt<UserSettings>();
   final _resourceService = getIt<ResourceService>();
 
-  List<ResourceView> bibleResources = [];
+  List<BibleOption> bibleResources = [];
 
   @override
   void initState() {
@@ -28,8 +28,10 @@ class _BibleSectionState extends State<BibleSection> {
 
   Future<void> _initBibleResources() async {
     try {
-      bibleResources = await _resourceService.getResourcesByType(ResourceType.bible);
-      setState(() {});
+      final resources = await _resourceService.getResourcesByType(ResourceType.bible);
+      setState(() {
+          bibleResources = resources.map((resource) => BibleOption(resource.id, resource.resourceName)).toList();
+      });
     } catch (err, stack) {
       log('Failed to initialize bible resources', error: err, stackTrace: stack);
     }
@@ -37,11 +39,7 @@ class _BibleSectionState extends State<BibleSection> {
 
 
   /// Sentinel representing "no gloss language" in the picker.
-  static final _noneBible = ResourceView(
-    id: '',
-    type: ResourceType.bible,
-    resourceName: '',
-  );
+  static final _noneBible = BibleOption('', '');
 
   String? get currentBibleId => _settings.currentBible;
 
@@ -50,7 +48,7 @@ class _BibleSectionState extends State<BibleSection> {
     if (code == null) return null;
 
     try {
-      return bibleResources.firstWhere((r) => r.id == code).resourceName;
+      return bibleResources.firstWhere((r) => r.id == code).name;
     } catch (err) {
       return null;
     }
@@ -66,7 +64,7 @@ class _BibleSectionState extends State<BibleSection> {
     final textStyle = Theme.of(context).textTheme.bodyLarge;
     final previousBibleId = currentBibleId;
 
-    final selected = await showDialog<ResourceView>(
+    final selected = await showDialog<BibleOption>(
       context: context,
       builder: (BuildContext context) {
         return SimpleDialog(
@@ -79,7 +77,7 @@ class _BibleSectionState extends State<BibleSection> {
             ...bibleResources.map((resource) {
               return SimpleDialogOption(
                 onPressed: () => Navigator.pop(context, resource),
-                child: Text(resource.resourceName, style: textStyle),
+                child: Text(resource.name, style: textStyle),
               );
             }),
           ],
@@ -126,3 +124,9 @@ class _BibleSectionState extends State<BibleSection> {
   }
 }
 
+class BibleOption {
+    String id;
+    String name;
+
+    BibleOption(this.id, this.name);
+}

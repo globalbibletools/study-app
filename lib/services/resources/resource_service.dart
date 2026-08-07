@@ -118,8 +118,8 @@ class ResourceService {
     _recomputeOutdatedCounts();
   }
 
-  Future<List<ResourceView>> getResourcesByType(ResourceType resourceType) async {
-      return _resourceDatabase.getResourceViews(resourceType);
+  Future<List<Resource>> getResourcesByType(ResourceType resourceType) async {
+      return _resourceDatabase.getAllForType(resourceType);
   }
 
   Future<bool> resourceExists(

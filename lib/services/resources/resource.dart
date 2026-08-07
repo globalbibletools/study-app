@@ -52,20 +52,6 @@ class InstallableDetails {
   });
 }
 
-class InstallableDetailsView {
-  final int size;
-  final InstallState installState;
-  final String? serverUpdatedAt;
-  final String? localUpdatedAt;
-
-  const InstallableDetailsView({
-    required this.size,
-    required this.installState,
-    this.serverUpdatedAt,
-    this.localUpdatedAt,
-  });
-}
-
 class Resource {
   String id;
   ResourceType type;
@@ -80,21 +66,6 @@ class Resource {
     this.creatorName,
     this.installableDetails,
   });
-
-  ResourceView toView() => ResourceView(
-        id: id,
-        type: type,
-        resourceName: resourceName,
-        creatorName: creatorName,
-        installableDetails: installableDetails == null
-            ? null
-            : InstallableDetailsView(
-                size: installableDetails!.size,
-                installState: installableDetails!.installState,
-                serverUpdatedAt: installableDetails!.serverUpdatedAt,
-                localUpdatedAt: installableDetails!.localUpdatedAt,
-              ),
-      );
 
   factory Resource.fromJson(dynamic json, {required ResourceType type}) {
     if (json is! Map<String, dynamic>) {
@@ -202,18 +173,3 @@ class Resource {
   }
 }
 
-class ResourceView {
-  final String id;
-  final ResourceType type;
-  final String resourceName;
-  final String? creatorName;
-  final InstallableDetailsView? installableDetails;
-
-  const ResourceView({
-    required this.id,
-    required this.type,
-    required this.resourceName,
-    this.creatorName,
-    this.installableDetails,
-  });
-}
