@@ -3,7 +3,6 @@ import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/services/resources/resource_service.dart';
 import 'package:gbt/services/resources/resource.dart';
 import 'package:gbt/services/service_locator.dart';
-import 'package:gbt/ui/download/section_audio.dart';
 import 'package:gbt/ui/download/resource_section.dart';
 
 class DownloadManagerPage extends StatefulWidget {
