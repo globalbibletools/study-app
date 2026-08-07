@@ -83,15 +83,16 @@ class Resource {
 
   ResourceView toView() => ResourceView(
         id: id,
+        type: type,
         resourceName: resourceName,
         creatorName: creatorName,
         installableDetails: installableDetails == null
             ? null
             : InstallableDetailsView(
-                size: installableDetails.size,
-                installState: installableDetails.installState,
-                serverUpdatedAt: installableDetails.serverUpdatedAt,
-                localUpdatedAt: installableDetails.localUpdatedAt,
+                size: installableDetails!.size,
+                installState: installableDetails!.installState,
+                serverUpdatedAt: installableDetails!.serverUpdatedAt,
+                localUpdatedAt: installableDetails!.localUpdatedAt,
               ),
       );
 
@@ -203,12 +204,14 @@ class Resource {
 
 class ResourceView {
   final String id;
+  final ResourceType type;
   final String resourceName;
   final String? creatorName;
   final InstallableDetailsView? installableDetails;
 
   const ResourceView({
     required this.id,
+    required this.type,
     required this.resourceName,
     this.creatorName,
     this.installableDetails,

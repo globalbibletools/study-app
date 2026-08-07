@@ -38,6 +38,7 @@ class _GlossLanguageSectionState extends State<GlossLanguageSection> {
   /// Sentinel representing "no gloss language" in the picker.
   static final _noneGloss = ResourceView(
     id: '',
+    type: ResourceType.Gloss,
     resourceName: '',
   );
 

@@ -5,18 +5,23 @@ import 'package:gbt/services/resources/resource_service.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/common/download_progress_dialog.dart';
 
-/// Collapsing Glosses section shown on the download manager page.
-///
-/// Lists each available gloss resource from the resource manager and exposes
-/// a download button that triggers the resource manager's download function.
-class GlossesSection extends StatefulWidget {
-  const GlossesSection({super.key});
+class ResourceSection extends StatefulWidget {
+  final ResourceType resourceType;
+  final String title;
+  final IconData icon;
+
+  const ResourceSection({
+      super.key,
+      required this.resourceType,
+      required this.title,
+      required this.icon,
+  });
 
   @override
-  State<GlossesSection> createState() => _GlossesSectionState();
+  State<ResourceSection> createState() => _ResourceSectionState();
 }
 
-class _GlossesSectionState extends State<GlossesSection> {
+class _ResourceSectionState extends State<ResourceSection> {
   final _resourceService = getIt<ResourceService>();
   List<ResourceView> _resources = [];
 
@@ -24,7 +29,7 @@ class _GlossesSectionState extends State<GlossesSection> {
   void initState() {
     super.initState();
     _resourceService.addResourceChangeListener(
-      ResourceType.Gloss,
+      widget.resourceType,
       _onResourcesChanged,
     );
     _loadResources();
@@ -33,19 +38,21 @@ class _GlossesSectionState extends State<GlossesSection> {
   @override
   void dispose() {
     _resourceService.removeResourceChangeListener(
-      ResourceType.Gloss,
+      widget.resourceType,
       _onResourcesChanged,
     );
     super.dispose();
   }
 
   void _onResourcesChanged(ResourceType type) {
-    _loadResources();
+      if (type != widget.resourceType) return;
+
+      _loadResources();
   }
 
   Future<void> _loadResources() async {
     final resources =
-        await _resourceService.getResourcesByType(ResourceType.Gloss);
+        await _resourceService.getResourcesByType(widget.resourceType);
     if (!mounted) return;
     setState(() => _resources = resources);
   }
@@ -55,24 +62,24 @@ class _GlossesSectionState extends State<GlossesSection> {
     final l10n = AppLocalizations.of(context)!;
 
     return ExpansionTile(
-      key: const PageStorageKey('glosses_section_main'),
+      key: PageStorageKey('section_${widget.resourceType.name}'),
       leading: ValueListenableBuilder<OutdatedResourceCounts>(
         valueListenable: _resourceService.outdatedResourceCounts,
         builder: (context, counts, _) {
           return Badge.count(
-            count: counts.of(ResourceType.Gloss),
-            isLabelVisible: counts.of(ResourceType.Gloss) > 0,
+            count: counts.of(widget.resourceType),
+            isLabelVisible: counts.of(widget.resourceType) > 0,
             backgroundColor: Colors.orange,
-            child: const Icon(Icons.translate),
+            child: Icon(widget.icon),
           );
         },
       ),
-      title: Text(l10n.glosses),
+      title: Text(widget.title),
       initiallyExpanded: false,
       children: _resources
         .map(
-          (resource) => _GlossDownloadTile(
-            key: ValueKey('gloss_${resource.id}'),
+          (resource) => _DownloadTile(
+            key: ValueKey('${widget.resourceType.name}_${resource.id}'),
             resource: resource,
           ),
         )
@@ -81,19 +88,19 @@ class _GlossesSectionState extends State<GlossesSection> {
   }
 }
 
-class _GlossDownloadTile extends StatefulWidget {
+class _DownloadTile extends StatefulWidget {
   final ResourceView resource;
 
-  const _GlossDownloadTile({
+  const _DownloadTile({
     super.key,
     required this.resource,
   });
 
   @override
-  State<_GlossDownloadTile> createState() => _GlossDownloadTileState();
+  State<_DownloadTile> createState() => _DownloadTileState();
 }
 
-class _GlossDownloadTileState extends State<_GlossDownloadTile> {
+class _DownloadTileState extends State<_DownloadTile> {
   final _resourceService = getIt<ResourceService>();
   bool _busy = false;
 
@@ -104,7 +111,7 @@ class _GlossDownloadTileState extends State<_GlossDownloadTile> {
         context: context,
         task: (progress, cancelToken) async {
           await _resourceService.downloadResource(
-            ResourceType.Gloss,
+            widget.resource.type,
             widget.resource.id,
             onProgress: (p) => progress.value = p,
             cancelToken: cancelToken,
@@ -126,7 +133,7 @@ class _GlossDownloadTileState extends State<_GlossDownloadTile> {
     setState(() => _busy = true);
     try {
       await _resourceService.deleteResource(
-        ResourceType.Gloss,
+        widget.resource.type,
         widget.resource.id,
       );
     } catch (e) {
@@ -185,3 +192,4 @@ class _GlossDownloadTileState extends State<_GlossDownloadTile> {
     );
   }
 }
+

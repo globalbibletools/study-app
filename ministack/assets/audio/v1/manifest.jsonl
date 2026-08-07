@@ -1,7 +1,7 @@
-{"id":"RDB","updatedAt":"2025-01-15T00:00:00Z","sha256":null,"size":null,"url":null,"resourceName":"Dan Beeri","creatorName":null}
-{"id":"HEB","updatedAt":"2025-01-15T00:00:00Z","sha256":null,"size":null,"url":null,"resourceName":"Shmueloff","creatorName":null}
-{"id":"TK","updatedAt":"2025-01-15T00:00:00Z","sha256":null,"size":null,"url":null,"resourceName":"Modern","creatorName":null}
-{"id":"JH","updatedAt":"2025-01-15T00:00:00Z","sha256":null,"size":null,"url":null,"resourceName":"Lucian","creatorName":null}
+{"id":"RDB","resourceName":"Dan Beeri"}
+{"id":"HEB","resourceName":"Shmueloff"}
+{"id":"TK","resourceName":"Modern"}
+{"id":"JH","resourceName":"Lucian"}
 {"id":"RDB/Gen","updatedAt":"2025-01-15T00:00:00Z","sha256":"1a6b742d06368210fd78639eb0055f3e1689001fccd0f59816d4f4e0ae016ecf","size":6211712,"url":"audio/v1/RDB/Gen.zip","resourceName":"Genesis","creatorName":"Dan Beeri"}
 {"id":"RDB/Isa","updatedAt":"2025-01-15T00:00:00Z","sha256":"6d5fc66c183724522c086104eed207c81a78e7aca07b75360df5b05e11efcdf8","size":5449798,"url":"audio/v1/RDB/Isa.zip","resourceName":"Isaiah","creatorName":"Dan Beeri"}
 {"id":"HEB/Gen","updatedAt":"2025-01-15T00:00:00Z","sha256":"6defe642826e1ac61c08a3793d26130b9d9d996dea74bb98f6fae42797d162b9","size":3631970,"url":"audio/v1/HEB/Gen.zip","resourceName":"Genesis","creatorName":"Shmueloff"}

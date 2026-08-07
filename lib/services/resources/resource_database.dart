@@ -1,5 +1,6 @@
 import 'dart:developer';
 
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
@@ -47,7 +48,7 @@ class ResourceDatabase {
           server_state = ?
         where resource_type = ?;
       ''',
-      [ServerState.Removed.toString(), resourceType.toString()],
+      [ServerState.Removed.name, resourceType.name],
     );
 
     for (var resource in resources) {
@@ -67,8 +68,8 @@ class ResourceDatabase {
         ''',
         [
           resource.id,
-          resourceType.toString(),
-          d?.serverState?.toString(),
+          resourceType.name,
+          d?.serverState?.name,
           d?.serverUpdatedAt,
           d?.sha256,
           d?.size,
@@ -89,7 +90,7 @@ class ResourceDatabase {
     final rows = await db.query(
       'resource',
       where: 'resource_type = ? AND server_state = ?',
-      whereArgs: [resourceType.toString(), ServerState.Available.toString()],
+      whereArgs: [resourceType.name, ServerState.Available.name],
       columns: ['id', 'resource_name', 'creator_name', 'size', 'install_state', 'server_updated_at', 'local_updated_at'],
     );
 
@@ -116,6 +117,13 @@ class ResourceDatabase {
 
       return ResourceView(
         id: row['id'] as String,
+        type: ResourceType.values.firstWhere(
+          (s) => s.name == row['resource_type'],
+          orElse: () {
+              debugPrint("Missing resource type for ${row['resource_type']}");
+              return ResourceType.Gloss;
+          }
+        ),
         resourceName: row['resource_name'] as String,
         creatorName: row['creator_name'] as String?,
         installableDetails: installableDetails,
@@ -153,7 +161,7 @@ class ResourceDatabase {
     final rows = await db.query(
       'resource',
       where: 'resource_type = ? AND id = ?',
-      whereArgs: [resourceType.toString(), id],
+      whereArgs: [resourceType.name, id],
       columns: ['local_updated_at'],
       limit: 1,
     );
@@ -166,7 +174,7 @@ class ResourceDatabase {
     InstallState installState,
   ) async {
     final db = await _database;
-    final state = installState.toString();
+    final state = installState.name;
     await db.rawUpdate(
       '''
         update resource set

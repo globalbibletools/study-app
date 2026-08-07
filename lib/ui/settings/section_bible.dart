@@ -39,6 +39,7 @@ class _BibleSectionState extends State<BibleSection> {
   /// Sentinel representing "no gloss language" in the picker.
   static final _noneBible = ResourceView(
     id: '',
+    type: ResourceType.bible,
     resourceName: '',
   );
 
