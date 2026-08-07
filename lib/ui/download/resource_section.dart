@@ -77,16 +77,38 @@ class _ResourceSectionState extends State<ResourceSection> {
       ),
       title: Text(widget.title),
       initiallyExpanded: false,
-      children: _resources
-        .map(
-          (resource) => _DownloadTile(
-            key: ValueKey('${widget.resourceType.name}_${resource.id}'),
-            resource: resource,
-            resourceType: widget.resourceType,
-          ),
+      children: [
+        _ResourceGroup(
+            resourceType: widget.resourceType, 
+            resources: _resources
         )
-        .toList(),
+      ],
     );
+  }
+}
+
+class _ResourceGroup extends StatelessWidget {
+  const _ResourceGroup({
+    required this.resources,
+    required this.resourceType
+  });
+
+  final List<ResourceTreeNode> resources;
+  final ResourceType resourceType;
+
+  @override
+  Widget build(BuildContext context) {
+      return Column(
+        children: resources
+            .map(
+              (resource) => _DownloadTile(
+                key: ValueKey('${resourceType.name}_${resource.id}'),
+                resource: resource,
+                resourceType: resourceType,
+              ),
+            )
+            .toList()
+      );
   }
 }
 
@@ -184,11 +206,24 @@ class _DownloadTileState extends State<_DownloadTile> {
       );
     }
 
-    return ListTile(
-      contentPadding: const EdgeInsets.only(left: 32, right: 16),
-      title: Text(widget.resource.resourceName),
-      trailing: trailing,
-    );
+    if (widget.resource.children.length == 0) {
+        return ListTile(
+          contentPadding: const EdgeInsets.only(left: 32, right: 16),
+          title: Text(widget.resource.resourceName),
+          trailing: trailing,
+        );
+    } else {
+        return ExpansionTile(
+          title: Text(widget.resource.resourceName),
+          initiallyExpanded: false,
+          children: [
+            _ResourceGroup(
+                resourceType: widget.resourceType, 
+                resources: widget.resource.children,
+            )
+          ],
+        );
+    }
   }
 }
 

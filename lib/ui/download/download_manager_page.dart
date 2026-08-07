@@ -58,7 +58,11 @@ class _DownloadManagerPageState extends State<DownloadManagerPage> {
               title: l10n.bibles,
               icon: Icons.book,
           ),
-          const AudioSection(),
+          ResourceSection(
+              resourceType: ResourceType.audio,
+              title: l10n.audio,
+              icon: Icons.headphones,
+          ),
           // _buildPlaceholderSection(l10n.lexicons, Icons.translate),
         ],
       ),

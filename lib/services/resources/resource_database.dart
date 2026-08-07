@@ -55,10 +55,11 @@ class ResourceDatabase {
       final d = resource.installableDetails;
       batch.rawInsert(
         '''
-          insert into resource (id, resource_type, server_state, server_updated_at, sha_256, size, url, resource_name, creator_name)
-          values (?, ?, ?, ?, ?, ?, ?, ?, ?)
+          insert into resource (id, resource_type, server_state, install_state, server_updated_at, sha_256, size, url, resource_name, creator_name)
+          values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           on conflict(id) do update set
             server_state = excluded.server_state,
+            install_state = excluded.install_state,
             server_updated_at = excluded.server_updated_at,
             sha_256 = excluded.sha_256,
             size = excluded.size,
@@ -70,6 +71,7 @@ class ResourceDatabase {
           resource.id,
           resourceType.name,
           d?.serverState?.name,
+          d?.installState?.name,
           d?.serverUpdatedAt,
           d?.sha256,
           d?.size,
@@ -95,8 +97,8 @@ class ResourceDatabase {
 
     return rows.map((row) {
       final size = row['size'] as int?;
-      final sha256 = row['sha256'] as String?;
-      final url = row['sha256'] as String?;
+      final sha256 = row['sha_256'] as String?;
+      final url = row['url'] as String?;
       final serverUpdatedAt = row['server_updated_at'] as String?;
       final localUpdatedAt = row['local_updated_at'] as String?;
       final installStateStr = row['install_state'] as String?;
@@ -108,7 +110,6 @@ class ResourceDatabase {
           sha256 != null &&
           url != null &&
           serverUpdatedAt != null &&
-          localUpdatedAt != null &&
           installStateStr != null &&
           serverStateStr != null;
 
