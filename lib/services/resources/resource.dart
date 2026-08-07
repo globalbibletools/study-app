@@ -32,44 +32,70 @@ class OutdatedResourceCounts {
   int of(ResourceType type) => byType[type] ?? 0;
 }
 
+class InstallableDetails {
+  final ServerState serverState;
+  final String serverUpdatedAt;
+  final String sha256;
+  final int size;
+  final String url;
+  final InstallState installState;
+  final String? localUpdatedAt;
+
+  const InstallableDetails({
+    required this.serverState,
+    required this.serverUpdatedAt,
+    required this.sha256,
+    required this.size,
+    required this.url,
+    required this.installState,
+    this.localUpdatedAt,
+  });
+}
+
+class InstallableDetailsView {
+  final int size;
+  final InstallState installState;
+  final String? serverUpdatedAt;
+  final String? localUpdatedAt;
+
+  const InstallableDetailsView({
+    required this.size,
+    required this.installState,
+    this.serverUpdatedAt,
+    this.localUpdatedAt,
+  });
+}
+
 class Resource {
   String id;
   ResourceType type;
-  ServerState serverState;
-  String? serverUpdatedAt;
-  String? sha256;
-  int? size;
-  String? url;
   String resourceName;
   String? creatorName;
-  InstallState installState;
-  String? localUpdatedAt;
+  InstallableDetails? installableDetails;
 
   Resource({
     this.id = '',
     required this.type,
-    this.serverState = ServerState.Available,
-    this.serverUpdatedAt,
-    this.sha256,
-    this.size,
-    this.url,
     this.resourceName = '',
     this.creatorName,
-    this.installState = InstallState.NotInstalled,
-    this.localUpdatedAt,
+    this.installableDetails,
   });
 
   ResourceView toView() => ResourceView(
         id: id,
         resourceName: resourceName,
         creatorName: creatorName,
-        size: size,
-        installState: installState,
-        serverUpdatedAt: serverUpdatedAt,
-        localUpdatedAt: localUpdatedAt,
+        installableDetails: installableDetails == null
+            ? null
+            : InstallableDetailsView(
+                size: installableDetails.size,
+                installState: installableDetails.installState,
+                serverUpdatedAt: installableDetails.serverUpdatedAt,
+                localUpdatedAt: installableDetails.localUpdatedAt,
+              ),
       );
 
-  factory Resource.fromJson(ResourceType type, dynamic json) {
+  factory Resource.fromJson(dynamic json, {required ResourceType type}) {
     if (json is! Map<String, dynamic>) {
       throw FormatException(
         'Manifest resource must be a JSON object, got ${json.runtimeType}',
@@ -126,40 +152,51 @@ class Resource {
       );
     }
 
-    final hasAll = sha256 != null && size != null && url != null;
-    final hasAny = sha256 != null || size != null || url != null;
+    // Leaf vs. group: all or none of the installable fields must be present.
+    final installableFields = [updatedAt, sha256, size, url];
+    final hasAll = installableFields.every((v) => v != null);
+    final hasAny = installableFields.any((v) => v != null);
     if (hasAny && !hasAll) {
       throw FormatException(
         "Manifest resource '$id' must have either all or none of "
-        "'sha256'/'size'/'url' (leaf vs. group); got a mix.",
+        "'updatedAt'/'sha256'/'size'/'url' (leaf vs. group); got a mix.",
       );
     }
+
+    final installableDetails = hasAll
+        ? InstallableDetails(
+            serverState: ServerState.Available,
+            serverUpdatedAt: updatedAt as String,
+            sha256: sha256 as String,
+            size: size as int,
+            url: url as String,
+            installState: InstallState.NotInstalled,
+          )
+        : null;
 
     return Resource(
       id: id,
       type: type,
-      serverUpdatedAt: updatedAt,
-      sha256: sha256,
-      size: size,
-      url: url,
       resourceName: resourceName,
       creatorName: creatorName,
+      installableDetails: installableDetails,
     );
   }
 
   Map<String, Object?> toMap() {
+    final d = installableDetails;
     return <String, Object?>{
       'id': id,
       'resource_type': type,
-      'server_state': serverState,
-      'server_updated_at': serverUpdatedAt,
-      'local_updated_at': localUpdatedAt,
-      'sha_256': sha256,
-      'size': size,
-      'url': url,
+      'server_state': d?.serverState,
+      'server_updated_at': d?.serverUpdatedAt,
+      'local_updated_at': d?.localUpdatedAt,
+      'sha_256': d?.sha256,
+      'size': d?.size,
+      'url': d?.url,
       'resource_name': resourceName,
       'creator_name': creatorName,
-      'install_state': installState,
+      'install_state': d?.installState,
     };
   }
 }
@@ -168,19 +205,12 @@ class ResourceView {
   final String id;
   final String resourceName;
   final String? creatorName;
-  final int? size;
-  final InstallState installState;
-  final String? serverUpdatedAt;
-  final String? localUpdatedAt;
+  final InstallableDetailsView? installableDetails;
 
   const ResourceView({
     required this.id,
     required this.resourceName,
-    this.serverUpdatedAt,
-    this.size,
     this.creatorName,
-    this.installState = InstallState.NotInstalled,
-    this.localUpdatedAt,
+    this.installableDetails,
   });
 }
-

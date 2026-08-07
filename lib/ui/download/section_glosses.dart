@@ -145,9 +145,10 @@ class _GlossDownloadTileState extends State<_GlossDownloadTile> {
     final l10n = AppLocalizations.of(context)!;
     final primaryColor = Theme.of(context).colorScheme.primary;
 
-    final isInstalled = widget.resource.installState == InstallState.Installed;
-    final needsUpdate = isInstalled &&
-        widget.resource.localUpdatedAt != widget.resource.serverUpdatedAt;
+    final details = widget.resource.installableDetails;
+    final isInstalled = details?.installState == InstallState.Installed;
+    final needsUpdate =
+        isInstalled && details?.localUpdatedAt != details?.serverUpdatedAt;
 
     Widget trailing;
     if (needsUpdate) {

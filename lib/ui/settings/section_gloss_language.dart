@@ -39,7 +39,6 @@ class _GlossLanguageSectionState extends State<GlossLanguageSection> {
   static final _noneGloss = ResourceView(
     id: '',
     resourceName: '',
-    size: 0,
   );
 
   String? get currentGlossLangCode => _settings.glossLang;

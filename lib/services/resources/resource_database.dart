@@ -22,8 +22,8 @@ class ResourceDatabase {
           create table resource (
             id text primary key,
             resource_type text not null,
-            server_state text not null,
-            install_state text not null default 'NotInstalled',
+            server_state text,
+            install_state text,
             server_updated_at text,
             local_updated_at text,
             sha_256 text,
@@ -51,6 +51,7 @@ class ResourceDatabase {
     );
 
     for (var resource in resources) {
+      final d = resource.installableDetails;
       batch.rawInsert(
         '''
           insert into resource (id, resource_type, server_state, server_updated_at, sha_256, size, url, resource_name, creator_name)
@@ -67,13 +68,13 @@ class ResourceDatabase {
         [
           resource.id,
           resourceType.toString(),
-          ServerState.Available.toString(),
-          resource.serverUpdatedAt,
-          resource.sha256,
-          resource.size,
-          resource.url,
+          d?.serverState?.toString(),
+          d?.serverUpdatedAt,
+          d?.sha256,
+          d?.size,
+          d?.url,
           resource.resourceName,
-          resource.creatorName
+          resource.creatorName,
         ],
       );
     }
@@ -92,22 +93,34 @@ class ResourceDatabase {
       columns: ['id', 'resource_name', 'creator_name', 'size', 'install_state', 'server_updated_at', 'local_updated_at'],
     );
 
-    return rows
-        .map(
-          (row) => ResourceView(
-            id: row['id'] as String,
-            resourceName: row['resource_name'] as String,
-            creatorName: row['creator_name'] as String?,
-            size: row['size'] as int?,
-            installState: InstallState.values.firstWhere(
-              (s) => s.name == row['install_state'],
-              orElse: () => InstallState.NotInstalled,
-            ),
-            serverUpdatedAt: row['server_updated_at'] as String?,
-            localUpdatedAt: row['local_updated_at'] as String?,
-          ),
-        )
-        .toList();
+    return rows.map((row) {
+      final size = row['size'] as int?;
+      final serverUpdatedAt = row['server_updated_at'] as String?;
+      final installStateStr = row['install_state'] as String?;
+      final localUpdatedAt = row['local_updated_at'] as String?;
+
+      // Build the nested view only when all installable fields are present.
+      final hasInstallable =
+          size != null && serverUpdatedAt != null && installStateStr != null;
+      final installableDetails = hasInstallable
+          ? InstallableDetailsView(
+              size: size,
+              installState: InstallState.values.firstWhere(
+                (s) => s.name == installStateStr,
+                orElse: () => InstallState.NotInstalled,
+              ),
+              serverUpdatedAt: serverUpdatedAt,
+              localUpdatedAt: localUpdatedAt,
+            )
+          : null;
+
+      return ResourceView(
+        id: row['id'] as String,
+        resourceName: row['resource_name'] as String,
+        creatorName: row['creator_name'] as String?,
+        installableDetails: installableDetails,
+      );
+    }).toList();
   }
 
   Future<Map<ResourceType, int>> countOutdatedResourcesByType() async {

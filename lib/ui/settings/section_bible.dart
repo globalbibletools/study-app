@@ -40,7 +40,6 @@ class _BibleSectionState extends State<BibleSection> {
   static final _noneBible = ResourceView(
     id: '',
     resourceName: '',
-    size: 0,
   );
 
   String? get currentBibleId => _settings.currentBible;
