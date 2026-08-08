@@ -64,18 +64,33 @@ class _ResourceSectionState extends State<ResourceSection> {
 
     return ExpansionTile(
       key: PageStorageKey('section_${widget.resourceType.name}'),
-      leading: ValueListenableBuilder<OutdatedResourceCounts>(
-        valueListenable: _resourceService.outdatedResourceCounts,
-        builder: (context, counts, _) {
-          return Badge.count(
-            count: counts.of(widget.resourceType),
-            isLabelVisible: counts.of(widget.resourceType) > 0,
-            backgroundColor: Colors.orange,
-            child: Icon(widget.icon),
-          );
-        },
+      controlAffinity: ListTileControlAffinity.leading,
+      shape: Border(),
+      collapsedShape: Border(),
+      title: Text.rich(
+        TextSpan(
+            children: [
+                WidgetSpan(
+                    alignment: PlaceholderAlignment.middle,
+                    child: Padding(
+                        padding: const EdgeInsets.only(right: 4, bottom: 3),
+                        child: ValueListenableBuilder<OutdatedResourceCounts>(
+                            valueListenable: _resourceService.outdatedResourceCounts,
+                            builder: (context, counts, _) {
+                                return Badge.count(
+                                    count: counts.of(widget.resourceType),
+                                    isLabelVisible: counts.of(widget.resourceType) > 0,
+                                    backgroundColor: Colors.orange,
+                                    child: Icon(widget.icon, size: 16),
+                                );
+                            },
+                        )
+                    )
+                ),
+                TextSpan(text: widget.title),
+            ]
+        )
       ),
-      title: Text(widget.title),
       initiallyExpanded: false,
       children: [
         _ResourceGroup(
@@ -98,16 +113,19 @@ class _ResourceGroup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-      return Column(
-        children: resources
-            .map(
-              (resource) => _DownloadTile(
-                key: ValueKey('${resourceType.name}_${resource.id}'),
-                resource: resource,
-                resourceType: resourceType,
-              ),
-            )
-            .toList()
+      return Padding(
+        padding: EdgeInsets.only(left: 16),
+        child: Column(
+            children: resources
+                .map(
+                  (resource) => _DownloadTile(
+                    key: ValueKey('${resourceType.name}_${resource.id}'),
+                    resource: resource,
+                    resourceType: resourceType,
+                  ),
+                )
+                .toList()
+        )
       );
   }
 }
@@ -208,14 +226,17 @@ class _DownloadTileState extends State<_DownloadTile> {
 
     if (widget.resource.children.length == 0) {
         return ListTile(
-          contentPadding: const EdgeInsets.only(left: 32, right: 16),
+          // contentPadding: const EdgeInsets.only(left: 32, right: 16),
           title: Text(widget.resource.resourceName),
           trailing: trailing,
         );
     } else {
         return ExpansionTile(
           title: Text(widget.resource.resourceName),
+          controlAffinity: ListTileControlAffinity.leading,
           initiallyExpanded: false,
+          shape: Border(),
+          collapsedShape: Border(),
           children: [
             _ResourceGroup(
                 resourceType: widget.resourceType, 
