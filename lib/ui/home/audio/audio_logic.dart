@@ -64,12 +64,12 @@ class AudioLogic {
   static String getRecordingId(
     int bookId,
     int chapter,
-    AudioSourceType userPreference,
+    String userPreference,
   ) {
     // 1. New Testament Logic
     if (isNewTestament(bookId)) {
-      if (userPreference == AudioSourceType.tk) return 'TK';
-      if (userPreference == AudioSourceType.jh &&
+      if (userPreference == 'TK') return 'TK';
+      if (userPreference == 'JH' &&
           isJhAvailableForBook(bookId)) {
         return 'JH';
       }
@@ -79,7 +79,7 @@ class AudioLogic {
     }
 
     // 2. Old Testament Logic
-    if (userPreference == AudioSourceType.rdb &&
+    if (userPreference == 'RDB' &&
         isRdbAvailable(bookId, chapter)) {
       return 'RDB';
     }

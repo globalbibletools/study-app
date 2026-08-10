@@ -195,7 +195,7 @@ class _VoiceMenuButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<AudioSourceType>(
+    return ValueListenableBuilder<String>(
       valueListenable: audioManager.audioSourceNotifier,
       builder: (context, currentSourcePref, _) {
         final activeRecordingId = AudioLogic.getRecordingId(
@@ -205,12 +205,12 @@ class _VoiceMenuButton extends StatelessWidget {
         );
         final isNt = AudioLogic.isNewTestament(currentBookId);
 
-        return PopupMenuButton<AudioSourceType>(
+        return PopupMenuButton<String>(
           icon: const Icon(Icons.person_outline),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          onSelected: (AudioSourceType source) async {
+          onSelected: (String source) async {
             try {
               await audioManager.setAudioSource(source);
             } on AudioMissingException {
@@ -225,14 +225,14 @@ class _VoiceMenuButton extends StatelessWidget {
                 currentBookId,
               );
               return [
-                CheckedPopupMenuItem<AudioSourceType>(
-                  value: AudioSourceType.tk,
+                CheckedPopupMenuItem<String>(
+                  value: 'TK',
                   checked: activeRecordingId == 'TK',
                   child: Text(l10n.sourceTK),
                 ),
                 if (jhAvailable)
-                  CheckedPopupMenuItem<AudioSourceType>(
-                    value: AudioSourceType.jh,
+                  CheckedPopupMenuItem<String>(
+                    value: 'JH',
                     checked: activeRecordingId == 'JH',
                     child: Text(l10n.sourceJH),
                   ),
@@ -244,14 +244,14 @@ class _VoiceMenuButton extends StatelessWidget {
                 currentChapter,
               );
               return [
-                CheckedPopupMenuItem<AudioSourceType>(
-                  value: AudioSourceType.heb,
+                CheckedPopupMenuItem<String>(
+                  value: 'HEB',
                   checked: activeRecordingId == 'HEB',
                   child: Text(l10n.sourceHEB),
                 ),
                 if (rdbAvailable)
-                  CheckedPopupMenuItem<AudioSourceType>(
-                    value: AudioSourceType.rdb,
+                  CheckedPopupMenuItem<String>(
+                    value: 'RDB',
                     checked: activeRecordingId == 'RDB',
                     child: Text(l10n.sourceRDB),
                   ),

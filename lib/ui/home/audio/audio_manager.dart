@@ -19,8 +19,6 @@ class AudioMissingException implements Exception {
 
 enum AudioRepeatMode { none, chapter, verse }
 
-enum AudioSourceType { heb, rdb, tk, jh }
-
 class AudioManager {
   final AudioPlayerHandler audioHandler = AudioPlayerHandler();
   final _audioDb = getIt<AudioDatabase>();
@@ -33,8 +31,8 @@ class AudioManager {
   final repeatModeNotifier = ValueNotifier<AudioRepeatMode>(
     AudioRepeatMode.none,
   );
-  final audioSourceNotifier = ValueNotifier<AudioSourceType>(
-    AudioSourceType.rdb,
+  final audioSourceNotifier = ValueNotifier<String>(
+    "RDB",
   );
 
   // --- Internal State ---
@@ -64,17 +62,11 @@ class AudioManager {
     int? startVerse,
     bool isAutoAdvance = false,
   }) async {
-    final recordingId = AudioLogic.getRecordingId(
-      bookId,
-      chapter,
-      audioSourceNotifier.value,
-    );
-
     // 1. Get Asset config
     final asset = _assetService.getAudioChapterAsset(
       bookId: bookId,
       chapter: chapter,
-      recordingId: recordingId,
+      recordingId: audioSourceNotifier.value,
     );
 
     if (asset == null) throw AudioMissingException(bookId, chapter);
@@ -115,7 +107,7 @@ class AudioManager {
     _currentTimings = await _audioDb.getTimingsForChapter(
       bookId,
       chapter,
-      recordingId,
+      audioSourceNotifier.value,
     );
 
     // 4. Sanitize
@@ -265,15 +257,10 @@ class AudioManager {
       final maxChapters = BibleNavigation.getChapterCount(_loadedBookId!);
       if (_loadedChapter! < maxChapters) {
         final nextChapter = _loadedChapter! + 1;
-        final recordingId = AudioLogic.getRecordingId(
-          _loadedBookId!,
-          nextChapter,
-          audioSourceNotifier.value,
-        );
         final asset = _assetService.getAudioChapterAsset(
           bookId: _loadedBookId!,
           chapter: nextChapter,
-          recordingId: recordingId,
+          recordingId: audioSourceNotifier.value,
         );
 
         if (asset != null) {
@@ -445,7 +432,7 @@ class AudioManager {
 
   void setRepeatMode(AudioRepeatMode mode) => repeatModeNotifier.value = mode;
 
-  Future<void> setAudioSource(AudioSourceType source) async {
+  Future<void> setAudioSource(String source) async {
     if (audioSourceNotifier.value == source) return;
     audioSourceNotifier.value = source;
     if (isVisibleNotifier.value && _loadedBookId != null) {
