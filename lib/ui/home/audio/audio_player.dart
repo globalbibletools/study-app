@@ -198,11 +198,6 @@ class _VoiceMenuButton extends StatelessWidget {
     return ValueListenableBuilder<String>(
       valueListenable: audioManager.audioSourceNotifier,
       builder: (context, currentSourcePref, _) {
-        final activeRecordingId = AudioLogic.getRecordingId(
-          currentBookId,
-          currentChapter,
-          currentSourcePref,
-        );
         final isNt = AudioLogic.isNewTestament(currentBookId);
 
         return PopupMenuButton<String>(
@@ -221,40 +216,30 @@ class _VoiceMenuButton extends StatelessWidget {
             final l10n = AppLocalizations.of(context)!;
 
             if (isNt) {
-              final jhAvailable = AudioLogic.isJhAvailableForBook(
-                currentBookId,
-              );
               return [
                 CheckedPopupMenuItem<String>(
                   value: 'TK',
-                  checked: activeRecordingId == 'TK',
+                  checked: currentSourcePref == 'TK',
                   child: Text(l10n.sourceTK),
                 ),
-                if (jhAvailable)
-                  CheckedPopupMenuItem<String>(
-                    value: 'JH',
-                    checked: activeRecordingId == 'JH',
-                    child: Text(l10n.sourceJH),
-                  ),
+                CheckedPopupMenuItem<String>(
+                  value: 'JH',
+                  checked: currentSourcePref == 'JH',
+                  child: Text(l10n.sourceJH),
+                ),
               ];
             } else {
-              // Menu option shows RDB as long as chapter is available
-              final rdbAvailable = AudioLogic.isRdbAvailable(
-                currentBookId,
-                currentChapter,
-              );
               return [
                 CheckedPopupMenuItem<String>(
                   value: 'HEB',
-                  checked: activeRecordingId == 'HEB',
+                  checked: currentSourcePref == 'HEB',
                   child: Text(l10n.sourceHEB),
                 ),
-                if (rdbAvailable)
-                  CheckedPopupMenuItem<String>(
-                    value: 'RDB',
-                    checked: activeRecordingId == 'RDB',
-                    child: Text(l10n.sourceRDB),
-                  ),
+                CheckedPopupMenuItem<String>(
+                  value: 'RDB',
+                  checked: currentSourcePref == 'RDB',
+                  child: Text(l10n.sourceRDB),
+                ),
               ];
             }
           },
