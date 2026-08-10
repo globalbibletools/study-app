@@ -1,5 +1,6 @@
 import 'dart:developer';
 
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
@@ -22,13 +23,13 @@ class ResourceDatabase {
           create table resource (
             id text primary key,
             resource_type text not null,
-            server_state text not null,
-            install_state text not null default 'NotInstalled',
-            server_updated_at text not null,
+            server_state text,
+            install_state text,
+            server_updated_at text,
             local_updated_at text,
-            sha_256 text not null,
-            size integer not null,
-            url text not null, 
+            sha_256 text,
+            size integer,
+            url text,
             resource_name text not null,
             creator_name text
           );
@@ -47,14 +48,15 @@ class ResourceDatabase {
           server_state = ?
         where resource_type = ?;
       ''',
-      [ServerState.Removed.toString(), resourceType.toString()],
+      [ServerState.Removed.name, resourceType.name],
     );
 
     for (var resource in resources) {
+      final d = resource.installableDetails;
       batch.rawInsert(
         '''
-          insert into resource (id, resource_type, server_state, server_updated_at, sha_256, size, url, resource_name, creator_name)
-          values (?, ?, ?, ?, ?, ?, ?, ?, ?)
+          insert into resource (id, resource_type, server_state, install_state, server_updated_at, sha_256, size, url, resource_name, creator_name)
+          values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           on conflict(id) do update set
             server_state = excluded.server_state,
             server_updated_at = excluded.server_updated_at,
@@ -66,14 +68,15 @@ class ResourceDatabase {
         ''',
         [
           resource.id,
-          resourceType.toString(),
-          ServerState.Available.toString(),
-          resource.serverUpdatedAt,
-          resource.sha256,
-          resource.size,
-          resource.url,
+          resourceType.name,
+          d?.serverState?.name,
+          d?.installState?.name,
+          d?.serverUpdatedAt,
+          d?.sha256,
+          d?.size,
+          d?.url,
           resource.resourceName,
-          resource.creatorName
+          resource.creatorName,
         ],
       );
     }
@@ -81,33 +84,62 @@ class ResourceDatabase {
     await batch.commit(noResult: true);
   }
 
-  Future<List<ResourceView>> getResourceViews(
+  Future<List<Resource>> getAllForType(
     ResourceType resourceType,
   ) async {
     final db = await _database;
     final rows = await db.query(
       'resource',
-      where: 'resource_type = ? AND server_state = ?',
-      whereArgs: [resourceType.toString(), ServerState.Available.toString()],
-      columns: ['id', 'resource_name', 'creator_name', 'size', 'install_state', 'server_updated_at', 'local_updated_at'],
+      where: 'resource_type = ?',
+      whereArgs: [resourceType.name],
     );
 
-    return rows
-        .map(
-          (row) => ResourceView(
-            id: row['id'] as String,
-            resourceName: row['resource_name'] as String,
-            creatorName: row['creator_name'] as String?,
-            size: row['size'] as int,
-            installState: InstallState.values.firstWhere(
-              (s) => s.name == row['install_state'],
-              orElse: () => InstallState.NotInstalled,
-            ),
-            serverUpdatedAt: row['server_updated_at'] as String,
-            localUpdatedAt: row['local_updated_at'] as String?,
-          ),
-        )
-        .toList();
+    return rows.map((row) {
+      final size = row['size'] as int?;
+      final sha256 = row['sha_256'] as String?;
+      final url = row['url'] as String?;
+      final serverUpdatedAt = row['server_updated_at'] as String?;
+      final localUpdatedAt = row['local_updated_at'] as String?;
+      final installStateStr = row['install_state'] as String?;
+      final serverStateStr = row['server_state'] as String?;
+
+      // Build the nested view only when all installable fields are present.
+      final hasInstallable =
+          size != null &&
+          sha256 != null &&
+          url != null &&
+          serverUpdatedAt != null &&
+          installStateStr != null &&
+          serverStateStr != null;
+
+      final installableDetails = hasInstallable
+          ? InstallableDetails(
+              size: size,
+              sha256: sha256,
+              url: url,
+              installState: InstallState.values.firstWhere(
+                (s) => s.name == installStateStr,
+                orElse: () => InstallState.NotInstalled,
+              ),
+              serverState: ServerState.values.firstWhere(
+                (s) => s.name == installStateStr,
+                orElse: () => ServerState.Removed,
+              ),
+              serverUpdatedAt: serverUpdatedAt,
+              localUpdatedAt: localUpdatedAt,
+            )
+          : null;
+
+      return Resource(
+        id: row['id'] as String,
+        type: ResourceType.values.firstWhere(
+          (s) => s.name == row['resource_type'],
+        ),
+        resourceName: row['resource_name'] as String,
+        creatorName: row['creator_name'] as String?,
+        installableDetails: installableDetails,
+      );
+    }).toList();
   }
 
   Future<Map<ResourceType, int>> countOutdatedResourcesByType() async {
@@ -140,7 +172,7 @@ class ResourceDatabase {
     final rows = await db.query(
       'resource',
       where: 'resource_type = ? AND id = ?',
-      whereArgs: [resourceType.toString(), id],
+      whereArgs: [resourceType.name, id],
       columns: ['local_updated_at'],
       limit: 1,
     );
@@ -153,7 +185,7 @@ class ResourceDatabase {
     InstallState installState,
   ) async {
     final db = await _database;
-    final state = installState.toString();
+    final state = installState.name;
     await db.rawUpdate(
       '''
         update resource set

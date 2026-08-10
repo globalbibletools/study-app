@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/services/resources/resource_service.dart';
+import 'package:gbt/services/resources/resource.dart';
 import 'package:gbt/services/service_locator.dart';
-import 'package:gbt/ui/download/section_audio.dart';
-import 'package:gbt/ui/download/section_bibles.dart';
-import 'package:gbt/ui/download/section_glosses.dart';
+import 'package:gbt/ui/download/resource_section.dart';
 
 class DownloadManagerPage extends StatefulWidget {
   const DownloadManagerPage({super.key});
@@ -48,9 +47,21 @@ class _DownloadManagerPageState extends State<DownloadManagerPage> {
       ),
       body: ListView(
         children: [
-          const BiblesSection(),
-          const GlossesSection(),
-          const AudioSection(),
+          ResourceSection(
+              resourceType: ResourceType.Gloss,
+              title: l10n.glosses,
+              icon: Icons.translate,
+          ),
+          ResourceSection(
+              resourceType: ResourceType.bible,
+              title: l10n.bibles,
+              icon: Icons.book,
+          ),
+          ResourceSection(
+              resourceType: ResourceType.audio,
+              title: l10n.audio,
+              icon: Icons.headphones,
+          ),
           // _buildPlaceholderSection(l10n.lexicons, Icons.translate),
         ],
       ),

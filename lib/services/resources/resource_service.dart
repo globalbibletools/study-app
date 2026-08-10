@@ -17,11 +17,13 @@ typedef ResourceChangeListener = void Function(ResourceType type);
 
 class ResourceTypeConfig {
   final String localPathTemplate;
+  final String urlTemplate;
   final String? prebundledPathTemplate;
   final String manifestPath;
 
   const ResourceTypeConfig({
     required this.localPathTemplate,
+    required this.urlTemplate,
     required this.manifestPath,
     this.prebundledPathTemplate = null,
   });
@@ -46,13 +48,20 @@ class ResourceService {
   static const Map<ResourceType, ResourceTypeConfig> resourceConfigs = {
     ResourceType.Gloss: ResourceTypeConfig(
       localPathTemplate: 'glosses/{id}.db',
+      urlTemplate: 'glosses/v1/{id}.db.zip',
       prebundledPathTemplate: 'databases/{id}.db',
       manifestPath: 'glosses/v1/manifest.jsonl',
     ),
     ResourceType.bible: ResourceTypeConfig(
       localPathTemplate: 'bibles/{id}.db',
+      urlTemplate: 'bibles/v1/{id}.db.zip',
       prebundledPathTemplate: 'databases/{id}.db',
       manifestPath: 'bibles/v1/manifest.jsonl',
+    ),
+    ResourceType.audio: ResourceTypeConfig(
+      localPathTemplate: 'audio/{id}',
+      urlTemplate: 'audio/v1/{id}.zip',
+      manifestPath: 'audio/v1/manifest.jsonl',
     ),
   };
 
@@ -114,8 +123,8 @@ class ResourceService {
     _recomputeOutdatedCounts();
   }
 
-  Future<List<ResourceView>> getResourcesByType(ResourceType resourceType) async {
-      return _resourceDatabase.getResourceViews(resourceType);
+  Future<List<Resource>> getResourcesByType(ResourceType resourceType) async {
+      return _resourceDatabase.getAllForType(resourceType);
   }
 
   Future<bool> resourceExists(
@@ -169,9 +178,7 @@ class ResourceService {
   }) async {
     final filePath = await _resolveLocalFilePath(resourceType, id);
 
-    final remoteUrl = resourceType == ResourceType.Gloss
-        ? '${_assetService.baseHost}/glosses/v1/$id.db.zip'
-        : '${_assetService.baseHost}/bibles/v1/$id.db.zip';
+    final remoteUrl = await _resolveUrl(resourceType, id);
     final version = await _resourceDatabase.getResourceVersion(resourceType, id);
 
     var url = Uri.parse(remoteUrl);
@@ -258,6 +265,19 @@ class ResourceService {
     final relativePath = config.localPathTemplate.replaceAll('{id}', id);
     final docDir = await getApplicationDocumentsDirectory();
     return join(docDir.path, relativePath);
+  }
+
+  Future<String> _resolveUrl(
+    ResourceType resourceType,
+    String id,
+  ) async {
+    final config = resourceConfigs[resourceType];
+    if (config == null) {
+        throw Exception('Config not found for resource ${resourceType.name}');
+    }
+
+    final path = config.urlTemplate.replaceAll('{id}', id);
+    return "${_assetService.baseHost}/$path";
   }
 
   Future<void> refreshResources() async {
