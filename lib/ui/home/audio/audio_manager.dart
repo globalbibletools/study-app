@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:gbt/services/resources/resource_service.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/services/resources/remote_asset_service.dart';
@@ -24,6 +26,7 @@ class AudioManager {
   final _audioDb = getIt<AudioDatabase>();
   final _fileService = getIt<FileService>();
   final _assetService = getIt<RemoteAssetService>();
+  final _resourceService = getIt<ResourceService>();
 
   // --- State Notifiers ---
   final isVisibleNotifier = ValueNotifier<bool>(false);
@@ -55,6 +58,41 @@ class AudioManager {
     _syncController = controller;
   }
 
+  String? buildResourceId(String source, int bookId) {
+    if (bookId < 0 || bookId >= bookKeys.length) return null;
+    final bookKey = bookKeys[bookId - 1];
+
+    return "$source/$bookKey";
+  }
+
+  // TODO: extend this to also resolve timings file.
+  Future<({bool isLocal, String url})> resolveAudioUrl(
+    int bookId,
+    int chapter,
+  ) async {
+    final resourceId = buildResourceId(audioSourceNotifier.value, bookId);
+    if (resourceId == null) throw AudioMissingException(bookId, chapter);
+
+    final fileName = "${chapter.toString().padLeft(3, '0')}.mp3";
+
+    try {
+        final localDirectory = await _resourceService.getResourceLocalPath(ResourceType.audio, resourceId);
+        final fullPath = "$localDirectory/$fileName";
+        final exists = await File(fullPath).exists();
+        if (!exists) {
+            throw AudioMissingException(bookId, chapter);
+        }
+
+        final url = Uri.file(fullPath).toString();
+        return (isLocal: true, url: url);
+    } on ResourceMissingException {
+        // TODO: could send head request to check existence and throw here if not found.
+        final remoteUrl = await _resourceService.getResourceStreamingUrl(ResourceType.audio, resourceId);
+        final url = "$remoteUrl/$fileName";
+        return (isLocal: false, url: url);
+    }
+  }
+
   Future<void> loadAndPlay(
     int bookId,
     int chapter,
@@ -62,40 +100,12 @@ class AudioManager {
     int? startVerse,
     bool isAutoAdvance = false,
   }) async {
-    // 1. Get Asset config
-    final asset = _assetService.getAudioChapterAsset(
-      bookId: bookId,
-      chapter: chapter,
-      recordingId: audioSourceNotifier.value,
-    );
+    final (:isLocal, :url) = await resolveAudioUrl(bookId, chapter);
 
-    if (asset == null) throw AudioMissingException(bookId, chapter);
+    debugPrint("url: $url");
 
-    // 2. Determine path and update session type
-    final exists = await _fileService.checkFileExists(
-      asset.fileType,
-      asset.localRelativePath,
-    );
-
-    // If the user explicitly loaded this (not an auto-advance), define the session
     if (!isAutoAdvance) {
-      _isStreamingSession = !exists;
-    }
-
-    String uriPath;
-
-    if (exists) {
-      uriPath = await _fileService.getLocalPath(
-        asset.fileType,
-        asset.localRelativePath,
-      );
-      uriPath = Uri.file(uriPath).toString();
-    } else {
-      if (!AudioLogic.isAudioAvailable(bookId, chapter)) {
-        stopAndClose();
-        throw AudioMissingException(bookId, chapter);
-      }
-      uriPath = asset.remoteUrl;
+      _isStreamingSession = !isLocal;
     }
 
     _loadedBookId = bookId;
@@ -130,7 +140,7 @@ class AudioManager {
     // 5. Load
     try {
       await audioHandler.setUrl(
-        uriPath,
+        url,
         title: "$bookName $chapter",
         subtitle: bookName,
       );
@@ -462,3 +472,72 @@ class AudioManager {
     audioSourceNotifier.dispose();
   }
 }
+
+  const List<String> bookKeys = [
+    'Gen',
+    'Exo',
+    'Lev',
+    'Num',
+    'Deu',
+    'Jos',
+    'Jdg',
+    'Rut',
+    '1Sa',
+    '2Sa',
+    '1Ki',
+    '2Ki',
+    '1Ch',
+    '2Ch',
+    'Ezr',
+    'Neh',
+    'Est',
+    'Job',
+    'Psa',
+    'Pro',
+    'Ecc',
+    'Sng',
+    'Isa',
+    'Jer',
+    'Lam',
+    'Ezk',
+    'Dan',
+    'Hos',
+    'Jol',
+    'Amo',
+    'Oba',
+    'Jon',
+    'Mic',
+    'Nam',
+    'Hab',
+    'Zep',
+    'Hag',
+    'Zec',
+    'Mal',
+    'Mat',
+    'Mrk',
+    'Luk',
+    'Jhn',
+    'Act',
+    'Rom',
+    '1Co',
+    '2Co',
+    'Gal',
+    'Eph',
+    'Php',
+    'Col',
+    '1Th',
+    '2Th',
+    '1Ti',
+    '2Ti',
+    'Tit',
+    'Phm',
+    'Heb',
+    'Jas',
+    '1Pe',
+    '2Pe',
+    '1Jn',
+    '2Jn',
+    '3Jn',
+    'Jud',
+    'Rev',
+  ];

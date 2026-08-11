@@ -18,6 +18,7 @@ typedef ResourceChangeListener = void Function(ResourceType type);
 class ResourceTypeConfig {
   final String localPathTemplate;
   final String urlTemplate;
+  final String? streamingUrlTemplate;
   final String? prebundledPathTemplate;
   final String manifestPath;
 
@@ -25,7 +26,8 @@ class ResourceTypeConfig {
     required this.localPathTemplate,
     required this.urlTemplate,
     required this.manifestPath,
-    this.prebundledPathTemplate = null,
+    this.streamingUrlTemplate,
+    this.prebundledPathTemplate,
   });
 
   String manifestUrl(String baseHost) => '$baseHost/$manifestPath';
@@ -36,8 +38,8 @@ class ResourceMissingException implements Exception {
   final String id;
 
   ResourceMissingException(
-    ResourceType this.resourceType,
-    String this.id
+    this.resourceType,
+    this.id
   );
 
   @override
@@ -61,6 +63,7 @@ class ResourceService {
     ResourceType.audio: ResourceTypeConfig(
       localPathTemplate: 'audio/{id}',
       urlTemplate: 'audio/v1/{id}.zip',
+      streamingUrlTemplate: 'audio/v1/{id}',
       manifestPath: 'audio/v1/manifest.jsonl',
     ),
   };
@@ -141,17 +144,30 @@ class ResourceService {
   ) async {
     final filePath = await _resolveLocalFilePath(resourceType, id);
 
-    final fileExists = await File(filePath).exists();
-    if (!fileExists) {
+    final pathType = await FileSystemEntity.type(filePath);
+    if (pathType == FileSystemEntityType.notFound) {
       throw ResourceMissingException(resourceType, id);
     }
 
+    return filePath;
+  }
+
+  Future<String> getResourceStreamingUrl(
+    ResourceType resourceType,
+    String id,
+  ) async {
     final config = resourceConfigs[resourceType];
     if (config == null) {
         throw Exception('Config not found for resource ${resourceType.name}');
     }
 
-    return filePath;
+    final template = config.streamingUrlTemplate;
+    if (template == null) {
+        throw Exception("Config for resource ${resourceType.name} does not support streaming");
+    }
+
+    final path = template.replaceAll('{id}', id);
+    return "${_assetService.baseHost}/$path";
   }
 
   Future<void> deleteResource(
