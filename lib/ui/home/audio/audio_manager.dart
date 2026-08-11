@@ -58,6 +58,10 @@ class AudioManager {
   // Track the type of the current session
   bool _isStreamingSession = false;
 
+  void show() {
+      isVisibleNotifier.value = true;
+  }
+
   void setSyncController(ScrollSyncController controller) {
     _syncController = controller;
   }
@@ -118,6 +122,7 @@ class AudioManager {
       (:isLocal, :url) = await resolveAudioUrl(bookId, chapter);
     } on AudioMissingException {
         error.value = AudioPlaybackError.fileMissing;
+        reset();
         return;
     }
 
@@ -130,7 +135,6 @@ class AudioManager {
     _loadedBookId = bookId;
     _loadedChapter = chapter;
     _loadedBookName = bookName;
-    isVisibleNotifier.value = true;
 
     // 3. Load Timings
     _currentTimings = await _audioDb.getTimingsForChapter(
@@ -327,10 +331,7 @@ class AudioManager {
     }
   }
 
-  void stopAndClose() {
-    if (isVisibleNotifier.value) {
-      isVisibleNotifier.value = false;
-
+  void reset() {
       // Immediately cancel subscriptions so we don't process position changes
       // caused by fading/stopping the player (preventing jumps to verse 1).
       _positionSubscription?.cancel();
@@ -338,9 +339,17 @@ class AudioManager {
       _clearHighlight();
 
       _fadeOut().then((_) {
+        audioHandler.clearUrl();
         _currentTimings = [];
         _loadedBookId = null;
       });
+  }
+
+  void stopAndClose() {
+    if (isVisibleNotifier.value) {
+      isVisibleNotifier.value = false;
+
+      reset();
     }
   }
 

@@ -297,6 +297,7 @@ class HomeManager {
     int chapter, {
     int? startVerse,
   }) async {
+    audioManager.show();
     await audioManager.loadAndPlay(
       currentBookId,
       chapter,

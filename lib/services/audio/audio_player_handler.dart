@@ -6,50 +6,48 @@ import 'package:gbt/services/audio/position_data.dart';
 class AudioPlayerHandler {
   final player = AudioPlayer();
 
+  // PositionData stream backing state.
+  late final StreamController<PositionData> _positionDataController;
+  PositionData _latestPositionData =
+      PositionData(Duration.zero, Duration.zero, Duration.zero);
+  StreamSubscription? _positionSub;
+  StreamSubscription? _bufferSub;
+  StreamSubscription? _durationSub;
+
+  AudioPlayerHandler() {
+    _positionDataController = StreamController<PositionData>.broadcast(
+      onListen: () {
+        // Replay the latest value to new listeners.
+        _positionDataController.add(_latestPositionData);
+      },
+    );
+
+    void emit() {
+      _latestPositionData = PositionData(
+        player.position,
+        player.bufferedPosition,
+        player.duration ?? Duration.zero,
+      );
+      if (!_positionDataController.isClosed) {
+        _positionDataController.add(_latestPositionData);
+      }
+    }
+
+    _positionSub = player.positionStream.listen((_) => emit());
+    _bufferSub = player.bufferedPositionStream.listen((_) => emit());
+    _durationSub = player.durationStream.listen((_) => emit());
+  }
+
   Stream<PlayerState> get playerStateStream => player.playerStateStream;
   Stream<double> get speedStream => player.speedStream;
   Duration get position => player.position;
 
-  /// Returns a stream of PositionData.
+  /// Returns a broadcast stream of PositionData.
   /// This manually combines position, buffered position, and duration
-  /// without using rxdart.
-  Stream<PositionData> get positionDataStream {
-    StreamController<PositionData>? controller;
-    StreamSubscription? positionSub;
-    StreamSubscription? bufferSub;
-    StreamSubscription? durationSub;
-
-    void emit() {
-      if (controller != null && !controller.isClosed) {
-        controller.add(
-          PositionData(
-            player.position,
-            player.bufferedPosition,
-            player.duration ?? Duration.zero,
-          ),
-        );
-      }
-    }
-
-    controller = StreamController<PositionData>(
-      onListen: () {
-        // Emit initial state
-        emit();
-
-        // Listen to all three streams and emit on any change
-        positionSub = player.positionStream.listen((_) => emit());
-        bufferSub = player.bufferedPositionStream.listen((_) => emit());
-        durationSub = player.durationStream.listen((_) => emit());
-      },
-      onCancel: () {
-        positionSub?.cancel();
-        bufferSub?.cancel();
-        durationSub?.cancel();
-      },
-    );
-
-    return controller.stream;
-  }
+  /// without using rxdart. The latest value is replayed to late listeners,
+  /// and the stream is explicitly reset when audio sources are cleared
+  /// (see [clearUrl]).
+  Stream<PositionData> get positionDataStream => _positionDataController.stream;
 
   Future<void> init() async {
     await player.setSpeed(1.0);
@@ -73,6 +71,21 @@ class AudioPlayerHandler {
     }
   }
 
+  Future<void> clearUrl() async {
+    await player.clearAudioSources();
+    _resetPositionData();
+  }
+
+  /// Emits a zeroed-out PositionData so listeners (e.g. progress UI)
+  /// reset when there is no audio source loaded.
+  void _resetPositionData() {
+    _latestPositionData =
+        PositionData(Duration.zero, Duration.zero, Duration.zero);
+    if (!_positionDataController.isClosed) {
+      _positionDataController.add(_latestPositionData);
+    }
+  }
+
   Stream<SequenceState?> get sequenceStateStream => player.sequenceStateStream;
 
   Future<void> play() => player.play();
@@ -85,6 +98,10 @@ class AudioPlayerHandler {
   }
 
   void dispose() {
+    _positionSub?.cancel();
+    _bufferSub?.cancel();
+    _durationSub?.cancel();
+    _positionDataController.close();
     player.dispose();
   }
 
