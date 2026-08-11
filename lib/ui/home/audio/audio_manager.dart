@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:gbt/services/download/download.dart';
 import 'package:gbt/services/resources/resource_service.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:gbt/common/bible_navigation.dart';
@@ -10,7 +11,6 @@ import 'package:gbt/services/audio/audio_player_handler.dart';
 import 'package:gbt/services/audio/audio_timing.dart';
 import 'package:gbt/services/files/file_service.dart';
 import 'package:gbt/services/service_locator.dart';
-import 'package:gbt/ui/home/audio/audio_logic.dart';
 import 'package:gbt/ui/home/common/scroll_sync_controller.dart';
 
 class AudioMissingException implements Exception {
@@ -21,12 +21,15 @@ class AudioMissingException implements Exception {
 
 enum AudioRepeatMode { none, chapter, verse }
 
+enum AudioPlaybackError { fileMissing, unknown }
+
 class AudioManager {
   final AudioPlayerHandler audioHandler = AudioPlayerHandler();
   final _audioDb = getIt<AudioDatabase>();
   final _fileService = getIt<FileService>();
   final _assetService = getIt<RemoteAssetService>();
   final _resourceService = getIt<ResourceService>();
+  final _downloadService = getIt<DownloadService>();
 
   // --- State Notifiers ---
   final isVisibleNotifier = ValueNotifier<bool>(false);
@@ -37,6 +40,7 @@ class AudioManager {
   final audioSourceNotifier = ValueNotifier<String>(
     "RDB",
   );
+  final error = ValueNotifier<AudioPlaybackError?>(null);
 
   // --- Internal State ---
   ScrollSyncController? _syncController;
@@ -78,6 +82,7 @@ class AudioManager {
     try {
         final localDirectory = await _resourceService.getResourceLocalPath(ResourceType.audio, resourceId);
         final fullPath = "$localDirectory/$fileName";
+
         final exists = await File(fullPath).exists();
         if (!exists) {
             throw AudioMissingException(bookId, chapter);
@@ -89,6 +94,13 @@ class AudioManager {
         // TODO: could send head request to check existence and throw here if not found.
         final remoteUrl = await _resourceService.getResourceStreamingUrl(ResourceType.audio, resourceId);
         final url = "$remoteUrl/$fileName";
+
+
+        final exists = await _downloadService.checkExistence(url);
+        if (!exists) {
+            throw AudioMissingException(bookId, chapter);
+        }
+
         return (isLocal: false, url: url);
     }
   }
@@ -100,7 +112,14 @@ class AudioManager {
     int? startVerse,
     bool isAutoAdvance = false,
   }) async {
-    final (:isLocal, :url) = await resolveAudioUrl(bookId, chapter);
+    bool isLocal = false;
+    String url = '';
+    try {
+      (:isLocal, :url) = await resolveAudioUrl(bookId, chapter);
+    } on AudioMissingException {
+        error.value = AudioPlaybackError.fileMissing;
+        return;
+    }
 
     debugPrint("url: $url");
 
@@ -145,8 +164,8 @@ class AudioManager {
         subtitle: bookName,
       );
     } catch (e) {
-      stopAndClose();
-      rethrow;
+      error.value = AudioPlaybackError.unknown;
+      return;
     }
 
     await audioHandler.setSpeed(playbackSpeedNotifier.value);
