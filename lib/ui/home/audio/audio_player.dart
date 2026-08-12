@@ -1,5 +1,6 @@
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:flutter/material.dart';
+import 'package:gbt/ui/home/audio/audio_player_view_model.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/services/audio/position_data.dart';
@@ -8,7 +9,7 @@ import 'package:gbt/ui/home/audio/audio_logic.dart';
 import 'audio_manager.dart';
 
 class BottomAudioPlayer extends StatelessWidget {
-  final AudioManager audioManager;
+  final AudioPlayerViewModel viewModel;
   final int currentBookId;
   final int currentChapter;
   final int currentVerse;
@@ -17,7 +18,7 @@ class BottomAudioPlayer extends StatelessWidget {
 
   const BottomAudioPlayer({
     super.key,
-    required this.audioManager,
+    required this.viewModel,
     required this.currentBookId,
     required this.currentChapter,
     required this.currentVerse,
@@ -55,7 +56,7 @@ class BottomAudioPlayer extends StatelessWidget {
                 children: [
                   // Voice Source Button (Person Head)
                   _VoiceMenuButton(
-                    audioManager: audioManager,
+                    viewModel: viewModel,
                     onAudioMissing: onAudioMissing,
                     currentBookId: currentBookId,
                     currentChapter: currentChapter,
@@ -65,6 +66,7 @@ class BottomAudioPlayer extends StatelessWidget {
                   // Progress Bar
                   Expanded(
                     child: StreamBuilder<PositionData>(
+                      // TODO: combine streams to power progress bar.
                       stream: audioManager.audioHandler.positionDataStream,
                       builder: (context, snapshot) {
                         final positionData = snapshot.data;
@@ -73,7 +75,7 @@ class BottomAudioPlayer extends StatelessWidget {
                           buffered:
                               positionData?.bufferedPosition ?? Duration.zero,
                           total: positionData?.duration ?? Duration.zero,
-                          onSeek: audioManager.seek,
+                          onSeek: viewModel.seek,
                           barHeight: 4.0,
                           thumbRadius: 6.0,
                           thumbGlowRadius: 12.0,
@@ -97,7 +99,7 @@ class BottomAudioPlayer extends StatelessWidget {
                   IconButton(
                     icon: const Icon(Icons.close),
                     visualDensity: VisualDensity.compact,
-                    onPressed: audioManager.stopAndClose,
+                    onPressed: viewModel.close,
                   ),
                 ],
               ),
@@ -112,7 +114,7 @@ class BottomAudioPlayer extends StatelessWidget {
                     child: Align(
                       alignment: Alignment.centerLeft,
                       child: hasTiming
-                          ? _RepeatMenuButton(audioManager: audioManager)
+                          ? _RepeatMenuButton(viewModel: viewModel)
                           : const SizedBox(),
                     ),
                   ),
@@ -129,7 +131,7 @@ class BottomAudioPlayer extends StatelessWidget {
                             ? colorScheme.primary
                             : colorScheme.onSurface.withValues(alpha: 0.3),
                         onPressed: hasTiming
-                            ? audioManager.skipToPreviousVerse
+                            ? viewModel.jumpToNext
                             : null,
                       ),
 
@@ -137,7 +139,7 @@ class BottomAudioPlayer extends StatelessWidget {
 
                       // Play/Pause
                       _PlayButton(
-                        audioManager: audioManager,
+                        viewModel: viewModel,
                         bookId: currentBookId,
                         chapter: currentChapter,
                         verse: currentVerse,
@@ -155,7 +157,7 @@ class BottomAudioPlayer extends StatelessWidget {
                             ? colorScheme.primary
                             : colorScheme.onSurface.withValues(alpha: 0.3),
                         onPressed: hasTiming
-                            ? audioManager.skipToNextVerse
+                            ? viewModel.jumpToPrev
                             : null,
                       ),
                     ],
@@ -165,7 +167,7 @@ class BottomAudioPlayer extends StatelessWidget {
                   Expanded(
                     child: Align(
                       alignment: Alignment.centerRight,
-                      child: _SpeedMenuButton(audioManager: audioManager),
+                      child: _SpeedMenuButton(viewModel: viewModel),
                     ),
                   ),
                 ],
@@ -181,13 +183,13 @@ class BottomAudioPlayer extends StatelessWidget {
 // --- SUB-WIDGETS ---
 
 class _VoiceMenuButton extends StatelessWidget {
-  final AudioManager audioManager;
+  final AudioPlayerViewModel viewModel;
   final VoidCallback? onAudioMissing;
   final int currentBookId;
   final int currentChapter;
 
   const _VoiceMenuButton({
-    required this.audioManager,
+    required this.viewModel,
     required this.currentBookId,
     required this.currentChapter,
     this.onAudioMissing,
@@ -196,7 +198,7 @@ class _VoiceMenuButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<String>(
-      valueListenable: audioManager.audioSourceNotifier,
+      valueListenable: viewModel.audioSource,
       builder: (context, currentSourcePref, _) {
         final isNt = AudioLogic.isNewTestament(currentBookId);
 
@@ -207,7 +209,7 @@ class _VoiceMenuButton extends StatelessWidget {
           ),
           onSelected: (String source) async {
             try {
-              await audioManager.setAudioSource(source);
+              await viewModel.setSource(source);
             } on AudioMissingException {
               onAudioMissing?.call();
             }
@@ -249,15 +251,16 @@ class _VoiceMenuButton extends StatelessWidget {
   }
 }
 
+// TODO: introduce chapter and verse level repeat into view model
 class _RepeatMenuButton extends StatelessWidget {
-  final AudioManager audioManager;
+  final AudioPlayerViewModel viewModel;
 
-  const _RepeatMenuButton({required this.audioManager});
+  const _RepeatMenuButton({required this.viewModel});
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<AudioRepeatMode>(
-      valueListenable: audioManager.repeatModeNotifier,
+    return StreamBuilder<AudioRepeatMode>(
+      stream: viewModel.player.loopModeStream,
       builder: (context, currentMode, _) {
         IconData iconData;
         Color iconColor;
@@ -311,15 +314,15 @@ class _RepeatMenuButton extends StatelessWidget {
 }
 
 class _SpeedMenuButton extends StatelessWidget {
-  final AudioManager audioManager;
+  final AudioPlayerViewModel viewModel;
 
-  const _SpeedMenuButton({required this.audioManager});
+  const _SpeedMenuButton({required this.viewModel});
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<double>(
-      valueListenable: audioManager.playbackSpeedNotifier,
-      builder: (context, currentSpeed, _) {
+    return StreamBuilder<double>(
+      stream: viewModel.player.speedStream,
+      builder: (context, currentSpeed) {
         final colorScheme = Theme.of(context).colorScheme;
 
         // Displays "1.0x", "0.75x", "1.5x" etc.
@@ -330,13 +333,13 @@ class _SpeedMenuButton extends StatelessWidget {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          onSelected: audioManager.setPlaybackSpeed,
+          onSelected: viewModel.player.setSpeed,
           itemBuilder: (BuildContext context) {
             const speeds = [0.5, 0.75, 0.85, 1.0, 1.2, 1.5];
             return speeds.map((speed) {
               return CheckedPopupMenuItem<double>(
                 value: speed,
-                checked: currentSpeed == speed,
+                checked: currentSpeed.data == speed,
                 child: Text("${speed}x"),
               );
             }).toList();
@@ -359,7 +362,7 @@ class _SpeedMenuButton extends StatelessWidget {
 
 class _PlayButton extends StatelessWidget {
   const _PlayButton({
-    required this.audioManager,
+    required this.viewModel,
     required this.bookId,
     required this.chapter,
     required this.verse,
@@ -367,7 +370,7 @@ class _PlayButton extends StatelessWidget {
     this.onAudioMissing,
   });
 
-  final AudioManager audioManager;
+  final AudioPlayerViewModel viewModel;
   final int bookId;
   final int chapter;
   final int verse;
@@ -381,7 +384,7 @@ class _PlayButton extends StatelessWidget {
     final primaryColor = Theme.of(context).colorScheme.primary;
 
     return StreamBuilder<PlayerState>(
-      stream: audioManager.audioHandler.playerStateStream,
+      stream: viewModel.player.playerStateStream,
       builder: (context, snapshot) {
         final playerState = snapshot.data;
         final processingState = playerState?.processingState;
@@ -403,32 +406,7 @@ class _PlayButton extends StatelessWidget {
             iconSize: _size,
             color: primaryColor,
             padding: EdgeInsets.zero,
-            onPressed: () async {
-              // Check availability before attempting play
-              if (!AudioLogic.isAudioAvailable(bookId, chapter)) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      AppLocalizations.of(context)!.audioNotAvailable,
-                    ),
-                  ),
-                );
-                return;
-              }
-
-              try {
-                await audioManager.play(
-                  checkBookId: bookId,
-                  checkChapter: chapter,
-                  checkBookName: bookName,
-                  startVerse: verse,
-                );
-              } on AudioMissingException catch (_) {
-                onAudioMissing?.call();
-              } catch (e) {
-                debugPrint("Play error: $e");
-              }
-            },
+            onPressed: viewModel.play,
           );
         } else {
           return IconButton(
@@ -436,7 +414,7 @@ class _PlayButton extends StatelessWidget {
             iconSize: _size,
             color: primaryColor,
             padding: EdgeInsets.zero,
-            onPressed: audioManager.pause,
+            onPressed: viewModel.pause,
           );
         }
       },

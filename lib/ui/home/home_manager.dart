@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:gbt/ui/home/audio/audio_player_view_model.dart';
 import 'package:scripture/scripture.dart';
 import 'package:gbt/app_state.dart';
 import 'package:gbt/common/reference.dart';
@@ -53,7 +54,7 @@ class HomeManager {
     9,
   });
 
-  final audioManager = AudioManager();
+  final audioPlayerViewModel = AudioPlayerViewModel();
   final _bibleService = getIt<BibleService>();
   final _settings = getIt<UserSettings>();
   final _downloadService = getIt<DownloadService>();
@@ -79,7 +80,7 @@ class HomeManager {
     panelAnchorNotifier.value = ref;
 
     syncController.addListener(_onSyncUpdate);
-    audioManager.setSyncController(syncController);
+    // audioManager.setSyncController(syncController);
 
     syncController.clearActiveSource();
     syncController.updatePosition('manager', bookId, chapter, 0.0, verse: 1);
@@ -159,34 +160,17 @@ class HomeManager {
   }
 
   Future<void> toggleAudio(BuildContext context) async {
-    // If already open, close it
-    if (audioManager.isVisibleNotifier.value) {
-      audioManager.stopAndClose();
-      return;
-    }
-
-    final bookId = currentBookId;
-    final chapter = currentChapter;
-    final verse = currentVerse;
-
-    // Check if audio is actually available for this book/chapter
-    if (!AudioLogic.isAudioAvailable(bookId, chapter)) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context)!.audioNotAvailable),
-          ),
-        );
-      }
-      return;
+    if (audioPlayerViewModel.isVisible.value) {
+        await audioPlayerViewModel.close();
+        return;
     }
 
     try {
-      await playAudioForCurrentChapter(
-        bookNameFromId(context, bookId),
-        chapter,
-        startVerse: verse,
-      );
+        await audioPlayerViewModel.openAt(Reference(
+            bookId: currentBookId,
+            chapter: currentChapter,
+            verse: currentVerse,
+        ));
     } on AudioMissingException catch (_) {
       if (context.mounted) {
         _promptDownloadAudio(context);
@@ -199,6 +183,24 @@ class HomeManager {
         );
       }
     }
+
+    await audioPlayerViewModel.play();
+
+    // final bookId = currentBookId;
+    // final chapter = currentChapter;
+    // final verse = currentVerse;
+    //
+    // Check if audio is actually available for this book/chapter
+    // if (!AudioLogic.isAudioAvailable(bookId, chapter)) {
+    //   if (context.mounted) {
+    //     ScaffoldMessenger.of(context).showSnackBar(
+    //       SnackBar(
+    //         content: Text(AppLocalizations.of(context)!.audioNotAvailable),
+    //       ),
+    //     );
+    //   }
+    //   return;
+    // }
   }
 
   Future<void> _promptDownloadAudio(BuildContext context) async {
@@ -269,8 +271,8 @@ class HomeManager {
   }
 
   void onBookSelected(BuildContext context, int bookId) {
-    audioManager.stopAndClose();
     final ref = Reference(bookId: bookId, chapter: 1, verse: 1);
+    audioPlayerViewModel.jumpTo(ref);
     currentReference.value = ref;
     panelAnchorNotifier.value = ref;
     syncController.clearActiveSource();
@@ -278,8 +280,8 @@ class HomeManager {
   }
 
   void onChapterSelected(int chapter) {
-    audioManager.stopAndClose();
     final ref = Reference(bookId: currentBookId, chapter: chapter, verse: 1);
+    audioPlayerViewModel.jumpTo(ref);
     currentReference.value = ref;
     panelAnchorNotifier.value = ref;
     syncController.clearActiveSource();
@@ -289,20 +291,6 @@ class HomeManager {
       chapter,
       0.0,
       verse: 1,
-    );
-  }
-
-  Future<void> playAudioForCurrentChapter(
-    String bookName,
-    int chapter, {
-    int? startVerse,
-  }) async {
-    audioManager.show();
-    await audioManager.loadAndPlay(
-      currentBookId,
-      chapter,
-      bookName,
-      startVerse: startVerse,
     );
   }
 
@@ -317,7 +305,7 @@ class HomeManager {
     final recordingId = AudioLogic.getRecordingId(
       bookId,
       chapter,
-      audioManager.audioSourceNotifier.value,
+      audioPlayerViewModel.audioSource.value,
     );
     final asset = _assetService.getAudioChapterAsset(
       bookId: bookId,
@@ -340,7 +328,7 @@ class HomeManager {
   void dispose() {
     syncController.removeListener(_onSyncUpdate);
     syncController.dispose();
-    audioManager.dispose();
+    audioPlayerViewModel.dispose();
     currentReference.dispose();
     isSinglePanelNotifier.dispose();
     textParagraphNotifier.dispose();

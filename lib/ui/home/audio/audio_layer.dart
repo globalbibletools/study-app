@@ -14,7 +14,7 @@ class AudioLayer extends StatelessWidget {
     return Align(
       alignment: Alignment.bottomCenter,
       child: ValueListenableBuilder<bool>(
-        valueListenable: manager.audioManager.isVisibleNotifier,
+        valueListenable: manager.audioPlayerViewModel.isVisible,
         builder: (context, isVisible, _) {
           return AnimatedSlide(
             offset: isVisible ? Offset.zero : const Offset(0, 1),
@@ -24,14 +24,14 @@ class AudioLayer extends StatelessWidget {
               valueListenable: manager.currentReference,
               builder: (context, ref, _) {
                 return BottomAudioPlayer(
-                  audioManager: manager.audioManager,
+                  viewModel: manager.audioPlayerViewModel,
                   currentBookId: ref.bookId,
                   currentChapter: ref.chapter,
                   currentVerse: ref.verse,
                   currentBookName: bookNameFromId(context, ref.bookId),
-                  onAudioMissing: () {
-                    manager.toggleAudio(context);
-                  },
+                  // onAudioMissing: () {
+                  //   manager.toggleAudio(context);
+                  // },
                 );
               },
             ),
