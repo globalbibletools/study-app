@@ -1,12 +1,11 @@
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:flutter/material.dart';
+import 'package:gbt/services/audio/audio_service.dart';
 import 'package:gbt/ui/home/audio/audio_player_view_model.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/services/audio/position_data.dart';
 import 'package:gbt/ui/home/audio/audio_logic.dart';
-
-import 'audio_manager.dart';
 
 class BottomAudioPlayer extends StatelessWidget {
   final AudioPlayerViewModel viewModel;
@@ -65,16 +64,14 @@ class BottomAudioPlayer extends StatelessWidget {
 
                   // Progress Bar
                   Expanded(
-                    child: StreamBuilder<PositionData>(
-                      // TODO: combine streams to power progress bar.
-                      stream: audioManager.audioHandler.positionDataStream,
+                    child: StreamBuilder<({Duration? duration, Duration buffered, Duration position })>(
+                      stream: viewModel.playback,
                       builder: (context, snapshot) {
-                        final positionData = snapshot.data;
+                        final playback = snapshot.data;
                         return ProgressBar(
-                          progress: positionData?.position ?? Duration.zero,
-                          buffered:
-                              positionData?.bufferedPosition ?? Duration.zero,
-                          total: positionData?.duration ?? Duration.zero,
+                          progress: playback?.position ?? Duration.zero,
+                          buffered: playback?.buffered ?? Duration.zero,
+                          total: playback?.duration ?? Duration.zero,
                           onSeek: viewModel.seek,
                           barHeight: 4.0,
                           thumbRadius: 6.0,
@@ -131,7 +128,7 @@ class BottomAudioPlayer extends StatelessWidget {
                             ? colorScheme.primary
                             : colorScheme.onSurface.withValues(alpha: 0.3),
                         onPressed: hasTiming
-                            ? viewModel.jumpToNext
+                            ? viewModel.jumpToPrev
                             : null,
                       ),
 
@@ -157,7 +154,7 @@ class BottomAudioPlayer extends StatelessWidget {
                             ? colorScheme.primary
                             : colorScheme.onSurface.withValues(alpha: 0.3),
                         onPressed: hasTiming
-                            ? viewModel.jumpToPrev
+                            ? viewModel.jumpToNext
                             : null,
                       ),
                     ],
@@ -251,7 +248,6 @@ class _VoiceMenuButton extends StatelessWidget {
   }
 }
 
-// TODO: introduce chapter and verse level repeat into view model
 class _RepeatMenuButton extends StatelessWidget {
   final AudioPlayerViewModel viewModel;
 
@@ -259,8 +255,8 @@ class _RepeatMenuButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<AudioRepeatMode>(
-      stream: viewModel.player.loopModeStream,
+    return ValueListenableBuilder<AudioRepeatMode>(
+      valueListenable: viewModel.repeatMode,
       builder: (context, currentMode, _) {
         IconData iconData;
         Color iconColor;
@@ -286,7 +282,7 @@ class _RepeatMenuButton extends StatelessWidget {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          onSelected: audioManager.setRepeatMode,
+          onSelected: viewModel.setRepeatMode,
           itemBuilder: (BuildContext context) {
             final l10n = AppLocalizations.of(context)!;
             return [
@@ -326,7 +322,7 @@ class _SpeedMenuButton extends StatelessWidget {
         final colorScheme = Theme.of(context).colorScheme;
 
         // Displays "1.0x", "0.75x", "1.5x" etc.
-        String label = "${currentSpeed}x";
+        String label = "${currentSpeed.data}x";
 
         return PopupMenuButton<double>(
           offset: const Offset(0, -220),
