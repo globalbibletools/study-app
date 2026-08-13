@@ -263,20 +263,20 @@ class _RepeatMenuButton extends StatelessWidget {
         final theme = Theme.of(context);
 
         // Determine Icon and Color
-        switch (currentMode) {
-          case AudioRepeatMode.none:
+        switch (currentMode.type) {
+          case AudioRepeatModeType.none:
             iconData = Icons.repeat;
             // Primary color with alpha to indicate "Off" / Disabled state
             iconColor = theme.colorScheme.primary.withValues(alpha: 0.3);
-          case AudioRepeatMode.verse:
+          case AudioRepeatModeType.verse:
             iconData = Icons.repeat_one_rounded;
             iconColor = theme.colorScheme.primary;
-          case AudioRepeatMode.chapter:
+          case AudioRepeatModeType.chapter:
             iconData = Icons.repeat_rounded;
             iconColor = theme.colorScheme.primary;
         }
 
-        return PopupMenuButton<AudioRepeatMode>(
+        return PopupMenuButton<AudioRepeatModeType>(
           icon: Icon(iconData, color: iconColor),
           offset: const Offset(0, -120),
           shape: RoundedRectangleBorder(
@@ -286,19 +286,19 @@ class _RepeatMenuButton extends StatelessWidget {
           itemBuilder: (BuildContext context) {
             final l10n = AppLocalizations.of(context)!;
             return [
-              CheckedPopupMenuItem<AudioRepeatMode>(
-                value: AudioRepeatMode.none,
-                checked: currentMode == AudioRepeatMode.none,
+              CheckedPopupMenuItem<AudioRepeatModeType>(
+                value: AudioRepeatModeType.none,
+                checked: currentMode.type == AudioRepeatModeType.none,
                 child: Text(l10n.repeatNone), // "Off"
               ),
-              CheckedPopupMenuItem<AudioRepeatMode>(
-                value: AudioRepeatMode.verse,
-                checked: currentMode == AudioRepeatMode.verse,
+              CheckedPopupMenuItem<AudioRepeatModeType>(
+                value: AudioRepeatModeType.verse,
+                checked: currentMode.type == AudioRepeatModeType.verse,
                 child: Text(l10n.repeatVerse), // "Repeat Verse"
               ),
-              CheckedPopupMenuItem<AudioRepeatMode>(
-                value: AudioRepeatMode.chapter,
-                checked: currentMode == AudioRepeatMode.chapter,
+              CheckedPopupMenuItem<AudioRepeatModeType>(
+                value: AudioRepeatModeType.chapter,
+                checked: currentMode.type == AudioRepeatModeType.chapter,
                 child: Text(l10n.repeatChapter), // "Repeat Chapter"
               ),
             ];

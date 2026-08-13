@@ -6,10 +6,9 @@ import 'package:gbt/services/audio/audio_service.dart';
 import 'package:gbt/services/audio/audio_timing.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:just_audio_background/just_audio_background.dart';
+import 'package:path/path.dart';
 
 enum AudioPlaybackError { fileMissing, unknown }
-
-enum AudioRepeatMode { none, chapter, verse }
 
 class CachedStream<T> {
   final Stream<T> _source;
@@ -123,20 +122,31 @@ Stream<R> combineStreams3<A, B, C, R>(
   return controller.stream;
 }
 
+enum AudioRepeatModeType { none, chapter, verse }
+
+class AudioRepeatMode {
+    final AudioRepeatModeType type;
+    final int? target;
+
+    const AudioRepeatMode._(this.type) : target = null;
+
+    static const none = AudioRepeatMode._(AudioRepeatModeType.none);
+    static const chapter = AudioRepeatMode._(AudioRepeatModeType.chapter);
+    AudioRepeatMode.verse(int this.target) : type = AudioRepeatModeType.verse;
+}
+
 class AudioPlayerViewModel {
     // TODO: init these from user preferences
     final repeatMode = ValueNotifier(AudioRepeatMode.none);
     final audioSource = ValueNotifier("RDB");
     final isVisible = ValueNotifier(false);
     final error = ValueNotifier<AudioPlaybackError?>(null);
-    // TODO: connect this to progress stream
     late final Stream<Reference?> reference;
     late final Stream<({Duration? duration, Duration buffered, Duration position})> playback;
 
     final player = AudioPlayer();
 
     final _audioService = AudioService();
-    // TODO: convert this into a hashmap for lookups for sparse timings
     List<AudioTiming> _timings = [];
     int? currentBook;
     int? currentChapter;
@@ -155,6 +165,9 @@ class AudioPlayerViewModel {
               )
         );
         reference = player.positionStream.map(_positionToReference);
+
+        player.positionStream.listen(_handleVerseRepeat);
+        player.processingStateStream.listen(_handleChapterRepeatOrContinue);
     }
 
     Future<void> openAt(Reference reference) async {
@@ -180,6 +193,10 @@ class AudioPlayerViewModel {
     }
 
     Future<void> jumpTo(Reference reference, { bool play = false }) async {
+        if (repeatMode.value.type == AudioRepeatModeType.verse) {
+            repeatMode.value = AudioRepeatMode.verse(reference.verse);
+        }
+
         await _reload(audioSource.value, reference);
 
         if (play && !player.playing) {
@@ -190,6 +207,10 @@ class AudioPlayerViewModel {
     Future<void> jumpToNext() async {
         final currentReference = getCurrentReference();
         if (currentReference == null) return;
+
+        if (repeatMode.value.type == AudioRepeatModeType.verse) {
+            repeatMode.value = AudioRepeatMode.verse(currentReference.verse + 1);
+        }
 
         await _seekToReference(Reference(
           bookId: currentReference.bookId,
@@ -208,6 +229,10 @@ class AudioPlayerViewModel {
 
         debugPrint("timing = ${timing.start}, position = ${player.position.inMilliseconds / 1000}, diff = ${(player.position.inMilliseconds / 1000) - timing.start}");
         if ((player.position.inMilliseconds / 1000) - timing.start < 1) {
+            if (repeatMode.value.type == AudioRepeatModeType.verse) {
+                repeatMode.value = AudioRepeatMode.verse(currentReference.verse - 1);
+            }
+
             await _seekToReference(Reference(
               bookId: currentReference.bookId,
               chapter: currentReference.chapter,
@@ -220,16 +245,76 @@ class AudioPlayerViewModel {
               verse: currentReference.verse,
             ));
         }
-
     }
 
-    // TODO: listen to progress to repeat verse
-    Future<void> setRepeatMode(AudioRepeatMode mode) async {
-        repeatMode.value = mode;
+    Future<void> setRepeatMode(AudioRepeatModeType mode) async {
+        switch (mode) {
+            case AudioRepeatModeType.none:
+                repeatMode.value = AudioRepeatMode.none;
+                break;
+            case AudioRepeatModeType.chapter:
+                repeatMode.value = AudioRepeatMode.chapter;
+                break;
+            case AudioRepeatModeType.verse:
+                final reference = getCurrentReference();
+                if (reference == null) return;
+                repeatMode.value = AudioRepeatMode.verse(reference.verse);
+                break;
+        }
     }
 
     Future<void> setSource(String source) async {
         await _reload(source, getCurrentReference());
+    }
+
+    Future<void> _handleChapterRepeatOrContinue(ProcessingState state) async {
+        if (state != ProcessingState.completed) return;
+
+        final current = getCurrentReference();
+        if (current == null) return;
+
+        switch (repeatMode.value.type) {
+            case AudioRepeatModeType.none:
+                // TODO: handle book transitions
+                _reload(audioSource.value, Reference(
+                    bookId: current.bookId,
+                    chapter: current.chapter + 1,
+                    verse: 1
+                ));
+                break;
+            case AudioRepeatModeType.chapter:
+                await _seekToReference(Reference(
+                    bookId: current.bookId,
+                    chapter: current.chapter,
+                    verse: 1
+                ));
+                break;
+            default:
+                break;
+        }
+    }
+
+    Future<void> _handleVerseRepeat(Duration? position) async {
+        if (repeatMode.value.type != AudioRepeatModeType.verse) return;
+
+        final targetVerse = repeatMode.value.target;
+        final reference = getCurrentReference();
+        if (position == null || reference == null || targetVerse == null) return;
+
+        final targetReference = Reference(
+            bookId: reference.bookId,
+            chapter: reference.chapter,
+            verse: targetVerse
+        );
+
+        final timing = _referenceToTiming(targetReference);
+        if (timing == null) return;
+
+        final beforeStart = position.inMilliseconds < timing.start * 1000;
+        final pastEnd = position.inMilliseconds - (timing.end * 1000) >= -1;
+        if (!beforeStart && !pastEnd) return;
+
+        await _seekToReference(targetReference);
     }
 
     Future<void> _reload(String source, Reference? reference) async {
