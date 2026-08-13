@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gbt/common/reference.dart';
 import 'package:gbt/services/settings/user_settings.dart';
 import 'package:gbt/ui/home/panel_area/common/infinite_scroll_view.dart';
 import 'package:gbt/ui/home/common/scroll_sync_controller.dart';
@@ -11,6 +12,7 @@ class HebrewGreekPanel extends StatefulWidget {
     super.key,
     required this.bookId,
     required this.chapter,
+    required this.highlightStream,
     this.syncController,
     required this.settingsVersion,
     this.scrollingEnabled = true,
@@ -22,6 +24,7 @@ class HebrewGreekPanel extends StatefulWidget {
   final int bookId;
   final int chapter;
   final ScrollSyncController? syncController;
+  final Stream<Reference?> highlightStream;
   final int settingsVersion;
   final bool scrollingEnabled;
   final bool showReadingCheckboxGuide;
@@ -128,6 +131,7 @@ class HebrewGreekPanelState extends State<HebrewGreekPanel> {
                               key: ValueKey('page-$bookId-$chapter'),
                               bookId: bookId,
                               chapter: chapter,
+                              highlightStream: widget.highlightStream,
                               fontSize: fontSize,
                               syncController: widget.syncController,
                               verseLayout: verseLayout,

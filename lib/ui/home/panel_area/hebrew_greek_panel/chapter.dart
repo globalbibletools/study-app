@@ -2,12 +2,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:gbt/common/book_name.dart';
+import 'package:gbt/common/reference.dart';
 import 'package:gbt/common/word.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/services/reading_session/rs_manager.dart';
 import 'package:gbt/services/resources/resource.dart';
 import 'package:gbt/ui/common/resource_ui_helper.dart';
 import 'package:gbt/services/settings/user_settings.dart';
+import 'package:gbt/ui/home/audio/audio_player_view_model.dart';
 import 'package:gbt/ui/home/panel_area/common/infinite_scroll_view.dart';
 import 'package:gbt/ui/home/common/scroll_sync_controller.dart';
 import 'package:gbt/ui/home/panel_area/hebrew_greek_panel/chapter_manager.dart';
@@ -35,6 +37,7 @@ class HebrewGreekChapter extends StatefulWidget {
     required this.fontSize,
     required this.verseLayout,
     required this.readingModeEnabled,
+    required this.highlightStream,
     this.syncController,
     this.onReadingCheckboxGuideRectChanged,
     this.onReadingCheckboxGuideCompleted,
@@ -48,6 +51,7 @@ class HebrewGreekChapter extends StatefulWidget {
   final ScrollSyncController? syncController;
   final ValueChanged<Rect?>? onReadingCheckboxGuideRectChanged;
   final VoidCallback? onReadingCheckboxGuideCompleted;
+  final Stream<Reference?> highlightStream;
 
   @override
   State<HebrewGreekChapter> createState() => HebrewGreekChapterState();
@@ -165,16 +169,15 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter>
           builder: (context, words, child) {
             if (words.isEmpty) return const SizedBox();
 
-            return ValueListenableBuilder<VerseHighlight?>(
-              valueListenable:
-                  widget.syncController?.highlightNotifier ??
-                  ValueNotifier(null),
-              builder: (context, highlightInfo, _) {
+            return StreamBuilder<Reference?>(
+              stream: widget.highlightStream,
+              builder: (context, highlight) {
+                final reference = highlight.data;
                 int? verseToHighlight;
-                if (highlightInfo != null &&
-                    highlightInfo.bookId == widget.bookId &&
-                    highlightInfo.chapter == widget.chapter) {
-                  verseToHighlight = highlightInfo.verse;
+                if (reference != null &&
+                    reference.bookId == widget.bookId &&
+                    reference.chapter == widget.chapter) {
+                  verseToHighlight = reference.verse;
                 }
 
                 //always show first verse only (basic logic)

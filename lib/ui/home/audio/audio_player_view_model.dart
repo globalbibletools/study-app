@@ -297,10 +297,11 @@ class AudioPlayerViewModel {
     }
 
     Future<void> _reset() async {
-        await player.stop();
-        await player.clearAudioSources();
         currentBook = null;
         currentChapter = null;
+        await player.seek(Duration(seconds: 0));
+        await player.stop();
+        await player.clearAudioSources();
         error.value = null;
         _timings = [];
     }
