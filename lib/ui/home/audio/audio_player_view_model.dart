@@ -1,126 +1,12 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:gbt/common/reference.dart';
+import 'package:gbt/rxutils/combine_streams.dart';
 import 'package:gbt/services/audio/audio_service.dart';
 import 'package:gbt/services/audio/audio_timing.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:just_audio_background/just_audio_background.dart';
-import 'package:path/path.dart';
 
 enum AudioPlaybackError { fileMissing, unknown }
-
-class CachedStream<T> {
-  final Stream<T> _source;
-  late final StreamSubscription<T> _subscription;
-
-  T? _value;
-
-  CachedStream(this._source) {
-    _subscription = _source.listen((value) {
-      _value = value;
-    });
-  }
-
-  T? get value => _value;
-
-  Future<void> dispose() => _subscription.cancel();
-}
-
-class TrackingStreamController<T> {
-    final _controller = StreamController<T>.broadcast();
-
-    bool get isClosed => _controller.isClosed;
-    Stream<T> get stream => _controller.stream;
-    Future<dynamic> close() => _controller.close();
-
-    T _current;
-    T get current => _current;
-
-    TrackingStreamController(this._current);
-
-    void add(T newValue) {
-        _current = newValue;
-        _controller.add(newValue);
-    }
-}
-
-Stream<R> combineStreams3<A, B, C, R>(
-  Stream<A> a,
-  Stream<B> b,
-  Stream<C> c,
-  R Function(A a, B b, C c) combine,
-) {
-  late StreamController<R> controller;
-
-  A? latestA;
-  B? latestB;
-  C? latestC;
-  var hasA = false;
-  var hasB = false;
-  var hasC = false;
-
-  final List<StreamSubscription> subscriptions = [];
-
-  var closed = false;
-
-  void emit() {
-    if (hasA && hasB && hasC) {
-      controller.add(combine(latestA as A, latestB as B, latestC as C));
-    }
-  }
-
-  Future<void> done() async {
-      if (closed) return;
-      closed = true;
-      for (final sub in subscriptions) {
-          await sub.cancel();
-      }
-      await controller.close();
-  }
-
-  controller = StreamController<R>.broadcast(
-    onListen: () {
-      subscriptions.addAll([
-          a.listen(
-            (value) {
-              latestA = value;
-              hasA = true;
-              emit();
-            },
-            onError: controller.addError,
-            onDone: done,
-          ),
-          b.listen(
-            (value) {
-              latestB = value;
-              hasB = true;
-              emit();
-            },
-            onError: controller.addError,
-            onDone: done,
-          ),
-          c.listen(
-            (value) {
-              latestC = value;
-              hasC = true;
-              emit();
-            },
-            onError: controller.addError,
-            onDone: done,
-          )
-      ]);
-    },
-    onCancel: () async {
-        closed = true;
-        for (final sub in subscriptions) {
-            await sub.cancel();
-        }
-    },
-  );
-
-  return controller.stream;
-}
 
 enum AudioRepeatModeType { none, chapter, verse }
 
