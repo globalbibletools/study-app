@@ -52,6 +52,7 @@ class AudioPlayerViewModel {
         );
         reference = player.positionStream.map(_positionToReference);
 
+        // TODO: cleanup these subscriptions in dispose
         player.positionStream.listen(_handleVerseRepeat);
         player.processingStateStream.listen(_handleChapterRepeatOrContinue);
     }
@@ -113,8 +114,14 @@ class AudioPlayerViewModel {
         final timing = _referenceToTiming(currentReference);
         if (timing == null) return;
 
-        debugPrint("timing = ${timing.start}, position = ${player.position.inMilliseconds / 1000}, diff = ${(player.position.inMilliseconds / 1000) - timing.start}");
-        if ((player.position.inMilliseconds / 1000) - timing.start < 1) {
+        final shouldRestartVerse = (player.position.inMilliseconds / 1000) - timing.start > 1;
+        if (shouldRestartVerse) {
+            await _seekToReference(Reference(
+              bookId: currentReference.bookId,
+              chapter: currentReference.chapter,
+              verse: currentReference.verse,
+            ));
+        } else {
             if (repeatMode.value.type == AudioRepeatModeType.verse) {
                 repeatMode.value = AudioRepeatMode.verse(currentReference.verse - 1);
             }
@@ -123,12 +130,6 @@ class AudioPlayerViewModel {
               bookId: currentReference.bookId,
               chapter: currentReference.chapter,
               verse: currentReference.verse - 1,
-            ));
-        } else {
-            await _seekToReference(Reference(
-              bookId: currentReference.bookId,
-              chapter: currentReference.chapter,
-              verse: currentReference.verse,
             ));
         }
     }
@@ -203,8 +204,17 @@ class AudioPlayerViewModel {
         await _seekToReference(targetReference);
     }
 
+    Future<void> _reset() async {
+        currentBook = null;
+        currentChapter = null;
+        await player.seek(Duration(seconds: 0));
+        await player.stop();
+        await player.clearAudioSources();
+        error.value = null;
+        _timings = [];
+    }
+
     Future<void> _reload(String source, Reference? reference) async {
-        debugPrint("reference=$reference");
         if (reference == null) {
             audioSource.value = source;
             return _reset();
@@ -265,16 +275,6 @@ class AudioPlayerViewModel {
         if (timing != null) {
             await player.seek(Duration(milliseconds: (timing.start * 1000).toInt()));
         }
-    }
-
-    Future<void> _reset() async {
-        currentBook = null;
-        currentChapter = null;
-        await player.seek(Duration(seconds: 0));
-        await player.stop();
-        await player.clearAudioSources();
-        error.value = null;
-        _timings = [];
     }
 
     Reference? _positionToReference(Duration position) {
