@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/common/reference.dart';
 import 'package:gbt/rxutils/combine_streams.dart';
 import 'package:gbt/services/audio/audio_service.dart';
@@ -95,43 +96,38 @@ class AudioPlayerViewModel {
         final currentReference = getCurrentReference();
         if (currentReference == null) return;
 
-        if (repeatMode.value.type == AudioRepeatModeType.verse) {
-            repeatMode.value = AudioRepeatMode.verse(currentReference.verse + 1);
+        final nextReference = _resolveNextVerse(currentReference);
+
+        // End of the Bible.
+        if (nextReference == null) {
+            return;
         }
 
-        await _seekToReference(Reference(
-          bookId: currentReference.bookId,
-          chapter: currentReference.chapter,
-          verse: currentReference.verse + 1,
-        ));
+        await jumpTo(nextReference);
     }
 
     Future<void> jumpToPrev() async {
         final currentReference = getCurrentReference();
-        debugPrint("current reference = $currentReference");
         if (currentReference == null) return;
 
         final timing = _referenceToTiming(currentReference);
         if (timing == null) return;
 
+        // If we're more than a second into the current verse, restart it.
         final shouldRestartVerse = (player.position.inMilliseconds / 1000) - timing.start > 1;
         if (shouldRestartVerse) {
-            await _seekToReference(Reference(
-              bookId: currentReference.bookId,
-              chapter: currentReference.chapter,
-              verse: currentReference.verse,
-            ));
-        } else {
-            if (repeatMode.value.type == AudioRepeatModeType.verse) {
-                repeatMode.value = AudioRepeatMode.verse(currentReference.verse - 1);
-            }
-
-            await _seekToReference(Reference(
-              bookId: currentReference.bookId,
-              chapter: currentReference.chapter,
-              verse: currentReference.verse - 1,
-            ));
+            await _seekToReference(currentReference);
+            return;
         }
+
+        final prevReference = _resolvePrevVerse(currentReference);
+
+        // Beginning of the Bible, nothing to back up to.
+        if (prevReference == null) {
+            return;
+        }
+
+        await jumpTo(prevReference);
     }
 
     Future<void> setRepeatMode(AudioRepeatModeType mode) async {
@@ -162,12 +158,22 @@ class AudioPlayerViewModel {
 
         switch (repeatMode.value.type) {
             case AudioRepeatModeType.none:
-                // TODO: handle book transitions
-                _reload(audioSource.value, Reference(
-                    bookId: current.bookId,
-                    chapter: current.chapter + 1,
-                    verse: 1
-                ));
+                final nextReference = _resolveNextVerse(current);
+
+                // End of the Bible, nothing to continue to.
+                if (nextReference == null) {
+                    await player.stop();
+                    break;
+                }
+
+                // The next verse is within the chapter, so there is a hole in the audio.
+                if (nextReference.bookId == current.bookId &&
+                    nextReference.chapter == current.chapter) {
+                    await player.pause();
+                    break;
+                }
+
+                await _reload(audioSource.value, nextReference);
                 break;
             case AudioRepeatModeType.chapter:
                 await _seekToReference(Reference(
@@ -275,6 +281,42 @@ class AudioPlayerViewModel {
         if (timing != null) {
             await player.seek(Duration(milliseconds: (timing.start * 1000).toInt()));
         }
+    }
+
+    Reference? _resolveNextVerse(Reference current) {
+        final verseCount = BibleNavigation.getVerseCount(current.bookId, current.chapter);
+        if (current.verse < verseCount) {
+            return Reference(
+              bookId: current.bookId,
+              chapter: current.chapter,
+              verse: current.verse + 1,
+            );
+        }
+
+        final nextChapter = BibleNavigation.getNextChapter(
+          ChapterIdentifier(current.bookId, current.chapter),
+        );
+        if (nextChapter == null) return null;
+
+        return Reference(bookId: nextChapter.bookId, chapter: nextChapter.chapter, verse: 1);
+    }
+
+    Reference? _resolvePrevVerse(Reference current) {
+        if (current.verse > 1) {
+            return Reference(
+              bookId: current.bookId,
+              chapter: current.chapter,
+              verse: current.verse - 1,
+            );
+        }
+
+        final prevChapter = BibleNavigation.getPreviousChapter(
+          ChapterIdentifier(current.bookId, current.chapter),
+        );
+        if (prevChapter == null) return null;
+
+        final lastVerse = BibleNavigation.getVerseCount(prevChapter.bookId, prevChapter.chapter);
+        return Reference(bookId: prevChapter.bookId, chapter: prevChapter.chapter, verse: lastVerse);
     }
 
     Reference? _positionToReference(Duration position) {
