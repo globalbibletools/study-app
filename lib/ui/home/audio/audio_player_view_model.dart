@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/common/reference.dart';
@@ -35,7 +37,6 @@ class AudioRepeatMode {
 }
 
 class AudioPlayerViewModel {
-    // TODO: init these from user preferences
     final repeatMode = ValueNotifier(AudioRepeatMode.none);
     final audioSource = ValueNotifier("RDB");
     final isVisible = ValueNotifier(false);
@@ -49,6 +50,9 @@ class AudioPlayerViewModel {
     List<AudioTiming> _timings = [];
     int? currentBook;
     int? currentChapter;
+
+    late final StreamSubscription positionSubscription;
+    late final StreamSubscription processingStateSubscription;
 
     Reference? getCurrentReference() => _positionToReference(player.position);
 
@@ -65,9 +69,8 @@ class AudioPlayerViewModel {
         );
         reference = player.positionStream.map(_positionToReference);
 
-        // TODO: cleanup these subscriptions in dispose
-        player.positionStream.listen(_handleVerseRepeat);
-        player.processingStateStream.listen(_handleChapterRepeatOrContinue);
+        positionSubscription = player.positionStream.listen(_handleVerseRepeat);
+        processingStateSubscription = player.processingStateStream.listen(_handleChapterRepeatOrContinue);
     }
 
     Future<void> openAt(Reference reference) async {
@@ -286,7 +289,6 @@ class AudioPlayerViewModel {
 
     AudioTiming? _referenceToTiming(Reference reference) {
         if (reference.verse < 1 || reference.verse > _timings.length) {
-            // TODO: maybe add some logging or user visible error handling here.
             return null;
         }
         try {
@@ -356,10 +358,14 @@ class AudioPlayerViewModel {
     }
 
     void dispose() {
-        // TODO: figure out how to dispose the combined stream, or if necessary since it is dervied from the player
         player.dispose();
+
         audioSource.dispose();
         isVisible.dispose();
         error.dispose();
+        repeatMode.dispose();
+
+        processingStateSubscription.cancel();
+        positionSubscription.cancel();
     }
 }
