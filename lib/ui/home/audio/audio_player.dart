@@ -1,12 +1,12 @@
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:flutter/material.dart';
+import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/services/audio/audio_service.dart';
 import 'package:gbt/common/reference.dart';
 import 'package:gbt/l10n/book_names.dart';
 import 'package:gbt/ui/home/audio/audio_player_view_model.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:gbt/l10n/app_localizations.dart';
-import 'package:gbt/ui/home/audio/audio_logic.dart';
 
 class BottomAudioPlayer extends StatelessWidget {
   final AudioPlayerViewModel viewModel;
@@ -30,7 +30,6 @@ class BottomAudioPlayer extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final hasTiming = AudioLogic.hasTimingData(currentBookId);
 
     return Container(
       decoration: BoxDecoration(
@@ -122,9 +121,7 @@ class BottomAudioPlayer extends StatelessWidget {
                   Expanded(
                     child: Align(
                       alignment: Alignment.centerLeft,
-                      child: hasTiming
-                          ? _RepeatMenuButton(viewModel: viewModel)
-                          : const SizedBox(),
+                      child: _RepeatMenuButton(viewModel: viewModel)
                     ),
                   ),
 
@@ -138,10 +135,8 @@ class BottomAudioPlayer extends StatelessWidget {
                           IconButton(
                             icon: const Icon(Icons.chevron_left_rounded),
                             iconSize: 28,
-                            color: hasTiming
-                                ? colorScheme.primary
-                                : colorScheme.onSurface.withValues(alpha: 0.3),
-                            onPressed: hasTiming && error == null
+                            color: colorScheme.primary,
+                            onPressed: error == null
                                 ? viewModel.jumpToPrev
                                 : null,
                           )
@@ -167,10 +162,8 @@ class BottomAudioPlayer extends StatelessWidget {
                           IconButton(
                             icon: const Icon(Icons.chevron_right_rounded),
                             iconSize: 28,
-                            color: hasTiming
-                                ? colorScheme.primary
-                                : colorScheme.onSurface.withValues(alpha: 0.3),
-                            onPressed: hasTiming && error == null
+                            color: colorScheme.primary,
+                            onPressed: error == null
                                 ? viewModel.jumpToNext
                                 : null,
                           ),
@@ -288,7 +281,7 @@ class _VoiceMenuButton extends StatelessWidget {
     return ValueListenableBuilder<String>(
       valueListenable: viewModel.audioSource,
       builder: (context, currentSourcePref, _) {
-        final isNt = AudioLogic.isNewTestament(currentBookId);
+        final isNt = currentBookId >= BibleNavigation.getNewTestamentBookId();
 
         return PopupMenuButton<String>(
           icon: const Icon(Icons.person_outline),
