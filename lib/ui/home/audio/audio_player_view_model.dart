@@ -95,16 +95,12 @@ class AudioPlayerViewModel {
         await player.seek(position);
     }
 
-    Future<void> jumpTo(Reference reference, { bool play = false }) async {
+    Future<void> jumpTo(Reference reference) async {
         if (repeatMode.value.type == AudioRepeatModeType.verse) {
             repeatMode.value = AudioRepeatMode.verse(reference.verse);
         }
 
         await _reload(audioSource.value, reference);
-
-        if (play && !player.playing) {
-            await this.play();
-        }
     }
 
     Future<void> jumpToNext() async {

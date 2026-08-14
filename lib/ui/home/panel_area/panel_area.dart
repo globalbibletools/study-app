@@ -24,8 +24,7 @@ class BiblePanelArea extends StatelessWidget {
                 chapter: notification.chapter,
                 verse: notification.verse
             ),
-            play: true
-          );
+          ).then((_) => manager.audioPlayerViewModel.play());
         }
         return true;
       },
