@@ -14,7 +14,7 @@ class DownloadService {
   final _fileService = getIt<FileService>();
 
   Future<bool> checkExistence(String url) async {
-    final request = await _httpClient.getUrl(Uri.parse(url));
+    final request = await _httpClient.headUrl(Uri.parse(url));
     final response = await request.close();
 
     if (response.statusCode == HttpStatus.ok) {

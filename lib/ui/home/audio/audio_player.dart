@@ -14,7 +14,6 @@ class BottomAudioPlayer extends StatelessWidget {
   final int currentChapter;
   final int currentVerse;
   final String currentBookName;
-  final VoidCallback? onAudioMissing;
 
   const BottomAudioPlayer({
     super.key,
@@ -23,7 +22,6 @@ class BottomAudioPlayer extends StatelessWidget {
     required this.currentChapter,
     required this.currentVerse,
     required this.currentBookName,
-    this.onAudioMissing,
   });
 
   @override
@@ -63,7 +61,6 @@ class BottomAudioPlayer extends StatelessWidget {
                   // Voice Source Button (Person Head)
                   _VoiceMenuButton(
                     viewModel: viewModel,
-                    onAudioMissing: onAudioMissing,
                     currentBookId: currentBookId,
                     currentChapter: currentChapter,
                   ),
@@ -151,7 +148,6 @@ class BottomAudioPlayer extends StatelessWidget {
                         chapter: currentChapter,
                         verse: currentVerse,
                         bookName: currentBookName,
-                        onAudioMissing: onAudioMissing,
                       ),
 
                       const SizedBox(width: 12),
@@ -265,7 +261,6 @@ class _ReferenceOrErrorRow extends StatelessWidget {
 
 class _VoiceMenuButton extends StatelessWidget {
   final AudioPlayerViewModel viewModel;
-  final VoidCallback? onAudioMissing;
   final int currentBookId;
   final int currentChapter;
 
@@ -273,7 +268,6 @@ class _VoiceMenuButton extends StatelessWidget {
     required this.viewModel,
     required this.currentBookId,
     required this.currentChapter,
-    this.onAudioMissing,
   });
 
   @override
@@ -289,11 +283,7 @@ class _VoiceMenuButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
           ),
           onSelected: (String source) async {
-            try {
-              await viewModel.setSource(source);
-            } on AudioMissingException {
-              onAudioMissing?.call();
-            }
+            await viewModel.setSource(source);
           },
           itemBuilder: (BuildContext context) {
             final l10n = AppLocalizations.of(context)!;
@@ -447,7 +437,6 @@ class _PlayButton extends StatelessWidget {
     required this.chapter,
     required this.verse,
     required this.bookName,
-    this.onAudioMissing,
   });
 
   final AudioPlayerViewModel viewModel;
@@ -455,7 +444,6 @@ class _PlayButton extends StatelessWidget {
   final int chapter;
   final int verse;
   final String bookName;
-  final VoidCallback? onAudioMissing;
 
   static const _size = 48.0;
 

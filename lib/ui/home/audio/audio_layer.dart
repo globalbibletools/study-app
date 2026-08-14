@@ -29,9 +29,6 @@ class AudioLayer extends StatelessWidget {
                   currentChapter: ref.chapter,
                   currentVerse: ref.verse,
                   currentBookName: bookNameFromId(context, ref.bookId),
-                  // onAudioMissing: () {
-                  //   manager.toggleAudio(context);
-                  // },
                 );
               },
             ),
