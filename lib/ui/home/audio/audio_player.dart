@@ -26,6 +26,8 @@ class BottomAudioPlayer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    viewModel.setLocalizations(AppLocalizations.of(context)!);
+
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 

@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/common/reference.dart';
+import 'package:gbt/l10n/app_localizations.dart';
+import 'package:gbt/l10n/book_names.dart';
 import 'package:gbt/rxutils/combine_streams.dart';
 import 'package:gbt/services/audio/audio_service.dart';
 import 'package:gbt/services/audio/audio_timing.dart';
@@ -50,6 +52,11 @@ class AudioPlayerViewModel {
     List<AudioTiming> _timings = [];
     int? currentBook;
     int? currentChapter;
+
+    AppLocalizations? _localizations;
+    void setLocalizations(AppLocalizations localizations) {
+        _localizations = localizations;
+    }
 
     late final StreamSubscription positionSubscription;
     late final StreamSubscription processingStateSubscription;
@@ -271,9 +278,14 @@ class AudioPlayerViewModel {
 
         final wasPlaying = player.playing;
 
+        final l = _localizations;
+        final title = l == null
+            ? "Bible"
+            : "${bookNameFromLocalizations(l, reference.bookId)} ${reference.chapter}";
+
         await player.setAudioSource(AudioSource.uri(
             Uri.parse(audioUrl),
-            tag: MediaItem(id: audioUrl, title: "Bible")
+            tag: MediaItem(id: audioUrl, title: title)
         ));
 
         _seekToReference(reference);
