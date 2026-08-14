@@ -48,6 +48,8 @@
     "downloadAudio": "Descargar Audio",
     "audioNotDownloaded": "El audio de {book} {chapter} no está en su dispositivo.",
     "audioNotAvailable": "El audio no está disponible para este capítulo.",
+    "audioNotAvailableForChapter": "Audio no disponible para {book} {chapter}",
+    "unknownAudioError": "Error de audio desconocido",
     "verseCopied": "Versículo copiado al portapapeles",
     "downloads": "Descargas",
     "backupRestore": "Copia de seguridad/restauración",

@@ -48,6 +48,8 @@
     "downloadAudio": "تنزيل الصوت",
     "audioNotDownloaded": "الصوت لسفر {book} الإصحاح {chapter} غير موجود على جهازك.",
     "audioNotAvailable": "الصوت غير متوفر لهذا الإصحاح.",
+    "audioNotAvailableForChapter": "الصوت غير متوفر لسفر {book} الإصحاح {chapter}",
+    "unknownAudioError": "خطأ غير معروف في الصوت",
     "verseCopied": "تم نسخ الآية إلى الحافظة",
     "downloads": "التنزيلات",
     "backupRestore": "النسخ الاحتياطي/الاستعادة",

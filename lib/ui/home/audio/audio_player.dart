@@ -1,10 +1,11 @@
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:gbt/services/audio/audio_service.dart';
+import 'package:gbt/common/reference.dart';
+import 'package:gbt/l10n/book_names.dart';
 import 'package:gbt/ui/home/audio/audio_player_view_model.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:gbt/l10n/app_localizations.dart';
-import 'package:gbt/services/audio/position_data.dart';
 import 'package:gbt/ui/home/audio/audio_logic.dart';
 
 class BottomAudioPlayer extends StatelessWidget {
@@ -50,6 +51,13 @@ class BottomAudioPlayer extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // --- ROW 0: Reference / Error ---
+              _ReferenceOrErrorRow(
+                viewModel: viewModel,
+              ),
+
+              const SizedBox(height: 2),
+
               // --- ROW 1: Voice Settings | Progress | Close ---
               Row(
                 children: [
@@ -68,23 +76,27 @@ class BottomAudioPlayer extends StatelessWidget {
                       stream: viewModel.playback,
                       builder: (context, snapshot) {
                         final playback = snapshot.data;
-                        return ProgressBar(
-                          progress: playback?.position ?? Duration.zero,
-                          buffered: playback?.buffered ?? Duration.zero,
-                          total: playback?.duration ?? Duration.zero,
-                          onSeek: viewModel.seek,
-                          barHeight: 4.0,
-                          thumbRadius: 6.0,
-                          thumbGlowRadius: 12.0,
-                          baseBarColor: colorScheme.outlineVariant,
-                          progressBarColor: colorScheme.primary,
-                          bufferedBarColor: colorScheme.primary.withValues(
-                            alpha: 0.3,
-                          ),
-                          thumbColor: colorScheme.primary,
-                          timeLabelLocation: TimeLabelLocation.sides,
-                          timeLabelTextStyle: theme.textTheme.labelSmall,
-                          timeLabelPadding: 8.0,
+                        return ValueListenableBuilder(
+                          valueListenable: viewModel.error,
+                          builder: (context, error, _) =>
+                            ProgressBar(
+                              progress: playback?.position ?? Duration.zero,
+                              buffered: playback?.buffered ?? Duration.zero,
+                              total: playback?.duration ?? Duration.zero,
+                              onSeek: error == null ? viewModel.seek : null,
+                              barHeight: 4.0,
+                              thumbRadius: 6.0,
+                              thumbGlowRadius: 12.0,
+                              baseBarColor: colorScheme.outlineVariant,
+                              progressBarColor: colorScheme.primary,
+                              bufferedBarColor: colorScheme.primary.withValues(
+                                alpha: 0.3,
+                              ),
+                              thumbColor: colorScheme.primary,
+                              timeLabelLocation: TimeLabelLocation.sides,
+                              timeLabelTextStyle: theme.textTheme.labelSmall,
+                              timeLabelPadding: 8.0,
+                            )
                         );
                       },
                     ),
@@ -120,16 +132,19 @@ class BottomAudioPlayer extends StatelessWidget {
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Previous Verse
-                      IconButton(
-                        icon: const Icon(Icons.chevron_left_rounded),
-                        iconSize: 28,
-                        color: hasTiming
-                            ? colorScheme.primary
-                            : colorScheme.onSurface.withValues(alpha: 0.3),
-                        onPressed: hasTiming
-                            ? viewModel.jumpToPrev
-                            : null,
+                      ValueListenableBuilder(
+                        valueListenable: viewModel.error,
+                        builder: (context, error, _) =>
+                          IconButton(
+                            icon: const Icon(Icons.chevron_left_rounded),
+                            iconSize: 28,
+                            color: hasTiming
+                                ? colorScheme.primary
+                                : colorScheme.onSurface.withValues(alpha: 0.3),
+                            onPressed: hasTiming && error == null
+                                ? viewModel.jumpToPrev
+                                : null,
+                          )
                       ),
 
                       const SizedBox(width: 12),
@@ -146,16 +161,19 @@ class BottomAudioPlayer extends StatelessWidget {
 
                       const SizedBox(width: 12),
 
-                      // Next Verse
-                      IconButton(
-                        icon: const Icon(Icons.chevron_right_rounded),
-                        iconSize: 28,
-                        color: hasTiming
-                            ? colorScheme.primary
-                            : colorScheme.onSurface.withValues(alpha: 0.3),
-                        onPressed: hasTiming
-                            ? viewModel.jumpToNext
-                            : null,
+                      ValueListenableBuilder(
+                        valueListenable: viewModel.error,
+                        builder: (context, error, _) =>
+                          IconButton(
+                            icon: const Icon(Icons.chevron_right_rounded),
+                            iconSize: 28,
+                            color: hasTiming
+                                ? colorScheme.primary
+                                : colorScheme.onSurface.withValues(alpha: 0.3),
+                            onPressed: hasTiming && error == null
+                                ? viewModel.jumpToNext
+                                : null,
+                          ),
                       ),
                     ],
                   ),
@@ -178,6 +196,79 @@ class BottomAudioPlayer extends StatelessWidget {
 }
 
 // --- SUB-WIDGETS ---
+
+class _ReferenceOrErrorRow extends StatelessWidget {
+  const _ReferenceOrErrorRow({
+    required this.viewModel,
+  });
+
+  final AudioPlayerViewModel viewModel;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+
+    return ValueListenableBuilder<AudioPlaybackError?>(
+      valueListenable: viewModel.error,
+      builder: (context, error, _) {
+        if (error == null) {
+          return StreamBuilder<Reference?>(
+            stream: viewModel.reference,
+            initialData: viewModel.getCurrentReference(),
+            builder: (context, snapshot) {
+              final ref = snapshot.data;
+              final refText = ref == null
+                  ? ''
+                  : '${bookNameFromId(context, ref.bookId)} ${ref.chapter}:${ref.verse}';
+              return Text(
+                refText,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurface,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              );
+            },
+          );
+        }
+
+        final bookName = bookNameFromId(context, error.reference.bookId);
+        final chapter = error.reference.chapter;
+        final String text;
+        switch (error) {
+          case AudioFileMissingError():
+            text = l10n.audioNotAvailableForChapter(bookName, chapter);
+          case AudioUnknownError():
+            text = l10n.unknownAudioError;
+        }
+        final color = theme.colorScheme.error;
+
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.error_outline_rounded,
+              size: 16,
+              color: color,
+            ),
+            const SizedBox(width: 4),
+            Flexible(
+              child: Text(
+                text,
+                style: theme.textTheme.bodyMedium?.copyWith(color: color),
+                textAlign: TextAlign.start,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
 
 class _VoiceMenuButton extends StatelessWidget {
   final AudioPlayerViewModel viewModel;
@@ -396,21 +487,28 @@ class _PlayButton extends StatelessWidget {
               child: CircularProgressIndicator(strokeWidth: 3),
             ),
           );
-        } else if (playing != true) {
-          return IconButton(
-            icon: const Icon(Icons.play_circle_fill_rounded),
-            iconSize: _size,
-            color: primaryColor,
-            padding: EdgeInsets.zero,
-            onPressed: viewModel.play,
-          );
         } else {
-          return IconButton(
-            icon: const Icon(Icons.pause_circle_filled_rounded),
-            iconSize: _size,
-            color: primaryColor,
-            padding: EdgeInsets.zero,
-            onPressed: viewModel.pause,
+          return ValueListenableBuilder(
+            valueListenable: viewModel.error,
+            builder: (context, error, _) {
+                if (playing != true) {
+                  return IconButton(
+                    icon: const Icon(Icons.play_circle_fill_rounded),
+                    iconSize: _size,
+                    color: primaryColor,
+                    padding: EdgeInsets.zero,
+                    onPressed: error == null ? viewModel.play : null,
+                  );
+                } else {
+                  return IconButton(
+                    icon: const Icon(Icons.pause_circle_filled_rounded),
+                    iconSize: _size,
+                    color: primaryColor,
+                    padding: EdgeInsets.zero,
+                    onPressed: error == null ? viewModel.pause : null,
+                  );
+                }
+            }
           );
         }
       },

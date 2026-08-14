@@ -7,7 +7,19 @@ import 'package:gbt/services/audio/audio_timing.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:just_audio_background/just_audio_background.dart';
 
-enum AudioPlaybackError { fileMissing, unknown }
+sealed class AudioPlaybackError {
+  const AudioPlaybackError(this.reference);
+
+  final Reference reference;
+}
+
+class AudioFileMissingError extends AudioPlaybackError {
+  const AudioFileMissingError(super.reference);
+}
+
+class AudioUnknownError extends AudioPlaybackError {
+  const AudioUnknownError(super.reference);
+}
 
 enum AudioRepeatModeType { none, chapter, verse }
 
@@ -241,13 +253,21 @@ class AudioPlayerViewModel {
         currentBook = reference.bookId;
         audioSource.value = source;
 
-        // TODO: catch source errors and missing audio files and handle gracefully.
-        final (:audioUrl, :timings) = await _audioService.getChapterData(
-            audioSource.value,
-            reference.bookId,
-            reference.chapter
-        );
+        String audioUrl;
+        List<AudioTiming> timings;
+        try {
+            (:audioUrl, :timings) = await _audioService.getChapterData(
+                audioSource.value,
+                reference.bookId,
+                reference.chapter
+            );
+        } on AudioMissingException {
+            await _reset();
+            error.value = AudioFileMissingError(reference);
+            return;
+        }
 
+        error.value = null;
         _timings = timings;
 
         final wasPlaying = player.playing;
