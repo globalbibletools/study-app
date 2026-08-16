@@ -4,7 +4,6 @@ import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/common/reference.dart';
 import 'package:gbt/l10n/book_names.dart';
 import 'package:gbt/ui/home/audio/audio_player_view_model.dart';
-import 'package:just_audio/just_audio.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 
 class BottomAudioPlayer extends StatelessWidget {
@@ -143,11 +142,7 @@ class BottomAudioPlayer extends StatelessWidget {
 
                           // Play/Pause
                           _PlayButton(
-                            viewModel: viewModel,
-                            bookId: currentBookId,
-                            chapter: currentChapter,
-                            verse: currentVerse,
-                            bookName: currentBookName,
+                            playbackState: viewModel.playbackState,
                             onPlay: viewModel.error == null ? viewModel.play : null,
                             onPause: viewModel.error == null ? viewModel.pause : null,
                           ),
@@ -415,22 +410,14 @@ class _SpeedMenuButton extends StatelessWidget {
 
 class _PlayButton extends StatelessWidget {
   const _PlayButton({
-    required this.viewModel,
-    required this.bookId,
-    required this.chapter,
-    required this.verse,
-    required this.bookName,
+    required this.playbackState,
     required this.onPlay,
     required this.onPause,
   });
 
+  final AudioPlaybackState playbackState;
   final VoidCallback? onPlay;
   final VoidCallback? onPause;
-  final AudioPlayerViewModel viewModel;
-  final int bookId;
-  final int chapter;
-  final int verse;
-  final String bookName;
 
   static const _size = 48.0;
 
@@ -438,15 +425,8 @@ class _PlayButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final primaryColor = Theme.of(context).colorScheme.primary;
 
-    return StreamBuilder<PlayerState>(
-      stream: viewModel.player.playerStateStream,
-      builder: (context, snapshot) {
-        final playerState = snapshot.data;
-        final processingState = playerState?.processingState;
-        final playing = playerState?.playing;
-
-        if (processingState == ProcessingState.loading ||
-            processingState == ProcessingState.buffering) {
+    switch (playbackState) {
+        case AudioPlaybackState.loading:
           return SizedBox(
             width: _size,
             height: _size,
@@ -455,26 +435,22 @@ class _PlayButton extends StatelessWidget {
               child: CircularProgressIndicator(strokeWidth: 3),
             ),
           );
-        } else {
-            if (playing != true) {
-              return IconButton(
-                icon: const Icon(Icons.play_circle_fill_rounded),
-                iconSize: _size,
-                color: primaryColor,
-                padding: EdgeInsets.zero,
-                onPressed: onPlay,
-              );
-            } else {
-              return IconButton(
-                icon: const Icon(Icons.pause_circle_filled_rounded),
-                iconSize: _size,
-                color: primaryColor,
-                padding: EdgeInsets.zero,
-                onPressed: onPause,
-              );
-            }
-        }
-      },
-    );
+        case AudioPlaybackState.paused:
+          return IconButton(
+            icon: const Icon(Icons.play_circle_fill_rounded),
+            iconSize: _size,
+            color: primaryColor,
+            padding: EdgeInsets.zero,
+            onPressed: onPlay,
+          );
+        case AudioPlaybackState.playing:
+          return IconButton(
+            icon: const Icon(Icons.pause_circle_filled_rounded),
+            iconSize: _size,
+            color: primaryColor,
+            padding: EdgeInsets.zero,
+            onPressed: onPause,
+          );
+    }
   }
 }

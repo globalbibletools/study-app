@@ -26,6 +26,7 @@ class AudioUnknownError extends AudioPlaybackError {
 }
 
 enum AudioRepeatModeType { none, chapter, verse }
+enum AudioPlaybackState { loading, playing, paused }
 
 class AudioRepeatMode {
     final AudioRepeatModeType type;
@@ -65,6 +66,12 @@ class AudioPlayerViewModel extends ChangeNotifier {
         notifyListeners();
     }
 
+    var playbackState = AudioPlaybackState.loading;
+    void setPlaybackState(AudioPlaybackState state) {
+        playbackState = state;
+        notifyListeners();
+    }
+
     late final Stream<Reference?> reference;
     late final Stream<({Duration? duration, Duration buffered, Duration position})> playback;
 
@@ -99,7 +106,7 @@ class AudioPlayerViewModel extends ChangeNotifier {
         reference = player.positionStream.map(_positionToReference);
 
         positionSubscription = player.positionStream.listen(_handleVerseRepeat);
-        processingStateSubscription = player.processingStateStream.listen(_handleChapterRepeatOrContinue);
+        processingStateSubscription = player.playerStateStream.listen(_handleChapterRepeatOrContinue);
     }
 
 
@@ -187,8 +194,17 @@ class AudioPlayerViewModel extends ChangeNotifier {
         await jumpTo(prevReference);
     }
 
-    Future<void> _handleChapterRepeatOrContinue(ProcessingState state) async {
-        if (state != ProcessingState.completed) return;
+    Future<void> _handleChapterRepeatOrContinue(PlayerState state) async {
+        if (state.processingState != ProcessingState.completed) {
+            if (state.processingState != ProcessingState.ready) {
+                setPlaybackState(AudioPlaybackState.loading);
+            } else if (state.playing) {
+                setPlaybackState(AudioPlaybackState.playing);
+            } else {
+                setPlaybackState(AudioPlaybackState.paused);
+            }
+            return;
+        }
 
         final current = getCurrentReference();
         if (current == null) return;
