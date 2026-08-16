@@ -39,6 +39,8 @@ class AudioRepeatMode {
 }
 
 class AudioPlayerViewModel extends ChangeNotifier {
+    final isVisible = ValueNotifier(false);
+
     var repeatMode = AudioRepeatMode.none;
     void setRepeatMode(AudioRepeatMode mode) {
         repeatMode = mode;
@@ -46,13 +48,17 @@ class AudioPlayerViewModel extends ChangeNotifier {
     }
 
     var audioSource = "RDB";
-    final isVisible = ValueNotifier(false);
     void setAudioSource(String source) {
         audioSource = source;
         notifyListeners();
     }
 
-    final error = ValueNotifier<AudioPlaybackError?>(null);
+    AudioPlaybackError? error;
+    void setError(AudioPlaybackError? error) {
+        this.error = error;
+        notifyListeners();
+    }
+
     late final Stream<Reference?> reference;
     late final Stream<({Duration? duration, Duration buffered, Duration position})> playback;
 
@@ -241,7 +247,7 @@ class AudioPlayerViewModel extends ChangeNotifier {
         await player.seek(Duration(seconds: 0));
         await player.stop();
         await player.clearAudioSources();
-        error.value = null;
+        setError(null);
         _timings = [];
     }
 
@@ -282,11 +288,11 @@ class AudioPlayerViewModel extends ChangeNotifier {
             );
         } on AudioMissingException {
             await _reset();
-            error.value = AudioFileMissingError(reference);
+            setError(AudioFileMissingError(reference));
             return;
         }
 
-        error.value = null;
+        setError(null);
         _timings = timings;
 
         final wasPlaying = player.playing;
@@ -384,7 +390,6 @@ class AudioPlayerViewModel extends ChangeNotifier {
         player.dispose();
 
         isVisible.dispose();
-        error.dispose();
 
         processingStateSubscription.cancel();
         positionSubscription.cancel();
