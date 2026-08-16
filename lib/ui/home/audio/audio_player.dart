@@ -1,7 +1,6 @@
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:gbt/common/bible_navigation.dart';
-import 'package:gbt/services/audio/audio_service.dart';
 import 'package:gbt/common/reference.dart';
 import 'package:gbt/l10n/book_names.dart';
 import 'package:gbt/ui/home/audio/audio_player_view_model.dart';
@@ -43,145 +42,152 @@ class BottomAudioPlayer extends StatelessWidget {
         ],
         borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // --- ROW 0: Reference / Error ---
-              _ReferenceOrErrorRow(
-                viewModel: viewModel,
-              ),
-
-              const SizedBox(height: 2),
-
-              // --- ROW 1: Voice Settings | Progress | Close ---
-              Row(
+      child: ListenableBuilder(
+        listenable: viewModel,
+        builder: (buildContext, _) =>
+          SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Voice Source Button (Person Head)
-                  _VoiceMenuButton(
+                  // --- ROW 0: Reference / Error ---
+                  _ReferenceOrErrorRow(
                     viewModel: viewModel,
-                    currentBookId: currentBookId,
-                    currentChapter: currentChapter,
-                  ),
-                  const SizedBox(width: 8),
-
-                  // Progress Bar
-                  Expanded(
-                    child: StreamBuilder<({Duration? duration, Duration buffered, Duration position })>(
-                      stream: viewModel.playback,
-                      builder: (context, snapshot) {
-                        final playback = snapshot.data;
-                        return ValueListenableBuilder(
-                          valueListenable: viewModel.error,
-                          builder: (context, error, _) =>
-                            ProgressBar(
-                              progress: playback?.position ?? Duration.zero,
-                              buffered: playback?.buffered ?? Duration.zero,
-                              total: playback?.duration ?? Duration.zero,
-                              onSeek: error == null ? viewModel.seek : null,
-                              barHeight: 4.0,
-                              thumbRadius: 6.0,
-                              thumbGlowRadius: 12.0,
-                              baseBarColor: colorScheme.outlineVariant,
-                              progressBarColor: colorScheme.primary,
-                              bufferedBarColor: colorScheme.primary.withValues(
-                                alpha: 0.3,
-                              ),
-                              thumbColor: colorScheme.primary,
-                              timeLabelLocation: TimeLabelLocation.sides,
-                              timeLabelTextStyle: theme.textTheme.labelSmall,
-                              timeLabelPadding: 8.0,
-                            )
-                        );
-                      },
-                    ),
                   ),
 
-                  const SizedBox(width: 8),
+                  const SizedBox(height: 2),
 
-                  // Close Button
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    visualDensity: VisualDensity.compact,
-                    onPressed: viewModel.close,
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 4),
-
-              // --- ROW 2: Repeat | Controls | Speed ---
-              Row(
-                children: [
-                  // Far Left: Repeat Mode
-                  Expanded(
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: _RepeatMenuButton(viewModel: viewModel)
-                    ),
-                  ),
-
-                  // Center: Playback Controls
+                  // --- ROW 1: Voice Settings | Progress | Close ---
                   Row(
-                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      ValueListenableBuilder(
-                        valueListenable: viewModel.error,
-                        builder: (context, error, _) =>
-                          IconButton(
-                            icon: const Icon(Icons.chevron_left_rounded),
-                            iconSize: 28,
-                            color: colorScheme.primary,
-                            onPressed: error == null
-                                ? viewModel.jumpToPrev
-                                : null,
-                          )
-                      ),
-
-                      const SizedBox(width: 12),
-
-                      // Play/Pause
-                      _PlayButton(
+                      // Voice Source Button (Person Head)
+                      _VoiceMenuButton(
                         viewModel: viewModel,
-                        bookId: currentBookId,
-                        chapter: currentChapter,
-                        verse: currentVerse,
-                        bookName: currentBookName,
+                        currentBookId: currentBookId,
+                        currentChapter: currentChapter,
+                      ),
+                      const SizedBox(width: 8),
+
+                      // Progress Bar
+                      Expanded(
+                        child: StreamBuilder<({Duration? duration, Duration buffered, Duration position })>(
+                          stream: viewModel.playback,
+                          builder: (context, snapshot) {
+                            final playback = snapshot.data;
+                            return ValueListenableBuilder(
+                              valueListenable: viewModel.error,
+                              builder: (context, error, _) =>
+                                ProgressBar(
+                                  progress: playback?.position ?? Duration.zero,
+                                  buffered: playback?.buffered ?? Duration.zero,
+                                  total: playback?.duration ?? Duration.zero,
+                                  onSeek: error == null ? viewModel.seek : null,
+                                  barHeight: 4.0,
+                                  thumbRadius: 6.0,
+                                  thumbGlowRadius: 12.0,
+                                  baseBarColor: colorScheme.outlineVariant,
+                                  progressBarColor: colorScheme.primary,
+                                  bufferedBarColor: colorScheme.primary.withValues(
+                                    alpha: 0.3,
+                                  ),
+                                  thumbColor: colorScheme.primary,
+                                  timeLabelLocation: TimeLabelLocation.sides,
+                                  timeLabelTextStyle: theme.textTheme.labelSmall,
+                                  timeLabelPadding: 8.0,
+                                )
+                            );
+                          },
+                        ),
                       ),
 
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 8),
 
-                      ValueListenableBuilder(
-                        valueListenable: viewModel.error,
-                        builder: (context, error, _) =>
-                          IconButton(
-                            icon: const Icon(Icons.chevron_right_rounded),
-                            iconSize: 28,
-                            color: colorScheme.primary,
-                            onPressed: error == null
-                                ? viewModel.jumpToNext
-                                : null,
-                          ),
+                      // Close Button
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        visualDensity: VisualDensity.compact,
+                        onPressed: viewModel.close,
                       ),
                     ],
                   ),
 
-                  // Far Right: Playback Speed
-                  Expanded(
-                    child: Align(
-                      alignment: Alignment.centerRight,
-                      child: _SpeedMenuButton(viewModel: viewModel),
-                    ),
+                  const SizedBox(height: 4),
+
+                  // --- ROW 2: Repeat | Controls | Speed ---
+                  Row(
+                    children: [
+                      // Far Left: Repeat Mode
+                      Expanded(
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: _RepeatMenuButton(
+                            repeatMode: viewModel.repeatMode,
+                            onChange: viewModel.setRepeatMode,
+                          )
+                        ),
+                      ),
+
+                      // Center: Playback Controls
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          ValueListenableBuilder(
+                            valueListenable: viewModel.error,
+                            builder: (context, error, _) =>
+                              IconButton(
+                                icon: const Icon(Icons.chevron_left_rounded),
+                                iconSize: 28,
+                                color: colorScheme.primary,
+                                onPressed: error == null
+                                    ? viewModel.jumpToPrev
+                                    : null,
+                              )
+                          ),
+
+                          const SizedBox(width: 12),
+
+                          // Play/Pause
+                          _PlayButton(
+                            viewModel: viewModel,
+                            bookId: currentBookId,
+                            chapter: currentChapter,
+                            verse: currentVerse,
+                            bookName: currentBookName,
+                          ),
+
+                          const SizedBox(width: 12),
+
+                          ValueListenableBuilder(
+                            valueListenable: viewModel.error,
+                            builder: (context, error, _) =>
+                              IconButton(
+                                icon: const Icon(Icons.chevron_right_rounded),
+                                iconSize: 28,
+                                color: colorScheme.primary,
+                                onPressed: error == null
+                                    ? viewModel.jumpToNext
+                                    : null,
+                              ),
+                          ),
+                        ],
+                      ),
+
+                      // Far Right: Playback Speed
+                      Expanded(
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: _SpeedMenuButton(viewModel: viewModel),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
-          ),
-        ),
-      ),
+            ),
+          )
+      )
     );
   }
 }
@@ -325,61 +331,57 @@ class _VoiceMenuButton extends StatelessWidget {
 }
 
 class _RepeatMenuButton extends StatelessWidget {
-  final AudioPlayerViewModel viewModel;
+  final AudioRepeatMode repeatMode;
+  final Function(AudioRepeatModeType) onChange;
 
-  const _RepeatMenuButton({required this.viewModel});
+  const _RepeatMenuButton({required this.repeatMode, required this.onChange});
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<AudioRepeatMode>(
-      valueListenable: viewModel.repeatMode,
-      builder: (context, currentMode, _) {
-        IconData iconData;
-        Color iconColor;
-        final theme = Theme.of(context);
+    IconData iconData;
+    Color iconColor;
+    final theme = Theme.of(context);
 
-        // Determine Icon and Color
-        switch (currentMode.type) {
-          case AudioRepeatModeType.none:
-            iconData = Icons.repeat;
-            // Primary color with alpha to indicate "Off" / Disabled state
-            iconColor = theme.colorScheme.primary.withValues(alpha: 0.3);
-          case AudioRepeatModeType.verse:
-            iconData = Icons.repeat_one_rounded;
-            iconColor = theme.colorScheme.primary;
-          case AudioRepeatModeType.chapter:
-            iconData = Icons.repeat_rounded;
-            iconColor = theme.colorScheme.primary;
-        }
+    // Determine Icon and Color
+    switch (repeatMode.type) {
+      case AudioRepeatModeType.none:
+        iconData = Icons.repeat;
+        // Primary color with alpha to indicate "Off" / Disabled state
+        iconColor = theme.colorScheme.primary.withValues(alpha: 0.3);
+      case AudioRepeatModeType.verse:
+        iconData = Icons.repeat_one_rounded;
+        iconColor = theme.colorScheme.primary;
+      case AudioRepeatModeType.chapter:
+        iconData = Icons.repeat_rounded;
+        iconColor = theme.colorScheme.primary;
+    }
 
-        return PopupMenuButton<AudioRepeatModeType>(
-          icon: Icon(iconData, color: iconColor),
-          offset: const Offset(0, -120),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+    return PopupMenuButton<AudioRepeatModeType>(
+      icon: Icon(iconData, color: iconColor),
+      offset: const Offset(0, -120),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      onSelected: onChange,
+      itemBuilder: (BuildContext context) {
+        final l10n = AppLocalizations.of(context)!;
+        return [
+          CheckedPopupMenuItem<AudioRepeatModeType>(
+            value: AudioRepeatModeType.none,
+            checked: repeatMode.type == AudioRepeatModeType.none,
+            child: Text(l10n.repeatNone), // "Off"
           ),
-          onSelected: viewModel.setRepeatMode,
-          itemBuilder: (BuildContext context) {
-            final l10n = AppLocalizations.of(context)!;
-            return [
-              CheckedPopupMenuItem<AudioRepeatModeType>(
-                value: AudioRepeatModeType.none,
-                checked: currentMode.type == AudioRepeatModeType.none,
-                child: Text(l10n.repeatNone), // "Off"
-              ),
-              CheckedPopupMenuItem<AudioRepeatModeType>(
-                value: AudioRepeatModeType.verse,
-                checked: currentMode.type == AudioRepeatModeType.verse,
-                child: Text(l10n.repeatVerse), // "Repeat Verse"
-              ),
-              CheckedPopupMenuItem<AudioRepeatModeType>(
-                value: AudioRepeatModeType.chapter,
-                checked: currentMode.type == AudioRepeatModeType.chapter,
-                child: Text(l10n.repeatChapter), // "Repeat Chapter"
-              ),
-            ];
-          },
-        );
+          CheckedPopupMenuItem<AudioRepeatModeType>(
+            value: AudioRepeatModeType.verse,
+            checked: repeatMode.type == AudioRepeatModeType.verse,
+            child: Text(l10n.repeatVerse), // "Repeat Verse"
+          ),
+          CheckedPopupMenuItem<AudioRepeatModeType>(
+            value: AudioRepeatModeType.chapter,
+            checked: repeatMode.type == AudioRepeatModeType.chapter,
+            child: Text(l10n.repeatChapter), // "Repeat Chapter"
+          ),
+        ];
       },
     );
   }

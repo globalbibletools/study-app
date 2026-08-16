@@ -38,8 +38,8 @@ class AudioRepeatMode {
     AudioRepeatMode.verse(int this.target) : type = AudioRepeatModeType.verse;
 }
 
-class AudioPlayerViewModel {
-    final repeatMode = ValueNotifier(AudioRepeatMode.none);
+class AudioPlayerViewModel extends ChangeNotifier {
+    var repeatMode = AudioRepeatMode.none;
     final audioSource = ValueNotifier("RDB");
     final isVisible = ValueNotifier(false);
     final error = ValueNotifier<AudioPlaybackError?>(null);
@@ -80,6 +80,24 @@ class AudioPlayerViewModel {
         processingStateSubscription = player.processingStateStream.listen(_handleChapterRepeatOrContinue);
     }
 
+    Future<void> setRepeatMode(AudioRepeatModeType mode) async {
+        switch (mode) {
+            case AudioRepeatModeType.none:
+                repeatMode = AudioRepeatMode.none;
+                break;
+            case AudioRepeatModeType.chapter:
+                repeatMode = AudioRepeatMode.chapter;
+                break;
+            case AudioRepeatModeType.verse:
+                final reference = getCurrentReference();
+                if (reference == null) return;
+                repeatMode = AudioRepeatMode.verse(reference.verse);
+                break;
+        }
+
+        notifyListeners();
+    }
+
     Future<void> openAt(Reference reference) async {
         isVisible.value = true;
         await jumpTo(reference);
@@ -103,10 +121,6 @@ class AudioPlayerViewModel {
     }
 
     Future<void> jumpTo(Reference reference) async {
-        if (repeatMode.value.type == AudioRepeatModeType.verse) {
-            repeatMode.value = AudioRepeatMode.verse(reference.verse);
-        }
-
         await _reload(audioSource.value, reference);
     }
 
@@ -148,22 +162,6 @@ class AudioPlayerViewModel {
         await jumpTo(prevReference);
     }
 
-    Future<void> setRepeatMode(AudioRepeatModeType mode) async {
-        switch (mode) {
-            case AudioRepeatModeType.none:
-                repeatMode.value = AudioRepeatMode.none;
-                break;
-            case AudioRepeatModeType.chapter:
-                repeatMode.value = AudioRepeatMode.chapter;
-                break;
-            case AudioRepeatModeType.verse:
-                final reference = getCurrentReference();
-                if (reference == null) return;
-                repeatMode.value = AudioRepeatMode.verse(reference.verse);
-                break;
-        }
-    }
-
     Future<void> setSource(String source) async {
         await _reload(source, getCurrentReference());
     }
@@ -174,7 +172,7 @@ class AudioPlayerViewModel {
         final current = getCurrentReference();
         if (current == null) return;
 
-        switch (repeatMode.value.type) {
+        switch (repeatMode.type) {
             case AudioRepeatModeType.none:
                 final nextReference = _resolveNextVerse(current);
 
@@ -206,9 +204,9 @@ class AudioPlayerViewModel {
     }
 
     Future<void> _handleVerseRepeat(Duration? position) async {
-        if (repeatMode.value.type != AudioRepeatModeType.verse) return;
+        if (repeatMode.type != AudioRepeatModeType.verse) return;
 
-        final targetVerse = repeatMode.value.target;
+        final targetVerse = repeatMode.target;
         final reference = getCurrentReference();
         if (position == null || reference == null || targetVerse == null) return;
 
@@ -239,15 +237,19 @@ class AudioPlayerViewModel {
     }
 
     Future<void> _reload(String source, Reference? reference) async {
+        if (repeatMode.type == AudioRepeatModeType.verse) {
+            repeatMode = reference == null
+                ? AudioRepeatMode.none
+                : AudioRepeatMode.verse(reference.verse);
+        }
+
         if (reference == null) {
             audioSource.value = source;
             return _reset();
         }
 
-        final currentReference = getCurrentReference();
-
-        final needsReload = currentReference?.bookId != reference.bookId ||
-            currentReference?.chapter != reference.chapter ||
+        final needsReload = currentBook != reference.bookId ||
+            currentChapter != reference.chapter ||
             source != audioSource.value;
         if (!needsReload) {
             _seekToReference(reference);
@@ -365,13 +367,14 @@ class AudioPlayerViewModel {
         }
     }
 
+    @override
     void dispose() {
+        super.dispose();
         player.dispose();
 
         audioSource.dispose();
         isVisible.dispose();
         error.dispose();
-        repeatMode.dispose();
 
         processingStateSubscription.cancel();
         positionSubscription.cancel();
