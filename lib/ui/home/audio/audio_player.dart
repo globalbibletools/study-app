@@ -169,7 +169,10 @@ class BottomAudioPlayer extends StatelessWidget {
                       Expanded(
                         child: Align(
                           alignment: Alignment.centerRight,
-                          child: _SpeedMenuButton(viewModel: viewModel),
+                          child: _SpeedMenuButton(
+                            speed: viewModel.speed,
+                            onChange: viewModel.setSpeed,
+                          ),
                         ),
                       ),
                     ],
@@ -365,48 +368,47 @@ class _RepeatMenuButton extends StatelessWidget {
 }
 
 class _SpeedMenuButton extends StatelessWidget {
-  final AudioPlayerViewModel viewModel;
+  final double speed;
+  final Function(double) onChange;
 
-  const _SpeedMenuButton({required this.viewModel});
+  const _SpeedMenuButton({
+    required this.speed,
+    required this.onChange
+  });
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<double>(
-      stream: viewModel.player.speedStream,
-      builder: (context, currentSpeed) {
-        final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = Theme.of(context).colorScheme;
 
-        // Displays "1.0x", "0.75x", "1.5x" etc.
-        String label = "${currentSpeed.data}x";
+    // Displays "1.0x", "0.75x", "1.5x" etc.
+    String label = "${speed}x";
 
-        return PopupMenuButton<double>(
-          offset: const Offset(0, -220),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          onSelected: viewModel.player.setSpeed,
-          itemBuilder: (BuildContext context) {
-            const speeds = [0.5, 0.75, 0.85, 1.0, 1.2, 1.5];
-            return speeds.map((speed) {
-              return CheckedPopupMenuItem<double>(
-                value: speed,
-                checked: currentSpeed.data == speed,
-                child: Text("${speed}x"),
-              );
-            }).toList();
-          },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: Text(
-              label,
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: colorScheme.primary,
-              ),
-            ),
-          ),
-        );
+    return PopupMenuButton<double>(
+      offset: const Offset(0, -220),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      onSelected: onChange,
+      itemBuilder: (BuildContext context) {
+        const speeds = [0.5, 0.75, 0.85, 1.0, 1.2, 1.5];
+        return speeds.map((speedOption) {
+          return CheckedPopupMenuItem<double>(
+            value: speedOption,
+            checked: speed == speedOption,
+            child: Text("${speed}x"),
+          );
+        }).toList();
       },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Text(
+          label,
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: colorScheme.primary,
+          ),
+        ),
+      ),
     );
   }
 }

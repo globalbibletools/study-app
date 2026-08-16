@@ -59,6 +59,12 @@ class AudioPlayerViewModel extends ChangeNotifier {
         notifyListeners();
     }
 
+    double get speed => player.speed;
+    void setSpeed(double speed) {
+        player.setSpeed(speed);
+        notifyListeners();
+    }
+
     late final Stream<Reference?> reference;
     late final Stream<({Duration? duration, Duration buffered, Duration position})> playback;
 
