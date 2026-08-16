@@ -40,8 +40,18 @@ class AudioRepeatMode {
 
 class AudioPlayerViewModel extends ChangeNotifier {
     var repeatMode = AudioRepeatMode.none;
-    final audioSource = ValueNotifier("RDB");
+    void setRepeatMode(AudioRepeatMode mode) {
+        repeatMode = mode;
+        notifyListeners();
+    }
+
+    var audioSource = "RDB";
     final isVisible = ValueNotifier(false);
+    void setAudioSource(String source) {
+        audioSource = source;
+        notifyListeners();
+    }
+
     final error = ValueNotifier<AudioPlaybackError?>(null);
     late final Stream<Reference?> reference;
     late final Stream<({Duration? duration, Duration buffered, Duration position})> playback;
@@ -80,22 +90,25 @@ class AudioPlayerViewModel extends ChangeNotifier {
         processingStateSubscription = player.processingStateStream.listen(_handleChapterRepeatOrContinue);
     }
 
-    Future<void> setRepeatMode(AudioRepeatModeType mode) async {
+
+    Future<void> changeRepeatMode(AudioRepeatModeType mode) async {
         switch (mode) {
             case AudioRepeatModeType.none:
-                repeatMode = AudioRepeatMode.none;
+                setRepeatMode(AudioRepeatMode.none);
                 break;
             case AudioRepeatModeType.chapter:
-                repeatMode = AudioRepeatMode.chapter;
+                setRepeatMode(AudioRepeatMode.chapter);
                 break;
             case AudioRepeatModeType.verse:
                 final reference = getCurrentReference();
                 if (reference == null) return;
-                repeatMode = AudioRepeatMode.verse(reference.verse);
+                setRepeatMode(AudioRepeatMode.verse(reference.verse));
                 break;
         }
+    }
 
-        notifyListeners();
+    Future<void> changeSource(String source) async {
+        await _reload(source, getCurrentReference());
     }
 
     Future<void> openAt(Reference reference) async {
@@ -121,7 +134,7 @@ class AudioPlayerViewModel extends ChangeNotifier {
     }
 
     Future<void> jumpTo(Reference reference) async {
-        await _reload(audioSource.value, reference);
+        await _reload(audioSource, reference);
     }
 
     Future<void> jumpToNext() async {
@@ -162,10 +175,6 @@ class AudioPlayerViewModel extends ChangeNotifier {
         await jumpTo(prevReference);
     }
 
-    Future<void> setSource(String source) async {
-        await _reload(source, getCurrentReference());
-    }
-
     Future<void> _handleChapterRepeatOrContinue(ProcessingState state) async {
         if (state != ProcessingState.completed) return;
 
@@ -189,7 +198,7 @@ class AudioPlayerViewModel extends ChangeNotifier {
                     break;
                 }
 
-                await _reload(audioSource.value, nextReference);
+                await _reload(audioSource, nextReference);
                 break;
             case AudioRepeatModeType.chapter:
                 await _seekToReference(Reference(
@@ -238,19 +247,21 @@ class AudioPlayerViewModel extends ChangeNotifier {
 
     Future<void> _reload(String source, Reference? reference) async {
         if (repeatMode.type == AudioRepeatModeType.verse) {
-            repeatMode = reference == null
-                ? AudioRepeatMode.none
-                : AudioRepeatMode.verse(reference.verse);
+            if (reference == null) {
+                setRepeatMode(AudioRepeatMode.none);
+            } else {
+                setRepeatMode(AudioRepeatMode.verse(reference.verse));
+            }
         }
 
         if (reference == null) {
-            audioSource.value = source;
+            setAudioSource(source);
             return _reset();
         }
 
         final needsReload = currentBook != reference.bookId ||
             currentChapter != reference.chapter ||
-            source != audioSource.value;
+            source != audioSource;
         if (!needsReload) {
             _seekToReference(reference);
 
@@ -259,13 +270,13 @@ class AudioPlayerViewModel extends ChangeNotifier {
 
         currentChapter = reference.chapter;
         currentBook = reference.bookId;
-        audioSource.value = source;
+        setAudioSource(source);
 
         String audioUrl;
         List<AudioTiming> timings;
         try {
             (:audioUrl, :timings) = await _audioService.getChapterData(
-                audioSource.value,
+                audioSource,
                 reference.bookId,
                 reference.chapter
             );
@@ -372,7 +383,6 @@ class AudioPlayerViewModel extends ChangeNotifier {
         super.dispose();
         player.dispose();
 
-        audioSource.dispose();
         isVisible.dispose();
         error.dispose();
 

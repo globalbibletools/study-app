@@ -64,9 +64,9 @@ class BottomAudioPlayer extends StatelessWidget {
                     children: [
                       // Voice Source Button (Person Head)
                       _VoiceMenuButton(
-                        viewModel: viewModel,
-                        currentBookId: currentBookId,
-                        currentChapter: currentChapter,
+                        isNewTestament: currentBookId >= BibleNavigation.getNewTestamentBookId(),
+                        source: viewModel.audioSource,
+                        onChange: viewModel.changeSource,
                       ),
                       const SizedBox(width: 8),
 
@@ -124,7 +124,7 @@ class BottomAudioPlayer extends StatelessWidget {
                           alignment: Alignment.centerLeft,
                           child: _RepeatMenuButton(
                             repeatMode: viewModel.repeatMode,
-                            onChange: viewModel.setRepeatMode,
+                            onChange: viewModel.changeRepeatMode,
                           )
                         ),
                       ),
@@ -268,63 +268,54 @@ class _ReferenceOrErrorRow extends StatelessWidget {
 }
 
 class _VoiceMenuButton extends StatelessWidget {
-  final AudioPlayerViewModel viewModel;
-  final int currentBookId;
-  final int currentChapter;
+  final bool isNewTestament;
+  final String source;
+  final Function(String) onChange;
 
   const _VoiceMenuButton({
-    required this.viewModel,
-    required this.currentBookId,
-    required this.currentChapter,
+    required this.isNewTestament,
+    required this.source,
+    required this.onChange,
   });
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<String>(
-      valueListenable: viewModel.audioSource,
-      builder: (context, currentSourcePref, _) {
-        final isNt = currentBookId >= BibleNavigation.getNewTestamentBookId();
+    return PopupMenuButton<String>(
+      icon: const Icon(Icons.person_outline),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      onSelected: onChange,
+      itemBuilder: (BuildContext context) {
+        final l10n = AppLocalizations.of(context)!;
 
-        return PopupMenuButton<String>(
-          icon: const Icon(Icons.person_outline),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          onSelected: (String source) async {
-            await viewModel.setSource(source);
-          },
-          itemBuilder: (BuildContext context) {
-            final l10n = AppLocalizations.of(context)!;
-
-            if (isNt) {
-              return [
-                CheckedPopupMenuItem<String>(
-                  value: 'TK',
-                  checked: currentSourcePref == 'TK',
-                  child: Text(l10n.sourceTK),
-                ),
-                CheckedPopupMenuItem<String>(
-                  value: 'JH',
-                  checked: currentSourcePref == 'JH',
-                  child: Text(l10n.sourceJH),
-                ),
-              ];
-            } else {
-              return [
-                CheckedPopupMenuItem<String>(
-                  value: 'HEB',
-                  checked: currentSourcePref == 'HEB',
-                  child: Text(l10n.sourceHEB),
-                ),
-                CheckedPopupMenuItem<String>(
-                  value: 'RDB',
-                  checked: currentSourcePref == 'RDB',
-                  child: Text(l10n.sourceRDB),
-                ),
-              ];
-            }
-          },
-        );
+        if (isNewTestament) {
+          return [
+            CheckedPopupMenuItem<String>(
+              value: 'TK',
+              checked: source == 'TK',
+              child: Text(l10n.sourceTK),
+            ),
+            CheckedPopupMenuItem<String>(
+              value: 'JH',
+              checked: source == 'JH',
+              child: Text(l10n.sourceJH),
+            ),
+          ];
+        } else {
+          return [
+            CheckedPopupMenuItem<String>(
+              value: 'HEB',
+              checked: source == 'HEB',
+              child: Text(l10n.sourceHEB),
+            ),
+            CheckedPopupMenuItem<String>(
+              value: 'RDB',
+              checked: source == 'RDB',
+              child: Text(l10n.sourceRDB),
+            ),
+          ];
+        }
       },
     );
   }
