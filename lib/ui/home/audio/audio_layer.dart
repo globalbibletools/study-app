@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:gbt/common/reference.dart';
 import 'package:gbt/ui/home/audio/audio_player.dart';
 import 'package:gbt/ui/home/home_manager.dart';
 
@@ -11,26 +10,18 @@ class AudioLayer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.bottomCenter,
-      child: ValueListenableBuilder<bool>(
+    return ValueListenableBuilder<bool>(
         valueListenable: manager.audioPlayerViewModel.isVisible,
         builder: (context, isVisible, _) {
           return AnimatedSlide(
             offset: isVisible ? Offset.zero : const Offset(0, 1),
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut,
-            child: ValueListenableBuilder<Reference>(
-              valueListenable: manager.currentReference,
-              builder: (context, ref, _) {
-                return BottomAudioPlayer(
-                  viewModel: manager.audioPlayerViewModel,
-                );
-              },
+            child: BottomAudioPlayer(
+              viewModel: manager.audioPlayerViewModel,
             ),
           );
-        },
-      ),
+        }
     );
   }
 }

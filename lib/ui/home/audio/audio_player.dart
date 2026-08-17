@@ -21,154 +21,101 @@ class BottomAudioPlayer extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHigh,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 8,
-            offset: const Offset(0, -2),
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: Container(
+          decoration: BoxDecoration(
+            color: colorScheme.surfaceContainerHigh,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 8,
+                offset: const Offset(0, -2),
+              ),
+            ],
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
           ),
-        ],
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      child: ListenableBuilder(
-        listenable: viewModel,
-        builder: (buildContext, _) =>
-          SafeArea(
-            top: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // --- ROW 0: Reference / Error ---
-                  _ReferenceOrErrorRow(
-                    error: viewModel.error,
-                    reference: viewModel.reference.value,
-                  ),
-
-                  const SizedBox(height: 2),
-
-                  // --- ROW 1: Voice Settings | Progress | Close ---
-                  Row(
+          child: ListenableBuilder(
+            listenable: viewModel,
+            builder: (buildContext, _) =>
+              SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Voice Source Button (Person Head)
-                      _VoiceMenuButton(
-                        isNewTestament: (viewModel.reference.value?.bookId ?? 0) >= BibleNavigation.getNewTestamentBookId(),
-                        source: viewModel.audioSource,
-                        onChange: viewModel.changeSource,
+                      _ReferenceOrErrorRow(
+                        error: viewModel.error,
+                        reference: viewModel.reference.value,
                       ),
-                      const SizedBox(width: 8),
-
-                      // Progress Bar
-                      Expanded(
-                        child: StreamBuilder<({Duration? duration, Duration buffered, Duration position })>(
-                          stream: viewModel.playback,
-                          builder: (context, snapshot) {
-                            final playback = snapshot.data;
-                            return ProgressBar(
-                              progress: playback?.position ?? Duration.zero,
-                              buffered: playback?.buffered ?? Duration.zero,
-                              total: playback?.duration ?? Duration.zero,
-                              onSeek: viewModel.error == null ? viewModel.seek : null,
-                              barHeight: 4.0,
-                              thumbRadius: 6.0,
-                              thumbGlowRadius: 12.0,
-                              baseBarColor: colorScheme.outlineVariant,
-                              progressBarColor: colorScheme.primary,
-                              bufferedBarColor: colorScheme.primary.withValues(
-                                alpha: 0.3,
-                              ),
-                              thumbColor: colorScheme.primary,
-                              timeLabelLocation: TimeLabelLocation.sides,
-                              timeLabelTextStyle: theme.textTheme.labelSmall,
-                              timeLabelPadding: 8.0,
-                            );
-                          },
-                        ),
-                      ),
-
-                      const SizedBox(width: 8),
-
-                      // Close Button
-                      IconButton(
-                        icon: const Icon(Icons.close),
-                        visualDensity: VisualDensity.compact,
-                        onPressed: viewModel.close,
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 4),
-
-                  // --- ROW 2: Repeat | Controls | Speed ---
-                  Row(
-                    children: [
-                      // Far Left: Repeat Mode
-                      Expanded(
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: _RepeatMenuButton(
-                            repeatMode: viewModel.repeatMode,
-                            onChange: viewModel.changeRepeatMode,
-                          )
-                        ),
-                      ),
-
-                      // Center: Playback Controls
                       Row(
-                        mainAxisSize: MainAxisSize.min,
+                        spacing: 8,  
                         children: [
-                          IconButton(
-                            icon: const Icon(Icons.chevron_left_rounded),
-                            iconSize: 28,
-                            color: colorScheme.primary,
-                            onPressed: viewModel.error == null
-                                ? viewModel.jumpToPrev
-                                : null,
+                          _VoiceMenuButton(
+                            isNewTestament: (viewModel.reference.value?.bookId ?? 0) >= BibleNavigation.getNewTestamentBookId(),
+                            source: viewModel.audioSource,
+                            onChange: viewModel.changeSource,
                           ),
-
-                          const SizedBox(width: 12),
-
-                          // Play/Pause
-                          _PlayButton(
-                            playbackState: viewModel.playbackState,
-                            onPlay: viewModel.error == null ? viewModel.play : null,
-                            onPause: viewModel.error == null ? viewModel.pause : null,
+                          Expanded(
+                            child: _ProgressBar(
+                                playback: viewModel.playback,
+                                onSeek: viewModel.error == null ? viewModel.seek : null
+                            ),
                           ),
-
-                          const SizedBox(width: 12),
-
                           IconButton(
-                            icon: const Icon(Icons.chevron_right_rounded),
-                            iconSize: 28,
-                            color: colorScheme.primary,
-                            onPressed: viewModel.error == null
-                                ? viewModel.jumpToNext
-                                : null,
+                            icon: const Icon(Icons.close),
+                            visualDensity: VisualDensity.compact,
+                            onPressed: viewModel.close,
                           ),
                         ],
                       ),
-
-                      // Far Right: Playback Speed
-                      Expanded(
-                        child: Align(
-                          alignment: Alignment.centerRight,
-                          child: _SpeedMenuButton(
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          _RepeatMenuButton(
+                            repeatMode: viewModel.repeatMode,
+                            onChange: viewModel.changeRepeatMode,
+                          ),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            spacing: 12,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.chevron_left_rounded),
+                                iconSize: 28,
+                                color: colorScheme.primary,
+                                onPressed: viewModel.error == null
+                                    ? viewModel.jumpToPrev
+                                    : null,
+                              ),
+                              _PlayButton(
+                                playbackState: viewModel.playbackState,
+                                onPlay: viewModel.error == null ? viewModel.play : null,
+                                onPause: viewModel.error == null ? viewModel.pause : null,
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.chevron_right_rounded),
+                                iconSize: 28,
+                                color: colorScheme.primary,
+                                onPressed: viewModel.error == null
+                                    ? viewModel.jumpToNext
+                                    : null,
+                              ),
+                            ],
+                          ),
+                          _SpeedMenuButton(
                             speed: viewModel.speed,
                             onChange: viewModel.setSpeed,
                           ),
-                        ),
+                        ],
                       ),
                     ],
                   ),
-                ],
-              ),
-            ),
+                ),
+              )
           )
-      )
+        )
     );
   }
 }
@@ -439,4 +386,45 @@ class _PlayButton extends StatelessWidget {
           );
     }
   }
+}
+
+class _ProgressBar extends StatelessWidget {
+    final Stream<({Duration? duration, Duration buffered, Duration position })> playback;
+    final Function(Duration)? onSeek;
+
+    const _ProgressBar({
+        required this.playback,
+        required this.onSeek,
+    });
+
+    @override
+    Widget build(BuildContext context) {
+        final theme = Theme.of(context);
+        final colorScheme = theme.colorScheme;
+
+        return StreamBuilder(
+          stream: playback,
+          builder: (context, snapshot) {
+            final playback = snapshot.data;
+            return ProgressBar(
+              progress: playback?.position ?? Duration.zero,
+              buffered: playback?.buffered ?? Duration.zero,
+              total: playback?.duration ?? Duration.zero,
+              onSeek: onSeek,
+              barHeight: 4.0,
+              thumbRadius: 6.0,
+              thumbGlowRadius: 12.0,
+              baseBarColor: colorScheme.outlineVariant,
+              progressBarColor: colorScheme.primary,
+              bufferedBarColor: colorScheme.primary.withValues(
+                alpha: 0.3,
+              ),
+              thumbColor: colorScheme.primary,
+              timeLabelLocation: TimeLabelLocation.sides,
+              timeLabelTextStyle: theme.textTheme.labelSmall,
+              timeLabelPadding: 8.0,
+            );
+          },
+        );
+    }
 }

@@ -148,8 +148,8 @@ class AudioPlayerViewModel extends ChangeNotifier {
     }
 
     Future<void> close() async {
-        await _reset();
         isVisible.value = false;
+        await _reset();
     }
 
     Future<void> play() async {
