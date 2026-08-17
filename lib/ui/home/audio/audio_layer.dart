@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:gbt/common/reference.dart';
-import 'package:gbt/l10n/book_names.dart';
 import 'package:gbt/ui/home/audio/audio_player.dart';
 import 'package:gbt/ui/home/home_manager.dart';
 
+// TODO: pull into audio_player widget.
 class AudioLayer extends StatelessWidget {
   const AudioLayer({super.key, required this.manager});
 
@@ -25,10 +25,6 @@ class AudioLayer extends StatelessWidget {
               builder: (context, ref, _) {
                 return BottomAudioPlayer(
                   viewModel: manager.audioPlayerViewModel,
-                  currentBookId: ref.bookId,
-                  currentChapter: ref.chapter,
-                  currentVerse: ref.verse,
-                  currentBookName: bookNameFromId(context, ref.bookId),
                 );
               },
             ),

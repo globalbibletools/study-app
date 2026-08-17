@@ -8,18 +8,10 @@ import 'package:gbt/l10n/app_localizations.dart';
 
 class BottomAudioPlayer extends StatelessWidget {
   final AudioPlayerViewModel viewModel;
-  final int currentBookId;
-  final int currentChapter;
-  final int currentVerse;
-  final String currentBookName;
 
   const BottomAudioPlayer({
     super.key,
     required this.viewModel,
-    required this.currentBookId,
-    required this.currentChapter,
-    required this.currentVerse,
-    required this.currentBookName,
   });
 
   @override
@@ -64,7 +56,7 @@ class BottomAudioPlayer extends StatelessWidget {
                     children: [
                       // Voice Source Button (Person Head)
                       _VoiceMenuButton(
-                        isNewTestament: currentBookId >= BibleNavigation.getNewTestamentBookId(),
+                        isNewTestament: (viewModel.reference.value?.bookId ?? 0) >= BibleNavigation.getNewTestamentBookId(),
                         source: viewModel.audioSource,
                         onChange: viewModel.changeSource,
                       ),
