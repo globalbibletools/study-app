@@ -66,7 +66,7 @@ class BiblePanelArea extends StatelessWidget {
                     key: ValueKey('hg-${anchor.bookId}-${anchor.chapter}'),
                     bookId: anchor.bookId,
                     chapter: anchor.chapter,
-                    highlightStream: manager.audioPlayerViewModel.reference,
+                    highlightNotifier: manager.audioPlayerViewModel.reference,
                     syncController: manager.syncController,
                     settingsVersion: settingsVersion,
                     scrollingEnabled: !disableScrolling,

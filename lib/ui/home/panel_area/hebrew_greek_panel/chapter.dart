@@ -37,7 +37,7 @@ class HebrewGreekChapter extends StatefulWidget {
     required this.fontSize,
     required this.verseLayout,
     required this.readingModeEnabled,
-    required this.highlightStream,
+    required this.highlightNotifier,
     this.syncController,
     this.onReadingCheckboxGuideRectChanged,
     this.onReadingCheckboxGuideCompleted,
@@ -51,7 +51,7 @@ class HebrewGreekChapter extends StatefulWidget {
   final ScrollSyncController? syncController;
   final ValueChanged<Rect?>? onReadingCheckboxGuideRectChanged;
   final VoidCallback? onReadingCheckboxGuideCompleted;
-  final Stream<Reference?> highlightStream;
+  final ValueNotifier<Reference?> highlightNotifier;
 
   @override
   State<HebrewGreekChapter> createState() => HebrewGreekChapterState();
@@ -169,10 +169,9 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter>
           builder: (context, words, child) {
             if (words.isEmpty) return const SizedBox();
 
-            return StreamBuilder<Reference?>(
-              stream: widget.highlightStream,
-              builder: (context, highlight) {
-                final reference = highlight.data;
+            return ValueListenableBuilder<Reference?>(
+              valueListenable: widget.highlightNotifier,
+              builder: (context, reference, _) {
                 int? verseToHighlight;
                 if (reference != null &&
                     reference.bookId == widget.bookId &&

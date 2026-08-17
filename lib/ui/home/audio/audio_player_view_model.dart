@@ -44,43 +44,58 @@ class AudioPlayerViewModel extends ChangeNotifier {
 
     var repeatMode = AudioRepeatMode.none;
     void setRepeatMode(AudioRepeatMode mode) {
+        if (repeatMode == mode) return;
+
         repeatMode = mode;
         notifyListeners();
     }
 
     var audioSource = "RDB";
     void setAudioSource(String source) {
+        if (audioSource == source) return;
+
         audioSource = source;
         notifyListeners();
     }
 
     AudioPlaybackError? error;
     void setError(AudioPlaybackError? error) {
+        if (this.error == error) return;
+
         this.error = error;
         notifyListeners();
     }
 
     double get speed => player.speed;
     void setSpeed(double speed) {
+        if (speed == player.speed) return;
+
         player.setSpeed(speed);
         notifyListeners();
     }
 
     var playbackState = AudioPlaybackState.loading;
     void setPlaybackState(AudioPlaybackState state) {
+        if (state == playbackState) return;
+
         playbackState = state;
         notifyListeners();
     }
 
-    late final Stream<Reference?> reference;
+    final reference = ValueNotifier<Reference?>(null);
+    void setReference(Reference? reference) {
+        if (this.reference.value == reference) return;
+
+        this.reference.value = reference;
+        notifyListeners();
+    }
+
     late final Stream<({Duration? duration, Duration buffered, Duration position})> playback;
 
     final player = AudioPlayer();
 
     final _audioService = AudioService();
     List<AudioTiming> _timings = [];
-    int? currentBook;
-    int? currentChapter;
 
     AppLocalizations? _localizations;
     void setLocalizations(AppLocalizations localizations) {
@@ -89,8 +104,6 @@ class AudioPlayerViewModel extends ChangeNotifier {
 
     late final StreamSubscription positionSubscription;
     late final StreamSubscription processingStateSubscription;
-
-    Reference? getCurrentReference() => _positionToReference(player.position);
 
     AudioPlayerViewModel() {
         playback = combineStreams3(
@@ -103,7 +116,6 @@ class AudioPlayerViewModel extends ChangeNotifier {
                 position: position,
               )
         );
-        reference = player.positionStream.map(_positionToReference);
 
         positionSubscription = player.positionStream.listen(_handleVerseRepeat);
         processingStateSubscription = player.playerStateStream.listen(_handleChapterRepeatOrContinue);
@@ -119,15 +131,15 @@ class AudioPlayerViewModel extends ChangeNotifier {
                 setRepeatMode(AudioRepeatMode.chapter);
                 break;
             case AudioRepeatModeType.verse:
-                final reference = getCurrentReference();
-                if (reference == null) return;
-                setRepeatMode(AudioRepeatMode.verse(reference.verse));
+                if (reference.value case final reference?) {
+                    setRepeatMode(AudioRepeatMode.verse(reference.verse));
+                }
                 break;
         }
     }
 
     Future<void> changeSource(String source) async {
-        await _reload(source, getCurrentReference());
+        await _reload(source, reference.value);
     }
 
     Future<void> openAt(Reference reference) async {
@@ -157,10 +169,10 @@ class AudioPlayerViewModel extends ChangeNotifier {
     }
 
     Future<void> jumpToNext() async {
-        final currentReference = getCurrentReference();
-        if (currentReference == null) return;
+        final reference = this.reference.value;
+        if (reference == null) return;
 
-        final nextReference = _resolveNextVerse(currentReference);
+        final nextReference = _resolveNextVerse(reference);
 
         // End of the Bible.
         if (nextReference == null) {
@@ -171,20 +183,20 @@ class AudioPlayerViewModel extends ChangeNotifier {
     }
 
     Future<void> jumpToPrev() async {
-        final currentReference = getCurrentReference();
-        if (currentReference == null) return;
+        final reference = this.reference.value;
+        if (reference == null) return;
 
-        final timing = _referenceToTiming(currentReference);
+        final timing = _referenceToTiming(reference);
         if (timing == null) return;
 
         // If we're more than a second into the current verse, restart it.
         final shouldRestartVerse = (player.position.inMilliseconds / 1000) - timing.start > 1;
         if (shouldRestartVerse) {
-            await _seekToReference(currentReference);
+            await _seekToReference(reference);
             return;
         }
 
-        final prevReference = _resolvePrevVerse(currentReference);
+        final prevReference = _resolvePrevVerse(reference);
 
         // Beginning of the Bible, nothing to back up to.
         if (prevReference == null) {
@@ -206,12 +218,12 @@ class AudioPlayerViewModel extends ChangeNotifier {
             return;
         }
 
-        final current = getCurrentReference();
-        if (current == null) return;
+        final reference = this.reference.value;
+        if (reference == null) return;
 
         switch (repeatMode.type) {
             case AudioRepeatModeType.none:
-                final nextReference = _resolveNextVerse(current);
+                final nextReference = _resolveNextVerse(reference);
 
                 // End of the Bible, nothing to continue to.
                 if (nextReference == null) {
@@ -220,8 +232,8 @@ class AudioPlayerViewModel extends ChangeNotifier {
                 }
 
                 // The next verse is within the chapter, so there is a hole in the audio.
-                if (nextReference.bookId == current.bookId &&
-                    nextReference.chapter == current.chapter) {
+                if (nextReference.bookId == reference.bookId &&
+                    nextReference.chapter == reference.chapter) {
                     await player.pause();
                     break;
                 }
@@ -230,8 +242,8 @@ class AudioPlayerViewModel extends ChangeNotifier {
                 break;
             case AudioRepeatModeType.chapter:
                 await _seekToReference(Reference(
-                    bookId: current.bookId,
-                    chapter: current.chapter,
+                    bookId: reference.bookId,
+                    chapter: reference.chapter,
                     verse: 1
                 ));
                 break;
@@ -241,11 +253,18 @@ class AudioPlayerViewModel extends ChangeNotifier {
     }
 
     Future<void> _handleVerseRepeat(Duration? position) async {
+        if (position == null) {
+            setReference(null);
+            return;
+        }
+
+        final reference = _positionToReference(position);
+        setReference(reference);
+
         if (repeatMode.type != AudioRepeatModeType.verse) return;
 
         final targetVerse = repeatMode.target;
-        final reference = getCurrentReference();
-        if (position == null || reference == null || targetVerse == null) return;
+        if (reference == null || targetVerse == null) return;
 
         final targetReference = Reference(
             bookId: reference.bookId,
@@ -264,40 +283,37 @@ class AudioPlayerViewModel extends ChangeNotifier {
     }
 
     Future<void> _reset() async {
-        currentBook = null;
-        currentChapter = null;
         await player.seek(Duration(seconds: 0));
         await player.stop();
         await player.clearAudioSources();
+        setReference(null);
         setError(null);
         _timings = [];
     }
 
-    Future<void> _reload(String source, Reference? reference) async {
+    Future<void> _reload(String source, Reference? newReference) async {
         if (repeatMode.type == AudioRepeatModeType.verse) {
-            if (reference == null) {
+            if (newReference == null) {
                 setRepeatMode(AudioRepeatMode.none);
             } else {
-                setRepeatMode(AudioRepeatMode.verse(reference.verse));
+                setRepeatMode(AudioRepeatMode.verse(newReference.verse));
             }
         }
 
-        if (reference == null) {
+        if (newReference == null) {
             setAudioSource(source);
             return _reset();
         }
 
-        final needsReload = currentBook != reference.bookId ||
-            currentChapter != reference.chapter ||
+        final needsReload = reference.value?.bookId != newReference.bookId ||
+            reference.value?.chapter != newReference.chapter ||
             source != audioSource;
         if (!needsReload) {
-            _seekToReference(reference);
+            _seekToReference(newReference);
 
             return;
         }
 
-        currentChapter = reference.chapter;
-        currentBook = reference.bookId;
         setAudioSource(source);
 
         String audioUrl;
@@ -305,31 +321,32 @@ class AudioPlayerViewModel extends ChangeNotifier {
         try {
             (:audioUrl, :timings) = await _audioService.getChapterData(
                 audioSource,
-                reference.bookId,
-                reference.chapter
+                newReference.bookId,
+                newReference.chapter
             );
         } on AudioMissingException {
             await _reset();
-            setError(AudioFileMissingError(reference));
+            setError(AudioFileMissingError(newReference));
+            setPlaybackState(AudioPlaybackState.paused);
             return;
         }
 
         setError(null);
         _timings = timings;
 
-        final wasPlaying = player.playing;
-
         final l = _localizations;
         final title = l == null
             ? "Bible"
-            : "${bookNameFromLocalizations(l, reference.bookId)} ${reference.chapter}";
+            : "${bookNameFromLocalizations(l, newReference.bookId)} ${newReference.chapter}";
 
+        final wasPlaying = player.playing;
         await player.setAudioSource(AudioSource.uri(
             Uri.parse(audioUrl),
             tag: MediaItem(id: audioUrl, title: title)
         ));
 
-        _seekToReference(reference);
+        _seekToReference(newReference);
+        setReference(newReference);
 
         if (wasPlaying) {
             await player.play();
@@ -391,14 +408,15 @@ class AudioPlayerViewModel extends ChangeNotifier {
     }
 
     Reference? _positionToReference(Duration position) {
-        if (currentBook == null || currentChapter == null) return null;
+        final reference = this.reference.value;
+        if (reference == null) return null;
 
         try {
             final timing = _timings.reversed.firstWhere((t) => t.start * 1000 <= position.inMilliseconds);
 
             return Reference(
-                bookId: currentBook!,
-                chapter: currentChapter!,
+                bookId: reference.bookId,
+                chapter: reference.chapter,
                 verse: timing.verseNumber,
             );
         } catch (err) {

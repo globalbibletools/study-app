@@ -54,7 +54,7 @@ class BottomAudioPlayer extends StatelessWidget {
                   // --- ROW 0: Reference / Error ---
                   _ReferenceOrErrorRow(
                     error: viewModel.error,
-                    referenceStream: viewModel.reference,
+                    reference: viewModel.reference.value,
                   ),
 
                   const SizedBox(height: 2),
@@ -185,11 +185,11 @@ class BottomAudioPlayer extends StatelessWidget {
 
 class _ReferenceOrErrorRow extends StatelessWidget {
   final AudioPlaybackError? error;
-  final Stream<Reference?> referenceStream;
+  final Reference? reference;
 
   const _ReferenceOrErrorRow({
     required this.error,
-    required this.referenceStream,
+    required this.reference,
   });
 
   @override
@@ -198,23 +198,17 @@ class _ReferenceOrErrorRow extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
 
     if (error == null) {
-      return StreamBuilder<Reference?>(
-        stream: referenceStream,
-        builder: (context, snapshot) {
-          final ref = snapshot.data;
-          final refText = ref == null
-              ? ''
-              : '${bookNameFromId(context, ref.bookId)} ${ref.chapter}:${ref.verse}';
-          return Text(
-            refText,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurface,
-            ),
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          );
-        },
+      final refText = reference == null
+          ? ''
+          : '${bookNameFromId(context, reference!.bookId)} ${reference!.chapter}:${reference!.verse}';
+      return Text(
+        refText,
+        style: theme.textTheme.bodyMedium?.copyWith(
+          color: theme.colorScheme.onSurface,
+        ),
+        textAlign: TextAlign.center,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
       );
     }
 
@@ -390,7 +384,7 @@ class _SpeedMenuButton extends StatelessWidget {
           return CheckedPopupMenuItem<double>(
             value: speedOption,
             checked: speed == speedOption,
-            child: Text("${speed}x"),
+            child: Text("${speedOption}x"),
           );
         }).toList();
       },

@@ -12,7 +12,7 @@ class HebrewGreekPanel extends StatefulWidget {
     super.key,
     required this.bookId,
     required this.chapter,
-    required this.highlightStream,
+    required this.highlightNotifier,
     this.syncController,
     required this.settingsVersion,
     this.scrollingEnabled = true,
@@ -24,7 +24,7 @@ class HebrewGreekPanel extends StatefulWidget {
   final int bookId;
   final int chapter;
   final ScrollSyncController? syncController;
-  final Stream<Reference?> highlightStream;
+  final ValueNotifier<Reference?> highlightNotifier;
   final int settingsVersion;
   final bool scrollingEnabled;
   final bool showReadingCheckboxGuide;
@@ -131,7 +131,7 @@ class HebrewGreekPanelState extends State<HebrewGreekPanel> {
                               key: ValueKey('page-$bookId-$chapter'),
                               bookId: bookId,
                               chapter: chapter,
-                              highlightStream: widget.highlightStream,
+                              highlightNotifier: widget.highlightNotifier,
                               fontSize: fontSize,
                               syncController: widget.syncController,
                               verseLayout: verseLayout,
