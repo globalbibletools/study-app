@@ -154,7 +154,7 @@ class HomeManager {
   }
 
   Future<void> toggleAudio(BuildContext context) async {
-    if (audioPlayerViewModel.isVisible.value) {
+    if (audioPlayerViewModel.isVisible) {
         await audioPlayerViewModel.close();
         return;
     }

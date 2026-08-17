@@ -40,7 +40,11 @@ class AudioRepeatMode {
 }
 
 class AudioPlayerViewModel extends ChangeNotifier {
-    final isVisible = ValueNotifier(false);
+    var isVisible = false;
+    void setVisibility(bool isVisible) {
+        this.isVisible = isVisible;
+        notifyListeners();
+    }
 
     var repeatMode = AudioRepeatMode.none;
     void setRepeatMode(AudioRepeatMode mode) {
@@ -143,12 +147,12 @@ class AudioPlayerViewModel extends ChangeNotifier {
     }
 
     Future<void> openAt(Reference reference) async {
-        isVisible.value = true;
+        setVisibility(true);
         await jumpTo(reference);
     }
 
     Future<void> close() async {
-        isVisible.value = false;
+        setVisibility(false);
         await _reset();
     }
 
@@ -428,8 +432,6 @@ class AudioPlayerViewModel extends ChangeNotifier {
     void dispose() {
         super.dispose();
         player.dispose();
-
-        isVisible.dispose();
 
         processingStateSubscription.cancel();
         positionSubscription.cancel();

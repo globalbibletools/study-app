@@ -16,7 +16,7 @@ class BiblePanelArea extends StatelessWidget {
   Widget build(BuildContext context) {
     return NotificationListener<VerseNumberTapNotification>(
       onNotification: (notification) {
-        final isShowingPlayer = manager.audioPlayerViewModel.isVisible.value;
+        final isShowingPlayer = manager.audioPlayerViewModel.isVisible;
         if (isShowingPlayer) {
           manager.audioPlayerViewModel.jumpTo(
             Reference(

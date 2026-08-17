@@ -21,7 +21,14 @@ class BottomAudioPlayer extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    return Align(
+    return ListenableBuilder(
+        listenable: viewModel,
+        builder: (buildContext, _) =>
+        AnimatedSlide(
+            offset: viewModel.isVisible ? Offset.zero : const Offset(0, 1),
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            child: Align(
       alignment: Alignment.bottomCenter,
       child: Container(
           decoration: BoxDecoration(
@@ -35,9 +42,7 @@ class BottomAudioPlayer extends StatelessWidget {
             ],
             borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
           ),
-          child: ListenableBuilder(
-            listenable: viewModel,
-            builder: (buildContext, _) =>
+          child: 
               SafeArea(
                 top: false,
                 child: Padding(
@@ -116,6 +121,7 @@ class BottomAudioPlayer extends StatelessWidget {
               )
           )
         )
+      )
     );
   }
 }
