@@ -22,9 +22,7 @@ class BottomAudioPlayer extends StatelessWidget {
       listenable: viewModel,
       builder: (buildContext, _) => _PlayerLauncher(
         isVisible: viewModel.isVisible,
-        child: Align(
-          alignment: Alignment.bottomCenter,
-          child: Container(
+        child: Container(
             decoration: BoxDecoration(
               color: colorScheme.surfaceContainerHigh,
               boxShadow: [
@@ -124,7 +122,6 @@ class BottomAudioPlayer extends StatelessWidget {
             ),
           ),
         ),
-      ),
     );
   }
 }
@@ -144,7 +141,10 @@ class _PlayerLauncher extends StatelessWidget {
             offset: isVisible ? Offset.zero : Offset(0, 1),
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut,
-            child: isVisible ? child : SizedBox.shrink(),
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: isVisible ? child : SizedBox.shrink(),
+            )
         );
     }
 }
