@@ -205,6 +205,22 @@
   "@audioNotAvailable": {
     "description": "Message shown when the user tries to play audio for a chapter that does not exist on the server."
   },
+  "audioNotAvailableForChapter": "Audio not available for {book} {chapter}",
+  "@audioNotAvailableForChapter": {
+    "description": "Message shown in the audio player when audio for a specific chapter is missing.",
+    "placeholders": {
+      "book": {
+        "type": "String"
+      },
+      "chapter": {
+        "type": "int"
+      }
+    }
+  },
+  "unknownAudioError": "Unknown audio error",
+  "@unknownAudioError": {
+    "description": "Message shown in the audio player when an unspecified audio error occurs."
+  },
   "verseCopied": "Verse copied to clipboard",
   "@verseCopied": {
     "description": "Snackbar message when a verse is copied"

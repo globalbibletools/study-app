@@ -1,24 +1,19 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:gbt/ui/home/audio/audio_player_view_model.dart';
 import 'package:scripture/scripture.dart';
 import 'package:gbt/app_state.dart';
 import 'package:gbt/common/reference.dart';
 import 'package:gbt/l10n/app_languages.dart';
-import 'package:gbt/l10n/app_localizations.dart';
-import 'package:gbt/l10n/book_names.dart';
 import 'package:gbt/services/app_guide/app_guide_manager.dart';
 import 'package:gbt/services/files/file_service.dart';
 import 'package:gbt/services/resources/remote_asset_service.dart';
 import 'package:gbt/services/bible/bible_service.dart';
-import 'package:gbt/services/download/cancel_token.dart';
 import 'package:gbt/services/download/download.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/services/settings/user_settings.dart';
-import 'package:gbt/ui/common/download_progress_dialog.dart';
 import 'package:gbt/ui/home/appbar/reference_chooser/reference_chooser.dart';
-import 'package:gbt/ui/home/audio/audio_logic.dart';
-import 'package:gbt/ui/home/audio/audio_manager.dart';
 import 'package:gbt/ui/home/common/scroll_sync_controller.dart';
 import 'package:gbt/services/reading_session/rs_manager.dart';
 
@@ -53,7 +48,7 @@ class HomeManager {
     9,
   });
 
-  final audioManager = AudioManager();
+  final audioPlayerViewModel = AudioPlayerViewModel();
   final _bibleService = getIt<BibleService>();
   final _settings = getIt<UserSettings>();
   final _downloadService = getIt<DownloadService>();
@@ -79,7 +74,7 @@ class HomeManager {
     panelAnchorNotifier.value = ref;
 
     syncController.addListener(_onSyncUpdate);
-    audioManager.setSyncController(syncController);
+    // audioManager.setSyncController(syncController);
 
     syncController.clearActiveSource();
     syncController.updatePosition('manager', bookId, chapter, 0.0, verse: 1);
@@ -159,38 +154,17 @@ class HomeManager {
   }
 
   Future<void> toggleAudio(BuildContext context) async {
-    // If already open, close it
-    if (audioManager.isVisibleNotifier.value) {
-      audioManager.stopAndClose();
-      return;
-    }
-
-    final bookId = currentBookId;
-    final chapter = currentChapter;
-    final verse = currentVerse;
-
-    // Check if audio is actually available for this book/chapter
-    if (!AudioLogic.isAudioAvailable(bookId, chapter)) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context)!.audioNotAvailable),
-          ),
-        );
-      }
-      return;
+    if (audioPlayerViewModel.isVisible) {
+        await audioPlayerViewModel.close();
+        return;
     }
 
     try {
-      await playAudioForCurrentChapter(
-        bookNameFromId(context, bookId),
-        chapter,
-        startVerse: verse,
-      );
-    } on AudioMissingException catch (_) {
-      if (context.mounted) {
-        _promptDownloadAudio(context);
-      }
+        await audioPlayerViewModel.openAt(Reference(
+            bookId: currentBookId,
+            chapter: currentChapter,
+            verse: currentVerse,
+        ));
     } catch (e) {
       if (context.mounted) {
         showDialog(
@@ -199,65 +173,8 @@ class HomeManager {
         );
       }
     }
-  }
 
-  Future<void> _promptDownloadAudio(BuildContext context) async {
-    final bookName = bookNameFromId(context, currentBookId);
-    final l10n = AppLocalizations.of(context)!;
-
-    // Capture values before async gap
-    final bookIdToDownload = currentBookId;
-    final chapterToDownload = currentChapter;
-
-    final shouldDownload = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(l10n.downloadAudio),
-          content: Text(l10n.audioNotDownloaded(bookName, chapterToDownload)),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: Text(l10n.cancel),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: Text(l10n.download),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (shouldDownload != true) return;
-    if (!context.mounted) return;
-
-    try {
-      await DownloadProgressDialog.show(
-        context: context,
-        task: (progress, cancelToken) {
-          return downloadAudioForChapter(
-            bookIdToDownload,
-            chapterToDownload,
-            progress,
-            cancelToken,
-          );
-        },
-      );
-
-      if (!context.mounted) return;
-
-      // Recursive call to play (now that it's downloaded)
-      // We pass context again since we are starting a new operation
-      toggleAudio(context);
-    } catch (e) {
-      if (!context.mounted) return;
-      if (e is! DownloadCanceledException) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Download error: $e")));
-      }
-    }
+    await audioPlayerViewModel.play();
   }
 
   Future<void> requestText() async {
@@ -269,8 +186,8 @@ class HomeManager {
   }
 
   void onBookSelected(BuildContext context, int bookId) {
-    audioManager.stopAndClose();
     final ref = Reference(bookId: bookId, chapter: 1, verse: 1);
+    audioPlayerViewModel.jumpTo(ref);
     currentReference.value = ref;
     panelAnchorNotifier.value = ref;
     syncController.clearActiveSource();
@@ -278,8 +195,8 @@ class HomeManager {
   }
 
   void onChapterSelected(int chapter) {
-    audioManager.stopAndClose();
     final ref = Reference(bookId: currentBookId, chapter: chapter, verse: 1);
+    audioPlayerViewModel.jumpTo(ref);
     currentReference.value = ref;
     panelAnchorNotifier.value = ref;
     syncController.clearActiveSource();
@@ -292,54 +209,10 @@ class HomeManager {
     );
   }
 
-  Future<void> playAudioForCurrentChapter(
-    String bookName,
-    int chapter, {
-    int? startVerse,
-  }) async {
-    await audioManager.loadAndPlay(
-      currentBookId,
-      chapter,
-      bookName,
-      startVerse: startVerse,
-    );
-  }
-
-  /// Returns a Future that completes when download is done.
-  /// Used by the ProgressDialog.
-  Future<void> downloadAudioForChapter(
-    int bookId,
-    int chapter,
-    ValueNotifier<double> progressNotifier,
-    CancelToken cancelToken,
-  ) async {
-    final recordingId = AudioLogic.getRecordingId(
-      bookId,
-      chapter,
-      audioManager.audioSourceNotifier.value,
-    );
-    final asset = _assetService.getAudioChapterAsset(
-      bookId: bookId,
-      chapter: chapter,
-      recordingId: recordingId,
-    );
-    if (asset == null) return;
-    final localPath = await _fileService.getLocalPath(
-      asset.fileType,
-      asset.localRelativePath,
-    );
-    await _downloadService.downloadFile(
-      url: asset.remoteUrl,
-      localPath: localPath,
-      onProgress: (p) => progressNotifier.value = p,
-      cancelToken: cancelToken,
-    );
-  }
-
   void dispose() {
     syncController.removeListener(_onSyncUpdate);
     syncController.dispose();
-    audioManager.dispose();
+    audioPlayerViewModel.dispose();
     currentReference.dispose();
     isSinglePanelNotifier.dispose();
     textParagraphNotifier.dispose();

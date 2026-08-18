@@ -168,6 +168,14 @@ class AppLocalizationsAr extends AppLocalizations {
   String get audioNotAvailable => 'الصوت غير متوفر لهذا الإصحاح.';
 
   @override
+  String audioNotAvailableForChapter(String book, int chapter) {
+    return 'الصوت غير متوفر لسفر $book الإصحاح $chapter';
+  }
+
+  @override
+  String get unknownAudioError => 'خطأ غير معروف في الصوت';
+
+  @override
   String get verseCopied => 'تم نسخ الآية إلى الحافظة';
 
   @override

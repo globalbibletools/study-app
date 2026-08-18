@@ -392,6 +392,18 @@ abstract class AppLocalizations {
   /// **'Audio is not available for this chapter.'**
   String get audioNotAvailable;
 
+  /// Message shown in the audio player when audio for a specific chapter is missing.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio not available for {book} {chapter}'**
+  String audioNotAvailableForChapter(String book, int chapter);
+
+  /// Message shown in the audio player when an unspecified audio error occurs.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown audio error'**
+  String get unknownAudioError;
+
   /// Snackbar message when a verse is copied
   ///
   /// In en, this message translates to:

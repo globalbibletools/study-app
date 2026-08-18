@@ -2,139 +2,143 @@ import 'package:flutter/widgets.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 
 String bookNameFromId(BuildContext context, int bookId) {
+  return bookNameFromLocalizations(AppLocalizations.of(context)!, bookId);
+}
+
+String bookNameFromLocalizations(AppLocalizations l, int bookId) {
   switch (bookId) {
     case 1:
-      return AppLocalizations.of(context)!.bookGenesis;
+      return l.bookGenesis;
     case 2:
-      return AppLocalizations.of(context)!.bookExodus;
+      return l.bookExodus;
     case 3:
-      return AppLocalizations.of(context)!.bookLeviticus;
+      return l.bookLeviticus;
     case 4:
-      return AppLocalizations.of(context)!.bookNumbers;
+      return l.bookNumbers;
     case 5:
-      return AppLocalizations.of(context)!.bookDeuteronomy;
+      return l.bookDeuteronomy;
     case 6:
-      return AppLocalizations.of(context)!.bookJoshua;
+      return l.bookJoshua;
     case 7:
-      return AppLocalizations.of(context)!.bookJudges;
+      return l.bookJudges;
     case 8:
-      return AppLocalizations.of(context)!.bookRuth;
+      return l.bookRuth;
     case 9:
-      return AppLocalizations.of(context)!.book1Samuel;
+      return l.book1Samuel;
     case 10:
-      return AppLocalizations.of(context)!.book2Samuel;
+      return l.book2Samuel;
     case 11:
-      return AppLocalizations.of(context)!.book1Kings;
+      return l.book1Kings;
     case 12:
-      return AppLocalizations.of(context)!.book2Kings;
+      return l.book2Kings;
     case 13:
-      return AppLocalizations.of(context)!.book1Chronicles;
+      return l.book1Chronicles;
     case 14:
-      return AppLocalizations.of(context)!.book2Chronicles;
+      return l.book2Chronicles;
     case 15:
-      return AppLocalizations.of(context)!.bookEzra;
+      return l.bookEzra;
     case 16:
-      return AppLocalizations.of(context)!.bookNehemiah;
+      return l.bookNehemiah;
     case 17:
-      return AppLocalizations.of(context)!.bookEsther;
+      return l.bookEsther;
     case 18:
-      return AppLocalizations.of(context)!.bookJob;
+      return l.bookJob;
     case 19:
-      return AppLocalizations.of(context)!.bookPsalms;
+      return l.bookPsalms;
     case 20:
-      return AppLocalizations.of(context)!.bookProverbs;
+      return l.bookProverbs;
     case 21:
-      return AppLocalizations.of(context)!.bookEcclesiastes;
+      return l.bookEcclesiastes;
     case 22:
-      return AppLocalizations.of(context)!.bookSongOfSolomon;
+      return l.bookSongOfSolomon;
     case 23:
-      return AppLocalizations.of(context)!.bookIsaiah;
+      return l.bookIsaiah;
     case 24:
-      return AppLocalizations.of(context)!.bookJeremiah;
+      return l.bookJeremiah;
     case 25:
-      return AppLocalizations.of(context)!.bookLamentations;
+      return l.bookLamentations;
     case 26:
-      return AppLocalizations.of(context)!.bookEzekiel;
+      return l.bookEzekiel;
     case 27:
-      return AppLocalizations.of(context)!.bookDaniel;
+      return l.bookDaniel;
     case 28:
-      return AppLocalizations.of(context)!.bookHosea;
+      return l.bookHosea;
     case 29:
-      return AppLocalizations.of(context)!.bookJoel;
+      return l.bookJoel;
     case 30:
-      return AppLocalizations.of(context)!.bookAmos;
+      return l.bookAmos;
     case 31:
-      return AppLocalizations.of(context)!.bookObadiah;
+      return l.bookObadiah;
     case 32:
-      return AppLocalizations.of(context)!.bookJonah;
+      return l.bookJonah;
     case 33:
-      return AppLocalizations.of(context)!.bookMicah;
+      return l.bookMicah;
     case 34:
-      return AppLocalizations.of(context)!.bookNahum;
+      return l.bookNahum;
     case 35:
-      return AppLocalizations.of(context)!.bookHabakkuk;
+      return l.bookHabakkuk;
     case 36:
-      return AppLocalizations.of(context)!.bookZephaniah;
+      return l.bookZephaniah;
     case 37:
-      return AppLocalizations.of(context)!.bookHaggai;
+      return l.bookHaggai;
     case 38:
-      return AppLocalizations.of(context)!.bookZechariah;
+      return l.bookZechariah;
     case 39:
-      return AppLocalizations.of(context)!.bookMalachi;
+      return l.bookMalachi;
     case 40:
-      return AppLocalizations.of(context)!.bookMatthew;
+      return l.bookMatthew;
     case 41:
-      return AppLocalizations.of(context)!.bookMark;
+      return l.bookMark;
     case 42:
-      return AppLocalizations.of(context)!.bookLuke;
+      return l.bookLuke;
     case 43:
-      return AppLocalizations.of(context)!.bookJohn;
+      return l.bookJohn;
     case 44:
-      return AppLocalizations.of(context)!.bookActs;
+      return l.bookActs;
     case 45:
-      return AppLocalizations.of(context)!.bookRomans;
+      return l.bookRomans;
     case 46:
-      return AppLocalizations.of(context)!.book1Corinthians;
+      return l.book1Corinthians;
     case 47:
-      return AppLocalizations.of(context)!.book2Corinthians;
+      return l.book2Corinthians;
     case 48:
-      return AppLocalizations.of(context)!.bookGalatians;
+      return l.bookGalatians;
     case 49:
-      return AppLocalizations.of(context)!.bookEphesians;
+      return l.bookEphesians;
     case 50:
-      return AppLocalizations.of(context)!.bookPhilippians;
+      return l.bookPhilippians;
     case 51:
-      return AppLocalizations.of(context)!.bookColossians;
+      return l.bookColossians;
     case 52:
-      return AppLocalizations.of(context)!.book1Thessalonians;
+      return l.book1Thessalonians;
     case 53:
-      return AppLocalizations.of(context)!.book2Thessalonians;
+      return l.book2Thessalonians;
     case 54:
-      return AppLocalizations.of(context)!.book1Timothy;
+      return l.book1Timothy;
     case 55:
-      return AppLocalizations.of(context)!.book2Timothy;
+      return l.book2Timothy;
     case 56:
-      return AppLocalizations.of(context)!.bookTitus;
+      return l.bookTitus;
     case 57:
-      return AppLocalizations.of(context)!.bookPhilemon;
+      return l.bookPhilemon;
     case 58:
-      return AppLocalizations.of(context)!.bookHebrews;
+      return l.bookHebrews;
     case 59:
-      return AppLocalizations.of(context)!.bookJames;
+      return l.bookJames;
     case 60:
-      return AppLocalizations.of(context)!.book1Peter;
+      return l.book1Peter;
     case 61:
-      return AppLocalizations.of(context)!.book2Peter;
+      return l.book2Peter;
     case 62:
-      return AppLocalizations.of(context)!.book1John;
+      return l.book1John;
     case 63:
-      return AppLocalizations.of(context)!.book2John;
+      return l.book2John;
     case 64:
-      return AppLocalizations.of(context)!.book3John;
+      return l.book3John;
     case 65:
-      return AppLocalizations.of(context)!.bookJude;
+      return l.bookJude;
     case 66:
-      return AppLocalizations.of(context)!.bookRevelation;
+      return l.bookRevelation;
 
     default:
       return '';

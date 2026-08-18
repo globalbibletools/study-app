@@ -13,6 +13,19 @@ class DownloadService {
   final HttpClient _httpClient = HttpClient();
   final _fileService = getIt<FileService>();
 
+  Future<bool> checkExistence(String url) async {
+    final request = await _httpClient.headUrl(Uri.parse(url));
+    final response = await request.close();
+
+    if (response.statusCode == HttpStatus.ok) {
+        return true;
+    } else if (response.statusCode == HttpStatus.notFound) {
+        return false;
+    } else {
+        throw HttpException('Failed to check existence: ${response.statusCode}');
+    }
+  }
+
   Future<void> downloadFile({
     required String url,
     required String localPath,

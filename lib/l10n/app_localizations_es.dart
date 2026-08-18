@@ -169,6 +169,14 @@ class AppLocalizationsEs extends AppLocalizations {
       'El audio no está disponible para este capítulo.';
 
   @override
+  String audioNotAvailableForChapter(String book, int chapter) {
+    return 'Audio no disponible para $book $chapter';
+  }
+
+  @override
+  String get unknownAudioError => 'Error de audio desconocido';
+
+  @override
   String get verseCopied => 'Versículo copiado al portapapeles';
 
   @override

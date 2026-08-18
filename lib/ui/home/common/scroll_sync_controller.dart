@@ -99,30 +99,9 @@ class ScrollSyncController extends ChangeNotifier {
     );
   }
 
-  final highlightNotifier = ValueNotifier<VerseHighlight?>(null);
-
-  void setHighlight(int bookId, int chapter, int? verse) {
-    if (verse == null) {
-      if (highlightNotifier.value != null) {
-        highlightNotifier.value = null;
-      }
-      return;
-    }
-
-    final newState = VerseHighlight(
-      bookId: bookId,
-      chapter: chapter,
-      verse: verse,
-    );
-    if (highlightNotifier.value != newState) {
-      highlightNotifier.value = newState;
-    }
-  }
-
   @override
   void dispose() {
     _verseJumpController.close();
-    highlightNotifier.dispose();
     super.dispose();
   }
 }

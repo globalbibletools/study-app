@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:gbt/l10n/book_names.dart';
+import 'package:gbt/common/reference.dart';
 import 'package:gbt/ui/home/panel_area/bible_panel/bible_panel.dart';
 import 'package:gbt/ui/home/panel_area/common/goal_reached_overlay.dart';
 import 'package:gbt/ui/home/panel_area/common/reading_session_overlay.dart';
@@ -16,14 +16,15 @@ class BiblePanelArea extends StatelessWidget {
   Widget build(BuildContext context) {
     return NotificationListener<VerseNumberTapNotification>(
       onNotification: (notification) {
-        final isShowingPlayer = manager.audioManager.isVisibleNotifier.value;
+        final isShowingPlayer = manager.audioPlayerViewModel.isVisible;
         if (isShowingPlayer) {
-          manager.audioManager.play(
-            checkBookId: notification.bookId,
-            checkChapter: notification.chapter,
-            checkBookName: bookNameFromId(context, notification.bookId),
-            startVerse: notification.verse,
-          );
+          manager.audioPlayerViewModel.jumpTo(
+            Reference(
+                bookId: notification.bookId,
+                chapter: notification.chapter,
+                verse: notification.verse
+            ),
+          ).then((_) => manager.audioPlayerViewModel.play());
         }
         return true;
       },
@@ -65,6 +66,7 @@ class BiblePanelArea extends StatelessWidget {
                     key: ValueKey('hg-${anchor.bookId}-${anchor.chapter}'),
                     bookId: anchor.bookId,
                     chapter: anchor.chapter,
+                    highlightNotifier: manager.audioPlayerViewModel.reference,
                     syncController: manager.syncController,
                     settingsVersion: settingsVersion,
                     scrollingEnabled: !disableScrolling,
