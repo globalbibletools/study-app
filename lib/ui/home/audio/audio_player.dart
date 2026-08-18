@@ -20,10 +20,8 @@ class BottomAudioPlayer extends StatelessWidget {
 
     return ListenableBuilder(
       listenable: viewModel,
-      builder: (buildContext, _) => AnimatedSlide(
-        offset: viewModel.isVisible ? Offset.zero : const Offset(0, 1),
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
+      builder: (buildContext, _) => _PlayerLauncher(
+        isVisible: viewModel.isVisible,
         child: Align(
           alignment: Alignment.bottomCenter,
           child: Container(
@@ -129,6 +127,30 @@ class BottomAudioPlayer extends StatelessWidget {
       ),
     );
   }
+}
+
+class _PlayerLauncher extends StatelessWidget {
+    final Widget child;
+    final bool isVisible;
+
+    const _PlayerLauncher({
+        required this.child,
+        required this.isVisible,
+    });
+
+    @override
+    Widget build(BuildContext context) {
+        if (!isVisible) {
+            return SizedBox.shrink();
+        }
+
+        return AnimatedSlide(
+            offset: Offset.zero,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            child: child
+        );
+    }
 }
 
 // --- SUB-WIDGETS ---
