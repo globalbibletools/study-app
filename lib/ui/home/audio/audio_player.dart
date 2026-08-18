@@ -140,15 +140,11 @@ class _PlayerLauncher extends StatelessWidget {
 
     @override
     Widget build(BuildContext context) {
-        if (!isVisible) {
-            return SizedBox.shrink();
-        }
-
         return AnimatedSlide(
-            offset: Offset.zero,
+            offset: isVisible ? Offset.zero : Offset(0, 1),
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut,
-            child: child
+            child: isVisible ? child : SizedBox.shrink(),
         );
     }
 }
