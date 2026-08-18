@@ -129,6 +129,8 @@ class AudioPlayerViewModel extends ChangeNotifier {
   }
 
   Future<void> changeRepeatMode(AudioRepeatModeType mode) async {
+    if (!isVisible) return;
+
     switch (mode) {
       case AudioRepeatModeType.none:
         setRepeatMode(AudioRepeatMode.none);
@@ -145,6 +147,8 @@ class AudioPlayerViewModel extends ChangeNotifier {
   }
 
   Future<void> changeSource(String source) async {
+    if (!isVisible) return;
+
     await _reload(source, reference.value);
   }
 
@@ -159,22 +163,32 @@ class AudioPlayerViewModel extends ChangeNotifier {
   }
 
   Future<void> play() async {
+    if (!isVisible) return;
+
     await player.play();
   }
 
   Future<void> pause() async {
+    if (!isVisible) return;
+
     await player.pause();
   }
 
   Future<void> seek(Duration position) async {
+    if (!isVisible) return;
+
     await player.seek(position);
   }
 
   Future<void> jumpTo(Reference reference) async {
+    if (!isVisible) return;
+
     await _reload(audioSource, reference);
   }
 
   Future<void> jumpToNext() async {
+    if (!isVisible) return;
+
     final reference = this.reference.value;
     if (reference == null) return;
 
@@ -189,6 +203,8 @@ class AudioPlayerViewModel extends ChangeNotifier {
   }
 
   Future<void> jumpToPrev() async {
+    if (!isVisible) return;
+
     final reference = this.reference.value;
     if (reference == null) return;
 
