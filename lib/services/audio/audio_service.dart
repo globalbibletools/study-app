@@ -1,7 +1,8 @@
 import 'dart:io';
 
-import 'package:gbt/services/audio/audio_database.dart';
+import 'package:flutter/foundation.dart';
 import 'package:gbt/services/audio/audio_timing.dart';
+import 'package:gbt/services/audio/audio_timing_database.dart';
 import 'package:gbt/services/download/download.dart';
 import 'package:gbt/services/resources/resource_service.dart';
 import 'package:gbt/services/service_locator.dart';
@@ -15,7 +16,9 @@ class AudioMissingException implements Exception {
 class AudioService {
     final _resourceService = getIt<ResourceService>();
     final _downloadService = getIt<DownloadService>();
-    final _audioDb = getIt<AudioDatabase>();
+
+    String? _currentSpeaker;
+    final Map<int, AudioTimingDatabase> _timingDbs = {};
 
     String? buildResourceId(String source, int bookId) {
         if (bookId < 0 || bookId >= bookKeys.length) return null;
@@ -28,14 +31,20 @@ class AudioService {
         final resourceId = buildResourceId(source, bookId);
         if (resourceId == null) throw AudioMissingException(bookId, chapter);
 
+        if (source != _currentSpeaker) {
+            _currentSpeaker = source;
+            _timingDbs.clear();
+        }
+
         final fileName = "${chapter.toString().padLeft(3, '0')}.mp3";
 
-        final timings = await _audioDb.getTimingsForChapter(
-          bookId,
-          chapter,
-          source
-        );
+        final db = _timingDbs[bookId] ?? await _loadTimingDb(source, bookId, chapter, resourceId);
+        _timingDbs.putIfAbsent(bookId, () => db);
 
+        final timings = db.getTimingsForChapter(chapter - 1);
+        if (timings == null) throw AudioMissingException(bookId, chapter);
+
+        // --- Audio URL ---
         try {
             final localDirectory = await _resourceService.getResourceLocalPath(ResourceType.audio, resourceId);
             final fullPath = "$localDirectory/$fileName";
@@ -57,6 +66,29 @@ class AudioService {
             }
 
             return (audioUrl: url, timings: timings);
+        }
+    }
+
+    Future<AudioTimingDatabase> _loadTimingDb(String source, int bookId, int chapter, String resourceId) async {
+        try {
+            final localDirectory = await _resourceService.getResourceLocalPath(ResourceType.audio, resourceId);
+            final timingsFile = File('$localDirectory/timings.bin');
+            if (!await timingsFile.exists()) {
+                debugPrint("Local timings file missing: $localDirectory/timings.bin");
+                throw AudioMissingException(bookId, chapter);
+            }
+            return AudioTimingDatabase.openFile('$localDirectory/timings.bin');
+        } on ResourceMissingException {
+            final remoteUrl = await _resourceService.getResourceStreamingUrl(ResourceType.audio, resourceId);
+            final timingsUrl = '$remoteUrl/timings.bin';
+
+            try {
+                final bytes = await _downloadService.getBytes(timingsUrl);
+                return AudioTimingDatabase(bytes);
+            } on HttpNotFoundException {
+                debugPrint("Remote timings file missing: $timingsUrl");
+                throw AudioMissingException(bookId, chapter);
+            }
         }
     }
 }

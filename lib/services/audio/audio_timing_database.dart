@@ -6,25 +6,32 @@ import 'audio_timing.dart';
 class AudioTimingDatabase {
     static const int _endSentinel = 0xFFFFFFFF;
 
-    final Future<List<List<AudioTiming>>> data;
+    final List<List<AudioTiming>> data;
 
-    AudioTimingDatabase(String filepath)
-        : data = _open(filepath);
+    AudioTimingDatabase(Uint8List bytes)
+        : data = _openBytes(bytes);
 
-    Future<List<AudioTiming>?> getTimingsForChapter(int chapter) async {
-        final resolvedData = await data;
-        if (chapter < 0 || chapter >= resolvedData.length) return null;
-        return resolvedData[chapter];
-    }
-
-    static Future<List<List<AudioTiming>>> _open(String filepath) async {
+    static Future<AudioTimingDatabase> openFile(String filepath) async {
       final file = File(filepath);
       final bytes = await file.readAsBytes();
+      return AudioTimingDatabase(bytes);
+    }
+
+    List<AudioTiming>? getTimingsForChapter(int chapter) {
+        if (chapter < 0 || chapter >= data.length) return null;
+        return data[chapter];
+    }
+
+    static List<List<AudioTiming>> _openBytes(Uint8List bytes) {
       final buffer = ByteData.sublistView(bytes);
 
       final stride = 11;
       final size = buffer.lengthInBytes ~/ stride;
       int offset = stride * size;
+
+      if (size == 0) {
+          return [];
+      }
 
       final chapterCount = buffer.getUint8(size * stride - 10);
       final chapters = List<List<AudioTiming>>.filled(chapterCount, []);

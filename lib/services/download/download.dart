@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:archive/archive_io.dart';
 import 'package:flutter/foundation.dart';
@@ -9,9 +10,37 @@ import 'package:gbt/services/files/file_service.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:path/path.dart' as p;
 
+class HttpNotFoundException implements Exception {
+  final String url;
+  HttpNotFoundException(this.url);
+
+  @override
+  String toString() => 'HttpNotFoundException: url=$url';
+}
+
 class DownloadService {
   final HttpClient _httpClient = HttpClient();
   final _fileService = getIt<FileService>();
+
+  Future<Uint8List> getBytes(String url) async {
+    final request = await _httpClient.getUrl(Uri.parse(url));
+    final response = await request.close();
+
+    if (response.statusCode == HttpStatus.notFound) {
+      throw HttpNotFoundException(url);
+    }
+    if (response.statusCode != HttpStatus.ok) {
+      throw HttpException(
+        'Failed to download bytes: url=$url, statusCode=${response.statusCode}',
+      );
+    }
+
+    final builder = BytesBuilder();
+    await for (final chunk in response) {
+      builder.add(chunk);
+    }
+    return builder.takeBytes();
+  }
 
   Future<bool> checkExistence(String url) async {
     final request = await _httpClient.headUrl(Uri.parse(url));
@@ -82,6 +111,9 @@ class DownloadService {
       extractDir = await Directory(extractDirPath).create(recursive: true);
       final zipPath = p.join(extractDir.path, 'download.zip');
 
+      debugPrint("Zip = $zipPath");
+      debugPrint("Extract = $extractDirPath");
+
       if (cancelToken?.isCancelled ?? false) throw DownloadCanceledException();
 
       await _streamToFile(
@@ -102,11 +134,11 @@ class DownloadService {
         await inputStream.close();
       }
 
-      final zipFile = File(zipPath);
-      if (await zipFile.exists()) {
-        await zipFile.delete();
+      final zipfile = File(zipPath);
+      if (await zipfile.exists()) {
+        await zipfile.delete();
       }
-
+      
       final extracted = extractDir.listSync();
       if (extracted.length != 1) {
         throw FormatException(
@@ -126,11 +158,10 @@ class DownloadService {
       }
 
       await extractedEntity.rename(localPath);
-    } catch (e) {
+    } finally {
       if (extractDir != null && await extractDir.exists()) {
         await extractDir.delete(recursive: true);
       }
-      rethrow;
     }
   }
 
