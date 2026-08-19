@@ -14,7 +14,7 @@ import 'package:just_audio_background/just_audio_background.dart';
 sealed class AudioPlaybackError {
   const AudioPlaybackError(this.reference);
 
-  final Reference reference;
+  final Reference? reference;
 }
 
 class AudioFileMissingError extends AudioPlaybackError {
@@ -112,6 +112,7 @@ class AudioPlayerViewModel extends ChangeNotifier {
 
   late final StreamSubscription positionSubscription;
   late final StreamSubscription playerStateSubscription;
+  late final StreamSubscription errorSubscription;
 
   AudioPlayerViewModel() {
     playback = combineStreams3(
@@ -126,6 +127,7 @@ class AudioPlayerViewModel extends ChangeNotifier {
     playerStateSubscription = player.playerStateStream.listen(
       _playerStateStreamHandler,
     );
+    errorSubscription = player.errorStream.listen(_errorStreamHandler);
   }
 
   Future<void> changeRepeatMode(AudioRepeatModeType mode) async {
@@ -275,6 +277,11 @@ class AudioPlayerViewModel extends ChangeNotifier {
       default:
         break;
     }
+  }
+
+  Future<void> _errorStreamHandler(Object error) async {
+    debugPrint("Audio player error: $error");
+    await _reset(error: AudioUnknownError(reference.value));
   }
 
   Future<void> _positionStreamHandler(Duration? position) async {
@@ -477,5 +484,6 @@ class AudioPlayerViewModel extends ChangeNotifier {
 
     playerStateSubscription.cancel();
     positionSubscription.cancel();
+    errorSubscription.cancel();
   }
 }

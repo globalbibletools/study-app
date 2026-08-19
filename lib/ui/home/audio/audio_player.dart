@@ -177,11 +177,11 @@ class _ReferenceOrErrorRow extends StatelessWidget {
       );
     }
 
-    final bookName = bookNameFromId(context, error!.reference.bookId);
-    final chapter = error!.reference.chapter;
     final String text;
     switch (error!) {
       case AudioFileMissingError():
+        final bookName = bookNameFromId(context, error!.reference?.bookId ?? 0);
+        final chapter = error!.reference?.chapter ?? 0;
         text = l10n.audioNotAvailableForChapter(bookName, chapter);
       case AudioUnknownError():
         text = l10n.unknownAudioError;
