@@ -177,10 +177,13 @@ class ResourceService {
     await _resourceDatabase.setInstallState(id, InstallState.NotInstalled);
 
     final filePath = await _resolveLocalFilePath(resourceType, id);
-    final file = File(filePath);
-    if (await file.exists()) {
-      await file.delete();
-      log('Deleted resource file at $filePath');
+    switch (await FileSystemEntity.type(filePath)) {
+      case FileSystemEntityType.file:
+        await File(filePath).delete();
+      case FileSystemEntityType.directory:
+        await Directory(filePath).delete(recursive: true);
+      default:
+        break;
     }
 
     _notifyResourceChange(resourceType);

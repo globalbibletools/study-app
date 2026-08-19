@@ -51,9 +51,6 @@ class HomeManager {
   final audioPlayerViewModel = AudioPlayerViewModel();
   final _bibleService = getIt<BibleService>();
   final _settings = getIt<UserSettings>();
-  final _downloadService = getIt<DownloadService>();
-  final _assetService = getIt<RemoteAssetService>();
-  final _fileService = getIt<FileService>();
   final readingSessionManager = getIt<ReadingSessionManager>();
   final appGuideManager = getIt<AppGuideManager>();
 
@@ -165,7 +162,9 @@ class HomeManager {
             chapter: currentChapter,
             verse: currentVerse,
         ));
-    } catch (e) {
+    } catch (e, stack) {
+        debugPrint("Audio Error: $e");
+        debugPrintStack(stackTrace: stack);
       if (context.mounted) {
         showDialog(
           context: context,
