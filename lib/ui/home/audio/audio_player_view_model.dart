@@ -79,7 +79,7 @@ class AudioPlayerViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  var playbackState = AudioPlaybackState.loading;
+  var playbackState = AudioPlaybackState.paused;
   void setPlaybackState(AudioPlaybackState state) {
     if (state == playbackState) return;
 
