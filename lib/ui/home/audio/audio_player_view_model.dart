@@ -111,7 +111,7 @@ class AudioPlayerViewModel extends ChangeNotifier {
   }
 
   late final StreamSubscription positionSubscription;
-  late final StreamSubscription processingStateSubscription;
+  late final StreamSubscription playerStateSubscription;
 
   AudioPlayerViewModel() {
     playback = combineStreams3(
@@ -122,9 +122,9 @@ class AudioPlayerViewModel extends ChangeNotifier {
           (duration: duration, buffered: buffered, position: position),
     );
 
-    positionSubscription = player.positionStream.listen(_handleVerseRepeat);
-    processingStateSubscription = player.playerStateStream.listen(
-      _handleChapterRepeatOrContinue,
+    positionSubscription = player.positionStream.listen(_positionStreamHandler);
+    playerStateSubscription = player.playerStateStream.listen(
+      _playerStateStreamHandler,
     );
   }
 
@@ -229,7 +229,7 @@ class AudioPlayerViewModel extends ChangeNotifier {
     await jumpTo(prevReference);
   }
 
-  Future<void> _handleChapterRepeatOrContinue(PlayerState state) async {
+  Future<void> _playerStateStreamHandler(PlayerState state) async {
     if (state.processingState != ProcessingState.completed) {
       if (state.processingState != ProcessingState.ready) {
         setPlaybackState(AudioPlaybackState.loading);
@@ -277,7 +277,7 @@ class AudioPlayerViewModel extends ChangeNotifier {
     }
   }
 
-  Future<void> _handleVerseRepeat(Duration? position) async {
+  Future<void> _positionStreamHandler(Duration? position) async {
     if (position == null) {
       setReference(null);
       return;
@@ -473,7 +473,7 @@ class AudioPlayerViewModel extends ChangeNotifier {
     super.dispose();
     player.dispose();
 
-    processingStateSubscription.cancel();
+    playerStateSubscription.cancel();
     positionSubscription.cancel();
   }
 }
