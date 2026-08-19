@@ -307,12 +307,11 @@ class AudioPlayerViewModel extends ChangeNotifier {
     await _seekToReference(targetReference);
   }
 
-  Future<void> _reset() async {
-    await player.seek(Duration(seconds: 0));
-    await player.stop();
+  Future<void> _reset({ AudioPlaybackError? error }) async {
     await player.clearAudioSources();
     setReference(null);
-    setError(null);
+    setError(error);
+    setPlaybackState(AudioPlaybackState.paused);
     _timings = [];
   }
 
@@ -351,9 +350,7 @@ class AudioPlayerViewModel extends ChangeNotifier {
         newReference.chapter,
       );
     } on AudioMissingException {
-      await _reset();
-      setError(AudioFileMissingError(newReference));
-      setPlaybackState(AudioPlaybackState.paused);
+      await _reset(error: AudioFileMissingError(newReference));
       return;
     }
 
@@ -366,12 +363,17 @@ class AudioPlayerViewModel extends ChangeNotifier {
         : "${bookNameFromLocalizations(l, newReference.bookId)} ${newReference.chapter}";
 
     final wasPlaying = player.playing;
-    await player.setAudioSource(
-      AudioSource.uri(
-        Uri.parse(audioUrl),
-        tag: MediaItem(id: audioUrl, title: title),
-      ),
-    );
+    try {
+        await player.setAudioSource(
+          AudioSource.uri(
+            Uri.parse(audioUrl),
+            tag: MediaItem(id: audioUrl, title: title),
+          ),
+        );
+    } catch (error) {
+        debugPrint("Failed to load audio: $error");
+        await _reset(error: AudioUnknownError(newReference));
+    }
 
     _seekToReference(newReference);
     setReference(newReference);
