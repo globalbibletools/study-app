@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:developer';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -30,6 +29,9 @@ class ReadingSessionManager {
 
   ReadingSessionManager() {
     _getEmptyBookProgress();
+    final now = DateTime.now();
+    _viewingMonth = DateTime(now.year, now.month, 1);
+    _viewingWeekStart = _startOfWeek(now);
   }
 
   final List<VoidCallback> _booksProgressListeners = [];
@@ -55,6 +57,8 @@ class ReadingSessionManager {
   RsBookProgress? _latestBookProgress;
   List<DayProgress> _weekProgress = [];
   List<DayProgress> _monthProgress = [];
+  late DateTime _viewingMonth;
+  late DateTime _viewingWeekStart;
 
   late List<RsBookProgress> _emptyBooksProgress;
 
@@ -63,6 +67,19 @@ class ReadingSessionManager {
   RsBookProgress? get latestBookProgress => _latestBookProgress;
   List<DayProgress> get weekProgress => _weekProgress;
   List<DayProgress> get monthProgress => _monthProgress;
+  DateTime get viewingMonth => _viewingMonth;
+  DateTime get viewingWeekStart => _viewingWeekStart;
+  bool get canGoToNextMonth {
+    final now = DateTime.now();
+    final currentMonth = DateTime(now.year, now.month, 1);
+    return _viewingMonth.isBefore(currentMonth);
+  }
+
+  bool get canGoToNextWeek {
+    final now = DateTime.now();
+    return _viewingWeekStart.isBefore(_startOfWeek(now));
+  }
+
   DateTime? get currentSessionStartTime => _rsDailyLog?.startTime;
 
   RsDailyLog? _rsDailyLog;
@@ -653,70 +670,284 @@ class ReadingSessionManager {
     }
 
     //todo to be optimized
-    await _loadMonthProgress();
+    await _reloadGoalProgressViews();
 
     for (VoidCallback x in _booksProgressListeners) {
       x.call();
     }
   }
 
-  Future<void> _loadMonthProgress() async {
-    DateTime now = DateTime.now();
-    DateTime startOfMonth = DateTime(now.year, now.month, 1);
-    DateTime endOfMonth = DateTime(now.year, now.month + 1, 0);
+  static DateTime _startOfWeek(DateTime date) {
+    final normalized = DateTime(date.year, date.month, date.day);
+    return normalized.subtract(Duration(days: normalized.weekday - 1));
+  }
 
-    List<RsStats> dailyStatsForCurrentMonth = await _rsdbManager
-        .getRsStatsForType(RsStatsType.daily, startOfMonth, endOfMonth);
+  Future<void> loadMonthProgress(DateTime month) async {
+    final startOfMonth = DateTime(month.year, month.month, 1);
+    final endOfMonth = DateTime(month.year, month.month + 1, 0);
+
+    final dailyStatsForMonth = await _rsdbManager.getRsStatsForType(
+      RsStatsType.daily,
+      startOfMonth,
+      endOfMonth,
+    );
+
+    final statsByDate = {
+      for (final stats in dailyStatsForMonth)
+        DateTime(
+          stats.statsDate.year,
+          stats.statsDate.month,
+          stats.statsDate.day,
+        ): stats,
+    };
 
     final List<DayProgress> monthData = [];
 
-    final List<DayProgress> weekData = [];
-
-    int i = 0;
-
-    for (
-      DateTime d = startOfMonth;
-      !d.isAfter(endOfMonth);
-      d = d.add(const Duration(days: 1))
-    ) {
-      RsStats? stats;
-
-      if (i < dailyStatsForCurrentMonth.length) {
-        final current = dailyStatsForCurrentMonth[i];
-
-        //enough to check with day since they belong to the same month and year
-        if (current.statsDate.day == d.day) {
-          stats = current;
-          i++;
-        }
-      }
-
-      DayProgress entry;
+    for (int day = 1; day <= endOfMonth.day; day++) {
+      final d = DateTime(month.year, month.month, day);
+      final stats = statsByDate[d];
 
       if (stats != null) {
-        log(
-          "stats : ${stats.rsSeconds} ${stats.rsVerses} ${stats.goalReached} ${stats.statsDate}",
-        );
-        entry = DayProgress(
-          d,
-          stats.rsSeconds ~/ 60,
-          stats.rsVerses,
-          stats.goalReached,
+        monthData.add(
+          DayProgress(
+            d,
+            stats.rsSeconds ~/ 60,
+            stats.rsVerses,
+            stats.goalReached,
+          ),
         );
       } else {
-        entry = DayProgress.empty(d);
-      }
-
-      monthData.add(entry);
-      if (isSameWeek(entry.day, now)) {
-        weekData.add(entry);
+        monthData.add(DayProgress.empty(d));
       }
     }
-    _monthProgress = monthData;
-    _weekProgress = weekData;
 
-    for (VoidCallback x in _statsListeners) {
-      x.call();
+    _monthProgress = monthData;
+  }
+
+  Future<void> loadWeekProgress(DateTime weekStart) async {
+    final normalizedStart = DateTime(
+      weekStart.year,
+      weekStart.month,
+      weekStart.day,
+    );
+    final weekEnd = normalizedStart.add(const Duration(days: 6));
+
+    final dailyStatsForWeek = await _rsdbManager.getRsStatsForType(
+      RsStatsType.daily,
+      normalizedStart,
+      weekEnd,
+    );
+
+    final statsByDate = {
+      for (final stats in dailyStatsForWeek)
+        DateTime(
+          stats.statsDate.year,
+          stats.statsDate.month,
+          stats.statsDate.day,
+        ): stats,
+    };
+
+    final List<DayProgress> weekData = [];
+
+    for (int i = 0; i < 7; i++) {
+      final d = normalizedStart.add(Duration(days: i));
+      final stats = statsByDate[DateTime(d.year, d.month, d.day)];
+
+      if (stats != null) {
+        weekData.add(
+          DayProgress(
+            d,
+            stats.rsSeconds ~/ 60,
+            stats.rsVerses,
+            stats.goalReached,
+          ),
+        );
+      } else {
+        weekData.add(DayProgress.empty(d));
+      }
+    }
+
+    _weekProgress = weekData;
+  }
+
+  Future<void> goToPreviousMonth() async {
+    _viewingMonth = DateTime(_viewingMonth.year, _viewingMonth.month - 1, 1);
+    await loadMonthProgress(_viewingMonth);
+    _notifyStatsListeners();
+  }
+
+  Future<void> goToNextMonth() async {
+    if (!canGoToNextMonth) {
+      return;
+    }
+    _viewingMonth = DateTime(_viewingMonth.year, _viewingMonth.month + 1, 1);
+    await loadMonthProgress(_viewingMonth);
+    _notifyStatsListeners();
+  }
+
+  Future<void> goToPreviousWeek() async {
+    _viewingWeekStart = _viewingWeekStart.subtract(const Duration(days: 7));
+    await loadWeekProgress(_viewingWeekStart);
+    _notifyStatsListeners();
+  }
+
+  Future<void> goToNextWeek() async {
+    if (!canGoToNextWeek) {
+      return;
+    }
+    _viewingWeekStart = _viewingWeekStart.add(const Duration(days: 7));
+    await loadWeekProgress(_viewingWeekStart);
+    _notifyStatsListeners();
+  }
+
+  Future<void> _reloadGoalProgressViews() async {
+    await loadMonthProgress(_viewingMonth);
+    await loadWeekProgress(_viewingWeekStart);
+    _notifyStatsListeners();
+  }
+
+  void _notifyStatsListeners() {
+    for (final listener in _statsListeners) {
+      listener.call();
+    }
+  }
+
+  Future<void> logManualDayEntry(
+    DateTime date, {
+    required int minutes,
+    required int verses,
+  }) async {
+    if (minutes == 0 && verses == 0) {
+      return;
+    }
+
+    final normalized = DateTime(date.year, date.month, date.day);
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    if (normalized.isAfter(today)) {
+      return;
+    }
+
+    final startTime = normalized.add(const Duration(hours: 12));
+    final endTime = startTime.add(Duration(minutes: minutes));
+
+    await _rsdbManager.insertDailyLog(
+      RsDailyLog(
+        rsDate: normalized,
+        startTime: startTime,
+        endTime: endTime,
+        verses: verses,
+      ),
+    );
+
+    await rebuildDailyStatsForDate(normalized);
+    await _reloadGoalProgressViews();
+  }
+
+  Future<void> rebuildDailyStatsForDate(DateTime date) async {
+    final normalized = DateTime(date.year, date.month, date.day);
+    final dailyGoal = getDailyGoal();
+
+    if (dailyGoal == null) {
+      return;
+    }
+
+    final totalSeconds = await _rsdbManager.getTotalSecondsReadToday(normalized);
+    final totalVerses = await _rsdbManager.getVersesReadToday(normalized);
+    final goalReached =
+        (dailyGoal.type == GoalType.minutes &&
+            totalSeconds >= dailyGoal.value * 60) ||
+        (dailyGoal.type == GoalType.verses && totalVerses >= dailyGoal.value);
+
+    final existing = await _rsdbManager.findStatsByTypeAndDate(
+      RsStatsType.daily,
+      normalized,
+    );
+
+    if (totalSeconds == 0 && totalVerses == 0) {
+      if (existing?.id != null) {
+        await _rsdbManager.deleteStats(existing!.id!);
+      }
+    } else if (existing == null) {
+      await _rsdbManager.insertStats(
+        RsStats(
+          type: RsStatsType.daily,
+          statsDate: normalized,
+          rsSeconds: totalSeconds,
+          rsVerses: totalVerses,
+          goalReached: goalReached,
+        ),
+      );
+    } else {
+      await _rsdbManager.updateStats(
+        existing.copyWith(
+          rsSeconds: totalSeconds,
+          rsVerses: totalVerses,
+          goalReached: goalReached,
+        ),
+      );
+    }
+
+    await _rebuildMonthlyStatsForMonth(normalized);
+  }
+
+  Future<void> _rebuildMonthlyStatsForMonth(DateTime date) async {
+    final dailyGoal = getDailyGoal();
+
+    if (dailyGoal == null) {
+      return;
+    }
+
+    final startOfMonth = DateTime(date.year, date.month, 1);
+    final endOfMonth = DateTime(date.year, date.month + 1, 0);
+    final dailyStats = await _rsdbManager.getRsStatsForType(
+      RsStatsType.daily,
+      startOfMonth,
+      endOfMonth,
+    );
+
+    var totalSeconds = 0;
+    var totalVerses = 0;
+    for (final stat in dailyStats) {
+      totalSeconds += stat.rsSeconds;
+      totalVerses += stat.rsVerses;
+    }
+
+    final existing = await _rsdbManager.findStatsByTypeAndDate(
+      RsStatsType.monthly,
+      endOfMonth,
+    );
+
+    if (totalSeconds == 0 && totalVerses == 0) {
+      if (existing?.id != null) {
+        await _rsdbManager.deleteStats(existing!.id!);
+      }
+      return;
+    }
+
+    final goalReached =
+        (dailyGoal.type == GoalType.minutes &&
+            totalSeconds >= dailyGoal.value * 60) ||
+        (dailyGoal.type == GoalType.verses && totalVerses >= dailyGoal.value);
+
+    if (existing == null) {
+      await _rsdbManager.insertStats(
+        RsStats(
+          type: RsStatsType.monthly,
+          statsDate: endOfMonth,
+          rsSeconds: totalSeconds,
+          rsVerses: totalVerses,
+          goalReached: goalReached,
+        ),
+      );
+    } else {
+      await _rsdbManager.updateStats(
+        existing.copyWith(
+          rsSeconds: totalSeconds,
+          rsVerses: totalVerses,
+          goalReached: goalReached,
+        ),
+      );
     }
   }
 
@@ -730,16 +961,7 @@ class ReadingSessionManager {
     await loadBooksProgress();
     readingModeNotifier.value = _rsDailyLog != null;
     getLatestBookProgress();
-    await _loadMonthProgress();
-  }
-
-  bool isSameWeek(DateTime a, DateTime b) {
-    final aStartOfWeek = a.subtract(Duration(days: a.weekday - 1));
-    final bStartOfWeek = b.subtract(Duration(days: b.weekday - 1));
-
-    return aStartOfWeek.year == bStartOfWeek.year &&
-        aStartOfWeek.month == bStartOfWeek.month &&
-        aStartOfWeek.day == bStartOfWeek.day;
+    await _reloadGoalProgressViews();
   }
 
   Future<List<Session>> getDetailedProgressFor(DateTime date) async {
