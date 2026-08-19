@@ -14,7 +14,7 @@ import 'package:just_audio_background/just_audio_background.dart';
 sealed class AudioPlaybackError {
   const AudioPlaybackError(this.reference);
 
-  final Reference reference;
+  final Reference? reference;
 }
 
 class AudioFileMissingError extends AudioPlaybackError {
@@ -79,7 +79,7 @@ class AudioPlayerViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  var playbackState = AudioPlaybackState.loading;
+  var playbackState = AudioPlaybackState.paused;
   void setPlaybackState(AudioPlaybackState state) {
     if (state == playbackState) return;
 
@@ -111,7 +111,8 @@ class AudioPlayerViewModel extends ChangeNotifier {
   }
 
   late final StreamSubscription positionSubscription;
-  late final StreamSubscription processingStateSubscription;
+  late final StreamSubscription playerStateSubscription;
+  late final StreamSubscription errorSubscription;
 
   AudioPlayerViewModel() {
     playback = combineStreams3(
@@ -122,10 +123,11 @@ class AudioPlayerViewModel extends ChangeNotifier {
           (duration: duration, buffered: buffered, position: position),
     );
 
-    positionSubscription = player.positionStream.listen(_handleVerseRepeat);
-    processingStateSubscription = player.playerStateStream.listen(
-      _handleChapterRepeatOrContinue,
+    positionSubscription = player.positionStream.listen(_positionStreamHandler);
+    playerStateSubscription = player.playerStateStream.listen(
+      _playerStateStreamHandler,
     );
+    errorSubscription = player.errorStream.listen(_errorStreamHandler);
   }
 
   Future<void> changeRepeatMode(AudioRepeatModeType mode) async {
@@ -229,7 +231,7 @@ class AudioPlayerViewModel extends ChangeNotifier {
     await jumpTo(prevReference);
   }
 
-  Future<void> _handleChapterRepeatOrContinue(PlayerState state) async {
+  Future<void> _playerStateStreamHandler(PlayerState state) async {
     if (state.processingState != ProcessingState.completed) {
       if (state.processingState != ProcessingState.ready) {
         setPlaybackState(AudioPlaybackState.loading);
@@ -277,7 +279,12 @@ class AudioPlayerViewModel extends ChangeNotifier {
     }
   }
 
-  Future<void> _handleVerseRepeat(Duration? position) async {
+  Future<void> _errorStreamHandler(Object error) async {
+    debugPrint("Audio player error: $error");
+    await _reset(error: AudioUnknownError(reference.value));
+  }
+
+  Future<void> _positionStreamHandler(Duration? position) async {
     if (position == null) {
       setReference(null);
       return;
@@ -307,12 +314,11 @@ class AudioPlayerViewModel extends ChangeNotifier {
     await _seekToReference(targetReference);
   }
 
-  Future<void> _reset() async {
-    await player.seek(Duration(seconds: 0));
-    await player.stop();
+  Future<void> _reset({ AudioPlaybackError? error }) async {
     await player.clearAudioSources();
     setReference(null);
-    setError(null);
+    setError(error);
+    setPlaybackState(AudioPlaybackState.paused);
     _timings = [];
   }
 
@@ -351,9 +357,7 @@ class AudioPlayerViewModel extends ChangeNotifier {
         newReference.chapter,
       );
     } on AudioMissingException {
-      await _reset();
-      setError(AudioFileMissingError(newReference));
-      setPlaybackState(AudioPlaybackState.paused);
+      await _reset(error: AudioFileMissingError(newReference));
       return;
     }
 
@@ -366,12 +370,17 @@ class AudioPlayerViewModel extends ChangeNotifier {
         : "${bookNameFromLocalizations(l, newReference.bookId)} ${newReference.chapter}";
 
     final wasPlaying = player.playing;
-    await player.setAudioSource(
-      AudioSource.uri(
-        Uri.parse(audioUrl),
-        tag: MediaItem(id: audioUrl, title: title),
-      ),
-    );
+    try {
+        await player.setAudioSource(
+          AudioSource.uri(
+            Uri.parse(audioUrl),
+            tag: MediaItem(id: audioUrl, title: title),
+          ),
+        );
+    } catch (error) {
+        debugPrint("Failed to load audio: $error");
+        await _reset(error: AudioUnknownError(newReference));
+    }
 
     _seekToReference(newReference);
     setReference(newReference);
@@ -473,7 +482,8 @@ class AudioPlayerViewModel extends ChangeNotifier {
     super.dispose();
     player.dispose();
 
-    processingStateSubscription.cancel();
+    playerStateSubscription.cancel();
     positionSubscription.cancel();
+    errorSubscription.cancel();
   }
 }
