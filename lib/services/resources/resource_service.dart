@@ -301,21 +301,25 @@ class ResourceService {
 
   Future<void> refreshResources() async {
     for (final type in ResourceType.values) {
-      final config = resourceConfigs[type];
-      if (config == null) continue;
+      try {
+          final config = resourceConfigs[type];
+          if (config == null) continue;
 
-      final manifestUrl = config.manifestUrl(_assetService.baseHost);
-      log('Refreshing ${type.name} resources from $manifestUrl');
+          final manifestUrl = config.manifestUrl(_assetService.baseHost);
+          log('Refreshing ${type.name} resources from $manifestUrl');
 
-      final entries = await _downloadService.getJsonl(
-        manifestUrl,
-        convert: (json) => Resource.fromJson(json, type: type),
-      );
+          final entries = await _downloadService.getJsonl(
+            manifestUrl,
+            convert: (json) => Resource.fromJson(json, type: type),
+          );
 
-      debugPrint('${type.name} manifest contained ${entries.length} entries');
+          debugPrint('${type.name} manifest contained ${entries.length} entries');
 
-      await _resourceDatabase.updateResourcesFromManifest(type, entries);
-      _notifyResourceChange(type);
+          await _resourceDatabase.updateResourcesFromManifest(type, entries);
+          _notifyResourceChange(type);
+      } catch (error) {
+          debugPrint('${type.name} manifest update error: $error');
+      }
     }
   }
 }
