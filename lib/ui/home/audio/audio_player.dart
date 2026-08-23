@@ -1,8 +1,9 @@
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:flutter/material.dart';
-import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/common/reference.dart';
 import 'package:gbt/l10n/book_names.dart';
+import 'package:gbt/services/audio/audio_service.dart';
+import 'package:gbt/services/resources/resource.dart';
 import 'package:gbt/ui/home/audio/audio_player_view_model.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 
@@ -51,10 +52,11 @@ class BottomAudioPlayer extends StatelessWidget {
                       spacing: 8,
                       children: [
                         _VoiceMenuButton(
-                          isNewTestament:
-                              (viewModel.reference.value?.bookId ?? 0) >=
-                              BibleNavigation.getNewTestamentBookId(),
-                          source: viewModel.audioSource,
+                          testament: viewModel.testament,
+                          activeSource: viewModel.testament != null
+                              ? viewModel.audioSource.forTestament(viewModel.testament!)
+                              : null,
+                          speakers: viewModel.speakers,
                           onChange: viewModel.changeSource,
                         ),
                         Expanded(
@@ -208,13 +210,15 @@ class _ReferenceOrErrorRow extends StatelessWidget {
 }
 
 class _VoiceMenuButton extends StatelessWidget {
-  final bool isNewTestament;
-  final String source;
-  final Function(String) onChange;
+  final Testament? testament;
+  final String? activeSource;
+  final List<Resource> speakers;
+  final void Function(String)? onChange;
 
   const _VoiceMenuButton({
-    required this.isNewTestament,
-    required this.source,
+    required this.testament,
+    required this.activeSource,
+    required this.speakers,
     required this.onChange,
   });
 
@@ -222,38 +226,18 @@ class _VoiceMenuButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return PopupMenuButton<String>(
       icon: const Icon(Icons.person_outline),
+      enabled: testament != null && speakers.isNotEmpty,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       onSelected: onChange,
       itemBuilder: (BuildContext context) {
-        final l10n = AppLocalizations.of(context)!;
-
-        if (isNewTestament) {
-          return [
-            CheckedPopupMenuItem<String>(
-              value: 'TK',
-              checked: source == 'TK',
-              child: Text(l10n.sourceTK),
-            ),
-            CheckedPopupMenuItem<String>(
-              value: 'JH',
-              checked: source == 'JH',
-              child: Text(l10n.sourceJH),
-            ),
-          ];
-        } else {
-          return [
-            CheckedPopupMenuItem<String>(
-              value: 'HEB',
-              checked: source == 'HEB',
-              child: Text(l10n.sourceHEB),
-            ),
-            CheckedPopupMenuItem<String>(
-              value: 'RDB',
-              checked: source == 'RDB',
-              child: Text(l10n.sourceRDB),
-            ),
-          ];
-        }
+        return speakers.map((speaker) {
+          final key = speaker.id.substring(speaker.id.indexOf('/') + 1);
+          return CheckedPopupMenuItem<String>(
+            value: key,
+            checked: activeSource == key,
+            child: Text(speaker.resourceName),
+          );
+        }).toList();
       },
     );
   }

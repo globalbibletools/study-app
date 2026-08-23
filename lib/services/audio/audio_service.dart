@@ -13,8 +13,13 @@ class AudioMissingException implements Exception {
   AudioMissingException(this.bookId, this.chapter);
 }
 
-const String otTestamentKey = 'OT';
-const String ntTestamentKey = 'NT';
+enum Testament {
+  ot('OT'),
+  nt('NT');
+
+  final String key;
+  const Testament(this.key);
+}
 
 class AudioService {
     final _resourceService = getIt<ResourceService>();
@@ -24,8 +29,8 @@ class AudioService {
     final Map<int, AudioTimingDatabase> _timingDbs = {};
 
     static const int _newTestamentStartBookId = 40;
-    static String testamentForBookId(int bookId) {
-        return bookId < _newTestamentStartBookId ? otTestamentKey : ntTestamentKey;
+    static Testament testamentForBookId(int bookId) {
+        return bookId < _newTestamentStartBookId ? Testament.ot : Testament.nt;
     }
 
     String? buildResourceId(String source, int bookId) {
@@ -33,13 +38,13 @@ class AudioService {
         final bookKey = bookKeys[bookId - 1];
         final testament = testamentForBookId(bookId);
 
-        return "$testament/$source/$bookKey";
+        return "${testament.key}/$source/$bookKey";
     }
 
-    Future<List<Resource>> getSpeakers(String testament) async {
+    Future<List<Resource>> getSpeakers(Testament testament) async {
         return _resourceService.getResourcesByPath(
           ResourceType.audio,
-          [PathMatcher.exact(testament), PathMatcher.any()],
+          [PathMatcher.exact(testament.key), PathMatcher.any()],
         );
     }
 

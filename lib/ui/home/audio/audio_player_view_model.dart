@@ -8,6 +8,7 @@ import 'package:gbt/l10n/book_names.dart';
 import 'package:gbt/rxutils/combine_streams.dart';
 import 'package:gbt/services/audio/audio_service.dart';
 import 'package:gbt/services/audio/audio_timing.dart';
+import 'package:gbt/services/resources/resource.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:just_audio_background/just_audio_background.dart';
 
@@ -40,6 +41,29 @@ class AudioRepeatMode {
   AudioRepeatMode.verse(int this.target) : type = AudioRepeatModeType.verse;
 }
 
+class SourceSetting {
+  final String ot;
+  final String nt;
+
+  const SourceSetting({required this.ot, required this.nt});
+
+  String forTestament(Testament testament) =>
+      testament == Testament.ot ? ot : nt;
+
+  SourceSetting withTestament(Testament testament, String source) {
+    if (testament == Testament.ot) return SourceSetting(ot: source, nt: nt);
+    return SourceSetting(ot: ot, nt: source);
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SourceSetting && ot == other.ot && nt == other.nt;
+
+  @override
+  int get hashCode => Object.hash(ot, nt);
+}
+
 class AudioPlayerViewModel extends ChangeNotifier {
   var isVisible = false;
   void setVisibility(bool isVisible) {
@@ -55,11 +79,23 @@ class AudioPlayerViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  var audioSource = "RDB";
-  void setAudioSource(String source) {
+  var audioSource = const SourceSetting(ot: 'RDB', nt: 'TK');
+  void setAudioSource(SourceSetting source) {
     if (audioSource == source) return;
 
     audioSource = source;
+    notifyListeners();
+  }
+
+  Testament? get testament {
+    final ref = reference.value;
+    if (ref == null) return null;
+    return AudioService.testamentForBookId(ref.bookId);
+  }
+
+  List<Resource> speakers = const [];
+  void setSpeakers(List<Resource> value) {
+    speakers = value;
     notifyListeners();
   }
 
@@ -151,7 +187,13 @@ class AudioPlayerViewModel extends ChangeNotifier {
   Future<void> changeSource(String source) async {
     if (!isVisible) return;
 
-    await _reload(source, reference.value);
+    final testament = this.testament;
+    if (testament == null) return;
+
+    await _reload(
+      audioSource.withTestament(testament, source),
+      reference.value,
+    );
   }
 
   Future<void> openAt(Reference reference) async {
@@ -322,7 +364,7 @@ class AudioPlayerViewModel extends ChangeNotifier {
     _timings = [];
   }
 
-  Future<void> _reload(String source, Reference? newReference) async {
+  Future<void> _reload(SourceSetting source, Reference? newReference) async {
     if (repeatMode.type == AudioRepeatModeType.verse) {
       if (newReference == null) {
         setRepeatMode(AudioRepeatMode.none);
@@ -336,23 +378,47 @@ class AudioPlayerViewModel extends ChangeNotifier {
       return _reset();
     }
 
+    final nextTestament = AudioService.testamentForBookId(newReference.bookId);
+    final prevReference = reference.value;
+    final prevTestament = prevReference == null
+        ? null
+        : AudioService.testamentForBookId(prevReference.bookId);
+
+    if (nextTestament != prevTestament) {
+      speakers = await _audioService.getSpeakers(nextTestament);
+      if (speakers.isEmpty) {
+        await _reset(error: AudioFileMissingError(newReference));
+        return;
+      }
+
+
+      String _speakerKey(String speakerId) => speakerId.substring(speakerId.indexOf('/') + 1);
+      final sourceAvailable =
+          speakers.any((s) => _speakerKey(s.id) == source.forTestament(nextTestament));
+      if (!sourceAvailable) {
+        source = source.withTestament(nextTestament, _speakerKey(speakers.first.id));
+      }
+    }
+
+    final oldSource = audioSource;
+    setAudioSource(source);
+
+    final activeSource = source.forTestament(nextTestament);
     final needsReload =
-        reference.value?.bookId != newReference.bookId ||
-        reference.value?.chapter != newReference.chapter ||
-        source != audioSource;
+        prevReference?.bookId != newReference.bookId ||
+        prevReference?.chapter != newReference.chapter ||
+        activeSource != oldSource.forTestament(nextTestament);
     if (!needsReload) {
       _seekToReference(newReference);
 
       return;
     }
 
-    setAudioSource(source);
-
     String audioUrl;
     List<AudioTiming> timings;
     try {
       (:audioUrl, :timings) = await _audioService.getChapterData(
-        audioSource,
+        activeSource,
         newReference.bookId,
         newReference.chapter,
       );
