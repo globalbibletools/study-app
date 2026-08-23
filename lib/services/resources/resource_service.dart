@@ -12,6 +12,7 @@ import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 
 export 'package:gbt/services/resources/resource.dart';
+export 'package:gbt/services/resources/resource_database.dart' show PathMatcher;
 
 typedef ResourceChangeListener = void Function(ResourceType type);
 
@@ -128,6 +129,13 @@ class ResourceService {
 
   Future<List<Resource>> getResourcesByType(ResourceType resourceType) async {
       return _resourceDatabase.getAllForType(resourceType);
+  }
+
+  Future<List<Resource>> getResourcesByPath(
+    ResourceType resourceType,
+    List<PathMatcher> path,
+  ) async {
+    return _resourceDatabase.queryByPath(resourceType, path);
   }
 
   Future<bool> resourceExists(

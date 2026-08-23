@@ -94,52 +94,73 @@ class ResourceDatabase {
       whereArgs: [resourceType.name],
     );
 
-    return rows.map((row) {
-      final size = row['size'] as int?;
-      final sha256 = row['sha_256'] as String?;
-      final url = row['url'] as String?;
-      final serverUpdatedAt = row['server_updated_at'] as String?;
-      final localUpdatedAt = row['local_updated_at'] as String?;
-      final installStateStr = row['install_state'] as String?;
-      final serverStateStr = row['server_state'] as String?;
+    return rows.map(_rowToResource).toList();
+  }
 
-      // Build the nested view only when all installable fields are present.
-      final hasInstallable =
-          size != null &&
-          sha256 != null &&
-          url != null &&
-          serverUpdatedAt != null &&
-          installStateStr != null &&
-          serverStateStr != null;
+  Future<List<Resource>> queryByPath(
+    ResourceType resourceType,
+    List<PathMatcher> path,
+  ) async {
+    final db = await _database;
 
-      final installableDetails = hasInstallable
-          ? InstallableDetails(
-              size: size,
-              sha256: sha256,
-              url: url,
-              installState: InstallState.values.firstWhere(
-                (s) => s.name == installStateStr,
-                orElse: () => InstallState.NotInstalled,
-              ),
-              serverState: ServerState.values.firstWhere(
-                (s) => s.name == installStateStr,
-                orElse: () => ServerState.Removed,
-              ),
-              serverUpdatedAt: serverUpdatedAt,
-              localUpdatedAt: localUpdatedAt,
-            )
-          : null;
+    if (path.isEmpty) {
+      throw Exception("Cannot query resources with an empty path");
+    }
 
-      return Resource(
-        id: row['id'] as String,
-        type: ResourceType.values.firstWhere(
-          (s) => s.name == row['resource_type'],
-        ),
-        resourceName: row['resource_name'] as String,
-        creatorName: row['creator_name'] as String?,
-        installableDetails: installableDetails,
-      );
-    }).toList();
+    final rows = await db.query(
+      'resource',
+      where: "resource_type = ? AND id GLOB ?",
+      whereArgs: [resourceType.name, path.join('/')],
+    );
+
+    return rows.map(_rowToResource).toList();
+  }
+
+  Resource _rowToResource(Map<String, Object?> row) {
+    final size = row['size'] as int?;
+    final sha256 = row['sha_256'] as String?;
+    final url = row['url'] as String?;
+    final serverUpdatedAt = row['server_updated_at'] as String?;
+    final localUpdatedAt = row['local_updated_at'] as String?;
+    final installStateStr = row['install_state'] as String?;
+    final serverStateStr = row['server_state'] as String?;
+
+    // Build the nested view only when all installable fields are present.
+    final hasInstallable =
+        size != null &&
+        sha256 != null &&
+        url != null &&
+        serverUpdatedAt != null &&
+        installStateStr != null &&
+        serverStateStr != null;
+
+    final installableDetails = hasInstallable
+        ? InstallableDetails(
+            size: size,
+            sha256: sha256,
+            url: url,
+            installState: InstallState.values.firstWhere(
+              (s) => s.name == installStateStr,
+              orElse: () => InstallState.NotInstalled,
+            ),
+            serverState: ServerState.values.firstWhere(
+              (s) => s.name == serverStateStr,
+              orElse: () => ServerState.Removed,
+            ),
+            serverUpdatedAt: serverUpdatedAt,
+            localUpdatedAt: localUpdatedAt,
+          )
+        : null;
+
+    return Resource(
+      id: row['id'] as String,
+      type: ResourceType.values.firstWhere(
+        (s) => s.name == row['resource_type'],
+      ),
+      resourceName: row['resource_name'] as String,
+      creatorName: row['creator_name'] as String?,
+      installableDetails: installableDetails,
+    );
   }
 
   Future<Map<ResourceType, int>> countOutdatedResourcesByType() async {
@@ -195,6 +216,24 @@ class ResourceDatabase {
       ''',
       [state, state, id],
     );
+  }
+}
+
+class PathMatcher {
+  final String sqlSegment;
+
+  const PathMatcher.any() : sqlSegment = '[^/]*';
+
+  PathMatcher.exact(String value)
+    : sqlSegment = value
+      .replaceAll(r'*', r'[8]')
+      .replaceAll(r'?', r'[?]')
+      .replaceAll(r'[', r'[[]')
+      .replaceAll(r']', r'[]]');
+
+  @override
+  String toString() {
+      return sqlSegment;
   }
 }
 

@@ -13,6 +13,9 @@ class AudioMissingException implements Exception {
   AudioMissingException(this.bookId, this.chapter);
 }
 
+const String otTestamentKey = 'OT';
+const String ntTestamentKey = 'NT';
+
 class AudioService {
     final _resourceService = getIt<ResourceService>();
     final _downloadService = getIt<DownloadService>();
@@ -20,11 +23,24 @@ class AudioService {
     String? _currentSpeaker;
     final Map<int, AudioTimingDatabase> _timingDbs = {};
 
+    static const int _newTestamentStartBookId = 40;
+    static String testamentForBookId(int bookId) {
+        return bookId < _newTestamentStartBookId ? otTestamentKey : ntTestamentKey;
+    }
+
     String? buildResourceId(String source, int bookId) {
         if (bookId < 0 || bookId >= bookKeys.length) return null;
         final bookKey = bookKeys[bookId - 1];
+        final testament = testamentForBookId(bookId);
 
-        return "$source/$bookKey";
+        return "$testament/$source/$bookKey";
+    }
+
+    Future<List<Resource>> getSpeakers(String testament) async {
+        return _resourceService.getResourcesByPath(
+          ResourceType.audio,
+          [PathMatcher.exact(testament), PathMatcher.any()],
+        );
     }
 
     Future<({String audioUrl, List<AudioTiming> timings})> getChapterData(String source, int bookId, int chapter) async {
