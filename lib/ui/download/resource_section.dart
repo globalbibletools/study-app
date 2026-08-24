@@ -60,8 +60,6 @@ class _ResourceSectionState extends State<ResourceSection> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-
     return ExpansionTile(
       key: PageStorageKey('section_${widget.resourceType.name}'),
       controlAffinity: ListTileControlAffinity.leading,
@@ -91,7 +89,6 @@ class _ResourceSectionState extends State<ResourceSection> {
             ]
         )
       ),
-      initiallyExpanded: false,
       children: [
         _ResourceGroup(
             resourceType: widget.resourceType, 
@@ -224,17 +221,16 @@ class _DownloadTileState extends State<_DownloadTile> {
       );
     }
 
-    if (widget.resource.children.length == 0) {
+    if (widget.resource.children.isEmpty) {
         return ListTile(
-          // contentPadding: const EdgeInsets.only(left: 32, right: 16),
           title: Text(widget.resource.resourceName),
           trailing: trailing,
         );
     } else {
         return ExpansionTile(
+          key: PageStorageKey('section_${widget.resourceType.name}_${widget.resource.id}'),
           title: Text(widget.resource.resourceName),
           controlAffinity: ListTileControlAffinity.leading,
-          initiallyExpanded: false,
           shape: Border(),
           collapsedShape: Border(),
           children: [
