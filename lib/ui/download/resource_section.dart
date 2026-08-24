@@ -25,6 +25,7 @@ class ResourceSection extends StatefulWidget {
 class _ResourceSectionState extends State<ResourceSection> {
   final _resourceService = getIt<ResourceService>();
   List<ResourceTreeNode> _resources = [];
+  int _descendantStaleCount = 0;
 
   @override
   void initState() {
@@ -55,7 +56,10 @@ class _ResourceSectionState extends State<ResourceSection> {
     final resources =
         await _resourceService.getResourcesByType(widget.resourceType);
     if (!mounted) return;
-    setState(() => _resources = ResourceTreeNode.buildTree(resources));
+    setState(() {
+        _resources = ResourceTreeNode.buildTree(resources);
+        _descendantStaleCount = _resources.fold(0, (count, child) => count + child.descendantStaleCount + (child.needsUpdate ? 1 : 0));
+    });
   }
 
   @override
@@ -72,27 +76,40 @@ class _ResourceSectionState extends State<ResourceSection> {
                     alignment: PlaceholderAlignment.middle,
                     child: Padding(
                         padding: const EdgeInsets.only(right: 4, bottom: 3),
-                        child: ValueListenableBuilder<OutdatedResourceCounts>(
-                            valueListenable: _resourceService.outdatedResourceCounts,
-                            builder: (context, counts, _) {
-                                return Badge.count(
-                                    count: counts.of(widget.resourceType),
-                                    isLabelVisible: counts.of(widget.resourceType) > 0,
-                                    backgroundColor: Colors.orange,
-                                    child: Icon(widget.icon, size: 16),
-                                );
-                            },
-                        )
+                        child: Icon(widget.icon, size: 16),
                     )
                 ),
                 TextSpan(text: widget.title),
+                if (_descendantStaleCount > 0)
+                  WidgetSpan(
+                    alignment: PlaceholderAlignment.middle,
+                    child: Padding(
+                        padding: const EdgeInsets.only(right: 4, bottom: 3),
+                        child: Container(
+                            margin: const EdgeInsets.only(left: 4),
+                            padding: const EdgeInsets.symmetric(horizontal: 6),
+                            decoration: BoxDecoration(
+                                color: Colors.orange,
+                                borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                                '$_descendantStaleCount',
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                ),
+                            ),
+                        ),
+                    )
+                ),
             ]
         )
       ),
       children: [
         _ResourceGroup(
             resourceType: widget.resourceType, 
-            resources: _resources
+            resources: _resources,
         )
       ],
     );
@@ -102,7 +119,7 @@ class _ResourceSectionState extends State<ResourceSection> {
 class _ResourceGroup extends StatelessWidget {
   const _ResourceGroup({
     required this.resources,
-    required this.resourceType
+    required this.resourceType,
   });
 
   final List<ResourceTreeNode> resources;
@@ -227,9 +244,37 @@ class _DownloadTileState extends State<_DownloadTile> {
           trailing: trailing,
         );
     } else {
+        final nestedCount = widget.resource.descendantStaleCount;
         return ExpansionTile(
           key: PageStorageKey('section_${widget.resourceType.name}_${widget.resource.id}'),
-          title: Text(widget.resource.resourceName),
+          title: Text.rich(
+            TextSpan(children: [
+              TextSpan(text: widget.resource.resourceName),
+              if (nestedCount > 0)
+                  WidgetSpan(
+                    alignment: PlaceholderAlignment.middle,
+                    child: Padding(
+                        padding: const EdgeInsets.only(right: 4, bottom: 3),
+                        child: Container(
+                            margin: const EdgeInsets.only(left: 4),
+                            padding: const EdgeInsets.symmetric(horizontal: 6),
+                            decoration: BoxDecoration(
+                                color: Colors.orange,
+                                borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                                '$nestedCount',
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                ),
+                            ),
+                        ),
+                    )
+                )
+            ]),
+          ),
           controlAffinity: ListTileControlAffinity.leading,
           shape: Border(),
           collapsedShape: Border(),
@@ -249,6 +294,7 @@ class ResourceTreeNode {
     final String resourceName;
     final bool isInstalled;
     final bool needsUpdate;
+    final int descendantStaleCount;
     final List<ResourceTreeNode> children;
 
     ResourceTreeNode({
@@ -256,6 +302,7 @@ class ResourceTreeNode {
         required this.resourceName,
         required this.isInstalled,
         required this.needsUpdate,
+        this.descendantStaleCount = 0,
         this.children = const [],
     });
 
@@ -300,12 +347,19 @@ class ResourceTreeNode {
                 final needsUpdate =
                     isInstalled && details?.localUpdatedAt != details?.serverUpdatedAt;
 
+                final children = buildTree(depth + 1, child.id);
+                final descendantStaleCount = children.fold(
+                    0,
+                    (count, child) => count + child.descendantStaleCount + (child.needsUpdate ? 1 : 0)
+                );
+
                 return ResourceTreeNode(
                     id: child.id,
                     resourceName: child.resourceName,
                     isInstalled: isInstalled,
                     needsUpdate: needsUpdate,
-                    children: buildTree(depth + 1, child.id)
+                    children: children,
+                    descendantStaleCount: descendantStaleCount,
                 );
             }).toList();
         }
