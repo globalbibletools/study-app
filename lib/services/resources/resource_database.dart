@@ -31,7 +31,8 @@ class ResourceDatabase {
             size integer,
             url text,
             resource_name text not null,
-            creator_name text
+            creator_name text,
+            depth integer not null
           );
         ''');
       },
@@ -55,8 +56,8 @@ class ResourceDatabase {
       final d = resource.installableDetails;
       batch.rawInsert(
         '''
-          insert into resource (id, resource_type, server_state, install_state, server_updated_at, sha_256, size, url, resource_name, creator_name)
-          values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          insert into resource (id, resource_type, server_state, install_state, server_updated_at, sha_256, size, url, resource_name, creator_name, depth)
+          values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           on conflict(id) do update set
             server_state = excluded.server_state,
             server_updated_at = excluded.server_updated_at,
@@ -64,7 +65,8 @@ class ResourceDatabase {
             size = excluded.size,
             url = excluded.url,
             resource_name = excluded.resource_name,
-            creator_name = excluded.creator_name;
+            creator_name = excluded.creator_name,
+            depth = excluded.depth;
         ''',
         [
           resource.id,
@@ -77,6 +79,7 @@ class ResourceDatabase {
           d?.url,
           resource.resourceName,
           resource.creatorName,
+          '/'.allMatches(resource.id).length,
         ],
       );
     }
@@ -109,7 +112,7 @@ class ResourceDatabase {
 
     final rows = await db.query(
       'resource',
-      where: "resource_type = ? AND id GLOB ? AND (LENGTH(id) - LENGTH(REPLACE(id, '/', ''))) = ?",
+      where: "resource_type = ? AND id GLOB ? AND depth = ?",
       whereArgs: [
         resourceType.name,
         path.join('/'),
