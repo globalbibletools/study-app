@@ -109,8 +109,12 @@ class ResourceDatabase {
 
     final rows = await db.query(
       'resource',
-      where: "resource_type = ? AND id GLOB ?",
-      whereArgs: [resourceType.name, path.join('/')],
+      where: "resource_type = ? AND id GLOB ? AND (LENGTH(id) - LENGTH(REPLACE(id, '/', ''))) = ?",
+      whereArgs: [
+        resourceType.name,
+        path.join('/'),
+        path.length - 1,
+      ],
     );
 
     return rows.map(_rowToResource).toList();
