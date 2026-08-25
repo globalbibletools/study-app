@@ -129,7 +129,7 @@ class DownloadService {
       final inputStream = InputFileStream(zipPath);
       try {
         final archive = ZipDecoder().decodeStream(inputStream);
-        extractArchiveToDisk(archive, extractDir.path);
+        await extractArchiveToDisk(archive, extractDir.path);
       } finally {
         await inputStream.close();
       }
