@@ -117,13 +117,6 @@ class ResourceService {
   }
 
   ResourceService() {
-    seedBundledResource(ResourceType.Gloss, 'eng').catchError((e) {
-        log("Error copying bundled glosses to resource manager", error: e);
-    });
-    seedBundledResource(ResourceType.bible, 'eng_bsb').catchError((e) {
-        log("Error copying bundled bible to resource manager", error: e);
-    });
-
     _recomputeOutdatedCounts();
   }
 
@@ -235,48 +228,6 @@ class ResourceService {
     } catch (e) {
       log('Gloss download failed for $id', error: e);
       rethrow;
-    }
-  }
-
-  Future<void> seedBundledResource(
-    ResourceType resourceType,
-    String id,
-  ) async {
-    final filePath = await _resolveLocalFilePath(resourceType, id);
-    final exists = await File(filePath).exists();
-    if (exists) return;
-
-    final config = resourceConfigs[resourceType];
-    if (config == null) {
-        throw Exception('Config not found for resource ${resourceType.name}');
-    }
-
-    final prebundledPathTemplate = config.prebundledPathTemplate;
-    if (prebundledPathTemplate == null) {
-        throw Exception('Config for resource ${resourceType.name} does not support prebundled resources');
-    }
-
-    final srcRelativePath = prebundledPathTemplate.replaceAll('{id}', id);
-
-    final directory = Directory(dirname(filePath));
-    if (!await directory.exists()) {
-      await directory.create(recursive: true);
-    }
-
-    try {
-      final data = await rootBundle.load('assets/databases/$srcRelativePath');
-      final bytes = data.buffer.asUint8List(
-        data.offsetInBytes,
-        data.lengthInBytes,
-      );
-      await File(filePath).writeAsBytes(bytes, flush: true);
-      log('Seeded file at $filePath from assets/databases/$srcRelativePath');
-    } catch (e, s) {
-      log(
-        'Failed to seed file at $filePath from assets/databases/$srcRelativePath',
-        error: e,
-        stackTrace: s
-      );
     }
   }
 
