@@ -1,32 +1,70 @@
 class HebrewGreekSchema {
-  // Hebrew/Greek verses table
+  // Verses table
   //
-  // Contains the content of the verses in Biblical order. However,
-  // all of the words are encoded as integers that reference other tables.
-  // This saves space because many words are repeated and integers take up
-  // less space than strings.
-  static const versesTable = "verses";
+  // One row per unique verse reference. The word id is now opaque and no
+  // longer encodes book/chapter/verse, so the reference is stored here and
+  // joined through `words.verse_id`.
+  static const versesTable = 'verses';
 
-  static const versesColId = '_id';
-  static const versesColText = 'text'; // foreign key to text table
-  static const versesColGrammar = 'grammar'; // foreign key to grammar table
-  static const versesColStrongs = 'strongs'; // foreign key to strongs table
+  static const versesColVerseId = 'verse_id'; // BBCCCVVV, e.g. "40001001"
+  static const versesColBook = 'book';
+  static const versesColChapter = 'chapter';
+  static const versesColVerse = 'verse';
 
   static const createVersesTable =
       '''
   CREATE TABLE IF NOT EXISTS $versesTable (
-    $versesColId INTEGER PRIMARY KEY,
-    $versesColText INTEGER NOT NULL,
-    $versesColGrammar INTEGER NOT NULL,
-    $versesColStrongs INTEGER NOT NULL
+    $versesColVerseId TEXT PRIMARY KEY,
+    $versesColBook INTEGER NOT NULL,
+    $versesColChapter INTEGER NOT NULL,
+    $versesColVerse INTEGER NOT NULL
   )
   ''';
 
-  static const insertVerseWord =
+  static const insertVerse =
       '''
-  INSERT INTO $versesTable 
-    ($versesColId, $versesColText, $versesColGrammar, $versesColStrongs) 
+  INSERT OR IGNORE INTO $versesTable
+    ($versesColVerseId, $versesColBook, $versesColChapter, $versesColVerse)
     VALUES (?, ?, ?, ?);
+  ''';
+
+  // Words table (formerly the `verses` table)
+  //
+  // Contains one row per word, in biblical order. All of the words are
+  // encoded as integers that reference other tables. This saves space
+  // because many words are repeated and integers take up less space than
+  // strings. The `verse_id` column links each word to its verse reference.
+  static const wordsTable = 'words';
+
+  static const wordsColId = '_id';
+  static const wordsColVerseId = 'verse_id'; // foreign key -> verses.verse_id
+  static const wordsColText = 'text'; // foreign key to text table
+  static const wordsColGrammar = 'grammar'; // foreign key to grammar table
+  static const wordsColStrongs = 'strongs'; // foreign key to strongs table
+
+  static const createWordsTable =
+      '''
+  CREATE TABLE IF NOT EXISTS $wordsTable (
+    $wordsColId INTEGER PRIMARY KEY,
+    $wordsColVerseId TEXT NOT NULL,
+    $wordsColText INTEGER NOT NULL,
+    $wordsColGrammar INTEGER NOT NULL,
+    $wordsColStrongs INTEGER NOT NULL,
+    FOREIGN KEY ($wordsColVerseId) REFERENCES $versesTable($versesColVerseId)
+  )
+  ''';
+
+  static const createWordsVerseIdIndex =
+      '''
+  CREATE INDEX IF NOT EXISTS idx_words_verse_id
+  ON $wordsTable ($wordsColVerseId);
+  ''';
+
+  static const insertWord =
+      '''
+  INSERT INTO $wordsTable
+    ($wordsColId, $wordsColVerseId, $wordsColText, $wordsColGrammar, $wordsColStrongs)
+    VALUES (?, ?, ?, ?, ?);
   ''';
 
   // Hebrew/Greek text (words) table
