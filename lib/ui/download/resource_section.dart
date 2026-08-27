@@ -343,7 +343,7 @@ class ResourceTreeNode {
             
             return children.map((child) {
                 final details = child.installableDetails;
-                final isInstalled = details?.installState == InstallState.Installed;
+                final isInstalled = details?.installState == InstallState.installed;
                 final needsUpdate =
                     isInstalled && details?.localUpdatedAt != details?.serverUpdatedAt;
 

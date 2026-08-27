@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/services/settings/user_settings.dart';
-import 'package:gbt/services/resources/resource.dart';
 import 'package:gbt/services/resources/resource_service.dart';
 import 'package:gbt/ui/common/resource_ui_helper.dart';
 
@@ -21,13 +20,15 @@ class _GlossLanguageSectionState extends State<GlossLanguageSection> {
 
   List<GlossLanguageOption> glossResources = [];
 
+  @override
   void initState() {
+    super.initState();
     _initGlossResources();
   }
 
   Future<void> _initGlossResources() async {
     try {
-      final resources = await _resourceService.getResourcesByType(ResourceType.Gloss);
+      final resources = await _resourceService.getResourcesByType(ResourceType.gloss);
       setState(() {
           glossResources = resources.map((resource) => GlossLanguageOption(resource.id, resource.resourceName)).toList();
       });
@@ -93,15 +94,15 @@ class _GlossLanguageSectionState extends State<GlossLanguageSection> {
 
     await setGlossLang(selected.id);
 
-    if (!context.mounted) return;
+    if (!mounted) return;
     final success = await ResourceUIHelper.ensureResource(
       context,
-      ResourceType.Gloss,
+      ResourceType.gloss,
       selected.id,
     );
 
     // Revert if they cancelled or it failed
-    if (!success && context.mounted) {
+    if (!success && mounted) {
       await setGlossLang(previousCode);
     }
   }

@@ -9,7 +9,6 @@ import 'package:gbt/services/reading_session/rs_manager.dart';
 import 'package:gbt/services/resources/resource.dart';
 import 'package:gbt/ui/common/resource_ui_helper.dart';
 import 'package:gbt/services/settings/user_settings.dart';
-import 'package:gbt/ui/home/audio/audio_player_view_model.dart';
 import 'package:gbt/ui/home/panel_area/common/infinite_scroll_view.dart';
 import 'package:gbt/ui/home/common/scroll_sync_controller.dart';
 import 'package:gbt/ui/home/panel_area/hebrew_greek_panel/chapter_manager.dart';
@@ -333,7 +332,7 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter>
 
   Future<void> _handleMissingGloss(String langCode) async {
     // Use the shared helper logic
-    final success = await ResourceUIHelper.ensureResource(context, ResourceType.Gloss, langCode);
+    final success = await ResourceUIHelper.ensureResource(context, ResourceType.gloss, langCode);
 
     if (!success && mounted) {
       // If they clicked "Cancel" or download failed,

@@ -94,7 +94,7 @@ class _BibleSectionState extends State<BibleSection> {
 
     await setBible(selected.id);
 
-    if (!context.mounted) return;
+    if (!mounted) return;
     final success = await ResourceUIHelper.ensureResource(
       context,
       ResourceType.bible,
@@ -102,7 +102,7 @@ class _BibleSectionState extends State<BibleSection> {
     );
 
     // Revert if they cancelled or it failed
-    if (!success && context.mounted) {
+    if (!success && mounted) {
       await setBible(previousBibleId);
     }
   }

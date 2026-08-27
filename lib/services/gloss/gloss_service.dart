@@ -11,7 +11,7 @@ class GlossService {
   String? _currentLangCode;
 
   Future<bool> glossesExists(String langCode) async {
-    return _resourceService.resourceExists(ResourceType.Gloss, langCode);
+    return _resourceService.resourceExists(ResourceType.gloss, langCode);
   }
 
   Future<String?> glossForId({
@@ -41,7 +41,7 @@ class GlossService {
     if (_currentLangCode == langCode && _db != null) return;
 
     final path = await _resourceService.getResourceLocalPath(
-      ResourceType.Gloss,
+      ResourceType.gloss,
       langCode,
     );
 

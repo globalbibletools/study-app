@@ -1,7 +1,6 @@
 import 'dart:developer';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/services/download/cancel_token.dart';
 import 'package:gbt/services/download/download.dart';
@@ -49,7 +48,7 @@ class ResourceMissingException implements Exception {
 
 class ResourceService {
   static const Map<ResourceType, ResourceTypeConfig> resourceConfigs = {
-    ResourceType.Gloss: ResourceTypeConfig(
+    ResourceType.gloss: ResourceTypeConfig(
       localPathTemplate: 'glosses/{id}.db',
       urlTemplate: 'glosses/v1/{id}.db.zip',
       prebundledPathTemplate: 'databases/{id}.db',
@@ -175,7 +174,7 @@ class ResourceService {
     ResourceType resourceType,
     String id,
   ) async {
-    await _resourceDatabase.setInstallState(id, InstallState.NotInstalled);
+    await _resourceDatabase.setInstallState(id, InstallState.notInstalled);
 
     final filePath = await _resolveLocalFilePath(resourceType, id);
     switch (await FileSystemEntity.type(filePath)) {
@@ -221,7 +220,7 @@ class ResourceService {
         cancelToken: cancelToken,
       );
 
-      await _resourceDatabase.setInstallState(id, InstallState.Installed);
+      await _resourceDatabase.setInstallState(id, InstallState.installed);
 
       log('Gloss download successful.');
       _notifyResourceChange(resourceType);

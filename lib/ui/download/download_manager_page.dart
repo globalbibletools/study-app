@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/services/resources/resource_service.dart';
-import 'package:gbt/services/resources/resource.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/download/resource_section.dart';
 
@@ -48,7 +47,7 @@ class _DownloadManagerPageState extends State<DownloadManagerPage> {
       body: ListView(
         children: [
           ResourceSection(
-              resourceType: ResourceType.Gloss,
+              resourceType: ResourceType.gloss,
               title: l10n.glosses,
               icon: Icons.translate,
           ),

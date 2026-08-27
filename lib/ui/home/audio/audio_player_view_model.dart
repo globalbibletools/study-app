@@ -392,11 +392,11 @@ class AudioPlayerViewModel extends ChangeNotifier {
       }
 
 
-      String _speakerKey(String speakerId) => speakerId.substring(speakerId.indexOf('/') + 1);
+      String speakerKey(String speakerId) => speakerId.substring(speakerId.indexOf('/') + 1);
       final sourceAvailable =
-          speakers.any((s) => _speakerKey(s.id) == source.forTestament(nextTestament));
+          speakers.any((s) => speakerKey(s.id) == source.forTestament(nextTestament));
       if (!sourceAvailable) {
-        source = source.withTestament(nextTestament, _speakerKey(speakers.first.id));
+        source = source.withTestament(nextTestament, speakerKey(speakers.first.id));
       }
     }
 

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:gbt/l10n/app_languages.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/services/settings/user_settings.dart';
 import 'package:gbt/services/service_locator.dart';

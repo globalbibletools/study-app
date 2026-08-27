@@ -65,7 +65,7 @@ class ReadingSessionOverlay extends StatelessWidget {
                   child: ClipRect(
                     child: SizeTransition(
                       axis: Axis.horizontal,
-                      axisAlignment: axisAlignment,
+                      alignment: Alignment(axisAlignment, 0),
                       sizeFactor: animation,
                       child: child,
                     ),

@@ -1,5 +1,5 @@
 enum ResourceType {
-  Gloss,
+  gloss,
   bible,
   audio;
 
@@ -8,16 +8,16 @@ enum ResourceType {
 }
 
 enum ServerState {
-  Available,
-  Removed;
+  available,
+  removed;
 
   @override
   String toString() => name;
 }
 
 enum InstallState {
-  NotInstalled,
-  Installed;
+  notInstalled,
+  installed;
 
   @override
   String toString() => name;
@@ -137,12 +137,12 @@ class Resource {
 
     final installableDetails = hasAll
         ? InstallableDetails(
-            serverState: ServerState.Available,
+            serverState: ServerState.available,
             serverUpdatedAt: updatedAt as String,
             sha256: sha256 as String,
             size: size as int,
             url: url as String,
-            installState: InstallState.NotInstalled,
+            installState: InstallState.notInstalled,
           )
         : null;
 

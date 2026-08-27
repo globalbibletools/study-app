@@ -1,6 +1,3 @@
-import 'dart:developer';
-
-import 'package:flutter/foundation.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
@@ -49,7 +46,7 @@ class ResourceDatabase {
           server_state = ?
         where resource_type = ?;
       ''',
-      [ServerState.Removed.name, resourceType.name],
+      [ServerState.removed.name, resourceType.name],
     );
 
     for (var resource in resources) {
@@ -71,8 +68,8 @@ class ResourceDatabase {
         [
           resource.id,
           resourceType.name,
-          d?.serverState?.name,
-          d?.installState?.name,
+          d?.serverState.name,
+          d?.installState.name,
           d?.serverUpdatedAt,
           d?.sha256,
           d?.size,
@@ -148,11 +145,11 @@ class ResourceDatabase {
             url: url,
             installState: InstallState.values.firstWhere(
               (s) => s.name == installStateStr,
-              orElse: () => InstallState.NotInstalled,
+              orElse: () => InstallState.notInstalled,
             ),
             serverState: ServerState.values.firstWhere(
               (s) => s.name == serverStateStr,
-              orElse: () => ServerState.Removed,
+              orElse: () => ServerState.removed,
             ),
             serverUpdatedAt: serverUpdatedAt,
             localUpdatedAt: localUpdatedAt,
@@ -175,8 +172,8 @@ class ResourceDatabase {
     final rows = await db.rawQuery(
       '''
         select resource_type, count(*) as cnt from resource
-        where server_state = 'Available'
-          and install_state = 'Installed'
+        where server_state = 'available'
+          and install_state = 'installed'
           and local_updated_at is not null
           and local_updated_at != server_updated_at
         group by resource_type;
@@ -218,7 +215,7 @@ class ResourceDatabase {
       '''
         update resource set
           install_state = ?,
-          local_updated_at = case when ? = 'Installed' then server_updated_at else null end
+          local_updated_at = case when ? = 'installed' then server_updated_at else null end
         where id = ?;
       ''',
       [state, state, id],
