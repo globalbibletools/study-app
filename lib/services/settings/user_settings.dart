@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:shared_preferences/shared_preferences.dart';
+import 'settings_migrations.dart';
 
 enum VerseLayout { paragraph, versePerLine }
 
@@ -9,6 +10,7 @@ class UserSettings {
 
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
+    await migrateSettings(_prefs);
   }
 
   static const _themeModeKey = 'themeMode';
