@@ -42,15 +42,51 @@ jobs:
         run: |
           echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/gbt_studyapp.jks
 
+      - name: Write Android signing config
+        run: |
+          printf '%s\n' "$ANDROID_KEY_PROPERTIES" > android/key.properties
+        env:
+          ANDROID_KEY_PROPERTIES: ${{ secrets.ANDROID_KEY_PROPERTIES }}
+
+      - name: Set version from tag
+        id: version
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"      # strip optional v prefix -> 1.2.3 or 1.2.3-beta2
+          BASE="${TAG%%-*}"               # part before -   -> 1.2.3
+          SUFFIX="${TAG#*-}"              # part after -    -> beta2, or unchanged if no -
+          IFS=. read MAJOR MINOR PATCH <<< "$BASE"
+
+          PRTYPE=0
+          PRNUM=0
+          IS_PRERELEASE=false
+          if [ "$SUFFIX" != "$TAG" ]; then
+            IS_PRERELEASE=true
+            TYPE_STR="$(printf '%s' "$SUFFIX" | sed 's/[0-9].*$//')"   # alpha|beta|rc
+            PRNUM="$(printf '%s' "$SUFFIX" | sed 's/^[^0-9]*//')"       # 1, 2, ...
+            PRNUM="${PRNUM:-0}"
+            case "$TYPE_STR" in
+              alpha) PRTYPE=1 ;;
+              beta)  PRTYPE=2 ;;
+              rc)    PRTYPE=3 ;;
+              *)     PRTYPE=9 ;;
+            esac
+          fi
+
+          BUILD=$(( MAJOR * 10000000 + MINOR * 100000 + PATCH * 1000 + PRTYPE * 100 + PRNUM ))
+          echo "build-name=$TAG"        >> "$GITHUB_OUTPUT"
+          echo "build-number=$BUILD"    >> "$GITHUB_OUTPUT"
+          echo "is-prerelease=$IS_PRERELEASE" >> "$GITHUB_OUTPUT"
+
       - name: Build split APKs
-        run: flutter build apk --release --split-per-abi
+        run: flutter build apk --release --split-per-abi --build-name=${{ steps.version.outputs.build-name }} --build-number=${{ steps.version.outputs.build-number }}
 
       - name: Build App Bundle
-        run: flutter build appbundle --release
+        run: flutter build appbundle --release --build-name=${{ steps.version.outputs.build-name }} --build-number=${{ steps.version.outputs.build-number }}
 
       - name: Upload artifacts to release
         uses: softprops/action-gh-release@v2
         with:
+          prerelease: ${{ steps.version.outputs.is-prerelease }}
           files: |
             build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
             build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
