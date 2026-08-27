@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:shared_preferences/shared_preferences.dart';
+import 'settings_migrations.dart';
 
 enum VerseLayout { paragraph, versePerLine }
 
@@ -9,6 +10,7 @@ class UserSettings {
 
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
+    await migrateSettings(_prefs);
   }
 
   static const _themeModeKey = 'themeMode';
@@ -94,15 +96,12 @@ class UserSettings {
   }
 
   String? get glossLang {
-    final lang = _prefs.getString(_glossLangKey);
-    if (lang == null) return "eng";
-    if (lang == "") return null;
-    return lang;
+    return _prefs.getString(_glossLangKey);
   }
 
   Future<void> setGlossLang(String? code) async {
     if (code == null) {
-      await _prefs.setString(_glossLangKey, "");
+      await _prefs.remove(_glossLangKey);
     } else {
       await _prefs.setString(_glossLangKey, code);
     }
@@ -125,10 +124,15 @@ class UserSettings {
   }
 
   String? get currentBible {
-    final bible = _prefs.getString(_currentBible);
-    if (bible == null) return "eng_bsb";
-    if (bible == "") return null;
-    return bible;
+    return _prefs.getString(_currentBible);
+  }
+
+  Future<void> setCurrentBible(String? bibleCode) async {
+    if (bibleCode == null) {
+      await _prefs.remove(_currentBible);
+    } else {
+      await _prefs.setString(_currentBible, bibleCode);
+    }
   }
 
   VerseLayout get verseLayout {
@@ -137,14 +141,6 @@ class UserSettings {
 
   Future<void> setVerseLayout(VerseLayout value) async {
     await _prefs.setInt(_verseLayout, value.index);
-  }
-
-  Future<void> setCurrentBible(String? bibleCode) async {
-    if (bibleCode == null) {
-      await _prefs.setString(_currentBible, "");
-    } else {
-      await _prefs.setString(_currentBible, bibleCode);
-    }
   }
 
   /// Set the daily goal for the reading session
