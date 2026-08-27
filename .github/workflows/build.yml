@@ -22,14 +22,6 @@ jobs:
           cache: true
           flutter-version-file: pubspec.yaml
 
-      - name: Cache pub dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.pub-cache
-          key: pub-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}
-          restore-keys: |
-            pub-${{ runner.os }}-
-
       - name: Install Dart dependencies
         run: flutter pub get
 
@@ -79,10 +71,10 @@ jobs:
           echo "is-prerelease=$IS_PRERELEASE" >> "$GITHUB_OUTPUT"
 
       - name: Build split APKs
-        run: flutter build apk --release --split-per-abi --build-name=${{ steps.version.outputs.build-name }} --build-number=${{ steps.version.outputs.build-number }}
+        run: flutter build apk --no-pub --release --split-per-abi --build-name=${{ steps.version.outputs.build-name }} --build-number=${{ steps.version.outputs.build-number }}
 
       - name: Build App Bundle
-        run: flutter build appbundle --release --build-name=${{ steps.version.outputs.build-name }} --build-number=${{ steps.version.outputs.build-number }}
+        run: flutter build appbundle --no-pub --release --build-name=${{ steps.version.outputs.build-name }} --build-number=${{ steps.version.outputs.build-number }}
 
       - name: Upload artifacts to release
         uses: softprops/action-gh-release@v2

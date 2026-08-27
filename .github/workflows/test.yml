@@ -23,19 +23,11 @@ jobs:
           cache: true
           flutter-version-file: pubspec.yaml
 
-      - name: Cache pub dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.pub-cache
-          key: pub-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}
-          restore-keys: |
-            pub-${{ runner.os }}-
-
       - name: Install Dart dependencies
         run: flutter pub get
 
       - name: Analyze
-        run: flutter analyze
+        run: flutter analyze --no-pub
 
       - name: Test
-        run: flutter test
+        run: flutter test --no-pub
