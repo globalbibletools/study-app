@@ -86,7 +86,7 @@ class HebrewGreekChapterManager {
     if (_disposed) return '';
     final words = textNotifier.value;
     final verseWords = words
-        .where((w) => (w.id ~/ 100) % 1000 == verse)
+        .where((w) => w.reference.verse == verse)
         .toList();
 
     if (verseWords.isEmpty) return '';

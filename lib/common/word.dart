@@ -1,25 +1,26 @@
 import 'reference.dart';
 
 class HebrewGreekWord {
-  /// ID is in the form of BBCCCVVVWW,
-  /// where BB is the book number,
-  /// CC is the chapter number,
-  /// VVV is the verse number,
-  /// and WW is the word number.
+  /// Opaque word identifier.
+  ///
+  /// Currently the packed integer `BBCCCVVVWW`, but callers must not decode
+  /// it. The word's verse reference is available via [reference].
   final int id;
+
+  /// The book/chapter/verse this word belongs to.
+  final Reference reference;
+
   final String text;
   final String? strongsCode;
 
-  HebrewGreekWord({required this.id, required this.text, this.strongsCode});
+  HebrewGreekWord({
+    required this.id,
+    required this.reference,
+    required this.text,
+    this.strongsCode,
+  });
 
   @override
-  String toString() => 'HebrewGreekWord(id: $id, text: $text)';
-}
-
-Reference extractReferenceFromWordId(int wordId) {
-  // final word = wordId % 100;
-  final verse = (wordId ~/ 100) % 1000;
-  final chapter = (wordId ~/ 100000) % 1000;
-  final bookId = wordId ~/ 100000000;
-  return Reference(bookId: bookId, chapter: chapter, verse: verse);
+  String toString() =>
+      'HebrewGreekWord(id: $id, reference: $reference, text: $text)';
 }

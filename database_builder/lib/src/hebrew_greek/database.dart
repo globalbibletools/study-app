@@ -43,6 +43,9 @@ class HebrewGreekDatabase {
     _database.execute(HebrewGreekSchema.createTextTable);
     _database.execute(HebrewGreekSchema.createGrammarTable);
     _database.execute(HebrewGreekSchema.createStrongsTable);
+
+    _database
+        .execute('PRAGMA user_version = ${HebrewGreekSchema.databaseVersion};');
   }
 
   void _initPreparedStatements() {

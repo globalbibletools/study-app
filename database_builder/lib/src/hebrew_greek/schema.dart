@@ -1,4 +1,6 @@
 class HebrewGreekSchema {
+  static const databaseVersion = 10;
+
   // Verses table
   //
   // One row per unique verse reference. The word id is now opaque and no

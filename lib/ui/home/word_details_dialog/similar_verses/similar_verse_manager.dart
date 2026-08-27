@@ -19,16 +19,12 @@ class SimilarVerseManager {
   }
 
   Future<void> search(WordDetails word, SearchType searchType) async {
-    List<int> verseIds;
+    List<Reference> references;
     if (searchType == SearchType.root) {
-      verseIds = await _db.allWordsForStrongsCode(word.strongsCode);
+      references = await _db.allVersesForStrongsCode(word.strongsCode);
     } else {
-      verseIds = await _db.searchExactMatchNoPunctuation(word.word);
+      references = await _db.searchExactMatchNoPunctuation(word.word);
     }
-    final references = verseIds
-        .map(extractReferenceFromWordId)
-        .toSet()
-        .toList();
     similarVersesNotifier.value = references;
   }
 

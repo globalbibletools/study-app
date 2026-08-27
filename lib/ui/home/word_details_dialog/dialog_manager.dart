@@ -28,7 +28,7 @@ class WordDetailsDialogManager extends ChangeNotifier {
     final (strongs, grammar) =
         await _hebrewGreekDb.getStrongsAndGrammar(wordId) ?? ('', '');
     return WordDetails(
-      word: word ?? '',
+      word: word?.text ?? '',
       gloss: gloss ?? '',
       strongsCode: strongs,
       grammar: grammar,
