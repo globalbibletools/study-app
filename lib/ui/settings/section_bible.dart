@@ -5,7 +5,7 @@ import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/services/settings/user_settings.dart';
 import 'package:gbt/services/resources/resource_service.dart';
-import 'package:gbt/ui/common/resource_ui_helper.dart';
+import 'package:gbt/ui/common/bible_chooser.dart';
 
 class BibleSection extends StatefulWidget {
   const BibleSection({super.key});
@@ -29,6 +29,7 @@ class _BibleSectionState extends State<BibleSection> {
   Future<void> _initBibleResources() async {
     try {
       final resources = await _resourceService.getResourcesByType(ResourceType.bible);
+      if (!mounted) return;
       setState(() {
           bibleResources = resources.map((resource) => BibleOption(resource.id, resource.resourceName)).toList();
       });
@@ -36,10 +37,6 @@ class _BibleSectionState extends State<BibleSection> {
       log('Failed to initialize bible resources', error: err, stackTrace: stack);
     }
   }
-
-
-  /// Sentinel representing "no gloss language" in the picker.
-  static final _noneBible = BibleOption('', '');
 
   String? get currentBibleId => _settings.currentBible;
 
@@ -54,57 +51,9 @@ class _BibleSectionState extends State<BibleSection> {
     }
   }
 
-  Future<void> setBible(String? id) async {
-    await _settings.setCurrentBible(id);
-    setState(() {});
-  }
-
   Future<void> _chooseBible() async {
-    final l10n = AppLocalizations.of(context)!;
-    final textStyle = Theme.of(context).textTheme.bodyLarge;
-    final previousBibleId = currentBibleId;
-
-    final selected = await showDialog<BibleOption>(
-      context: context,
-      builder: (BuildContext context) {
-        return SimpleDialog(
-          title: Text(l10n.bibleTranslation),
-          children: [
-            SimpleDialogOption(
-              onPressed: () => Navigator.pop(context, _noneBible),
-              child: Text(l10n.glossNone, style: textStyle),
-            ),
-            ...bibleResources.map((resource) {
-              return SimpleDialogOption(
-                onPressed: () => Navigator.pop(context, resource),
-                child: Text(resource.name, style: textStyle),
-              );
-            }),
-          ],
-        );
-      },
-    );
-
-    if (selected == null || selected.id == previousBibleId) return;
-
-    if (selected == _noneBible) {
-      await setBible(null);
-      return;
-    }
-
-    await setBible(selected.id);
-
-    if (!mounted) return;
-    final success = await ResourceUIHelper.ensureResource(
-      context,
-      ResourceType.bible,
-      selected.id,
-    );
-
-    // Revert if they cancelled or it failed
-    if (!success && mounted) {
-      await setBible(previousBibleId);
-    }
+    await chooseBible(context, allowNone: true);
+    if (mounted) setState(() {});
   }
 
   @override
@@ -122,11 +71,4 @@ class _BibleSectionState extends State<BibleSection> {
       },
     );
   }
-}
-
-class BibleOption {
-    String id;
-    String name;
-
-    BibleOption(this.id, this.name);
 }
