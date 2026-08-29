@@ -345,7 +345,7 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter>
     }
   }
 
-  Future<void> _showWordDetails(int wordId) async {
+  Future<void> _showWordDetails(String wordId) async {
     await showDialog(
       context: context,
       builder: (context) => WordDetailsDialog(

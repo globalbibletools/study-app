@@ -56,7 +56,7 @@ class HebrewGreekDatabase {
 
   Future<List<HebrewGreekWord>> getChapter(int bookId, int chapter) async {
     final List<Map<String, dynamic>> rows = await _database.rawQuery(
-      'SELECT w.${HebrewGreekSchema.wordsColId}, '
+      'SELECT w.${HebrewGreekSchema.wordsColWordId}, '
       'v.${HebrewGreekSchema.versesColBook}, '
       'v.${HebrewGreekSchema.versesColChapter}, '
       'v.${HebrewGreekSchema.versesColVerse}, '
@@ -68,16 +68,16 @@ class HebrewGreekDatabase {
       'ON w.${HebrewGreekSchema.wordsColText} = t.${HebrewGreekSchema.textColId} '
       'WHERE v.${HebrewGreekSchema.versesColBook} = ? '
       'AND v.${HebrewGreekSchema.versesColChapter} = ? '
-      'ORDER BY w.${HebrewGreekSchema.wordsColId} ASC',
+      'ORDER BY w.${HebrewGreekSchema.wordsColWordId} ASC',
       [bookId, chapter],
     );
 
     return rows.map(_toHebrewGreekWord).toList();
   }
 
-  Future<HebrewGreekWord?> getWordForId(int wordId) async {
+  Future<HebrewGreekWord?> getWordForId(String wordId) async {
     final List<Map<String, dynamic>> rows = await _database.rawQuery(
-      'SELECT w.${HebrewGreekSchema.wordsColId}, '
+      'SELECT w.${HebrewGreekSchema.wordsColWordId}, '
       'v.${HebrewGreekSchema.versesColBook}, '
       'v.${HebrewGreekSchema.versesColChapter}, '
       'v.${HebrewGreekSchema.versesColVerse}, '
@@ -87,7 +87,7 @@ class HebrewGreekDatabase {
       'ON w.${HebrewGreekSchema.wordsColVerseId} = v.${HebrewGreekSchema.versesColVerseId} '
       'JOIN ${HebrewGreekSchema.textTable} t '
       'ON w.${HebrewGreekSchema.wordsColText} = t.${HebrewGreekSchema.textColId} '
-      'WHERE w.${HebrewGreekSchema.wordsColId} = ?',
+      'WHERE w.${HebrewGreekSchema.wordsColWordId} = ?',
       [wordId],
     );
     if (rows.isEmpty) return null;
@@ -96,7 +96,7 @@ class HebrewGreekDatabase {
 
   HebrewGreekWord _toHebrewGreekWord(Map<String, dynamic> row) {
     return HebrewGreekWord(
-      id: row[HebrewGreekSchema.wordsColId] as int,
+      id: row[HebrewGreekSchema.wordsColWordId] as String,
       reference: Reference(
         bookId: row[HebrewGreekSchema.versesColBook] as int,
         chapter: row[HebrewGreekSchema.versesColChapter] as int,
@@ -107,7 +107,7 @@ class HebrewGreekDatabase {
     );
   }
 
-  Future<(String, String)?> getStrongsAndGrammar(int wordId) async {
+  Future<(String, String)?> getStrongsAndGrammar(String wordId) async {
     final List<Map<String, dynamic>> result = await _database.rawQuery(
       '''SELECT l.${HebrewGreekSchema.strongsColCode}, g.${HebrewGreekSchema.grammarColGrammar}
       FROM ${HebrewGreekSchema.wordsTable} w
@@ -115,7 +115,7 @@ class HebrewGreekDatabase {
       ON w.${HebrewGreekSchema.wordsColStrongs} = l.${HebrewGreekSchema.strongsColId}
       JOIN ${HebrewGreekSchema.grammarTable} g
       ON w.${HebrewGreekSchema.wordsColGrammar} = g.${HebrewGreekSchema.grammarColId}
-      WHERE w.${HebrewGreekSchema.wordsColId} = ?''',
+      WHERE w.${HebrewGreekSchema.wordsColWordId} = ?''',
       [wordId],
     );
 
@@ -184,7 +184,7 @@ class HebrewGreekDatabase {
   }) async {
     final sql = StringBuffer();
     sql.write(
-      'SELECT w.${HebrewGreekSchema.wordsColId}, '
+      'SELECT w.${HebrewGreekSchema.wordsColWordId}, '
       'v.${HebrewGreekSchema.versesColBook}, '
       'v.${HebrewGreekSchema.versesColChapter}, '
       'v.${HebrewGreekSchema.versesColVerse}, '
@@ -210,7 +210,7 @@ class HebrewGreekDatabase {
       'WHERE v.${HebrewGreekSchema.versesColBook} = ? '
       'AND v.${HebrewGreekSchema.versesColChapter} = ? '
       'AND v.${HebrewGreekSchema.versesColVerse} = ? '
-      'ORDER BY w.${HebrewGreekSchema.wordsColId} ASC',
+      'ORDER BY w.${HebrewGreekSchema.wordsColWordId} ASC',
     );
 
     final List<Map<String, dynamic>> words = await _database.rawQuery(

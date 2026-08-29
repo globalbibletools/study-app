@@ -13,7 +13,7 @@ class WordDetailsDialog extends StatefulWidget {
     required this.isRtl,
   });
 
-  final int wordId;
+  final String wordId;
   final bool isRtl;
 
   @override

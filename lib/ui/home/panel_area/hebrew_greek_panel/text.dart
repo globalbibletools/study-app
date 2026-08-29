@@ -11,14 +11,14 @@ import 'package:gbt/services/settings/user_settings.dart';
 ///
 /// The function can be asynchronous to allow waiting for user
 /// interaction (e.g., closing a dialog).
-typedef AsyncWordActionCallback = Future<void> Function(int wordId);
+typedef AsyncWordActionCallback = Future<void> Function(String wordId);
 
 /// A function that returns a string to be displayed in a popup for a given word ID.
 ///
 /// The lookup can be asynchronous (e.g., from a database or network).
 /// If the function's Future resolves to null or an empty string,
 /// no popup will be shown for that word.
-typedef AsyncPopupWordProvider = Future<String?> Function(int wordId);
+typedef AsyncPopupWordProvider = Future<String?> Function(String wordId);
 
 /// A callback to find a verse number at a specific Y offset
 typedef VerseAtOffsetCallback = int? Function(double y);
@@ -448,13 +448,13 @@ class RenderHebrewGreekText extends RenderBox {
   final Paint _highlightPaint = Paint();
   final Paint _bgPaint = Paint();
 
-  int? _tappedWordId;
+  String? _tappedWordId;
   String? _popupText;
   TextPainter? _popupPainter;
   Timer? _popupDismissTimer;
   late final TapGestureRecognizer _tapRecognizer;
   late final LongPressGestureRecognizer _longPressRecognizer;
-  int? _flashedWordId;
+  String? _flashedWordId;
   Timer? _flashTimer;
   final List<_LineMetrics> _lineMetrics = [];
   VerseLayout _verseLayout;
@@ -1764,7 +1764,7 @@ class HebrewGreekWordHitTestEntry extends HitTestEntry {
   final RenderHebrewGreekText renderObject;
   final WordRenderer wordRenderer;
 
-  int get wordId => wordRenderer.word.id;
+  String get wordId => wordRenderer.word.id;
 
   @override
   String toString() =>

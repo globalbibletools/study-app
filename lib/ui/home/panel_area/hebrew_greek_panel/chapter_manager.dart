@@ -69,7 +69,7 @@ class HebrewGreekChapterManager {
   }
 
   Future<String?> getPopupTextForId(
-    int wordId,
+    String wordId,
     void Function(String)? onGlossDownloadNeeded,
   ) async {
     return _glossService.glossForId(

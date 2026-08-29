@@ -22,7 +22,7 @@ class GlossService {
   }
 
   Future<String?> glossForId({
-    required int wordId,
+    required String wordId,
     void Function(String)? onDatabaseMissing,
   }) async {
     final langCode = _settings.glossLang;

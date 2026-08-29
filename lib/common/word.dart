@@ -3,9 +3,9 @@ import 'reference.dart';
 class HebrewGreekWord {
   /// Opaque word identifier.
   ///
-  /// Currently the packed integer `BBCCCVVVWW`, but callers must not decode
+  /// Currently the packed string `BBCCCVVVWW`, but callers must not decode
   /// it. The word's verse reference is available via [reference].
-  final int id;
+  final String id;
 
   /// The book/chapter/verse this word belongs to.
   final Reference reference;
