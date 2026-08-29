@@ -111,7 +111,7 @@ class GlossDatabase {
     _database.execute('BEGIN TRANSACTION;');
     for (var word in words) {
       final textForeignId = textMap[word.gloss];
-      _insertVerseGloss.execute([word.id, textForeignId]);
+      _insertVerseGloss.execute([word.sourceId, textForeignId]);
     }
     _database.execute('COMMIT;');
   }
@@ -124,17 +124,20 @@ class GlossDatabase {
 }
 
 class Gloss {
-  final int id;
+  /// The source word id as a string (BBCCCVVVWW, e.g. "0100100101").
+  final String sourceId;
   final String? gloss;
 
-  Gloss({required this.id, required this.gloss});
+  Gloss({required this.sourceId, required this.gloss});
 
   factory Gloss.fromJson(Map<String, dynamic> json) {
-    final id = int.parse(json['id']);
-    var gloss = json['gloss']?.trim();
-    return Gloss(id: id, gloss: gloss);
+    final sourceId = json['id'].toString();
+    return Gloss(
+      sourceId: sourceId,
+      gloss: json['gloss']?.trim(),
+    );
   }
 
   @override
-  String toString() => 'Word(id: $id, gloss: $gloss)';
+  String toString() => 'Word(sourceId: $sourceId, gloss: $gloss)';
 }

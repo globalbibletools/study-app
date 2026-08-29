@@ -1,5 +1,5 @@
 class HebrewGreekSchema {
-  static const databaseVersion = 10;
+  static const databaseVersion = 12;
 
   // Verses table
   //
@@ -38,7 +38,7 @@ class HebrewGreekSchema {
   // strings. The `verse_id` column links each word to its verse reference.
   static const wordsTable = 'words';
 
-  static const wordsColId = '_id';
+  static const wordsColWordId = 'word_id'; // source BBCCCVVVWW string
   static const wordsColVerseId = 'verse_id'; // foreign key -> verses.verse_id
   static const wordsColText = 'text'; // foreign key to text table
   static const wordsColGrammar = 'grammar'; // foreign key to grammar table
@@ -47,7 +47,7 @@ class HebrewGreekSchema {
   static const createWordsTable =
       '''
   CREATE TABLE IF NOT EXISTS $wordsTable (
-    $wordsColId INTEGER PRIMARY KEY,
+    $wordsColWordId TEXT PRIMARY KEY,
     $wordsColVerseId TEXT NOT NULL,
     $wordsColText INTEGER NOT NULL,
     $wordsColGrammar INTEGER NOT NULL,
@@ -65,7 +65,7 @@ class HebrewGreekSchema {
   static const insertWord =
       '''
   INSERT INTO $wordsTable
-    ($wordsColId, $wordsColVerseId, $wordsColText, $wordsColGrammar, $wordsColStrongs)
+    ($wordsColWordId, $wordsColVerseId, $wordsColText, $wordsColGrammar, $wordsColStrongs)
     VALUES (?, ?, ?, ?, ?);
   ''';
 

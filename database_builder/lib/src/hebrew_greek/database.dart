@@ -246,7 +246,7 @@ class HebrewGreekDatabase {
       final grammarForeignId = grammarMap[word.grammar];
       final lemmaForeignId = lemmaMap[word.lemma];
       _insertWord.execute([
-        word.id,
+        word.sourceId,
         word.verseId,
         textForeignId,
         grammarForeignId,
@@ -267,9 +267,9 @@ class HebrewGreekDatabase {
 }
 
 class _HebrewGreekWord {
-  /// The source word id (BBCCCVVVWW), kept as the integer packed value for
-  /// now. In a later step this will become an opaque source-order string.
-  final int id;
+  /// The source word id as a string (BBCCCVVVWW, e.g. "0100100101").
+  /// This is the opaque primary key shared with the gloss DBs.
+  final String sourceId;
 
   /// The verse id (BBCCCVVV) this word belongs to.
   final String verseId;
@@ -282,7 +282,7 @@ class _HebrewGreekWord {
   final String lemma;
 
   _HebrewGreekWord({
-    required this.id,
+    required this.sourceId,
     required this.verseId,
     required this.bookId,
     required this.chapterId,
@@ -299,8 +299,17 @@ class _HebrewGreekWord {
     required int verseNumber,
     required String verseId,
   }) {
+    final sourceId = json['id'].toString();
+    final expectedVersePrefix = verseId;
+    if (!sourceId.startsWith(expectedVersePrefix)) {
+      throw StateError(
+        "Source word id '$sourceId' does not belong to verse "
+        "'$expectedVersePrefix' (book $bookId, chapter $chapterId, "
+        "verse $verseNumber).",
+      );
+    }
     return _HebrewGreekWord(
-      id: int.parse(json['id']),
+      sourceId: sourceId,
       verseId: verseId,
       bookId: bookId,
       chapterId: chapterId,
@@ -313,5 +322,5 @@ class _HebrewGreekWord {
 
   @override
   String toString() =>
-      'HebrewGreekWord(id: $id, verseId: $verseId, text: $text, grammar: $grammar, lemma: $lemma)';
+      'HebrewGreekWord(sourceId: $sourceId, verseId: $verseId, text: $text, grammar: $grammar, lemma: $lemma)';
 }
