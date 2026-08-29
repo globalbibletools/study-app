@@ -30,7 +30,7 @@ class _ResourceSectionState extends State<ResourceSection> {
   @override
   void initState() {
     super.initState();
-    _resourceService.addResourceChangeListener(
+    _resourceService.addResourceTypeChangeListener(
       widget.resourceType,
       _onResourcesChanged,
     );
@@ -39,7 +39,7 @@ class _ResourceSectionState extends State<ResourceSection> {
 
   @override
   void dispose() {
-    _resourceService.removeResourceChangeListener(
+    _resourceService.removeResourceTypeChangeListener(
       widget.resourceType,
       _onResourcesChanged,
     );
