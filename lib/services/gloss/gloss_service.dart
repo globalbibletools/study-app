@@ -1,5 +1,3 @@
-import 'dart:developer';
-
 import 'package:gbt/services/gloss/gloss_database.dart';
 import 'package:gbt/services/resources/resource_service.dart';
 import 'package:gbt/services/service_locator.dart';
