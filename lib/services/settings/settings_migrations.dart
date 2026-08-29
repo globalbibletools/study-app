@@ -43,10 +43,6 @@ Future<void> migrateV1(SharedPreferences settings) async {
     final locale = settings.getString('locale');
 
     switch (locale) {
-        case 'en': {
-            await settings.setString("currentBible", "eng_bsb");
-            await settings.setString("glossLang", "eng");
-        }
         case 'es': {
             await settings.setString("currentBible", "spa_blm");
             await settings.setString("glossLang", "spa");
@@ -62,6 +58,10 @@ Future<void> migrateV1(SharedPreferences settings) async {
         case 'ar': {
             await settings.setString("currentBible", "arb_vdv");
             await settings.setString("glossLang", "are");
+        }
+        default: {
+            await settings.setString("currentBible", "eng_bsb");
+            await settings.setString("glossLang", "eng");
         }
     }
 }
