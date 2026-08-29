@@ -54,6 +54,16 @@ class HomeManager {
   int? _lastSavedBook;
   int? _lastSavedChapter;
 
+  HomeManager() {
+    _bibleService.addBibleResourceChangeListener(_onBibleResourceChanged);
+  }
+
+  void _onBibleResourceChanged(String bibleId) {
+    if (_settings.currentBible == bibleId) {
+      notifySettingsChanged();
+    }
+  }
+
   int get currentBookId => currentReference.value.bookId;
   int get currentChapter => currentReference.value.chapter;
   int get currentVerse => currentReference.value.verse;
@@ -206,6 +216,8 @@ class HomeManager {
   }
 
   void dispose() {
+    _bibleService.removeBibleResourceChangeListener(_onBibleResourceChanged);
+
     syncController.removeListener(_onSyncUpdate);
     syncController.dispose();
     audioPlayerViewModel.dispose();
