@@ -144,19 +144,27 @@ class ResourceService {
     ResourceType resourceType,
     String id,
   ) async {
-    final filePath = await _resolveLocalFilePath(resourceType, id);
-    return await File(filePath).exists();
+      try {
+          await getResourceLocalPath(resourceType, id);
+          return true;
+      } on ResourceMissingException {
+          return false;
+      }
   }
 
   Future<String> getResourceLocalPath(
     ResourceType resourceType,
     String id,
   ) async {
-    final filePath = await _resolveLocalFilePath(resourceType, id);
+    final localVersion = await _resourceDatabase.getResourceVersion(resourceType, id);
+    if (localVersion == null) {
+        throw ResourceMissingException(resourceType, id);
+    };
 
+    final filePath = await _resolveLocalFilePath(resourceType, id);
     final pathType = await FileSystemEntity.type(filePath);
     if (pathType == FileSystemEntityType.notFound) {
-      throw ResourceMissingException(resourceType, id);
+        throw ResourceMissingException(resourceType, id);
     }
 
     return filePath;
