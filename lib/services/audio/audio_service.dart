@@ -21,6 +21,8 @@ enum Testament {
   const Testament(this.key);
 }
 
+typedef AudioResourceChangeListener = void Function(String source, int bookId);
+
 class AudioService {
     final _resourceService = getIt<ResourceService>();
     final _downloadService = getIt<DownloadService>();
@@ -28,13 +30,60 @@ class AudioService {
     String? _currentSpeaker;
     final Map<int, AudioTimingDatabase> _timingDbs = {};
 
+    final List<AudioResourceChangeListener> _resourceChangeListeners = [];
+
+    AudioService() {
+        _resourceService.addResourceChangeListener(
+          ResourceType.audio,
+          _onAudioResourceChanged,
+        );
+    }
+
+    void addResourceChangeListener(AudioResourceChangeListener listener) {
+        _resourceChangeListeners.add(listener);
+    }
+
+    void removeResourceChangeListener(AudioResourceChangeListener listener) {
+        _resourceChangeListeners.remove(listener);
+    }
+
+    void _onAudioResourceChanged(ResourceType type, String id) {
+        final parsed = _parseResourceId(id);
+        if (parsed == null) return;
+
+        final (:source, :bookId) = parsed;
+
+        if (_currentSpeaker == source) {
+            _timingDbs.remove(bookId);
+        }
+
+        for (final listener in _resourceChangeListeners) {
+            try {
+                listener(source, bookId);
+            } catch (e, stackTrace) {
+                debugPrint('Audio resource change listener threw: $e\n$stackTrace');
+            }
+        }
+    }
+
+    ({String source, int bookId})? _parseResourceId(String id) {
+        final parts = id.split('/');
+        if (parts.length != 3) return null;
+
+        final source = parts[1];
+        final bookIndex = bookKeys.indexOf(parts[2]);
+        if (bookIndex < 0) return null;
+
+        return (source: source, bookId: bookIndex + 1);
+    }
+
     static const int _newTestamentStartBookId = 40;
     static Testament testamentForBookId(int bookId) {
         return bookId < _newTestamentStartBookId ? Testament.ot : Testament.nt;
     }
 
     String? buildResourceId(String source, int bookId) {
-        if (bookId < 0 || bookId >= bookKeys.length) return null;
+        if (bookId < 1 || bookId > bookKeys.length) return null;
         final bookKey = bookKeys[bookId - 1];
         final testament = testamentForBookId(bookId);
 

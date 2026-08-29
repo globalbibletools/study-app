@@ -10,6 +10,13 @@ class GlossService {
   GlossDatabase? _db;
   String? _currentLangCode;
 
+  GlossService() {
+    _resourceService.addResourceChangeListener(
+      ResourceType.gloss,
+      _onGlossResourceChanged,
+    );
+  }
+
   Future<bool> glossesExists(String langCode) async {
     return _resourceService.resourceExists(ResourceType.gloss, langCode);
   }
@@ -37,21 +44,28 @@ class GlossService {
   }
 
   Future<void> _openForLang(String langCode) async {
-    // Already the active database.
-    if (_currentLangCode == langCode && _db != null) return;
-
     final path = await _resourceService.getResourceLocalPath(
       ResourceType.gloss,
       langCode,
     );
 
+    await _close();
+
+    _db = await GlossDatabase.open(path);
+    _currentLangCode = langCode;
+  }
+
+  Future<void> _close() async {
     if (_db != null) {
       await _db!.close();
       _db = null;
       _currentLangCode = null;
     }
+  }
 
-    _db = await GlossDatabase.open(path);
-    _currentLangCode = langCode;
+  void _onGlossResourceChanged(ResourceType type, String id) {
+    if (_currentLangCode == null || id == _currentLangCode) {
+        _close();
+    }
   }
 }

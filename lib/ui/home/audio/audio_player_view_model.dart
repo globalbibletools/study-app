@@ -164,6 +164,19 @@ class AudioPlayerViewModel extends ChangeNotifier {
       _playerStateStreamHandler,
     );
     errorSubscription = player.errorStream.listen(_errorStreamHandler);
+
+    _audioService.addResourceChangeListener(_onAudioResourceChanged);
+  }
+
+  void _onAudioResourceChanged(String source, int bookId) {
+    final ref = reference.value;
+    if (ref == null || ref.bookId != bookId) return;
+
+    final testament = AudioService.testamentForBookId(ref.bookId);
+    final activeSource = audioSource.forTestament(testament);
+    if (activeSource == source) {
+      _reload(source: audioSource, newReference: ref, force: true);
+    }
   }
 
   Future<void> changeRepeatMode(AudioRepeatModeType mode) async {
@@ -191,8 +204,8 @@ class AudioPlayerViewModel extends ChangeNotifier {
     if (testament == null) return;
 
     await _reload(
-      audioSource.withTestament(testament, source),
-      reference.value,
+      source: audioSource.withTestament(testament, source),
+      newReference: reference.value,
     );
   }
 
@@ -227,7 +240,7 @@ class AudioPlayerViewModel extends ChangeNotifier {
   Future<void> jumpTo(Reference reference) async {
     if (!isVisible) return;
 
-    await _reload(audioSource, reference);
+    await _reload(source: audioSource, newReference: reference);
   }
 
   Future<void> jumpToNext() async {
@@ -305,7 +318,7 @@ class AudioPlayerViewModel extends ChangeNotifier {
           break;
         }
 
-        await _reload(audioSource, nextReference);
+        await _reload(source: audioSource, newReference: nextReference);
         break;
       case AudioRepeatModeType.chapter:
         await _seekToReference(
@@ -364,7 +377,11 @@ class AudioPlayerViewModel extends ChangeNotifier {
     _timings = [];
   }
 
-  Future<void> _reload(SourceSetting source, Reference? newReference) async {
+  Future<void> _reload({
+    required SourceSetting source,
+    required Reference? newReference,
+    bool force = false,
+  }) async {
     if (repeatMode.type == AudioRepeatModeType.verse) {
       if (newReference == null) {
         setRepeatMode(AudioRepeatMode.none);
@@ -408,7 +425,7 @@ class AudioPlayerViewModel extends ChangeNotifier {
         prevReference?.bookId != newReference.bookId ||
         prevReference?.chapter != newReference.chapter ||
         activeSource != oldSource.forTestament(nextTestament);
-    if (!needsReload) {
+    if (!needsReload && !force) {
       _seekToReference(newReference);
 
       return;
@@ -545,6 +562,8 @@ class AudioPlayerViewModel extends ChangeNotifier {
 
   @override
   void dispose() {
+    _audioService.removeResourceChangeListener(_onAudioResourceChanged);
+
     super.dispose();
     player.dispose();
 

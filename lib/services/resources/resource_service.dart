@@ -14,6 +14,7 @@ export 'package:gbt/services/resources/resource.dart';
 export 'package:gbt/services/resources/resource_database.dart' show PathMatcher;
 
 typedef ResourceChangeListener = void Function(ResourceType type);
+typedef ResourceTypeChangeListener = void Function(ResourceType type, String id);
 
 class ResourceTypeConfig {
   final String localPathTemplate;
@@ -76,22 +77,36 @@ class ResourceService {
   final outdatedResourceCounts =
       ValueNotifier<OutdatedResourceCounts>(const OutdatedResourceCounts());
 
-  final Map<ResourceType, List<ResourceChangeListener>> _listeners = {
-    for (final type in ResourceType.values) type: <ResourceChangeListener>[],
+  final Map<ResourceType, ResourceTypeListenerGroup> _listeners = {
+    for (final type in ResourceType.values) type: ResourceTypeListenerGroup(),
   };
 
-  void addResourceChangeListener(
+  void addResourceTypeChangeListener(
     ResourceType type,
     ResourceChangeListener listener,
   ) {
-    _listeners[type]?.add(listener);
+    _listeners[type]?.addTypeListener(listener);
+  }
+
+  void removeResourceTypeChangeListener(
+    ResourceType type,
+    ResourceChangeListener listener,
+  ) {
+    _listeners[type]?.removeTypeListener(listener);
+  }
+
+  void addResourceChangeListener(
+    ResourceType type,
+    ResourceTypeChangeListener listener,
+  ) {
+    _listeners[type]?.addResourceListener(listener);
   }
 
   void removeResourceChangeListener(
     ResourceType type,
-    ResourceChangeListener listener,
+    ResourceTypeChangeListener listener,
   ) {
-    _listeners[type]?.remove(listener);
+    _listeners[type]?.removeResourceListener(listener);
   }
 
   Future<void> _recomputeOutdatedCounts() async {
@@ -101,18 +116,13 @@ class ResourceService {
         OutdatedResourceCounts(total: total, byType: byType);
   }
 
-  void _notifyResourceChange(ResourceType type) {
+  void _notifyTypeResourceChange(ResourceType type) {
     _recomputeOutdatedCounts();
+    _listeners[type]?.notifyTypeListeners(type);
+  }
 
-    final listeners = _listeners[type];
-    if (listeners == null) return;
-    for (final listener in listeners) {
-      try {
-        listener(type);
-      } catch (e, stackTrace) {
-        log('Resource change listener threw', error: e, stackTrace: stackTrace);
-      }
-    }
+  void _notifyResourceChange(ResourceType type, String id) {
+    _listeners[type]?.notifyResourceListeners(type, id);
   }
 
   ResourceService() {
@@ -186,7 +196,8 @@ class ResourceService {
         break;
     }
 
-    _notifyResourceChange(resourceType);
+    _notifyTypeResourceChange(resourceType);
+    _notifyResourceChange(resourceType, id);
   }
 
   Future<void> downloadResource(
@@ -223,7 +234,8 @@ class ResourceService {
       await _resourceDatabase.setInstallState(id, InstallState.installed);
 
       log('Gloss download successful.');
-      _notifyResourceChange(resourceType);
+      _notifyTypeResourceChange(resourceType);
+      _notifyResourceChange(resourceType, id);
     } catch (e) {
       log('Gloss download failed for $id', error: e);
       rethrow;
@@ -274,10 +286,55 @@ class ResourceService {
           debugPrint('${type.name} manifest contained ${entries.length} entries');
 
           await _resourceDatabase.updateResourcesFromManifest(type, entries);
-          _notifyResourceChange(type);
+          _notifyTypeResourceChange(type);
       } catch (error) {
           debugPrint('${type.name} manifest update error: $error');
       }
     }
   }
+}
+
+class ResourceTypeListenerGroup {
+    final List<ResourceChangeListener> typeListeners = [];
+    final List<ResourceTypeChangeListener> resourceListeners = [];
+
+    void notifyTypeListeners(ResourceType type) {
+        final listeners = typeListeners;
+
+        for (final listener in listeners) {
+          try {
+            listener(type);
+          } catch (e, stackTrace) {
+            log('Resource change listener threw', error: e, stackTrace: stackTrace);
+          }
+        }
+    }
+
+    void notifyResourceListeners(ResourceType type, String id) {
+        final listeners = resourceListeners;
+
+        for (final listener in listeners) {
+          try {
+            listener(type, id);
+          } catch (e, stackTrace) {
+            log('Resource change listener threw', error: e, stackTrace: stackTrace);
+          }
+        }
+    }
+
+    void addTypeListener(ResourceChangeListener listener) {
+        typeListeners.add(listener);
+    }
+
+    void removeTypeListener(ResourceChangeListener listener) {
+        typeListeners.remove(listener);
+    }
+
+    void addResourceListener(ResourceTypeChangeListener listener) {
+        resourceListeners.add(listener);
+    }
+
+    void removeResourceListener(ResourceTypeChangeListener listener) {
+        resourceListeners.remove(listener);
+    }
 }

@@ -10,6 +10,7 @@ import 'package:gbt/services/app_guide/app_guide_manager.dart';
 import 'package:gbt/services/bible/bible_service.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/services/settings/user_settings.dart';
+import 'package:gbt/ui/common/bible_chooser.dart';
 import 'package:gbt/ui/home/appbar/reference_chooser/reference_chooser.dart';
 import 'package:gbt/ui/home/common/scroll_sync_controller.dart';
 import 'package:gbt/services/reading_session/rs_manager.dart';
@@ -53,6 +54,20 @@ class HomeManager {
 
   int? _lastSavedBook;
   int? _lastSavedChapter;
+
+  HomeManager() {
+    _bibleService.addBibleResourceChangeListener(_onBibleResourceChanged);
+  }
+
+  Future<void> _onBibleResourceChanged(String bibleId) async {
+    if (_settings.currentBible != bibleId) return;
+
+    if (!await _bibleService.bibleExists(bibleId)) {
+      await _settings.setCurrentBible(null);
+    }
+
+    notifySettingsChanged();
+  }
 
   int get currentBookId => currentReference.value.bookId;
   int get currentChapter => currentReference.value.chapter;
@@ -100,6 +115,10 @@ class HomeManager {
   }
 
   void notifySettingsChanged() {
+    // No Bible selected: the Bible panel has nothing to show, so close it.
+    if (_settings.currentBible == null) {
+      isSinglePanelNotifier.value = true;
+    }
     settingsVersionNotifier.value++;
   }
 
@@ -142,7 +161,14 @@ class HomeManager {
     await _settings.setCurrentBookChapter(bookId, chapter);
   }
 
-  void togglePanelState() {
+  Future<void> togglePanelState(BuildContext context) async {
+    // Opening the Bible panel requires a selected Bible. If none is selected,
+    // prompt the user to pick one first instead of opening an empty panel.
+    if (isSinglePanelNotifier.value && _settings.currentBible == null) {
+      final chosen = await chooseBible(context);
+      if (!chosen) return;
+    }
+
     panelAnchorNotifier.value = currentReference.value;
     isSinglePanelNotifier.value = !isSinglePanelNotifier.value;
   }
@@ -206,6 +232,8 @@ class HomeManager {
   }
 
   void dispose() {
+    _bibleService.removeBibleResourceChangeListener(_onBibleResourceChanged);
+
     syncController.removeListener(_onSyncUpdate);
     syncController.dispose();
     audioPlayerViewModel.dispose();
