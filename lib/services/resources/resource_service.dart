@@ -159,7 +159,7 @@ class ResourceService {
     final localVersion = await _resourceDatabase.getResourceVersion(resourceType, id);
     if (localVersion == null) {
         throw ResourceMissingException(resourceType, id);
-    };
+    }
 
     final filePath = await _resolveLocalFilePath(resourceType, id);
     final pathType = await FileSystemEntity.type(filePath);
