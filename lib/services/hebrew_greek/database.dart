@@ -10,7 +10,7 @@ import 'package:gbt/common/word.dart';
 
 class HebrewGreekDatabase {
   static const _databaseName = 'hebrew_greek.db';
-  static const _databaseVersion = 8;
+  static const _databaseVersion = HebrewGreekSchema.databaseVersion;
   late Database _database;
 
   Future<void> init() async {
@@ -55,56 +55,67 @@ class HebrewGreekDatabase {
   }
 
   Future<List<HebrewGreekWord>> getChapter(int bookId, int chapter) async {
-    const int bookMultiplier = 100000000;
-    const int chapterMultiplier = 100000;
-    final int lowerBound =
-        bookId * bookMultiplier + chapter * chapterMultiplier;
-    final int upperBound =
-        bookId * bookMultiplier + (chapter + 1) * chapterMultiplier;
-
-    final List<Map<String, dynamic>> words = await _database.rawQuery(
-      'SELECT v.${HebrewGreekSchema.versesColId}, '
+    final List<Map<String, dynamic>> rows = await _database.rawQuery(
+      'SELECT w.${HebrewGreekSchema.wordsColWordId}, '
+      'v.${HebrewGreekSchema.versesColBook}, '
+      'v.${HebrewGreekSchema.versesColChapter}, '
+      'v.${HebrewGreekSchema.versesColVerse}, '
       't.${HebrewGreekSchema.textColText} '
-      'FROM ${HebrewGreekSchema.versesTable} v '
+      'FROM ${HebrewGreekSchema.wordsTable} w '
+      'JOIN ${HebrewGreekSchema.versesTable} v '
+      'ON w.${HebrewGreekSchema.wordsColVerseId} = v.${HebrewGreekSchema.versesColVerseId} '
       'JOIN ${HebrewGreekSchema.textTable} t '
-      'ON v.${HebrewGreekSchema.versesColText} = t.${HebrewGreekSchema.textColId} '
-      'WHERE v.${HebrewGreekSchema.versesColId} >= ? AND v.${HebrewGreekSchema.versesColId} < ? '
-      'ORDER BY v.${HebrewGreekSchema.versesColId} ASC',
-      [lowerBound, upperBound],
+      'ON w.${HebrewGreekSchema.wordsColText} = t.${HebrewGreekSchema.textColId} '
+      'WHERE v.${HebrewGreekSchema.versesColBook} = ? '
+      'AND v.${HebrewGreekSchema.versesColChapter} = ? '
+      'ORDER BY w.${HebrewGreekSchema.wordsColWordId} ASC',
+      [bookId, chapter],
     );
 
-    return words
-        .map(
-          (word) => HebrewGreekWord(
-            id: word[HebrewGreekSchema.versesColId],
-            text: word[HebrewGreekSchema.textColText],
-          ),
-        )
-        .toList();
+    return rows.map(_toHebrewGreekWord).toList();
   }
 
-  Future<String?> getWordForId(int wordId) async {
-    final List<Map<String, dynamic>> words = await _database.rawQuery(
-      'SELECT v.${HebrewGreekSchema.versesColId}, '
+  Future<HebrewGreekWord?> getWordForId(String wordId) async {
+    final List<Map<String, dynamic>> rows = await _database.rawQuery(
+      'SELECT w.${HebrewGreekSchema.wordsColWordId}, '
+      'v.${HebrewGreekSchema.versesColBook}, '
+      'v.${HebrewGreekSchema.versesColChapter}, '
+      'v.${HebrewGreekSchema.versesColVerse}, '
       't.${HebrewGreekSchema.textColText} '
-      'FROM ${HebrewGreekSchema.versesTable} v '
+      'FROM ${HebrewGreekSchema.wordsTable} w '
+      'JOIN ${HebrewGreekSchema.versesTable} v '
+      'ON w.${HebrewGreekSchema.wordsColVerseId} = v.${HebrewGreekSchema.versesColVerseId} '
       'JOIN ${HebrewGreekSchema.textTable} t '
-      'ON v.${HebrewGreekSchema.versesColText} = t.${HebrewGreekSchema.textColId} '
-      'WHERE v.${HebrewGreekSchema.versesColId} == ?',
+      'ON w.${HebrewGreekSchema.wordsColText} = t.${HebrewGreekSchema.textColId} '
+      'WHERE w.${HebrewGreekSchema.wordsColWordId} = ?',
       [wordId],
     );
-    return words.first[HebrewGreekSchema.textColText];
+    if (rows.isEmpty) return null;
+    return _toHebrewGreekWord(rows.first);
   }
 
-  Future<(String, String)?> getStrongsAndGrammar(int wordId) async {
+  HebrewGreekWord _toHebrewGreekWord(Map<String, dynamic> row) {
+    return HebrewGreekWord(
+      id: row[HebrewGreekSchema.wordsColWordId] as String,
+      reference: Reference(
+        bookId: row[HebrewGreekSchema.versesColBook] as int,
+        chapter: row[HebrewGreekSchema.versesColChapter] as int,
+        verse: row[HebrewGreekSchema.versesColVerse] as int,
+      ),
+      text: row[HebrewGreekSchema.textColText] as String,
+      strongsCode: row[HebrewGreekSchema.strongsColCode] as String?,
+    );
+  }
+
+  Future<(String, String)?> getStrongsAndGrammar(String wordId) async {
     final List<Map<String, dynamic>> result = await _database.rawQuery(
       '''SELECT l.${HebrewGreekSchema.strongsColCode}, g.${HebrewGreekSchema.grammarColGrammar}
-      FROM ${HebrewGreekSchema.versesTable} v
-      JOIN ${HebrewGreekSchema.strongsTable} l 
-      ON v.${HebrewGreekSchema.versesColStrongs} = l.${HebrewGreekSchema.strongsColId}
-      JOIN ${HebrewGreekSchema.grammarTable} g 
-      ON v.${HebrewGreekSchema.versesColGrammar} = g.${HebrewGreekSchema.grammarColId}
-      WHERE v.${HebrewGreekSchema.versesColId} = ?''',
+      FROM ${HebrewGreekSchema.wordsTable} w
+      JOIN ${HebrewGreekSchema.strongsTable} l
+      ON w.${HebrewGreekSchema.wordsColStrongs} = l.${HebrewGreekSchema.strongsColId}
+      JOIN ${HebrewGreekSchema.grammarTable} g
+      ON w.${HebrewGreekSchema.wordsColGrammar} = g.${HebrewGreekSchema.grammarColId}
+      WHERE w.${HebrewGreekSchema.wordsColWordId} = ?''',
       [wordId],
     );
 
@@ -118,24 +129,35 @@ class HebrewGreekDatabase {
     return (lemma, grammar);
   }
 
-  Future<List<int>> allWordsForStrongsCode(String strongsCode) async {
+  Future<List<Reference>> allVersesForStrongsCode(String strongsCode) async {
     final List<Map<String, dynamic>> maps = await _database.rawQuery(
-      '''SELECT v.${HebrewGreekSchema.versesColId}
-      FROM ${HebrewGreekSchema.versesTable} AS v
-      INNER JOIN ${HebrewGreekSchema.strongsTable} AS l 
-      ON v.${HebrewGreekSchema.versesColStrongs} = l.${HebrewGreekSchema.strongsColId}
+      '''SELECT DISTINCT
+        v.${HebrewGreekSchema.versesColBook},
+        v.${HebrewGreekSchema.versesColChapter},
+        v.${HebrewGreekSchema.versesColVerse}
+      FROM ${HebrewGreekSchema.wordsTable} AS w
+      INNER JOIN ${HebrewGreekSchema.versesTable} AS v
+      ON w.${HebrewGreekSchema.wordsColVerseId} = v.${HebrewGreekSchema.versesColVerseId}
+      INNER JOIN ${HebrewGreekSchema.strongsTable} AS l
+      ON w.${HebrewGreekSchema.wordsColStrongs} = l.${HebrewGreekSchema.strongsColId}
       WHERE l.${HebrewGreekSchema.strongsColCode} = ?
+      ORDER BY
+        v.${HebrewGreekSchema.versesColBook},
+        v.${HebrewGreekSchema.versesColChapter},
+        v.${HebrewGreekSchema.versesColVerse}
       ''',
       [strongsCode],
     );
 
-    if (maps.isNotEmpty) {
-      return maps
-          .map((map) => map[HebrewGreekSchema.versesColId] as int)
-          .toList();
-    }
+    return maps.map(_toReference).toList();
+  }
 
-    return [];
+  Reference _toReference(Map<String, dynamic> map) {
+    return Reference(
+      bookId: map[HebrewGreekSchema.versesColBook] as int,
+      chapter: map[HebrewGreekSchema.versesColChapter] as int,
+      verse: map[HebrewGreekSchema.versesColVerse] as int,
+    );
   }
 
   Future<String?> strongsCodeRoot(String strongsCode) async {
@@ -160,56 +182,43 @@ class HebrewGreekDatabase {
     Reference reference, {
     bool includeStrongs = false,
   }) async {
-    const int bookMultiplier = 100000000;
-    const int chapterMultiplier = 100000;
-    const int verseMultiplier = 100;
-    final int lowerBound =
-        reference.bookId * bookMultiplier +
-        reference.chapter * chapterMultiplier +
-        reference.verse * verseMultiplier;
-    final int upperBound =
-        reference.bookId * bookMultiplier +
-        reference.chapter * chapterMultiplier +
-        (reference.verse + 1) * verseMultiplier;
-
     final sql = StringBuffer();
     sql.write(
-      'SELECT v.${HebrewGreekSchema.versesColId}, '
+      'SELECT w.${HebrewGreekSchema.wordsColWordId}, '
+      'v.${HebrewGreekSchema.versesColBook}, '
+      'v.${HebrewGreekSchema.versesColChapter}, '
+      'v.${HebrewGreekSchema.versesColVerse}, '
       't.${HebrewGreekSchema.textColText} ',
     );
     if (includeStrongs) {
       sql.write(', l.${HebrewGreekSchema.strongsColCode} ');
     }
     sql.write(
-      'FROM ${HebrewGreekSchema.versesTable} v '
+      'FROM ${HebrewGreekSchema.wordsTable} w '
+      'JOIN ${HebrewGreekSchema.versesTable} v '
+      'ON w.${HebrewGreekSchema.wordsColVerseId} = v.${HebrewGreekSchema.versesColVerseId} '
       'JOIN ${HebrewGreekSchema.textTable} t '
-      'ON v.${HebrewGreekSchema.versesColText} = t.${HebrewGreekSchema.textColId} ',
+      'ON w.${HebrewGreekSchema.wordsColText} = t.${HebrewGreekSchema.textColId} ',
     );
     if (includeStrongs) {
       sql.write(
         'JOIN ${HebrewGreekSchema.strongsTable} l '
-        'ON v.${HebrewGreekSchema.versesColStrongs} = l.${HebrewGreekSchema.strongsColId} ',
+        'ON w.${HebrewGreekSchema.wordsColStrongs} = l.${HebrewGreekSchema.strongsColId} ',
       );
     }
     sql.write(
-      'WHERE v.${HebrewGreekSchema.versesColId} >= ? AND v.${HebrewGreekSchema.versesColId} < ? '
-      'ORDER BY v.${HebrewGreekSchema.versesColId} ASC',
+      'WHERE v.${HebrewGreekSchema.versesColBook} = ? '
+      'AND v.${HebrewGreekSchema.versesColChapter} = ? '
+      'AND v.${HebrewGreekSchema.versesColVerse} = ? '
+      'ORDER BY w.${HebrewGreekSchema.wordsColWordId} ASC',
     );
 
     final List<Map<String, dynamic>> words = await _database.rawQuery(
       sql.toString(),
-      [lowerBound, upperBound],
+      [reference.bookId, reference.chapter, reference.verse],
     );
 
-    return words
-        .map(
-          (word) => HebrewGreekWord(
-            id: word[HebrewGreekSchema.versesColId],
-            text: word[HebrewGreekSchema.textColText],
-            strongsCode: word[HebrewGreekSchema.strongsColCode],
-          ),
-        )
-        .toList();
+    return words.map(_toHebrewGreekWord).toList();
   }
 
   /// Queries the database for unique normalized words starting with a given prefix,
@@ -269,27 +278,30 @@ class HebrewGreekDatabase {
 
     final placeholders = List.filled(uniqueWords.length, '?').join(', ');
 
-    // This calculation creates a unique ID for each verse.
-    // e.g., Genesis 1:1 -> 1001001
-    final verseIdCalc = 'v.${HebrewGreekSchema.versesColId} / 100';
-
     final sql =
         '''
     SELECT
-      $verseIdCalc AS verse_id
+      v.${HebrewGreekSchema.versesColBook},
+      v.${HebrewGreekSchema.versesColChapter},
+      v.${HebrewGreekSchema.versesColVerse}
     FROM
-      ${HebrewGreekSchema.versesTable} v
+      ${HebrewGreekSchema.wordsTable} w
     INNER JOIN
-      ${HebrewGreekSchema.textTable} t 
-      ON v.${HebrewGreekSchema.versesColText} = t.${HebrewGreekSchema.textColId}
+      ${HebrewGreekSchema.versesTable} v
+      ON w.${HebrewGreekSchema.wordsColVerseId} = v.${HebrewGreekSchema.versesColVerseId}
+    INNER JOIN
+      ${HebrewGreekSchema.textTable} t
+      ON w.${HebrewGreekSchema.wordsColText} = t.${HebrewGreekSchema.textColId}
     WHERE
       t.${HebrewGreekSchema.textColNormalized} IN ($placeholders)
     GROUP BY
-      verse_id
+      v.${HebrewGreekSchema.versesColVerseId}
     HAVING
       COUNT(DISTINCT t.${HebrewGreekSchema.textColNormalized}) = ?
     ORDER BY
-      verse_id ASC
+      v.${HebrewGreekSchema.versesColBook},
+      v.${HebrewGreekSchema.versesColChapter},
+      v.${HebrewGreekSchema.versesColVerse}
     ''';
 
     final List<dynamic> arguments = [...uniqueWords, uniqueWords.length];
@@ -303,50 +315,42 @@ class HebrewGreekDatabase {
       return [];
     }
 
-    // Map the list of verse IDs to a list of Reference objects.
-    return maps.map((map) {
-      final int verseId = map['verse_id'] as int;
-
-      // Decode the verseId into its components.
-      final int bookId = verseId ~/ 1000000;
-      final int remainder = verseId % 1000000;
-      final int chapter = remainder ~/ 1000;
-      final int verse = remainder % 1000;
-
-      return Reference(bookId: bookId, chapter: chapter, verse: verse);
-    }).toList();
+    return maps.map(_toReference).toList();
   }
 
   /// Searches for all instances of a word, ignoring punctuation and capitalization.
   ///
-  /// Returns a list of unique word IDs from the verses table.
-  Future<List<int>> searchExactMatchNoPunctuation(String query) async {
+  /// Returns a list of unique [Reference]s for the verses that contain a match.
+  Future<List<Reference>> searchExactMatchNoPunctuation(String query) async {
     query = removePunctuation(query);
 
     if (query.isEmpty) {
       return [];
     }
 
-    // The SQL query now joins the verses and text tables, but filters the
-    // WHERE clause on the 'no_punctuation' column for a flexible match.
+    // Join words -> text (for the match) -> verses (for the reference), so the
+    // result is a list of verse references rather than word ids that must be
+    // decoded.
     const String sql =
         '''
-      SELECT v.${HebrewGreekSchema.versesColId}
-      FROM ${HebrewGreekSchema.versesTable} AS v
-      INNER JOIN ${HebrewGreekSchema.textTable} AS t 
-      ON v.${HebrewGreekSchema.versesColText} = t.${HebrewGreekSchema.textColId}
+      SELECT DISTINCT
+        v.${HebrewGreekSchema.versesColBook},
+        v.${HebrewGreekSchema.versesColChapter},
+        v.${HebrewGreekSchema.versesColVerse}
+      FROM ${HebrewGreekSchema.wordsTable} AS w
+      INNER JOIN ${HebrewGreekSchema.textTable} AS t
+      ON w.${HebrewGreekSchema.wordsColText} = t.${HebrewGreekSchema.textColId}
+      INNER JOIN ${HebrewGreekSchema.versesTable} AS v
+      ON w.${HebrewGreekSchema.wordsColVerseId} = v.${HebrewGreekSchema.versesColVerseId}
       WHERE t.${HebrewGreekSchema.textColNoPunctuation} = ?
+      ORDER BY
+        v.${HebrewGreekSchema.versesColBook},
+        v.${HebrewGreekSchema.versesColChapter},
+        v.${HebrewGreekSchema.versesColVerse}
     ''';
 
-    // Execute the query with the cleaned search term.
     final maps = await _database.rawQuery(sql, [query]);
 
-    if (maps.isNotEmpty) {
-      return maps
-          .map((map) => map[HebrewGreekSchema.versesColId] as int)
-          .toList();
-    }
-
-    return [];
+    return maps.map(_toReference).toList();
   }
 }

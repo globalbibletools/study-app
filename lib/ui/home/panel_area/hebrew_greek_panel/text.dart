@@ -11,14 +11,14 @@ import 'package:gbt/services/settings/user_settings.dart';
 ///
 /// The function can be asynchronous to allow waiting for user
 /// interaction (e.g., closing a dialog).
-typedef AsyncWordActionCallback = Future<void> Function(int wordId);
+typedef AsyncWordActionCallback = Future<void> Function(String wordId);
 
 /// A function that returns a string to be displayed in a popup for a given word ID.
 ///
 /// The lookup can be asynchronous (e.g., from a database or network).
 /// If the function's Future resolves to null or an empty string,
 /// no popup will be shown for that word.
-typedef AsyncPopupWordProvider = Future<String?> Function(int wordId);
+typedef AsyncPopupWordProvider = Future<String?> Function(String wordId);
 
 /// A callback to find a verse number at a specific Y offset
 typedef VerseAtOffsetCallback = int? Function(double y);
@@ -448,13 +448,13 @@ class RenderHebrewGreekText extends RenderBox {
   final Paint _highlightPaint = Paint();
   final Paint _bgPaint = Paint();
 
-  int? _tappedWordId;
+  String? _tappedWordId;
   String? _popupText;
   TextPainter? _popupPainter;
   Timer? _popupDismissTimer;
   late final TapGestureRecognizer _tapRecognizer;
   late final LongPressGestureRecognizer _longPressRecognizer;
-  int? _flashedWordId;
+  String? _flashedWordId;
   Timer? _flashTimer;
   final List<_LineMetrics> _lineMetrics = [];
   VerseLayout _verseLayout;
@@ -469,7 +469,7 @@ class RenderHebrewGreekText extends RenderBox {
     List<HebrewGreekWord> currentWords = [];
 
     for (final w in words) {
-      final verse = (w.id ~/ 100) % 1000;
+      final verse = w.reference.verse;
 
       if (currentVerse != verse) {
         if (currentWords.isNotEmpty) {
@@ -873,22 +873,6 @@ class RenderHebrewGreekText extends RenderBox {
     }
   }
 
-  Rect? getWordRect(int wordId) {
-    final verseNumber = (wordId ~/ 100) % 1000;
-    if (verseNumber < 1 || verseNumber > _verseRenderer.length) return null;
-
-    VerseRenderer verse = _verseRenderer[verseNumber - 1];
-
-    for (int i = 0; i < verse.words.length; i++) {
-      WordRenderer word = verse.words[i];
-      if (word.word.id == wordId) {
-        return word.rect;
-      }
-    }
-
-    return null;
-  }
-
   _LineMetrics? _findLineAtOffset(double y) {
     if (_lineMetrics.isEmpty) return null;
 
@@ -935,16 +919,19 @@ class RenderHebrewGreekText extends RenderBox {
   }
 
   // Helper to finalize a line
-  void _finalizeLine(double top, double bottom, List<int> wordIds) {
-    if (wordIds.isEmpty) return;
+  void _finalizeLine(
+    double top,
+    double bottom,
+    List<({HebrewGreekWord word, bool isFirstInVerse})> lineWords,
+  ) {
+    if (lineWords.isEmpty) return;
 
     int? bestStartVerse;
     int? lowestVerseOnLine;
     int? highestVerseOnLine;
 
-    for (final wordId in wordIds) {
-      final verse = (wordId ~/ 100) % 1000;
-      final wordNum = wordId % 100;
+    for (final item in lineWords) {
+      final verse = item.word.reference.verse;
 
       if (lowestVerseOnLine == null || verse < lowestVerseOnLine) {
         lowestVerseOnLine = verse;
@@ -952,7 +939,7 @@ class RenderHebrewGreekText extends RenderBox {
       if (highestVerseOnLine == null || verse > highestVerseOnLine) {
         highestVerseOnLine = verse;
       }
-      if (wordNum == 1) {
+      if (item.isFirstInVerse) {
         if (bestStartVerse == null || verse < bestStartVerse) {
           bestStartVerse = verse;
         }
@@ -970,7 +957,7 @@ class RenderHebrewGreekText extends RenderBox {
         highestVerseOnLine ?? 1,
       ),
     );
-    wordIds.clear();
+    lineWords.clear();
   }
 
   Size _performLayout(BoxConstraints constraints) {
@@ -990,7 +977,8 @@ class RenderHebrewGreekText extends RenderBox {
     final isLtr = _textDirection == TextDirection.ltr;
 
     // Temporary storage for calculating verse priority on the current line
-    List<int> currentLineWordIds = [];
+    final List<({HebrewGreekWord word, bool isFirstInVerse})> currentLineWords =
+        [];
 
     mainAxisOffset = isLtr ? 0.0 : availableWidth;
 
@@ -1015,7 +1003,7 @@ class RenderHebrewGreekText extends RenderBox {
           isLtr,
           availableWidth,
           currentLineMaxHeight,
-          currentLineWordIds,
+          currentLineWords,
           j == 0 ? verse.verseNumberPainter : null,
           j == 0 ? verse.verseReadingCountPainter : null,
           j == 0 ? verse.checkboxSize : null,
@@ -1048,7 +1036,7 @@ class RenderHebrewGreekText extends RenderBox {
     _finalizeLine(
       crossAxisOffset,
       crossAxisOffset + currentLineMaxHeight,
-      currentLineWordIds,
+      currentLineWords,
     );
 
     controller?._updateVerseRects(verseRectsMap);
@@ -1075,7 +1063,7 @@ class RenderHebrewGreekText extends RenderBox {
     bool isLtr,
     double availableWidth,
     double currentLineMaxHeight,
-    List<int> currentLineWordIds,
+    List<({HebrewGreekWord word, bool isFirstInVerse})> currentLineWords,
     TextPainter? verseNumberPainter,
     TextPainter? countPainter,
     Size? checkboxSize,
@@ -1113,14 +1101,18 @@ class RenderHebrewGreekText extends RenderBox {
       _finalizeLine(
         crossAxisOffset,
         crossAxisOffset + currentLineMaxHeight,
-        currentLineWordIds,
+        currentLineWords,
       );
       crossAxisOffset += currentLineMaxHeight;
       currentLineMaxHeight = 0.0;
       mainAxisOffset = isLtr ? 0.0 : availableWidth;
     }
 
-    currentLineWordIds.add(word.id);
+    // The verse number painter is only passed for the first word of a verse
+    // (j == 0 in the verse loop), so its presence marks a verse start.
+    currentLineWords.add(
+      (word: word, isFirstInVerse: verseNumberPainter != null),
+    );
 
     // Calculate max height for this line
     currentLineMaxHeight = math.max(
@@ -1391,7 +1383,7 @@ class RenderHebrewGreekText extends RenderBox {
       // Then check words
       for (int j = 0; j < vr.words.length; j++) {
         if (vr.words[j].rect?.contains(position) ?? false) {
-          result.add(HebrewGreekWordHitTestEntry(this, vr.words[j].word.id));
+          result.add(HebrewGreekWordHitTestEntry(this, vr.words[j]));
           return true;
         }
       }
@@ -1446,6 +1438,7 @@ class RenderHebrewGreekText extends RenderBox {
       _popupDismissTimer?.cancel();
 
       final tappedId = entry.wordId;
+      final tappedWordRenderer = entry.wordRenderer;
 
       _tappedWordId = tappedId;
       _popupText = null;
@@ -1459,7 +1452,7 @@ class RenderHebrewGreekText extends RenderBox {
             _preparePopupPainter();
 
             // Notify parent about the popup rect for potential scrolling.
-            final tappedWordRect = getWordRect(tappedId);
+            final tappedWordRect = tappedWordRenderer.rect;
             if (tappedWordRect != null) {
               final localPopupRect = _getPopupRect(tappedWordRect);
               final globalTopLeft = localToGlobal(localPopupRect.topLeft);
@@ -1765,11 +1758,13 @@ class RenderHebrewGreekText extends RenderBox {
 
 // A custom HitTestEntry to carry the specific word ID that was hit.
 class HebrewGreekWordHitTestEntry extends HitTestEntry {
-  HebrewGreekWordHitTestEntry(this.renderObject, this.wordId)
+  HebrewGreekWordHitTestEntry(this.renderObject, this.wordRenderer)
     : super(renderObject);
 
   final RenderHebrewGreekText renderObject;
-  final int wordId;
+  final WordRenderer wordRenderer;
+
+  String get wordId => wordRenderer.word.id;
 
   @override
   String toString() =>

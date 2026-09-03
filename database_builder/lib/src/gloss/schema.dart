@@ -7,25 +7,21 @@ class GlossSchema {
   // take up less space than strings.
   static const String versesTable = "verses";
 
-  // ID is in the form of BBCCCVVVWW,
-  // where BB is the book number,
-  // CC is the chapter number,
-  // VVV is the verse number,
-  // and WW is the word number.
-  static const String versesColId = '_id';
+  // The source word id (BBCCCVVVWW), e.g. "0100100101".
+  static const String versesColWordId = 'word_id';
   // foreign key to the text table
   static const String versesColText = 'text';
 
   static const String createVersesTable = '''
   CREATE TABLE IF NOT EXISTS $versesTable (
-    $versesColId INTEGER PRIMARY KEY,
+    $versesColWordId TEXT PRIMARY KEY,
     $versesColText INTEGER
   )
   ''';
 
   static const insertVerseGloss = '''
   INSERT INTO $versesTable
-    ($versesColId, $versesColText)
+    ($versesColWordId, $versesColText)
     VALUES (?, ?);
   ''';
 
@@ -43,7 +39,7 @@ class GlossSchema {
   )
   ''';
 
-  static const insertText = '''
+  static const String insertText = '''
   INSERT INTO $textTable
     ($textColId, $textColText)
     VALUES (?, ?);

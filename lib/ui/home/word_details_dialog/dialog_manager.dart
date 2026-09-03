@@ -14,7 +14,7 @@ class WordDetailsDialogManager extends ChangeNotifier {
   WordDetails? wordDetails;
   List<LexiconMeaning> lexiconMeanings = [];
 
-  Future<void> init(int wordId) async {
+  Future<void> init(String wordId) async {
     wordDetails = await _getWordDetails(wordId);
     lexiconMeanings = await _lexiconDb.getMeaningsForStrongs(
       wordDetails!.strongsCode,
@@ -22,13 +22,13 @@ class WordDetailsDialogManager extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<WordDetails> _getWordDetails(int wordId) async {
+  Future<WordDetails> _getWordDetails(String wordId) async {
     final word = await _hebrewGreekDb.getWordForId(wordId);
     final gloss = await _glossService.glossForId(wordId: wordId);
     final (strongs, grammar) =
         await _hebrewGreekDb.getStrongsAndGrammar(wordId) ?? ('', '');
     return WordDetails(
-      word: word ?? '',
+      word: word?.text ?? '',
       gloss: gloss ?? '',
       strongsCode: strongs,
       grammar: grammar,

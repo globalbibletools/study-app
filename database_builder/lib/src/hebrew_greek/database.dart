@@ -17,7 +17,8 @@ typedef ForeignTableMaps = (
 class HebrewGreekDatabase {
   final String _databaseName = "hebrew_greek.db";
   late Database _database;
-  late PreparedStatement _insertVerseWord;
+  late PreparedStatement _insertVerse;
+  late PreparedStatement _insertWord;
   late PreparedStatement _insertText;
   late PreparedStatement _insertGrammar;
   late PreparedStatement _insertStrongs;
@@ -38,13 +39,18 @@ class HebrewGreekDatabase {
 
   void _createTables() {
     _database.execute(HebrewGreekSchema.createVersesTable);
+    _database.execute(HebrewGreekSchema.createWordsTable);
     _database.execute(HebrewGreekSchema.createTextTable);
     _database.execute(HebrewGreekSchema.createGrammarTable);
     _database.execute(HebrewGreekSchema.createStrongsTable);
+
+    _database
+        .execute('PRAGMA user_version = ${HebrewGreekSchema.databaseVersion};');
   }
 
   void _initPreparedStatements() {
-    _insertVerseWord = _database.prepare(HebrewGreekSchema.insertVerseWord);
+    _insertVerse = _database.prepare(HebrewGreekSchema.insertVerse);
+    _insertWord = _database.prepare(HebrewGreekSchema.insertWord);
     _insertText = _database.prepare(HebrewGreekSchema.insertText);
     _insertGrammar = _database.prepare(HebrewGreekSchema.insertGrammar);
     _insertStrongs = _database.prepare(HebrewGreekSchema.insertStrongs);
@@ -66,6 +72,7 @@ class HebrewGreekDatabase {
     print('Total Hebrew/Greek words: $wordCount');
 
     // add indexes
+    _database.execute(HebrewGreekSchema.createWordsVerseIdIndex);
     _database.execute(HebrewGreekSchema.createTextNormalizedIndex);
     _database.execute(HebrewGreekSchema.createTextNoPunctuationIndex);
   }
@@ -191,16 +198,27 @@ class HebrewGreekDatabase {
 
   List<_HebrewGreekWord> _extractWords(String jsonString) {
     final Map<String, dynamic> data = jsonDecode(jsonString);
+    final int bookId = data['id'];
     final List<dynamic> chapters = data['chapters'];
 
     final List<_HebrewGreekWord> words = [];
 
     for (var chapter in chapters) {
+      final int chapterId = chapter['id'];
       final verses = chapter['verses'] as List<dynamic>;
       for (var verse in verses) {
+        final String verseId = verse['id'].toString();
+        final int verseIdInt = int.parse(verseId);
+        final int verseNumber = verseIdInt % 1000;
         final wordList = verse['words'] as List<dynamic>;
         for (var word in wordList) {
-          words.add(_HebrewGreekWord.fromJson(word));
+          words.add(_HebrewGreekWord.fromJson(
+            word,
+            bookId: bookId,
+            chapterId: chapterId,
+            verseNumber: verseNumber,
+            verseId: verseId,
+          ));
         }
       }
     }
@@ -216,11 +234,20 @@ class HebrewGreekDatabase {
   ) {
     _database.execute('BEGIN TRANSACTION;');
     for (var word in words) {
+      // Insert the verse row (deduped on verse_id via INSERT OR IGNORE).
+      _insertVerse.execute([
+        word.verseId,
+        word.bookId,
+        word.chapterId,
+        word.verseNumber,
+      ]);
+
       final textForeignId = textMap[word.text];
       final grammarForeignId = grammarMap[word.grammar];
       final lemmaForeignId = lemmaMap[word.lemma];
-      _insertVerseWord.execute([
-        word.id,
+      _insertWord.execute([
+        word.sourceId,
+        word.verseId,
         textForeignId,
         grammarForeignId,
         lemmaForeignId,
@@ -230,7 +257,8 @@ class HebrewGreekDatabase {
   }
 
   void dispose() {
-    _insertVerseWord.close();
+    _insertVerse.close();
+    _insertWord.close();
     _insertText.close();
     _insertGrammar.close();
     _insertStrongs.close();
@@ -239,26 +267,53 @@ class HebrewGreekDatabase {
 }
 
 class _HebrewGreekWord {
-  /// ID is in the form of BBCCCVVVWW,
-  /// where BB is the book number,
-  /// CC is the chapter number,
-  /// VVV is the verse number,
-  /// and WW is the word number.
-  final int id;
+  /// The source word id as a string (BBCCCVVVWW, e.g. "0100100101").
+  /// This is the opaque primary key shared with the gloss DBs.
+  final String sourceId;
+
+  /// The verse id (BBCCCVVV) this word belongs to.
+  final String verseId;
+  final int bookId;
+  final int chapterId;
+  final int verseNumber;
+
   final String text;
   final String grammar;
   final String lemma;
 
   _HebrewGreekWord({
-    required this.id,
+    required this.sourceId,
+    required this.verseId,
+    required this.bookId,
+    required this.chapterId,
+    required this.verseNumber,
     required this.text,
     required this.grammar,
     required this.lemma,
   });
 
-  factory _HebrewGreekWord.fromJson(Map<String, dynamic> json) {
+  factory _HebrewGreekWord.fromJson(
+    Map<String, dynamic> json, {
+    required int bookId,
+    required int chapterId,
+    required int verseNumber,
+    required String verseId,
+  }) {
+    final sourceId = json['id'].toString();
+    final expectedVersePrefix = verseId;
+    if (!sourceId.startsWith(expectedVersePrefix)) {
+      throw StateError(
+        "Source word id '$sourceId' does not belong to verse "
+        "'$expectedVersePrefix' (book $bookId, chapter $chapterId, "
+        "verse $verseNumber).",
+      );
+    }
     return _HebrewGreekWord(
-      id: int.parse(json['id']),
+      sourceId: sourceId,
+      verseId: verseId,
+      bookId: bookId,
+      chapterId: chapterId,
+      verseNumber: verseNumber,
       text: json['text']?.trim(),
       grammar: json['grammar']?.trim(),
       lemma: json['lemma']?.trim(),
@@ -267,5 +322,5 @@ class _HebrewGreekWord {
 
   @override
   String toString() =>
-      'HebrewGreekWord(id: $id, text: $text, grammar: $grammar, lemma: $lemma)';
+      'HebrewGreekWord(sourceId: $sourceId, verseId: $verseId, text: $text, grammar: $grammar, lemma: $lemma)';
 }

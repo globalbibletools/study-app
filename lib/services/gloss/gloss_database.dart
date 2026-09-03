@@ -15,14 +15,14 @@ class GlossDatabase {
 
   Future<void> close() async => await _database.close();
 
-  Future<String?> getGloss(int wordId) async {
+  Future<String?> getGloss(String wordId) async {
     try {
       final query = '''
         SELECT t.${GlossSchema.textColText}
         FROM ${GlossSchema.versesTable} v
         JOIN ${GlossSchema.textTable} t 
         ON v.${GlossSchema.versesColText} = t.${GlossSchema.textColId}
-        WHERE v.${GlossSchema.versesColId} = ?
+        WHERE v.${GlossSchema.versesColWordId} = ?
         ''';
       final List<Map<String, dynamic>> words = await _database.rawQuery(
         query,
