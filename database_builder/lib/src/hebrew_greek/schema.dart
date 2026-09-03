@@ -38,7 +38,7 @@ class HebrewGreekSchema {
   // strings. The `verse_id` column links each word to its verse reference.
   static const wordsTable = 'words';
 
-  static const wordsColWordId = 'word_id'; // source BBCCCVVVWW string
+  static const wordsColWordId = 'word_id'; // source BBCCCVVVWW(-NN) string
   static const wordsColVerseId = 'verse_id'; // foreign key -> verses.verse_id
   static const wordsColText = 'text'; // foreign key to text table
   static const wordsColGrammar = 'grammar'; // foreign key to grammar table

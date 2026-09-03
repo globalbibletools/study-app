@@ -14,6 +14,12 @@ typedef ForeignTableMaps = (
   Map<String, int>,
 );
 
+/// Old Testament source (books 1-39): hbo+grc JSON word data.
+final otBookFileNames = bookFileNames.take(39).toList();
+
+/// New Testament source (books 40-66): srgnt CSV word data.
+const srCsvPath = 'lib/src/hebrew_greek/srgnt/sr.csv';
+
 class HebrewGreekDatabase {
   final String _databaseName = "hebrew_greek.db";
   late Database _database;
@@ -57,18 +63,34 @@ class HebrewGreekDatabase {
   }
 
   Future<void> populateHebrewGreekTables() async {
-    final (text, grammar, lemmas) = await _populateForeignTables();
-
-    int wordCount = 0;
-    for (final fileName in bookFileNames) {
+    // OT words come from the hbo+grc JSON files; NT words come from
+    // the srgnt sr.csv file, which is a more recent Greek text.
+    final Map<String, List<_HebrewGreekWord>> otWords = {};
+    for (final fileName in otBookFileNames) {
       final file = File('../../data/hbo+grc/$fileName');
       final jsonData = await file.readAsString();
-      print('Processing $fileName');
-      final words = _extractWords(jsonData);
-      print('words: ${words.length}');
-      wordCount += words.length;
-      _addHebrewGreekWords(words, text, grammar, lemmas);
+      otWords[fileName] = _extractWords(jsonData);
     }
+    final ntWords = await _readSrCsv();
+    print('OT words: ${otWords.values.map((w) => w.length).reduce((a, b) => a + b)}');
+    print('NT words: ${ntWords.length}');
+
+    final (text, grammar, lemmas) = await _populateForeignTables(
+      otWords,
+      ntWords,
+    );
+
+    int wordCount = 0;
+    for (final entry in otWords.entries) {
+      print('Processing ${entry.key}');
+      print('words: ${entry.value.length}');
+      wordCount += entry.value.length;
+      _addHebrewGreekWords(entry.value, text, grammar, lemmas);
+    }
+    print('Processing $srCsvPath');
+    print('words: ${ntWords.length}');
+    wordCount += ntWords.length;
+    _addHebrewGreekWords(ntWords, text, grammar, lemmas);
     print('Total Hebrew/Greek words: $wordCount');
 
     // add indexes
@@ -77,16 +99,15 @@ class HebrewGreekDatabase {
     _database.execute(HebrewGreekSchema.createTextNoPunctuationIndex);
   }
 
-  Future<ForeignTableMaps> _populateForeignTables() async {
+  Future<ForeignTableMaps> _populateForeignTables(
+    Map<String, List<_HebrewGreekWord>> otWords,
+    List<_HebrewGreekWord> ntWords,
+  ) async {
     final Map<String, int> textFrequencies = {};
     final Set<String> uniqueGrammar = {};
     final Set<String> uniqueStrongs = {};
 
-    for (final fileName in bookFileNames) {
-      final file = File('../../data/hbo+grc/$fileName');
-      final jsonData = await file.readAsString();
-      print('Counting word frequencies in $fileName');
-      final words = _extractWords(jsonData);
+    void countWords(Iterable<_HebrewGreekWord> words) {
       for (final word in words) {
         final text = word.text.trim();
         textFrequencies.update(text, (count) => count + 1, ifAbsent: () => 1);
@@ -94,6 +115,13 @@ class HebrewGreekDatabase {
         uniqueStrongs.add(word.lemma.trim());
       }
     }
+
+    for (final fileName in otBookFileNames) {
+      print('Counting word frequencies in $fileName');
+      countWords(otWords[fileName]!);
+    }
+    print('Counting word frequencies in $srCsvPath');
+    countWords(ntWords);
 
     final sortedTextList = textFrequencies.keys.toList()
       ..sort((a, b) => textFrequencies[b]!.compareTo(textFrequencies[a]!));
@@ -226,6 +254,68 @@ class HebrewGreekDatabase {
     return words;
   }
 
+  /// Reads the New Testament word data from the srgnt sr.csv file.
+  ///
+  /// The CSV has a header row and columns:
+  /// id,text,grammar,lemma_id,gloss
+  Future<List<_HebrewGreekWord>> _readSrCsv() async {
+    final file = File(srCsvPath);
+    final content = await file.readAsString();
+    final rows = _parseCsv(content);
+
+    final List<_HebrewGreekWord> words = [];
+    // Skip the header row.
+    for (final row in rows.skip(1)) {
+      if (row.length < 4) {
+        throw FormatException('Malformed sr.csv row: $row');
+      }
+      words.add(_HebrewGreekWord.fromSrCsvRow(row));
+    }
+    return words;
+  }
+
+  /// Minimal RFC 4180 CSV parser: handles quoted fields, escaped quotes
+  /// (""), commas inside quotes, and \r\n line endings.
+  List<List<String>> _parseCsv(String content) {
+    final rows = <List<String>>[];
+    var row = <String>[];
+    final field = StringBuffer();
+    var inQuotes = false;
+
+    for (var i = 0; i < content.length; i++) {
+      final c = content[i];
+      if (inQuotes) {
+        if (c == '"') {
+          if (i + 1 < content.length && content[i + 1] == '"') {
+            field.write('"');
+            i++;
+          } else {
+            inQuotes = false;
+          }
+        } else {
+          field.write(c);
+        }
+      } else if (c == '"') {
+        inQuotes = true;
+      } else if (c == ',') {
+        row.add(field.toString());
+        field.clear();
+      } else if (c == '\n') {
+        row.add(field.toString());
+        field.clear();
+        rows.add(row);
+        row = <String>[];
+      } else if (c != '\r') {
+        field.write(c);
+      }
+    }
+    if (field.isNotEmpty || row.isNotEmpty) {
+      row.add(field.toString());
+      rows.add(row);
+    }
+    return rows;
+  }
+
   void _addHebrewGreekWords(
     List<_HebrewGreekWord> words,
     Map<String, int> textMap,
@@ -269,6 +359,10 @@ class HebrewGreekDatabase {
 class _HebrewGreekWord {
   /// The source word id as a string (BBCCCVVVWW, e.g. "0100100101").
   /// This is the opaque primary key shared with the gloss DBs.
+  ///
+  /// New Testament ids from the srgnt data may carry an optional -NN
+  /// suffix (e.g. "4000101309-01") marking a word added after ids were
+  /// assigned; the suffix preserves word order.
   final String sourceId;
 
   /// The verse id (BBCCCVVV) this word belongs to.
@@ -323,4 +417,48 @@ class _HebrewGreekWord {
   @override
   String toString() =>
       'HebrewGreekWord(sourceId: $sourceId, verseId: $verseId, text: $text, grammar: $grammar, lemma: $lemma)';
+
+  /// Builds a word from an srgnt sr.csv row.
+  ///
+  /// The id column is in the form BBCCCVVVWW(-NN): BB is the book
+  /// number, CCC the chapter, VVV the verse, WW the word number, and the
+  /// optional zero-padded -NN suffix marks a word added after ids were
+  /// assigned (preserving word order). The book, chapter, and verse are
+  /// parsed from the id prefix, since the CSV carries no separate verse
+  /// metadata.
+  factory _HebrewGreekWord.fromSrCsvRow(List<String> row) {
+    final sourceId = row[0].trim();
+
+    // The numeric prefix before any -NN suffix encodes BBCCCVVVWW.
+    final dashIndex = sourceId.indexOf('-');
+    final baseId = dashIndex == -1 ? sourceId : sourceId.substring(0, dashIndex);
+    if (baseId.length != 10 || int.tryParse(baseId) == null) {
+      throw FormatException(
+        'Malformed sr.csv word id: "$sourceId" in row: $row',
+      );
+    }
+
+    final verseId = baseId.substring(0, 8);
+    final bookId = int.parse(baseId.substring(0, 2));
+    final chapterId = int.parse(baseId.substring(2, 5));
+    final verseNumber = int.parse(baseId.substring(5, 8));
+
+    if (!sourceId.startsWith(verseId)) {
+      throw FormatException(
+        'Malformed sr.csv word id: "$sourceId" does not belong to verse '
+        '"$verseId".',
+      );
+    }
+
+    return _HebrewGreekWord(
+      sourceId: sourceId,
+      verseId: verseId,
+      bookId: bookId,
+      chapterId: chapterId,
+      verseNumber: verseNumber,
+      text: row[1].trim(),
+      grammar: row[2].trim(),
+      lemma: row[3].trim(),
+    );
+  }
 }
