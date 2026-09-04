@@ -188,6 +188,8 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
       children: [
         _subTabsGoals(),
         const SizedBox(height: 10),
+        _periodNavigator(),
+        const SizedBox(height: 10),
         _dailyGoalText(),
         Expanded(child: _goalsTabContent()),
         const SizedBox(height: 5),
@@ -410,9 +412,14 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
     return ValueListenableBuilder<List<DayProgress>>(
       valueListenable: manager.goalsDataNotifier,
       builder: (ctx, data, _) {
+        final viewingMonth = manager.viewingMonth;
         final now = DateTime.now();
-        final firstDay = DateTime(now.year, now.month, 1);
-        final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
+        final firstDay = DateTime(viewingMonth.year, viewingMonth.month, 1);
+        final daysInMonth = DateTime(
+          viewingMonth.year,
+          viewingMonth.month + 1,
+          0,
+        ).day;
 
         final firstWeekday = firstDay.weekday; // 1 = Mon
 
@@ -430,16 +437,94 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
             }
 
             final dayNumber = index - (firstWeekday - 2);
-            final date = DateTime(now.year, now.month, dayNumber);
-            final progress = data[dayNumber - 1];
+            final date = DateTime(
+              viewingMonth.year,
+              viewingMonth.month,
+              dayNumber,
+            );
+            final progress = dayNumber <= data.length
+                ? data[dayNumber - 1]
+                : DayProgress.empty(date);
 
-            final isToday = date.day == now.day;
+            final isToday =
+                date.year == now.year &&
+                date.month == now.month &&
+                date.day == now.day;
 
             return _dayCalendar(progress, isToday);
           },
         );
       },
     );
+  }
+
+  Widget _periodNavigator() {
+    final l10n = AppLocalizations.of(context)!;
+    final color = Theme.of(context).colorScheme.primary;
+
+    return ValueListenableBuilder<List<DayProgress>>(
+      valueListenable: manager.goalsDataNotifier,
+      builder: (context, goalsData, _) {
+        return ValueListenableBuilder<GoalsTab>(
+          valueListenable: manager.selectedGTabNotifier,
+          builder: (context, tab, _) {
+            final label = tab == GoalsTab.byMonth
+                ? _formatMonthLabel(manager.viewingMonth)
+                : _formatWeekLabel(manager.viewingWeekStart);
+            final canGoNext = manager.canGoToNextPeriod;
+
+            return Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.chevron_left),
+                  tooltip: tab == GoalsTab.byMonth
+                      ? l10n.previousMonth
+                      : l10n.previousWeek,
+                  onPressed: () => manager.goToPreviousPeriod(),
+                ),
+                Expanded(
+                  child: Text(
+                    label,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: color,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.chevron_right),
+                  tooltip: tab == GoalsTab.byMonth
+                      ? l10n.nextMonth
+                      : l10n.nextWeek,
+                  onPressed: canGoNext ? () => manager.goToNextPeriod() : null,
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  String _formatMonthLabel(DateTime month) {
+    final l10n = AppLocalizations.of(context)!;
+    final monthName = l10n.months(month.month.toString());
+    return '$monthName ${month.year}';
+  }
+
+  String _formatWeekLabel(DateTime weekStart) {
+    final l10n = AppLocalizations.of(context)!;
+    final weekEnd = weekStart.add(const Duration(days: 6));
+    final startMonth = l10n.months(weekStart.month.toString());
+    final endMonth = l10n.months(weekEnd.month.toString());
+
+    if (weekStart.month == weekEnd.month) {
+      return '$startMonth ${weekStart.day}-${weekEnd.day}, ${weekEnd.year}';
+    }
+
+    return '$startMonth ${weekStart.day} - $endMonth ${weekEnd.day}, ${weekEnd.year}';
   }
 
   Widget _subTabsProgress() {
@@ -834,13 +919,13 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
   }
 
   Future<void> _openDetailedProgress(DayProgress progress) async {
-    if (progress.empty) {
-      return;
-    }
-
     await showDialog<void>(
       context: context,
-      builder: (context) => DetailedProgressPanel(date: progress.day),
+      builder: (context) => DetailedProgressPanel(
+        date: progress.day,
+        onManualLogSaved: (minutes, verses) =>
+            manager.logManualDayEntry(progress.day, minutes, verses),
+      ),
     );
   }
 
