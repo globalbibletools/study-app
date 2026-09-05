@@ -18,9 +18,9 @@ class GlossDatabase {
   Future<String?> getGloss(String wordId) async {
     try {
       final query = '''
-        SELECT t.${GlossSchema.textColText}
+        SELECT COALESCE(t.${GlossSchema.textColText}, v.${GlossSchema.versesColAiGloss}) AS gloss
         FROM ${GlossSchema.versesTable} v
-        JOIN ${GlossSchema.textTable} t 
+        LEFT JOIN ${GlossSchema.textTable} t 
         ON v.${GlossSchema.versesColText} = t.${GlossSchema.textColId}
         WHERE v.${GlossSchema.versesColWordId} = ?
         ''';
@@ -29,7 +29,7 @@ class GlossDatabase {
         [wordId],
       );
       if (words.isEmpty) return null;
-      return words.first[GlossSchema.textColText] as String?;
+      return words.first['gloss'] as String?;
     } catch (e, s) {
       log('Error getting gloss for wordId $wordId', error: e, stackTrace: s);
       rethrow;
