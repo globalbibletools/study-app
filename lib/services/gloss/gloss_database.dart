@@ -26,8 +26,8 @@ class GlossDatabase {
     try {
       final query =
           '''
-        SELECT t.${GlossSchema.textColText} AS human_gloss,
-               v.${GlossSchema.versesColAiGloss} AS ai_gloss
+        SELECT t.${GlossSchema.textColText} AS gloss,
+               v.${GlossSchema.versesColIsAi} AS is_ai
         FROM ${GlossSchema.versesTable} v
         LEFT JOIN ${GlossSchema.textTable} t 
         ON v.${GlossSchema.versesColText} = t.${GlossSchema.textColId}
@@ -38,16 +38,11 @@ class GlossDatabase {
       ]);
       if (words.isEmpty) return null;
 
-      final humanGloss = words.first['human_gloss'] as String?;
-      final aiGloss = words.first['ai_gloss'] as String?;
+      final gloss = words.first['gloss'] as String?;
+      if (gloss == null || gloss.isEmpty) return null;
 
-      if (humanGloss != null && humanGloss.isNotEmpty) {
-        return GlossResult(gloss: humanGloss, isAiGenerated: false);
-      }
-      if (aiGloss != null && aiGloss.isNotEmpty) {
-        return GlossResult(gloss: aiGloss, isAiGenerated: true);
-      }
-      return null;
+      final isAi = (words.first['is_ai'] as int? ?? 0) == 1;
+      return GlossResult(gloss: gloss, isAiGenerated: isAi);
     } catch (e, s) {
       log('Error getting gloss for wordId $wordId', error: e, stackTrace: s);
       rethrow;

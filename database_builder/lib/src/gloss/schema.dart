@@ -11,20 +11,20 @@ class GlossSchema {
   static const String versesColWordId = 'word_id';
   // foreign key to the text table
   static const String versesColText = 'text';
-  // Optional AI-generated gloss text stored directly on each word.
-  static const String versesColAiGloss = 'ai_gloss';
+  // Whether the gloss for this word is AI generated.
+  static const String versesColIsAi = 'is_ai';
 
   static const String createVersesTable = '''
   CREATE TABLE IF NOT EXISTS $versesTable (
     $versesColWordId TEXT PRIMARY KEY,
     $versesColText INTEGER,
-    $versesColAiGloss TEXT
+    $versesColIsAi INTEGER NOT NULL DEFAULT 0
   )
   ''';
 
   static const insertVerseGloss = '''
   INSERT INTO $versesTable
-    ($versesColWordId, $versesColText, $versesColAiGloss)
+    ($versesColWordId, $versesColText, $versesColIsAi)
     VALUES (?, ?, ?);
   ''';
 
