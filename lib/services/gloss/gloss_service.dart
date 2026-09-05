@@ -21,7 +21,7 @@ class GlossService {
     return _resourceService.resourceExists(ResourceType.gloss, langCode);
   }
 
-  Future<String?> glossForId({
+  Future<GlossResult?> glossForId({
     required String wordId,
     void Function(String)? onDatabaseMissing,
   }) async {
@@ -65,7 +65,7 @@ class GlossService {
 
   void _onGlossResourceChanged(ResourceType type, String id) {
     if (_currentLangCode == null || id == _currentLangCode) {
-        _close();
+      _close();
     }
   }
 }

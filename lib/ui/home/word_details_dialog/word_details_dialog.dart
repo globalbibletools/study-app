@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:gbt/ui/common/sparkle_icon.dart';
 import 'package:gbt/ui/home/common/zoom_wrapper.dart';
 import 'package:gbt/ui/home/word_details_dialog/similar_verses/similar_verses_page.dart';
 import 'package:gbt/ui/home/word_details_dialog/dialog_manager.dart';
@@ -257,11 +258,32 @@ class _WordDetailsDialogState extends State<WordDetailsDialog> {
   }
 
   FittedBox _buildGloss(WordDetails wordDetails, TextStyle style) {
+    if (!wordDetails.glossIsAi) {
+      return FittedBox(
+        child: SelectableText(
+          wordDetails.gloss,
+          textAlign: TextAlign.center,
+          style: style,
+        ),
+      );
+    }
+
+    final iconSize = style.fontSize ?? 24;
     return FittedBox(
-      child: SelectableText(
-        wordDetails.gloss,
-        textAlign: TextAlign.center,
-        style: style,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SparkleIconWidget(
+            size: iconSize,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+          SizedBox(width: iconSize * 0.35),
+          SelectableText(
+            wordDetails.gloss,
+            textAlign: TextAlign.center,
+            style: style,
+          ),
+        ],
       ),
     );
   }
