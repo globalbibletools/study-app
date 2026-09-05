@@ -29,7 +29,8 @@ class WordDetailsDialogManager extends ChangeNotifier {
         await _hebrewGreekDb.getStrongsAndGrammar(wordId) ?? ('', '');
     return WordDetails(
       word: word?.text ?? '',
-      gloss: gloss ?? '',
+      gloss: gloss?.gloss ?? '',
+      glossIsAi: gloss?.isAiGenerated ?? false,
       strongsCode: strongs,
       grammar: grammar,
     );
@@ -77,12 +78,16 @@ class WordDetails {
   const WordDetails({
     required this.word,
     required this.gloss,
+    required this.glossIsAi,
     required this.strongsCode,
     required this.grammar,
   });
 
   final String word;
   final String gloss;
+
+  final bool glossIsAi;
+
   final String strongsCode;
   final String grammar;
 

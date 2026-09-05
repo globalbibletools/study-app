@@ -3,6 +3,13 @@ import 'dart:developer';
 import 'package:database_builder/database_builder.dart';
 import 'package:sqflite/sqflite.dart';
 
+class GlossResult {
+  const GlossResult({required this.gloss, required this.isAiGenerated});
+
+  final String gloss;
+  final bool isAiGenerated;
+}
+
 class GlossDatabase {
   final Database _database;
 
@@ -15,21 +22,32 @@ class GlossDatabase {
 
   Future<void> close() async => await _database.close();
 
-  Future<String?> getGloss(String wordId) async {
+  Future<GlossResult?> getGloss(String wordId) async {
     try {
-      final query = '''
-        SELECT t.${GlossSchema.textColText}
+      final query =
+          '''
+        SELECT t.${GlossSchema.textColText} AS human_gloss,
+               v.${GlossSchema.versesColAiGloss} AS ai_gloss
         FROM ${GlossSchema.versesTable} v
-        JOIN ${GlossSchema.textTable} t 
+        LEFT JOIN ${GlossSchema.textTable} t 
         ON v.${GlossSchema.versesColText} = t.${GlossSchema.textColId}
         WHERE v.${GlossSchema.versesColWordId} = ?
         ''';
-      final List<Map<String, dynamic>> words = await _database.rawQuery(
-        query,
-        [wordId],
-      );
+      final List<Map<String, dynamic>> words = await _database.rawQuery(query, [
+        wordId,
+      ]);
       if (words.isEmpty) return null;
-      return words.first[GlossSchema.textColText] as String?;
+
+      final humanGloss = words.first['human_gloss'] as String?;
+      final aiGloss = words.first['ai_gloss'] as String?;
+
+      if (humanGloss != null && humanGloss.isNotEmpty) {
+        return GlossResult(gloss: humanGloss, isAiGenerated: false);
+      }
+      if (aiGloss != null && aiGloss.isNotEmpty) {
+        return GlossResult(gloss: aiGloss, isAiGenerated: true);
+      }
+      return null;
     } catch (e, s) {
       log('Error getting gloss for wordId $wordId', error: e, stackTrace: s);
       rethrow;
