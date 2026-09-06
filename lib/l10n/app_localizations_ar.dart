@@ -449,6 +449,159 @@ class AppLocalizationsAr extends AppLocalizations {
   String get no => 'لا';
 
   @override
+  String get errorLoadingContent => 'تعذر تحميل المحتوى.';
+
+  @override
+  String errorLoadingVerse(String error) {
+    return 'خطأ في تحميل الآية: $error';
+  }
+
+  @override
+  String errorMessage(String error) {
+    return 'خطأ: $error';
+  }
+
+  @override
+  String downloadError(String error) {
+    return 'خطأ في التنزيل: $error';
+  }
+
+  @override
+  String get readingPlans => 'خطط القراءة';
+
+  @override
+  String get yourReadingPlans => 'خطط القراءة الخاصة بك';
+
+  @override
+  String get edit => 'تعديل';
+
+  @override
+  String get createNewPlan => 'إنشاء خطة جديدة';
+
+  @override
+  String get current => 'الحالي';
+
+  @override
+  String get startReading => 'بدء القراءة';
+
+  @override
+  String get resumeReading => 'متابعة القراءة';
+
+  @override
+  String booksReadOfTotal(int read, int total) {
+    return 'الكتب: $read من $total';
+  }
+
+  @override
+  String get todaysGoal => 'هدف اليوم';
+
+  @override
+  String get completedToday => 'اكتمل اليوم';
+
+  @override
+  String get estimatedCompletion => 'الإكمال المتوقع';
+
+  @override
+  String get planComplete => 'اكتملت الخطة!';
+
+  @override
+  String daysCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count أيام',
+      two: 'يومان',
+      one: 'يوم واحد',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String monthsCount(String count) {
+    return '($count شهر)';
+  }
+
+  @override
+  String get booksInThisPlan => 'الكتب في هذه الخطة';
+
+  @override
+  String get done => 'تم';
+
+  @override
+  String get editOrder => 'تعديل الترتيب';
+
+  @override
+  String get defaultReadingPlanName => 'خطة 1';
+
+  @override
+  String get collection => 'المجموعة';
+
+  @override
+  String get goal => 'الهدف';
+
+  @override
+  String get planName => 'اسم الخطة';
+
+  @override
+  String get wholeBible => 'الكتاب المقدس كاملاً';
+
+  @override
+  String get torah => 'التوراة';
+
+  @override
+  String get prophets => 'الأنبياء';
+
+  @override
+  String get writings => 'الكتابات';
+
+  @override
+  String get gospels => 'الأناجيل';
+
+  @override
+  String get paulineEpistles => 'رسائل بولس';
+
+  @override
+  String allBooksSelected(int total) {
+    return 'تم تحديد كل الكتب ($total)';
+  }
+
+  @override
+  String booksSelected(int selected, int total) {
+    return 'تم تحديد $selected/$total من الكتب';
+  }
+
+  @override
+  String get updateReadingPlan => 'تحديث خطة القراءة';
+
+  @override
+  String get addReadingPlan => 'إضافة خطة قراءة';
+
+  @override
+  String get deselectAll => 'إلغاء تحديد الكل';
+
+  @override
+  String get selectAll => 'تحديد الكل';
+
+  @override
+  String get selectAtLeastOneBook => 'حدد كتاباً واحداً على الأقل';
+
+  @override
+  String doneSelected(int count) {
+    return 'تم ($count محدد)';
+  }
+
+  @override
+  String bookCompletedTitle(String book) {
+    return 'لقد أكملت $book!';
+  }
+
+  @override
+  String get completed => 'مكتمل';
+
+  @override
+  String get nextBookInPlan => 'الكتاب التالي في الخطة';
+
+  @override
   String get bookGenesis => 'التكوين';
 
   @override

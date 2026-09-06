@@ -21,6 +21,8 @@ class HebrewGreekPanelManager {
   ValueNotifier<bool> get readingModeEnabledNotifier =>
       _rsmanager.readingModeNotifier;
 
+  Set<int>? get readingPlanBooks => _rsmanager.readingPlanBooks;
+
   // Track the book currently in view
   int currentBookId = 1;
 

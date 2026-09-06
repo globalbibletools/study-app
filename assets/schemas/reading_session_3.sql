@@ -9,7 +9,7 @@ create table reading_plan (
     created_at timestamp not null,
     last_read timestamp,
     collection_id int not null,
-    goal_type varchar(1),
+    goal_type varchar(1) not null,
     goal_value int not null,
     is_bookmarked int not null
 );
@@ -23,14 +23,13 @@ create table reading_plan_book (
     id integer primary key autoincrement,
     reading_plan_id int not null,
     book_id int not null,
-    order int not null,
+    ord int not null,
     foreign key (reading_plan_id) references reading_plan(id)
 );
 
------------------------------
---READING SESSION DAILY LOG--
------------------------------
---tracks the time spent in each daily reading session
+PRAGMA foreign_keys = OFF;
+
+ALTER TABLE rs_daily_log RENAME TO rs_daily_log_old;
 
 create table rs_daily_log (
     id integer primary key autoincrement,
@@ -42,10 +41,14 @@ create table rs_daily_log (
     foreign key (reading_plan_id) references reading_plan(id)
 );
 
------------------------
---READING SESSION LOG--
------------------------
---tracks the reading timestamp for each verse
+INSERT INTO rs_daily_log
+SELECT rs_daily_log_old.*, 1
+FROM rs_daily_log_old;
+
+DROP TABLE rs_daily_log_old;
+
+
+ALTER TABLE rs_log RENAME TO rs_log_old;
 
 create table rs_log (
     id integer primary key autoincrement,
@@ -59,31 +62,16 @@ create table rs_log (
     foreign key (reading_plan_id) references reading_plan(id)
 );
 
-------------------------------
---READING SESSION STATISTICS--
-------------------------------
---reading session statistics to track daily/monthly reading
---type : D for daily, M for monthly
---stats_date : local date for daily stats, end of month date for monthly stats
-create table rs_stats (
-    id integer primary key autoincrement,
-    type varchar(1) not null,
-    stats_date date not null,
-    rs_seconds int not null,
-    rs_verses int not null,
-    goal_reached int not null,
-    reading_plan_id int not null,
-    foreign key (reading_plan_id) references reading_plan(id)
-);
+INSERT INTO rs_log
+SELECT rs_log_old.*, 1
+FROM rs_log_old;
 
-CREATE UNIQUE INDEX hash_type_date
-ON rs_stats(type, stats_date);
+DROP TABLE rs_log_old;
 
+ALTER TABLE rs_book_progress RENAME TO rs_book_progress_old;
 
----------------------------------
---READING SESSION BOOK PROGRESS--
----------------------------------
---track each book progress by chapter and verse
+drop index hash_rs_book_progress;
+
 create table rs_book_progress (
     id integer primary key autoincrement,
     book_id int not null,
@@ -98,6 +86,40 @@ create table rs_book_progress (
 
 CREATE UNIQUE INDEX hash_rs_book_progress
 ON rs_book_progress(book_id, reading_plan_id);
+
+INSERT INTO rs_book_progress
+SELECT rs_book_progress_old.*, 1
+FROM rs_book_progress_old;
+
+drop table rs_book_progress_old;
+
+
+
+ALTER TABLE rs_stats RENAME TO rs_stats_old;
+
+drop index hash_type_date;
+
+create table rs_stats (
+    id integer primary key autoincrement,
+    type varchar(1) not null,
+    stats_date date not null,
+    rs_seconds int not null,
+    rs_verses int not null,
+    goal_reached int not null,
+    reading_plan_id int not null,
+    foreign key (reading_plan_id) references reading_plan(id)
+);
+
+CREATE UNIQUE INDEX hash_type_date
+ON rs_stats(type, stats_date, reading_plan_id);
+
+INSERT INTO rs_stats
+SELECT rs_stats_old.*, 1
+FROM rs_stats_old;
+
+drop table rs_stats_old;
+
+PRAGMA foreign_keys = ON;
 
 insert into reading_plan (id, plan_name, created_at, last_read, collection_id, goal_type, goal_value, is_bookmarked)
 values (1, 'Whole Bible', CURRENT_TIMESTAMP, null, 1, 'M', 10, 0);
