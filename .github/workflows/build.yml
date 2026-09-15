@@ -15,6 +15,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: /projects/45165992121/locations/global/workloadIdentityPools/github-actions/providers/github
+          service_account: fastlane@global-bible-too-1694742039480.iam.gserviceaccount.com
+          create_credentials_file: true
+
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -73,3 +81,16 @@ jobs:
           files: |
             build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
             build/app/outputs/bundle/release/app-release.aab
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+
+      - name: Install fastlane
+        working-directory: android
+        run: bundle install --jobs 4 --retry 3
+
+      - name: Upload to Play Store internal track
+        working-directory: android
+        run: bundle exec fastlane android internal
