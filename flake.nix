@@ -53,7 +53,7 @@
             clang
             cmake
             ninja
-            rsync
+            fastlane
           ];
 
           ANDROID_HOME = "${android-sdk}/share/android-sdk";
