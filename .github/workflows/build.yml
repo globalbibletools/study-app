@@ -15,6 +15,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: /projects/45165992121/locations/global/workloadIdentityPools/github-actions/providers/github
+          service_account: fastlane@global-bible-too-1694742039480.iam.gserviceaccount.com
+          create_credentials_file: true
+
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -48,25 +56,14 @@ jobs:
           TAG="${GITHUB_REF_NAME#v}"      # strip optional v prefix -> 1.2.3 or 1.2.3-beta2
           BASE="${TAG%%-*}"               # part before -   -> 1.2.3
           SUFFIX="${TAG#*-}"              # part after -    -> beta2, or unchanged if no -
-          IFS=. read MAJOR MINOR PATCH <<< "$BASE"
 
-          PRTYPE=0
-          PRNUM=0
           IS_PRERELEASE=false
           if [ "$SUFFIX" != "$TAG" ]; then
             IS_PRERELEASE=true
-            TYPE_STR="$(printf '%s' "$SUFFIX" | sed 's/[0-9].*$//')"   # alpha|beta|rc
-            PRNUM="$(printf '%s' "$SUFFIX" | sed 's/^[^0-9]*//')"       # 1, 2, ...
-            PRNUM="${PRNUM:-0}"
-            case "$TYPE_STR" in
-              alpha) PRTYPE=1 ;;
-              beta)  PRTYPE=2 ;;
-              rc)    PRTYPE=3 ;;
-              *)     PRTYPE=9 ;;
-            esac
           fi
 
-          BUILD=$(( MAJOR * 10000000 + MINOR * 100000 + PATCH * 1000 + PRTYPE * 100 + PRNUM ))
+          BUILD=$(( GITHUB_RUN_NUMBER + 50 ))
+
           echo "build-name=$TAG"        >> "$GITHUB_OUTPUT"
           echo "build-number=$BUILD"    >> "$GITHUB_OUTPUT"
           echo "is-prerelease=$IS_PRERELEASE" >> "$GITHUB_OUTPUT"
@@ -84,3 +81,16 @@ jobs:
           files: |
             build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
             build/app/outputs/bundle/release/app-release.aab
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+
+      - name: Install fastlane
+        working-directory: android
+        run: bundle install --jobs 4 --retry 3
+
+      - name: Upload to Play Store internal track
+        working-directory: android
+        run: bundle exec fastlane android internal
