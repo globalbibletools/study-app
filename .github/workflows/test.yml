@@ -32,8 +32,8 @@ jobs:
       - name: Test
         run: flutter test --no-pub
 
-  android:
-    if: github.event_name == 'pull_request'
+  android-build:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_call'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -69,25 +69,9 @@ jobs:
       - name: Build APK
         run: flutter build apk --release --no-pub
 
-      - name: Record PR number
-        env:
-          PR_NUMBER: ${{ github.event.number }}
-        run: echo "$PR_NUMBER" > pr-number.txt
-
-      - name: Upload PR context
-        uses: actions/upload-artifact@v4
-        with:
-          name: pr-context
-          path: pr-number.txt
-          retention-days: 7
-
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: pr-apk
+          name: android-apk
           path: build/app/outputs/flutter-apk/app-release.apk
           retention-days: 7
-
-      # The PR comment is posted by the pr-comment workflow (triggered on
-      # completion of this run via workflow_run), which works for fork PRs
-      # where this job's token is read-only.
