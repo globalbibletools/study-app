@@ -95,3 +95,8 @@ jobs:
       - name: Upload to Play Store internal track
         working-directory: android
         run: bundle exec fastlane android internal
+
+      - name: Upload to Play Store production track
+        if: steps.version.outputs.is-prerelease == 'false'
+        working-directory: android
+        run: bundle exec fastlane android production
