@@ -15,6 +15,45 @@
 
 default_platform(:android)
 
+APP_IDENTIFIER = "com.globalbibletools.gbt"
+IOS_TEAM_ID = "J2S2A35934"
+
+# Authenticates to App Store Connect with an API key. The key is stored in the
+# lane context, so match, sigh, pilot and deliver all pick it up automatically
+# from here (no Apple ID login or 2FA needed on CI).
+def asc_api_key
+  app_store_connect_api_key(
+    key_id: ENV["ASC_KEY_ID"],
+    issuer_id: ENV["ASC_ISSUER_ID"],
+    key_content: ENV["ASC_KEY_P8_BASE64"],
+    is_key_content_base64: true
+  )
+end
+
+# Path of the ipa produced by `flutter build ipa`
+def ipa_path
+  path = Dir[File.join("build", "ios", "ipa", "*.ipa")].first
+  UI.user_error!("No ipa found in build/ios/ipa/. Did `flutter build ipa` run?") unless path
+  path
+end
+
+# Creates a temporary keychain for the run and returns [name, password].
+def ci_keychain
+  name = ENV.fetch("KEYCHAIN_NAME", "ci.keychain")
+  password = ENV.fetch("KEYCHAIN_PASSWORD")
+
+  create_keychain(
+    name: name,
+    password: password,
+    default_keychain: true,
+    unlock: true,
+    timeout: 3600,
+    lock_when_sleeps: false
+  )
+
+  [name, password]
+end
+
 platform :android do
   lane :internal do
     upload_to_play_store(
@@ -36,6 +75,136 @@ platform :android do
       skip_upload_metadata: true,
       skip_upload_changelogs: true,
       skip_upload_images: true
+    )
+  end
+end
+
+platform :ios do
+  # Fetches the signing credentials managed by match (git storage; see the
+  # ios-certificates workflow) using the App Store Connect API key, installs
+  # them into a temporary keychain, and writes ios/ExportOptions.plist for
+  # `flutter build ipa` to sign with.
+  #
+  # Runs in readonly mode so CI can never create, renew or revoke
+  # certificates or profiles. Use the `certificates` lane for that.
+  lane :signing do
+    asc_api_key
+
+    keychain_name, keychain_password = ci_keychain
+
+    # MATCH_GIT_URL, MATCH_PASSWORD and MATCH_GIT_BASIC_AUTHORIZATION are
+    # read from the environment by match.
+    match(
+      type: "appstore",
+      app_identifier: APP_IDENTIFIER,
+      keychain_name: keychain_name,
+      keychain_password: keychain_password,
+      readonly: true
+    )
+
+    # match exposes the profile name via a well-known environment variable;
+    # fall back to match's deterministic naming scheme.
+    profile_name =
+      ENV["sigh_#{APP_IDENTIFIER}_appstore_profile_name"] ||
+      "match AppStore #{APP_IDENTIFIER}"
+    UI.user_error!("Failed to determine provisioning profile name") unless profile_name
+
+    File.write("ios/ExportOptions.plist", <<~PLIST)
+      <?xml version="1.0" encoding="UTF-8"?>
+      <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+      <plist version="1.0">
+      <dict>
+        <key>method</key>
+        <string>app-store</string>
+        <key>provisioningProfiles</key>
+        <dict>
+          <key>#{APP_IDENTIFIER}</key>
+          <string>#{profile_name}</string>
+        </dict>
+        <key>signingCertificate</key>
+        <string>Apple Distribution</string>
+        <key>signingStyle</key>
+        <string>manual</string>
+        <key>stripSwiftSymbols</key>
+        <true/>
+        <key>teamID</key>
+        <string>#{IOS_TEAM_ID}</string>
+        <key>uploadSymbols</key>
+        <true/>
+      </dict>
+      </plist>
+    PLIST
+
+    UI.success("Wrote ios/ExportOptions.plist using profile '#{profile_name}'")
+  end
+
+  # Creates or renews the distribution certificate and App Store profile in
+  # the match repo. Run manually via the ios-certificates workflow; the
+  # `signing` lane used by CI builds never modifies them.
+  #
+  # nuke: true revokes all existing distribution certificates and deletes all
+  # provisioning profiles for the team before recreating them, forcing a
+  # renewal (e.g. when the current certificate is close to expiry). Nuking is
+  # team-wide: it affects every app and profile in the account, not just this
+  # one, and App Store / TestFlight builds already live remain unaffected.
+  lane :certificates do |options|
+    asc_api_key
+
+    keychain_name, keychain_password = ci_keychain
+
+    if options[:nuke]
+      match_nuke(
+        type: "distribution",
+        keychain_name: keychain_name,
+        keychain_password: keychain_password,
+        skip_confirmation: true
+      )
+    end
+
+    match(
+      type: "appstore",
+      app_identifier: APP_IDENTIFIER,
+      keychain_name: keychain_name,
+      keychain_password: keychain_password,
+      git_full_name: "github-actions[bot]",
+      git_user_email: "41898282+github-actions[bot]@users.noreply.github.com"
+    )
+  end
+
+  # Uploads the ipa to TestFlight and distributes it to internal testers
+  # (App Store Connect users).
+  lane :internal do
+    asc_api_key
+
+    upload_to_testflight(
+      ipa: ipa_path,
+      # The app only uses exempt encryption (HTTPS), so answer the export
+      # compliance question instead of leaving it up to App Store Connect.
+      uses_non_exempt_encryption: false
+    )
+  end
+
+  # Creates a draft App Store version with the already-uploaded TestFlight
+  # build attached, so metadata and screenshots can be added in App Store
+  # Connect before submitting for review.
+  lane :production do |options|
+    asc_api_key
+
+    version = options[:version]
+    build = options[:build]
+    UI.user_error!("The `version` and `build` options are required") unless version && build
+
+    upload_to_app_store(
+      app_version: version,
+      build_number: build,
+
+      # The binary was already uploaded by the `internal` lane.
+      skip_binary_upload: true,
+      skip_metadata: true,
+      skip_screenshots: true,
+
+      submit_for_review: false,
+      force: true
     )
   end
 end
