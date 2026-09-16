@@ -31,3 +31,75 @@ jobs:
 
       - name: Test
         run: flutter test --no-pub
+
+  android:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+          flutter-version-file: pubspec.yaml
+
+      - name: Install Dart dependencies
+        run: flutter pub get
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: Create CI signing config
+        run: |
+          keytool -genkeypair -v \
+            -keystore android/app/ci-signing.jks \
+            -alias ci \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass android -keypass android \
+            -dname "CN=CI PR Test Build"
+          printf 'storePassword=android\nkeyPassword=android\nkeyAlias=ci\nstoreFile=ci-signing.jks\n' > android/key.properties
+
+      - name: Build APK
+        run: flutter build apk --release --no-pub
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 7
+
+      - name: Comment on PR with build link
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_SHA: ${{ github.event.pull_request.head.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          MARKER="<!-- pr-apk-build -->"
+          BODY="Test APK for commit $PR_SHA: $RUN_URL
+          $MARKER"
+
+          COMMENT_ID=$(gh api --paginate \
+            "repos/${{ github.repository }}/issues/$PR_NUMBER/comments" \
+            --jq ".[] | select(.user.login == \"github-actions[bot]\" and (.body | contains(\"$MARKER\"))) | .id" | head -n 1)
+
+          if [ -n "$COMMENT_ID" ]; then
+            gh api --method PATCH \
+              "repos/${{ github.repository }}/issues/comments/$COMMENT_ID" \
+              --field body="$BODY"
+            echo "Updated existing comment $COMMENT_ID"
+          else
+            gh pr comment "$PR_NUMBER" --body "$BODY"
+            echo "Created new comment"
+          fi
