@@ -35,9 +35,6 @@ jobs:
   android:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -79,27 +76,6 @@ jobs:
           path: build/app/outputs/flutter-apk/app-release.apk
           retention-days: 7
 
-      - name: Comment on PR with build link
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          PR_SHA: ${{ github.event.pull_request.head.sha }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: |
-          MARKER="<!-- pr-apk-build -->"
-          BODY="Test APK for commit $PR_SHA: $RUN_URL
-          $MARKER"
-
-          COMMENT_ID=$(gh api --paginate \
-            "repos/${{ github.repository }}/issues/$PR_NUMBER/comments" \
-            --jq ".[] | select(.user.login == \"github-actions[bot]\" and (.body | contains(\"$MARKER\"))) | .id" | head -n 1)
-
-          if [ -n "$COMMENT_ID" ]; then
-            gh api --method PATCH \
-              "repos/${{ github.repository }}/issues/comments/$COMMENT_ID" \
-              --field body="$BODY"
-            echo "Updated existing comment $COMMENT_ID"
-          else
-            gh pr comment "$PR_NUMBER" --body "$BODY"
-            echo "Created new comment"
-          fi
+      # The PR comment is posted by the pr-comment workflow (triggered on
+      # completion of this run via workflow_run), which works for fork PRs
+      # where this job's token is read-only.

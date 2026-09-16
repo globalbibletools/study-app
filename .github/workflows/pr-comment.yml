@@ -1,0 +1,78 @@
+name: pr-comment
+
+# Comments on PRs with a link to the APK artifact from a completed "test"
+# workflow run. This runs in the base repo context (unlike the pull_request
+# run itself), so it has write access even for fork PRs.
+
+on:
+  workflow_run:
+    workflows: [test]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+  issues: write
+
+jobs:
+  comment:
+    # Only act on runs that were themselves triggered by a pull_request
+    if: github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Find PR and APK artifact
+        id: pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          PR_NUMBER=$(gh api "repos/$REPO/commits/$HEAD_SHA/pulls" \
+            --jq '.[] | select(.state == "open") | .number' | head -n 1)
+          if [ -z "$PR_NUMBER" ]; then
+            echo "No open PR for $HEAD_SHA; skipping."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Only comment when the android job actually produced the APK
+          ARTIFACT_ID=$(gh api "repos/$REPO/actions/runs/$RUN_ID/artifacts" \
+            --jq '.artifacts[] | select(.name == "pr-apk" and !.expired) | .id' | head -n 1)
+          if [ -z "$ARTIFACT_ID" ]; then
+            echo "No pr-apk artifact in run $RUN_ID; skipping."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+          echo "pr-number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+
+      - name: Comment on PR with build link
+        if: steps.pr.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ steps.pr.outputs.pr-number }}
+          PR_SHA: ${{ github.event.workflow_run.head_sha }}
+          RUN_URL: ${{ github.event.workflow_run.html_url }}
+        run: |
+          # A hidden marker identifies our comment so we can update it in
+          # place instead of adding a new one on every push to the PR.
+          MARKER="<!-- pr-apk-build -->"
+          BODY="Test APK for commit $PR_SHA: $RUN_URL
+          $MARKER"
+
+          COMMENT_ID=$(gh api --paginate \
+            "repos/$REPO/issues/$PR_NUMBER/comments" \
+            --jq ".[] | select(.user.login == \"github-actions[bot]\" and (.body | contains(\"$MARKER\"))) | .id" | head -n 1)
+
+          if [ -n "$COMMENT_ID" ]; then
+            gh api --method PATCH \
+              "repos/$REPO/issues/comments/$COMMENT_ID" \
+              --field body="$BODY"
+            echo "Updated existing comment $COMMENT_ID"
+          else
+            gh pr comment "$PR_NUMBER" --body "$BODY"
+            echo "Created new comment"
+          fi
