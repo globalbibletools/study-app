@@ -20,6 +20,13 @@ jobs:
     if: github.event.workflow_run.event == 'pull_request'
     runs-on: ubuntu-latest
     steps:
+      - name: Download PR context from test run
+        uses: actions/download-artifact@v4
+        with:
+          name: pr-context
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+
       - name: Find PR and APK artifact
         id: pr
         env:
@@ -28,8 +35,12 @@ jobs:
           HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
           RUN_ID: ${{ github.event.workflow_run.id }}
         run: |
-          PR_NUMBER=$(gh api "repos/$REPO/commits/$HEAD_SHA/pulls" \
-            --jq '.[] | select(.state == "open") | .number' | head -n 1)
+          PR_FILE="$(find "$GITHUB_WORKSPACE" -name pr-number.txt -print -quit)"
+          PR_NUMBER=""
+          if [ -n "$PR_FILE" ]; then
+            PR_NUMBER="$(tr -d '[:space:]' < "$PR_FILE")"
+          fi
+
           if [ -z "$PR_NUMBER" ]; then
             echo "No open PR for $HEAD_SHA; skipping."
             echo "skip=true" >> "$GITHUB_OUTPUT"

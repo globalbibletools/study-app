@@ -69,6 +69,18 @@ jobs:
       - name: Build APK
         run: flutter build apk --release --no-pub
 
+      - name: Record PR number
+        env:
+          PR_NUMBER: ${{ github.event.number }}
+        run: echo "$PR_NUMBER" > pr-number.txt
+
+      - name: Upload PR context
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-context
+          path: pr-number.txt
+          retention-days: 7
+
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
