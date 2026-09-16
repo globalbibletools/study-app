@@ -89,14 +89,11 @@ jobs:
           ruby-version: "3.3"
 
       - name: Install fastlane
-        working-directory: android
         run: bundle install --jobs 4 --retry 3
 
       - name: Upload to Play Store internal track
-        working-directory: android
         run: bundle exec fastlane android internal
 
       - name: Upload to Play Store production track
         if: steps.version.outputs.is-prerelease == 'false'
-        working-directory: android
         run: bundle exec fastlane android production
