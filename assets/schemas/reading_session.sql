@@ -1,5 +1,5 @@
 -----------------------------
---READING PLAN--
+--READING PLAN---
 -----------------------------
 --for tracking reading for different bible collections
 
