@@ -23,7 +23,7 @@ create table reading_plan_book (
     id integer primary key autoincrement,
     reading_plan_id int not null,
     book_id int not null,
-    order int not null,
+    ord int not null,
     foreign key (reading_plan_id) references reading_plan(id)
 );
 
