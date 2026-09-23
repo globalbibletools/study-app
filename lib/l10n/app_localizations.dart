@@ -155,7 +155,7 @@ abstract class AppLocalizations {
   /// The title of the Settings screen
   ///
   /// In en, this message translates to:
-  /// **'Settings'**
+  /// **'Settings Changed'**
   String get settings;
 
   /// Settings menu item to change the app language

@@ -55,16 +55,6 @@ jobs:
           java-version: "17"
           cache: gradle
 
-      - name: Create CI signing config
-        run: |
-          keytool -genkeypair -v \
-            -keystore android/app/ci-signing.jks \
-            -alias ci \
-            -keyalg RSA -keysize 2048 -validity 10000 \
-            -storepass android -keypass android \
-            -dname "CN=CI PR Test Build"
-          printf 'storePassword=android\nkeyPassword=android\nkeyAlias=ci\nstoreFile=ci-signing.jks\n' > android/key.properties
-
       - name: Build APK
         run: flutter build apk --release --no-pub
         env:
@@ -74,6 +64,109 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: android-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 7
+          archive: false
+
+  # Builds the latest stable production release (latest X.Y.Z tag, ignoring
+  # pre-release tags like 26.9.0-beta1) with the same applicationId suffix as
+  # the PR build. Same applicationId + same staging key means the PR build
+  # installs as an in-place update over this baseline (app data preserved),
+  # giving a before/after comparison on the same device.
+  #
+  # Cached per (tag, PR number): built once when the PR is opened, and rebuilt
+  # only if a new stable tag is cut while the PR is still open.
+  # TODO: I think we should just have a separate staging environment. That will be easier to manage since we can include a staging build in each tag as the baseline
+  baseline-apk:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Find latest stable release tag
+        id: tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag=$(gh api "repos/${{ github.repository }}/releases/latest" --jq '.tag_name')
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      # Stable tags predate the applicationId-suffix / staging-signing support,
+      # so the PR's android build config is overlaid onto the tag checkout below.
+      - name: Copy PR android build config
+        run: |
+          mkdir -p "$RUNNER_TEMP/overlay" "$RUNNER_TEMP/baseline"
+          cp android/app/build.gradle.kts \
+             android/app/src/main/AndroidManifest.xml \
+             android/app/staging.jks \
+             "$RUNNER_TEMP/overlay/"
+
+      - name: Restore cached baseline APK
+        id: cache
+        uses: actions/cache@v4
+        with:
+          key: baseline-apk-v1-${{ steps.tag.outputs.tag }}-pr${{ github.event.pull_request.number }}
+          path: ${{ runner.temp }}/baseline
+
+      - name: Check out production tag
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.tag.outputs.tag }}
+          fetch-depth: 1 # tag tip only
+
+      # TODO: see if we can skip this step
+      - name: Apply PR android build config
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          cp "$RUNNER_TEMP/overlay/build.gradle.kts" android/app/build.gradle.kts
+          cp "$RUNNER_TEMP/overlay/AndroidManifest.xml" android/app/src/main/AndroidManifest.xml
+          cp "$RUNNER_TEMP/overlay/staging.jks" android/app/staging.jks
+
+      # TODO: we should be able to skip this once we have a new production tag
+      - name: Fix asset filename casing on old tags
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          if [ -f assets/fonts/SBL_BLit.ttf ] && [ ! -f assets/fonts/sbl_blit.ttf ]; then
+            mv assets/fonts/SBL_BLit.ttf assets/fonts/sbl_blit.ttf
+          fi
+
+      - name: Set up Flutter
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+          flutter-version-file: pubspec.yaml # version pinned by the tag
+
+      - name: Install Dart dependencies
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: flutter pub get
+
+      - name: Set up Java 17
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      # TODO: do we need to specify the build number manually?
+      - name: Build baseline APK
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: >
+          flutter build apk --release --no-pub
+          --build-name=${{ steps.tag.outputs.tag }}
+        env:
+          APPLICATION_ID_SUFFIX: pr${{ github.event.pull_request.number }}
+
+      - name: Upload baseline APK artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-baseline-apk
           path: build/app/outputs/flutter-apk/app-release.apk
           retention-days: 7
           archive: false

@@ -7,6 +7,11 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// Optional applicationId suffix (e.g. "pr123") set via the APPLICATION_ID_SUFFIX env
+// var so test builds install side by side with production. Suffixed builds are
+// signed with the staging key instead of the production key.
+val idSuffix = System.getenv("APPLICATION_ID_SUFFIX")?.takeIf { it.isNotBlank() }
+
 val keystoreProperties = Properties()
 val keystorePropertiesFile = rootProject.file("key.properties")
 if (keystorePropertiesFile.exists()) {
@@ -24,9 +29,6 @@ android {
     }
 
     defaultConfig {
-        // Optional suffix (e.g. "pr123") set via APPLICATION_ID_SUFFIX env var
-        // so test builds can be installed side by side with production.
-        val idSuffix = System.getenv("APPLICATION_ID_SUFFIX")?.takeIf { it.isNotBlank() }
         applicationId = "com.globalbibletools.gbt" + (idSuffix?.let { ".$it" } ?: "")
         manifestPlaceholders["appLabel"] = if (idSuffix != null) "GBT ($idSuffix)" else "GBT"
         // You can update the following values to match your application needs.
@@ -38,17 +40,38 @@ android {
     }
 
     signingConfigs {
-        create("release") {
-            keyAlias = keystoreProperties["keyAlias"] as String
-            keyPassword = keystoreProperties["keyPassword"] as String
-            storeFile = keystoreProperties["storeFile"]?.let { file(it) }
-            storePassword = keystoreProperties["storePassword"] as String
+        // Throwaway key committed to the repo (app/staging.jks) for suffixed test
+        // builds. Intentionally public: it never signs anything distributed to
+        // users, and it lets CI (including fork PRs) build without access to the
+        // production keystore. A stable key also lets updated test builds install
+        // over previously installed ones instead of failing on signature mismatch.
+        create("staging") {
+            keyAlias = "staging"
+            keyPassword = "staging"
+            storeFile = rootProject.file("app/staging.jks")
+            storePassword = "staging"
+        }
+        // Production key from android/key.properties (never committed).
+        if (keystorePropertiesFile.exists()) {
+            create("release") {
+                keyAlias = keystoreProperties["keyAlias"] as String
+                keyPassword = keystoreProperties["keyPassword"] as String
+                storeFile = keystoreProperties["storeFile"]?.let { file(it) }
+                storePassword = keystoreProperties["storePassword"] as String
+            }
         }
     }
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("release")
+            signingConfig = if (idSuffix != null) {
+                signingConfigs.getByName("staging")
+            } else {
+                signingConfigs.findByName("release")
+                    ?: throw GradleException(
+                        "Production builds require android/key.properties (release keystore)."
+                    )
+            }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(

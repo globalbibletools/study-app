@@ -12,3 +12,6 @@ GeneratedPluginRegistrant.java
 key.properties
 **/*.keystore
 **/*.jks
+# Exception: the throwaway staging key is intentionally committed (see
+# android/app/build.gradle.kts).
+!app/staging.jks
