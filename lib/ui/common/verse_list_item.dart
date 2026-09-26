@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gbt/l10n/app_localizations.dart';
 
 class VerseListItem extends StatefulWidget {
   const VerseListItem({
@@ -33,9 +34,10 @@ class _VerseListItemState extends State<VerseListItem>
       future: widget.verseContentFuture,
       builder: (context, snapshot) {
         if (snapshot.hasError) {
+          final l10n = AppLocalizations.of(context)!;
           return ListTile(
             title: Text(widget.formattedReference),
-            subtitle: Text('Error loading verse: ${snapshot.error}'),
+            subtitle: Text(l10n.errorLoadingVerse(snapshot.error.toString())),
           );
         }
         if (snapshot.connectionState == ConnectionState.done) {

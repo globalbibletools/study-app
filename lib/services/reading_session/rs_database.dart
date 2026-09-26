@@ -24,8 +24,8 @@ class ReadingSessionBackupInfo {
 
 class ReadingSessionDatabase {
   static const _databaseName = 'reading_session.db';
-  static const _databaseVersion = 2;
-  static const _backupFormatVersion = 1;
+  static const _databaseVersion = 3;
+  static const _backupFormatVersion = 2;
   static const _backupDirectoryName = 'backups';
   static const _backupFilePrefix = 'reading_session_';
 
@@ -92,6 +92,16 @@ class ReadingSessionDatabase {
     await batch.commit(noResult: true);
   }
 
+  Future<void> __executeSqlBatch(Batch batch, String sql) async {
+    final statements = sql
+        .split(RegExp(r';\s*\n'))
+        .where((s) => s.trim().isNotEmpty);
+
+    for (final statement in statements) {
+      batch.execute(statement);
+    }
+  }
+
   Future<String> createBackup() async {
     await init();
     final backupDir = await _getBackupDirectory();
@@ -126,6 +136,11 @@ class ReadingSessionDatabase {
       'format_version': _backupFormatVersion,
       'created_at': DateTime.now().toIso8601String(),
       'tables': {
+        'reading_plan': await _database.query('reading_plan', orderBy: 'id'),
+        'reading_plan_book': await _database.query(
+          'reading_plan_book',
+          orderBy: 'id',
+        ),
         'rs_daily_log': await _database.query('rs_daily_log', orderBy: 'id'),
         'rs_log': await _database.query('rs_log', orderBy: 'id'),
         'rs_stats': await _database.query('rs_stats', orderBy: 'id'),
@@ -190,6 +205,63 @@ class ReadingSessionDatabase {
       throw const FormatException('Backup is missing table data.');
     }
 
+    final version = raw['format_version'];
+    if (version is! int) {
+      throw const FormatException('Backup is missing version data.');
+    }
+
+    if (version == 1) {
+      await restoreBackupJson1(tables);
+    } else {
+      await restoreBackupJson2(tables);
+    }
+  }
+
+  Future<void> restoreBackupJson1(Map<String, dynamic> tables) async {
+    final dailyLogRows = _parseBackupRows(tables['rs_daily_log']);
+    final logRows = _parseBackupRows(tables['rs_log']);
+    final statsRows = _parseBackupRows(tables['rs_stats']);
+    final bookProgressRows = _parseBackupRows(tables['rs_book_progress']);
+
+    final file = 'assets/schemas/reading_session_data.sql';
+    final sql = await rootBundle.loadString(file);
+
+    await _database.transaction((txn) async {
+      final batch = txn.batch();
+
+      batch.delete('reading_plan');
+      batch.delete('reading_plan_book');
+      batch.delete('rs_log');
+      batch.delete('rs_stats');
+      batch.delete('rs_book_progress');
+      batch.delete('rs_daily_log');
+
+      await __executeSqlBatch(batch, sql);
+
+      for (final row in dailyLogRows) {
+        row['reading_plan_id'] = 1;
+        batch.insert('rs_daily_log', row);
+      }
+      for (final row in logRows) {
+        row['reading_plan_id'] = 1;
+        batch.insert('rs_log', row);
+      }
+      for (final row in statsRows) {
+        row['reading_plan_id'] = 1;
+        batch.insert('rs_stats', row);
+      }
+      for (final row in bookProgressRows) {
+        row['reading_plan_id'] = 1;
+        batch.insert('rs_book_progress', row);
+      }
+
+      await batch.commit(noResult: true);
+    });
+  }
+
+  Future<void> restoreBackupJson2(Map<String, dynamic> tables) async {
+    final readingPlanRows = _parseBackupRows(tables['reading_plan']);
+    final readingPlanBookRows = _parseBackupRows(tables['reading_plan_book']);
     final dailyLogRows = _parseBackupRows(tables['rs_daily_log']);
     final logRows = _parseBackupRows(tables['rs_log']);
     final statsRows = _parseBackupRows(tables['rs_stats']);
@@ -198,11 +270,19 @@ class ReadingSessionDatabase {
     await _database.transaction((txn) async {
       final batch = txn.batch();
 
+      batch.delete('reading_plan');
+      batch.delete('reading_plan_book');
       batch.delete('rs_log');
       batch.delete('rs_stats');
       batch.delete('rs_book_progress');
       batch.delete('rs_daily_log');
 
+      for (final row in readingPlanRows) {
+        batch.insert('reading_plan', row);
+      }
+      for (final row in readingPlanBookRows) {
+        batch.insert('reading_plan_book', row);
+      }
       for (final row in dailyLogRows) {
         batch.insert('rs_daily_log', row);
       }
@@ -236,6 +316,81 @@ class ReadingSessionDatabase {
   Future<Directory> _getBackupDirectory() async {
     final docDir = await getApplicationDocumentsDirectory();
     return Directory(join(docDir.path, _backupDirectoryName));
+  }
+
+  /* READING PLAN */
+  Future<List<ReadingPlan>> _getReadingPlans() async {
+    final result = await _database.query(
+      'reading_plan',
+      orderBy: "is_bookmarked desc, created_at desc",
+    );
+
+    return result.map((e) => ReadingPlan.fromMap(e)).toList();
+  }
+
+  Future<void> updateReadingPlan(ReadingPlan readingPlan) async {
+    await _database.update(
+      'reading_plan',
+      readingPlan.toMap(),
+      where: 'id = ?',
+      whereArgs: [readingPlan.id],
+    );
+  }
+
+  Future<List<ReadingPlanDetails>> getReadingPlans() async {
+    List<ReadingPlan> plans = await _getReadingPlans();
+
+    List<ReadingPlanDetails> planDetails = [];
+    for (ReadingPlan p in plans) {
+      List<ReadingPlanBook> books = await getReadingPlanBooks(p.id!);
+      planDetails.add(ReadingPlanDetails(p, books));
+    }
+
+    return planDetails;
+  }
+
+  Future<List<ReadingPlanBook>> getReadingPlanBooks(int readingPlanId) async {
+    final result = await _database.query(
+      'reading_plan_book',
+      where: 'reading_plan_id = ?',
+      whereArgs: [readingPlanId],
+      orderBy: "ord",
+    );
+
+    return result.map((e) => ReadingPlanBook.fromMap(e)).toList();
+  }
+
+  Future<ReadingPlan> insertReadingPlan(ReadingPlan plan) async {
+    final id = await _database.insert(
+      'reading_plan',
+      plan.toMap()..remove('id'),
+    );
+    return plan.copyWith(id: id);
+  }
+
+  Future<void> insertReadingPlanBooks(List<ReadingPlanBook> books) async {
+    for (ReadingPlanBook b in books) {
+      await _database.insert('reading_plan_book', b.toMap()..remove('id'));
+    }
+  }
+
+  Future<void> deleteReadingPlanBooks(int readingPlanId) async {
+    await _database.delete(
+      'reading_plan_book',
+      where: 'reading_plan_id = ?',
+      whereArgs: [readingPlanId],
+    );
+  }
+
+  void updateReadingPlanBooks(List<ReadingPlanBook> books) async {
+    for (ReadingPlanBook b in books) {
+      await _database.update(
+        'reading_plan_book',
+        b.toMap(),
+        where: 'id = ?',
+        whereArgs: [b.id],
+      );
+    }
   }
 
   /* RS DAILY LOG */
@@ -302,14 +457,15 @@ class ReadingSessionDatabase {
     return await _database.delete('rs_stats', where: 'id = ?', whereArgs: [id]);
   }
 
-  Future<RsStats?> findStatsByTypeAndDate(
+  Future<RsStats?> findStatsByTypeAndDateForPlan(
     RsStatsType type,
     DateTime date,
+    int readingPlanId,
   ) async {
     final result = await _database.query(
       'rs_stats',
-      where: 'type = ? AND date(stats_date) = date(?)',
-      whereArgs: [type.value, date.toIso8601String()],
+      where: 'type = ? AND date(stats_date) = date(?) AND reading_plan_id = ?',
+      whereArgs: [type.value, date.toIso8601String(), readingPlanId],
     );
 
     if (result.isEmpty) return null;
@@ -345,19 +501,25 @@ class ReadingSessionDatabase {
     );
   }
 
-  Future<List<RsBookProgress>> getAllBookProgress() async {
+  Future<List<RsBookProgress>> getAllBookProgress(int readingPlanId) async {
     final result = await _database.query(
       'rs_book_progress',
+      where: 'reading_plan_id = ?',
+      whereArgs: [readingPlanId],
       orderBy: "book_id",
     );
 
     return result.map((e) => RsBookProgress.fromMap(e)).toList();
   }
 
-  Future<int> countVersesReadForChapter(int bookId, int chapter) async {
+  Future<int> countVersesReadForChapter(
+    int readingPlanId,
+    int bookId,
+    int chapter,
+  ) async {
     final result = await _database.rawQuery(
-      'SELECT COUNT(distinct verse) AS count FROM rs_log where book_id = ? and chapter = ?',
-      [bookId, chapter],
+      'SELECT COUNT(distinct verse) AS count FROM rs_log where book_id = ? and chapter = ? and reading_plan_id = ?',
+      [bookId, chapter, readingPlanId],
     );
 
     final count = Sqflite.firstIntValue(result) ?? 0;
@@ -365,10 +527,14 @@ class ReadingSessionDatabase {
     return count;
   }
 
-  Future<Map<int, int>> getVersesReadForChapter(int bookId, int chapter) async {
+  Future<Map<int, int>> getVersesReadForChapter(
+    int readingPlanId,
+    int bookId,
+    int chapter,
+  ) async {
     final result = await _database.rawQuery(
-      'SELECT verse, count(*) count FROM rs_log where book_id = ? and chapter = ? group by verse',
-      [bookId, chapter],
+      'SELECT verse, count(*) count FROM rs_log where book_id = ? and chapter = ? and reading_plan_id = ? group by verse',
+      [bookId, chapter, readingPlanId],
     );
 
     if (result.isEmpty) return {};
@@ -396,25 +562,32 @@ class ReadingSessionDatabase {
     RsStatsType type,
     DateTime startDate,
     DateTime endDate,
+    int readingPlanId,
   ) async {
     final result = await _database.query(
       'rs_stats',
-      where: 'type = ? AND date(stats_date) between date(?) and date(?)',
+      where:
+          'type = ? AND date(stats_date) between date(?) and date(?) AND reading_plan_id = ?',
       whereArgs: [
         type.value,
         startDate.toIso8601String(),
         endDate.toIso8601String(),
+        readingPlanId,
       ],
+      orderBy: "stats_date asc",
     );
 
     return result.map((e) => RsStats.fromMap(e)).toList();
   }
 
-  Future<List<RsDailyLog>> getSessionsForDate(DateTime date) async {
+  Future<List<RsDailyLog>> getSessionsForDate(
+    DateTime date,
+    int readingPlanId,
+  ) async {
     final result = await _database.query(
       'rs_daily_log',
-      where: 'date(rs_date) = date(?)',
-      whereArgs: [date.toIso8601String()],
+      where: 'date(rs_date) = date(?) AND reading_plan_id = ?',
+      whereArgs: [date.toIso8601String(), readingPlanId],
       orderBy: "start_time",
     );
 
@@ -449,10 +622,10 @@ class ReadingSessionDatabase {
     return result.map((e) => RsLog.fromMap(e)).toList();
   }
 
-  Future<int> getVersesReadToday(DateTime date) async {
+  Future<int> getVersesReadToday(int readingPlanId, DateTime date) async {
     final result = await _database.rawQuery(
-      'SELECT SUM(verses) FROM rs_daily_log where date(rs_date) = date(?) and end_time is not null',
-      [date.toIso8601String()],
+      'SELECT SUM(verses) FROM rs_daily_log where date(rs_date) = date(?) and end_time is not null and reading_plan_id = ?',
+      [date.toIso8601String(), readingPlanId],
     );
 
     final count = Sqflite.firstIntValue(result) ?? 0;
@@ -460,12 +633,12 @@ class ReadingSessionDatabase {
     return count;
   }
 
-  Future<int> getTotalSecondsReadToday(DateTime date) async {
+  Future<int> getTotalSecondsReadToday(int readingPlanId, DateTime date) async {
     final result = await _database.rawQuery(
       "SELECT SUM(strftime('%s', end_time) - strftime('%s', start_time)) AS count "
       'FROM rs_daily_log '
-      'WHERE date(rs_date) = date(?) AND end_time IS NOT NULL',
-      [date.toIso8601String()],
+      'WHERE date(rs_date) = date(?) AND end_time IS NOT NULL and reading_plan_id = ?',
+      [date.toIso8601String(), readingPlanId],
     );
 
     final count = Sqflite.firstIntValue(result) ?? 0;

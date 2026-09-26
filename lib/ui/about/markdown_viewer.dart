@@ -23,7 +23,7 @@ class LocalizedMarkdownViewer extends StatelessWidget {
       try {
         return await rootBundle.loadString('assets/l10n/${fileName}_en.md');
       } catch (e) {
-        return "Error loading credits: $e";
+        return AppLocalizations.of(context)!.errorMessage(e.toString());
       }
     }
   }
@@ -75,7 +75,7 @@ class LocalizedMarkdownViewer extends StatelessWidget {
             },
           );
         } else if (snapshot.hasError) {
-          return Text('Error loading content.');
+          return Text(AppLocalizations.of(context)!.errorLoadingContent);
         }
         return const Center(child: CircularProgressIndicator());
       },
