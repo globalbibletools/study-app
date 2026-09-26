@@ -212,7 +212,9 @@ class ReadingSessionDatabase {
 
     if (version == 1) {
       await restoreBackupJson1(tables);
-    } else {}
+    } else {
+      await restoreBackupJson2(tables);
+    }
   }
 
   Future<void> restoreBackupJson1(Map<String, dynamic> tables) async {
