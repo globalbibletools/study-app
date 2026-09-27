@@ -82,8 +82,9 @@ end
 platform :ios do
   # Fetches the signing credentials managed by match (git storage; see the
   # ios-certificates workflow) using the App Store Connect API key, installs
-  # them into a temporary keychain, and writes ios/ExportOptions.plist for
-  # `flutter build ipa` to sign with.
+  # them into a temporary keychain, switches the Runner target to manual
+  # signing with the match profile, and writes ios/ExportOptions.plist for
+  # `flutter build ipa` to export with.
   #
   # Runs in readonly mode so CI can never create, renew or revoke
   # certificates or profiles. Use the `certificates` lane for that.
@@ -109,10 +110,14 @@ platform :ios do
       "match AppStore #{APP_IDENTIFIER}"
     UI.user_error!("Failed to determine provisioning profile name") unless profile_name
 
-    # Expose the profile name as a GitHub Actions output.
-    if (github_output = ENV["GITHUB_OUTPUT"])
-      File.open(github_output, "a") { |f| f.puts "ios_profile=#{profile_name}" }
-    end
+    update_code_signing_settings(
+      path: "../ios/Runner.xcodeproj",
+      use_automatic_signing: false,
+      team_id: IOS_TEAM_ID,
+      targets: ["Runner"],
+      code_sign_identity: "Apple Distribution",
+      profile_name: profile_name
+    )
 
     File.write("../ios/ExportOptions.plist", <<~PLIST)
       <?xml version="1.0" encoding="UTF-8"?>

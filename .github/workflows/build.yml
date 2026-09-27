@@ -147,21 +147,12 @@ jobs:
         run: echo "KEYCHAIN_PASSWORD=$(openssl rand -hex 24)" >> "$GITHUB_ENV"
 
       - name: Fetch signing credentials from match (readonly)
-        id: signing
         run: bundle exec fastlane ios signing
 
       - name: Build ipa
         # iOS marketing versions must be numeric, so use base-name (without a
         # pre-release suffix) rather than the full tag.
-        run: |
-          flutter build ipa --no-pub --release \
-            --export-options-plist=ios/ExportOptions.plist \
-            --build-name=${{ needs.release.outputs.base-name }} \
-            --build-number=${{ needs.release.outputs.build-number }} \
-            -- \
-            CODE_SIGN_STYLE=Manual \
-            CODE_SIGN_IDENTITY="Apple Distribution" \
-            PROVISIONING_PROFILE_SPECIFIER="${{ steps.signing.outputs.ios_profile }}"
+        run: flutter build ipa --no-pub --release --export-options-plist=ios/ExportOptions.plist --build-name=${{ needs.release.outputs.base-name }} --build-number=${{ needs.release.outputs.build-number }}
 
       - name: Upload artifacts to release
         env:
