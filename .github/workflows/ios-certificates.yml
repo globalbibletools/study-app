@@ -1,0 +1,45 @@
+name: ios-certificates
+
+# Manually triggered workflow to create or renew the iOS distribution
+# certificate and App Store provisioning profile in the match repo. The build
+# workflow only ever reads these (match readonly); this is the only place that
+# writes to the match repo or the Apple Developer Portal.
+
+on:
+  workflow_dispatch:
+    inputs:
+      nuke:
+        description: "Revoke all existing distribution certificates and delete all provisioning profiles for the team before recreating them (forces renewal)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  certificates:
+    runs-on: macos-latest
+    env:
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
+      MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+      MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+      MATCH_GIT_PRIVATE_KEY: ${{ secrets.MATCH_GIT_PRIVATE_KEY }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+
+      - name: Install fastlane
+        run: bundle install --jobs 4 --retry 3
+
+      - name: Create temporary keychain password
+        run: echo "KEYCHAIN_PASSWORD=$(openssl rand -hex 24)" >> "$GITHUB_ENV"
+
+      - name: Create or renew distribution certificate
+        run: bundle exec fastlane ios certificates nuke:${{ inputs.nuke }}

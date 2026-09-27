@@ -10,7 +10,40 @@ permissions:
   id-token: write
 
 jobs:
-  build:
+  release:
+    runs-on: ubuntu-latest
+    outputs:
+      build-name: ${{ steps.version.outputs.build-name }}
+      base-name: ${{ steps.version.outputs.base-name }}
+      build-number: ${{ steps.version.outputs.build-number }}
+      is-prerelease: ${{ steps.version.outputs.is-prerelease }}
+    steps:
+      - name: Set version from tag
+        id: version
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"      # strip optional v prefix -> 1.2.3 or 1.2.3-beta2
+          BASE="${TAG%%-*}"               # part before -   -> 1.2.3
+          SUFFIX="${TAG#*-}"              # part after -    -> beta2, or unchanged if no -
+
+          IS_PRERELEASE=false
+          if [ "$SUFFIX" != "$TAG" ]; then
+            IS_PRERELEASE=true
+          fi
+
+          BUILD=$(( GITHUB_RUN_NUMBER + 50 ))
+
+          echo "build-name=$TAG"        >> "$GITHUB_OUTPUT"  # full version, incl. pre-release suffix
+          echo "base-name=$BASE"        >> "$GITHUB_OUTPUT"  # numeric only, e.g. for CFBundleShortVersionString
+          echo "build-number=$BUILD"    >> "$GITHUB_OUTPUT"
+          echo "is-prerelease=$IS_PRERELEASE" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          prerelease: ${{ steps.version.outputs.is-prerelease }}
+
+  android:
+    needs: release
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -51,37 +84,17 @@ jobs:
         env:
           ANDROID_KEY_PROPERTIES: ${{ secrets.ANDROID_KEY_PROPERTIES }}
 
-      - name: Set version from tag
-        id: version
-        run: |
-          TAG="${GITHUB_REF_NAME#v}"      # strip optional v prefix -> 1.2.3 or 1.2.3-beta2
-          BASE="${TAG%%-*}"               # part before -   -> 1.2.3
-          SUFFIX="${TAG#*-}"              # part after -    -> beta2, or unchanged if no -
-
-          IS_PRERELEASE=false
-          if [ "$SUFFIX" != "$TAG" ]; then
-            IS_PRERELEASE=true
-          fi
-
-          BUILD=$(( GITHUB_RUN_NUMBER + 50 ))
-
-          echo "build-name=$TAG"        >> "$GITHUB_OUTPUT"
-          echo "build-number=$BUILD"    >> "$GITHUB_OUTPUT"
-          echo "is-prerelease=$IS_PRERELEASE" >> "$GITHUB_OUTPUT"
-
       - name: Build arm64 APK
-        run: flutter build apk --no-pub --release --split-per-abi --target-platform android-arm64 --build-name=${{ steps.version.outputs.build-name }} --build-number=${{ steps.version.outputs.build-number }}
+        run: flutter build apk --no-pub --release --split-per-abi --target-platform android-arm64 --build-name=${{ needs.release.outputs.build-name }} --build-number=${{ needs.release.outputs.build-number }}
 
       - name: Build App Bundle
-        run: flutter build appbundle --no-pub --release --build-name=${{ steps.version.outputs.build-name }} --build-number=${{ steps.version.outputs.build-number }}
+        run: flutter build appbundle --no-pub --release --build-name=${{ needs.release.outputs.build-name }} --build-number=${{ needs.release.outputs.build-number }}
 
       - name: Upload artifacts to release
-        uses: softprops/action-gh-release@v2
-        with:
-          prerelease: ${{ steps.version.outputs.is-prerelease }}
-          files: |
-            build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
-            build/app/outputs/bundle/release/app-release.aab
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "$GITHUB_REF_NAME" build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
 
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
@@ -95,5 +108,61 @@ jobs:
         run: bundle exec fastlane android internal
 
       - name: Upload to Play Store production track
-        if: steps.version.outputs.is-prerelease == 'false'
+        if: needs.release.outputs.is-prerelease == 'false'
         run: bundle exec fastlane android production
+
+  ios:
+    needs: release
+    runs-on: macos-latest
+    env:
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
+      MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+      MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+      MATCH_GIT_PRIVATE_KEY: ${{ secrets.MATCH_GIT_PRIVATE_KEY }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+          flutter-version-file: pubspec.yaml
+
+      - name: Install Dart dependencies
+        run: flutter pub get
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+
+      - name: Install fastlane
+        run: bundle install --jobs 4 --retry 3
+
+      - name: Create temporary keychain password
+        run: echo "KEYCHAIN_PASSWORD=$(openssl rand -hex 24)" >> "$GITHUB_ENV"
+
+      - name: Fetch signing credentials from match (readonly)
+        run: bundle exec fastlane ios signing
+
+      - name: Build ipa
+        # iOS marketing versions must be numeric, so use base-name (without a
+        # pre-release suffix) rather than the full tag.
+        run: flutter build ipa --no-pub --release --export-options-plist=ios/ExportOptions.plist --build-name=${{ needs.release.outputs.base-name }} --build-number=${{ needs.release.outputs.build-number }}
+
+      - name: Upload artifacts to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "$GITHUB_REF_NAME" build/ios/ipa/*.ipa
+
+      - name: Upload to TestFlight internal testing
+        run: bundle exec fastlane ios internal
+
+      - name: Create draft App Store version
+        if: needs.release.outputs.is-prerelease == 'false'
+        run: bundle exec fastlane ios production version:${{ needs.release.outputs.base-name }} build:${{ needs.release.outputs.build-number }}
