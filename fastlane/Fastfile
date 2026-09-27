@@ -32,7 +32,7 @@ end
 
 # Path of the ipa produced by `flutter build ipa`
 def ipa_path
-  path = Dir[File.join("build", "ios", "ipa", "*.ipa")].first
+  path = Dir["../build/ios/ipa/*.ipa"].first
   UI.user_error!("No ipa found in build/ios/ipa/. Did `flutter build ipa` run?") unless path
   path
 end
@@ -58,7 +58,7 @@ platform :android do
   lane :internal do
     upload_to_play_store(
       track: "internal",
-      aab: "build/app/outputs/bundle/release/app-release.aab",
+      aab: "../build/app/outputs/bundle/release/app-release.aab",
 
       skip_upload_metadata: true,
       skip_upload_changelogs: true,
@@ -69,7 +69,7 @@ platform :android do
   lane :production do
     upload_to_play_store(
       track: "production",
-      aab: "build/app/outputs/bundle/release/app-release.aab",
+      aab: "../build/app/outputs/bundle/release/app-release.aab",
       release_status: "draft",
 
       skip_upload_metadata: true,
@@ -109,7 +109,7 @@ platform :ios do
       "match AppStore #{APP_IDENTIFIER}"
     UI.user_error!("Failed to determine provisioning profile name") unless profile_name
 
-    File.write("ios/ExportOptions.plist", <<~PLIST)
+    File.write("../ios/ExportOptions.plist", <<~PLIST)
       <?xml version="1.0" encoding="UTF-8"?>
       <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
       <plist version="1.0">
