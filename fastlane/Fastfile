@@ -109,6 +109,11 @@ platform :ios do
       "match AppStore #{APP_IDENTIFIER}"
     UI.user_error!("Failed to determine provisioning profile name") unless profile_name
 
+    # Expose the profile name as a GitHub Actions output.
+    if (github_output = ENV["GITHUB_OUTPUT"])
+      File.open(github_output, "a") { |f| f.puts "ios_profile=#{profile_name}" }
+    end
+
     File.write("../ios/ExportOptions.plist", <<~PLIST)
       <?xml version="1.0" encoding="UTF-8"?>
       <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
