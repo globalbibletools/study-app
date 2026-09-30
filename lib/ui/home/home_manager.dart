@@ -126,6 +126,10 @@ class HomeManager {
     inputModeNotifier.value = mode;
   }
 
+  void closeBiblePanel() {
+    isSinglePanelNotifier.value = true;
+  }
+
   void setEnabledDigits(Set<int> digits) {
     enabledDigitsNotifier.value = digits;
   }
