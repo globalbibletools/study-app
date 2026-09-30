@@ -33,7 +33,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get emailCopied => 'Email copied';
 
   @override
-  String get settings => 'Settings';
+  String get settings => 'Settings Changed';
 
   @override
   String get language => 'Language';
