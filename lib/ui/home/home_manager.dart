@@ -213,6 +213,7 @@ class HomeManager {
 
   void onBookSelected(BuildContext context, int bookId) {
     final ref = Reference(bookId: bookId, chapter: 1, verse: 1);
+    audioPlayerViewModel.pause();
     audioPlayerViewModel.jumpTo(ref);
     currentReference.value = ref;
     panelAnchorNotifier.value = ref;
@@ -222,6 +223,7 @@ class HomeManager {
 
   void onChapterSelected(int chapter) {
     final ref = Reference(bookId: currentBookId, chapter: chapter, verse: 1);
+    audioPlayerViewModel.pause();
     audioPlayerViewModel.jumpTo(ref);
     currentReference.value = ref;
     panelAnchorNotifier.value = ref;
