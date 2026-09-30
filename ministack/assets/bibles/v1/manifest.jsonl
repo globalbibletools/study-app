@@ -1,5 +1,5 @@
-{"id":"arb_vdv","updatedAt":"2025-01-15T00:00:00Z","sha256":"3c805e98014b8b2907e1a08ca1f453d1a83bfd01f3c8a877db8867564c4df07c","size":2146722,"url":"bibles/v1/arb_vdv.db.zip","resourceName":"Arabic Van Dyck Bible"}
-{"id":"fra_lsg","updatedAt":"2025-01-15T00:00:00Z","sha256":"1020e0cd199ef3b65470c17dbbb98a5ce514613b60d883d2163cd9023b1ba8cf","size":1963403,"url":"bibles/v1/fra_lsg.db.zip","resourceName":"Louis Segond 1910"}
-{"id":"por_blj","updatedAt":"2025-01-15T00:00:00Z","sha256":"f992f47abe14405f9ade216a84279ca1d44e2807d369f63d12fe0a89fdfaafa8","size":1716684,"url":"bibles/v1/por_blj.db.zip","resourceName":"Bíblia Livro por Livro"}
-{"id":"spa_blm","updatedAt":"2025-01-15T00:00:00Z","sha256":"42ee6d66b519b2b3acfff552ce40a0ba1a51738d6cb4c99366bdcaca511524dc","size":1933007,"url":"bibles/v1/spa_blm.db.zip","resourceName":"Santa Biblia Literal Mexicana"}
-{"id":"eng_bsb","updatedAt":"2026-08-26T00:00:00Z","sha256":"1a6fc39ec760ba085a860740ccf6452f14eb7ed0eeac4c34e069884f7b998cb7","size":2223045,"url":"bibles/v1/eng_bsb.db.zip","resourceName":"Berean Standard Bible"}
+{"id":"arb_vdv","updatedAt":"2026-08-26T00:00:00Z","sha256":"caad25c883fa51aa5afb3f0df7d25901297368a8df311d1225868920ecfc81b3","size":2146374,"url":"bibles/v1/arb_vdv.db.zip","resourceName":"Arabic Van Dyck Bible"}
+{"id":"fra_lsg","updatedAt":"2026-08-26T00:00:00Z","sha256":"d672cc55f117742bda46cc397c8cbdedb1d30739162823f6d566868609db04dd","size":1963055,"url":"bibles/v1/fra_lsg.db.zip","resourceName":"Louis Segond 1910"}
+{"id":"por_blj","updatedAt":"2026-08-26T00:00:00Z","sha256":"3b699d46a90c5d91740a089d5171798adef944c369700fb843d989845b903622","size":1716336,"url":"bibles/v1/por_blj.db.zip","resourceName":"Bíblia Livro por Livro"}
+{"id":"spa_blm","updatedAt":"2026-08-26T00:00:00Z","sha256":"8389e368c8b3d837a7f44eb0d196b904ed7b66f90b4090e58c33d06bb685027b","size":1932659,"url":"bibles/v1/spa_blm.db.zip","resourceName":"Santa Biblia Literal Mexicana"}
+{"id":"eng_bsb","updatedAt":"2026-08-26T00:00:00Z","sha256":"1a4795cb2dcb1ae4c729412ff0d3afac684373c244946793e2c9b84260ebec49","size":2221998,"url":"bibles/v1/eng_bsb.db.zip","resourceName":"Berean Standard Bible"}
