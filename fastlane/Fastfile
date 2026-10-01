@@ -218,7 +218,11 @@ platform :ios do
       skip_screenshots: true,
 
       submit_for_review: false,
-      force: true
+      force: true,
+
+      # The in-app purchases precheck rule cannot run with an App Store
+      # Connect API key (it requires Apple ID login); this app has no IAP.
+      precheck_include_in_app_purchases: false
     )
   end
 end
