@@ -66,11 +66,15 @@ platform :android do
     )
   end
 
-  lane :production do
+  lane :production do |options|
+    version_code = options[:version_code]
+    UI.user_error!("The `version_code` option is required") unless version_code
+
     upload_to_play_store(
-      track: "production",
-      aab: "build/app/outputs/bundle/release/app-release.aab",
-      release_status: "draft",
+      track: "internal",
+      track_promote_to: "production",
+      track_promote_release_status: "draft",
+      version_code: version_code.to_i,
 
       skip_upload_metadata: true,
       skip_upload_changelogs: true,

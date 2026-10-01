@@ -107,9 +107,9 @@ jobs:
       - name: Upload to Play Store internal track
         run: bundle exec fastlane android internal
 
-      - name: Upload to Play Store production track
+      - name: Promote release to Play Store production track
         if: needs.release.outputs.is-prerelease == 'false'
-        run: bundle exec fastlane android production
+        run: bundle exec fastlane android production version_code:${{ needs.release.outputs.build-number }}
 
   ios:
     needs: release

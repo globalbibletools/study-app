@@ -1,1 +1,2 @@
+app_identifier("com.globalbibletools.gbt") # iOS bundle ID
 package_name("com.globalbibletools.gbt") # e.g. com.krausefx.app
