@@ -29,10 +29,15 @@ class HebrewGreekChapterManager {
   }
 
   Future<void> loadReadVerses(int bookId, int chapter) async {
+    final readingPlan = _rsmanager.getReadingPlan();
+
+    if (readingPlan == null) return;
+
     final token = ++_readVersesLoadToken;
     if (_disposed) return;
     verseCheckboxNotifier.clear();
     final versesRead = await _rsmanager.getVersesReadForChapter(
+      readingPlan.readingPlan.id!,
       bookId,
       chapter,
     );
@@ -41,10 +46,15 @@ class HebrewGreekChapterManager {
   }
 
   Future<void> markVerseAsRead(int bookId, int chapter, int verse) async {
+    final readingPlan = _rsmanager.getReadingPlan();
+
+    if (readingPlan == null) return;
+
     if (_disposed) return;
     await _rsmanager.markVerseAsRead(bookId, chapter, verse);
     if (_disposed) return;
     final versesRead = await _rsmanager.getVersesReadForChapter(
+      readingPlan.readingPlan.id!,
       bookId,
       chapter,
     );
@@ -53,10 +63,15 @@ class HebrewGreekChapterManager {
   }
 
   Future<void> resetVerseProgress(int bookId, int chapter, int verse) async {
+    final readingPlan = _rsmanager.getReadingPlan();
+
+    if (readingPlan == null) return;
+
     if (_disposed) return;
     await _rsmanager.resetReadingCountForVerse(bookId, chapter, verse);
     if (_disposed) return;
     final versesRead = await _rsmanager.getVersesReadForChapter(
+      readingPlan.readingPlan.id!,
       bookId,
       chapter,
     );

@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:gbt/services/reading_session/rs_model.dart';
 
 @immutable
 class ChapterIdentifier {
@@ -55,6 +56,57 @@ class BibleNavigation {
     return null;
   }
 
+  // Returns null if there is no next chapter (last book in the reading plan)
+  static ChapterIdentifier? getNextChapterForReadingPlan(
+    ChapterIdentifier current,
+    ReadingPlanDetails readingPlan,
+  ) {
+    final totalChapters = getChapterCount(current.bookId);
+
+    // Case 1: Next chapter in same book
+    if (current.chapter < totalChapters) {
+      return ChapterIdentifier(current.bookId, current.chapter + 1);
+    }
+    // Case 2: First chapter of next book
+    for (int i = 0; i < readingPlan.books.length; i++) {
+      if (readingPlan.books[i].bookId != current.bookId) continue;
+
+      if (i < readingPlan.books.length - 1) {
+        return ChapterIdentifier(readingPlan.books[i + 1].bookId, 1);
+      }
+
+      // Case 3 : End of the reading plan
+      return null;
+    }
+
+    return null;
+  }
+
+  // Returns null if there is no previous chapter (e.g. Genesis 1)
+  static ChapterIdentifier? getPreviousChapterForReadingPlan(
+    ChapterIdentifier current,
+    ReadingPlanDetails readingPlan,
+  ) {
+    // Case 1: Previous chapter in same book
+    if (current.chapter > 1) {
+      return ChapterIdentifier(current.bookId, current.chapter - 1);
+    }
+
+    // Case 2: First chapter of previous book
+    for (int i = 0; i < readingPlan.books.length; i++) {
+      if (readingPlan.books[i].bookId != current.bookId) continue;
+
+      // Case 3 : first book of the reading plan
+      if (i == 0) return null;
+
+      final previousBookId = readingPlan.books[i - 1].bookId;
+      final lastChapterOfPreviousBook = getChapterCount(previousBookId);
+      return ChapterIdentifier(previousBookId, lastChapterOfPreviousBook);
+    }
+
+    return null;
+  }
+
   static int getChapterCount(int bookId) {
     return _bookIdToChapterCountMap[bookId] ?? 0;
   }
@@ -65,6 +117,26 @@ class BibleNavigation {
 
   static int getNewTestamentBookId() {
     return 40;
+  }
+
+  static final Map<int, int> _bookTotalVerses = _computeBookTotalVerses();
+
+  static Map<int, int> _computeBookTotalVerses() {
+    final totals = <int, int>{};
+    for (var bookId = 1; bookId <= getBooksCount(); bookId++) {
+      var sum = 0;
+      final chapterCount = getChapterCount(bookId);
+      for (var chapter = 1; chapter <= chapterCount; chapter++) {
+        sum += getVerseCount(bookId, chapter);
+      }
+      totals[bookId] = sum;
+    }
+    return totals;
+  }
+
+  /// Total number of verses in [bookId] (sum across all its chapters).
+  static int getTotalVerseCount(int bookId) {
+    return _bookTotalVerses[bookId] ?? 0;
   }
 
   static const Map<int, int> _bookIdToChapterCountMap = {
@@ -1255,8 +1327,8 @@ const Map<int, int> _verseCounts = {
   38010: 12,
   38011: 17, 38012: 14, 38013: 9, 38014: 21,
 
-  // Malachi (Book 39) - PDF lists 3 entries in columns 1, 2, 3
-  39001: 14, 39002: 17, 39003: 24,
+  // Malachi (Book 39)
+  39001: 14, 39002: 17, 39003: 18, 39004: 6, 
 
   // New Testament
   // Matthew (Book 40)

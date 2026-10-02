@@ -836,6 +836,258 @@ abstract class AppLocalizations {
   /// **'No'**
   String get no;
 
+  /// Fallback error shown when localized markdown content cannot load
+  ///
+  /// In en, this message translates to:
+  /// **'Error loading content.'**
+  String get errorLoadingContent;
+
+  /// Error shown when a verse result cannot load
+  ///
+  /// In en, this message translates to:
+  /// **'Error loading verse: {error}'**
+  String errorLoadingVerse(String error);
+
+  /// Generic error message
+  ///
+  /// In en, this message translates to:
+  /// **'Error: {error}'**
+  String errorMessage(String error);
+
+  /// Error shown when an audio download fails
+  ///
+  /// In en, this message translates to:
+  /// **'Download error: {error}'**
+  String downloadError(String error);
+
+  /// Title for reading plans screens
+  ///
+  /// In en, this message translates to:
+  /// **'Reading Plans'**
+  String get readingPlans;
+
+  /// Section title for the user's reading plans
+  ///
+  /// In en, this message translates to:
+  /// **'Your Reading Plans'**
+  String get yourReadingPlans;
+
+  /// Button label for editing
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get edit;
+
+  /// Button label for creating a new reading plan
+  ///
+  /// In en, this message translates to:
+  /// **'Create New Plan'**
+  String get createNewPlan;
+
+  /// Label for the current reading position
+  ///
+  /// In en, this message translates to:
+  /// **'Current'**
+  String get current;
+
+  /// Button label to begin reading a plan
+  ///
+  /// In en, this message translates to:
+  /// **'Start Reading'**
+  String get startReading;
+
+  /// Button label to continue reading a plan
+  ///
+  /// In en, this message translates to:
+  /// **'Resume Reading'**
+  String get resumeReading;
+
+  /// Reading-plan progress count for completed books out of total books
+  ///
+  /// In en, this message translates to:
+  /// **'{read} of {total} books'**
+  String booksReadOfTotal(int read, int total);
+
+  /// Title for today's reading goal card
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s Goal'**
+  String get todaysGoal;
+
+  /// Message shown when today's goal is complete
+  ///
+  /// In en, this message translates to:
+  /// **'Completed today'**
+  String get completedToday;
+
+  /// Section title for an estimated reading-plan completion date
+  ///
+  /// In en, this message translates to:
+  /// **'Estimated Completion'**
+  String get estimatedCompletion;
+
+  /// Message shown when a reading plan is complete
+  ///
+  /// In en, this message translates to:
+  /// **'Plan complete!'**
+  String get planComplete;
+
+  /// Duration in days
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 day} other{{count} days}}'**
+  String daysCount(int count);
+
+  /// Approximate duration in months shown in parentheses
+  ///
+  /// In en, this message translates to:
+  /// **'({count} months)'**
+  String monthsCount(String count);
+
+  /// Section title for books included in a reading plan
+  ///
+  /// In en, this message translates to:
+  /// **'Books in this Plan'**
+  String get booksInThisPlan;
+
+  /// Button label for finishing an action
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get done;
+
+  /// Button label to reorder books in a reading plan
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Order'**
+  String get editOrder;
+
+  /// Default editable name for a new reading plan
+  ///
+  /// In en, this message translates to:
+  /// **'Plan 1'**
+  String get defaultReadingPlanName;
+
+  /// Section label for choosing a Bible collection
+  ///
+  /// In en, this message translates to:
+  /// **'Collection'**
+  String get collection;
+
+  /// Section label for setting a reading plan goal
+  ///
+  /// In en, this message translates to:
+  /// **'Goal'**
+  String get goal;
+
+  /// Hint text for the reading plan name input
+  ///
+  /// In en, this message translates to:
+  /// **'Plan name'**
+  String get planName;
+
+  /// Bible collection containing all books
+  ///
+  /// In en, this message translates to:
+  /// **'Whole Bible'**
+  String get wholeBible;
+
+  /// Bible collection for the Torah
+  ///
+  /// In en, this message translates to:
+  /// **'Torah'**
+  String get torah;
+
+  /// Bible collection for the Prophets
+  ///
+  /// In en, this message translates to:
+  /// **'Prophets'**
+  String get prophets;
+
+  /// Bible collection for the Writings
+  ///
+  /// In en, this message translates to:
+  /// **'Writings'**
+  String get writings;
+
+  /// Bible collection for the Gospels
+  ///
+  /// In en, this message translates to:
+  /// **'Gospels'**
+  String get gospels;
+
+  /// Bible collection for Paul's epistles
+  ///
+  /// In en, this message translates to:
+  /// **'Pauline Epistles'**
+  String get paulineEpistles;
+
+  /// Summary shown when all books in a collection are selected
+  ///
+  /// In en, this message translates to:
+  /// **'All {total} books selected'**
+  String allBooksSelected(int total);
+
+  /// Summary shown for selected books in a collection
+  ///
+  /// In en, this message translates to:
+  /// **'{selected}/{total} books selected'**
+  String booksSelected(int selected, int total);
+
+  /// Button label for updating an existing reading plan
+  ///
+  /// In en, this message translates to:
+  /// **'Update Reading Plan'**
+  String get updateReadingPlan;
+
+  /// Button label for creating a reading plan
+  ///
+  /// In en, this message translates to:
+  /// **'Add Reading Plan'**
+  String get addReadingPlan;
+
+  /// Button label to deselect every book
+  ///
+  /// In en, this message translates to:
+  /// **'Deselect All'**
+  String get deselectAll;
+
+  /// Button label to select every book
+  ///
+  /// In en, this message translates to:
+  /// **'Select All'**
+  String get selectAll;
+
+  /// Disabled button prompt when no books are selected
+  ///
+  /// In en, this message translates to:
+  /// **'Select at least one book'**
+  String get selectAtLeastOneBook;
+
+  /// Button label confirming a number of selected books
+  ///
+  /// In en, this message translates to:
+  /// **'Done ({count} selected)'**
+  String doneSelected(int count);
+
+  /// Overlay title shown when a book has been completed
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve completed {book}!'**
+  String bookCompletedTitle(String book);
+
+  /// Completion status label
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get completed;
+
+  /// Button label for continuing to the next book in a reading plan
+  ///
+  /// In en, this message translates to:
+  /// **'Next Book in Plan'**
+  String get nextBookInPlan;
+
   /// The name of the first book of the Bible
   ///
   /// In en, this message translates to:

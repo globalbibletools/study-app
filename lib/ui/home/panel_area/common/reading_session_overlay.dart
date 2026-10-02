@@ -17,7 +17,7 @@ class ReadingSessionOverlay extends StatelessWidget {
         return ValueListenableBuilder(
           valueListenable: manager.displayGoalProgresNotifier,
           builder: (context, displayGoalProgress, _) {
-            final dailyGoal = manager.getDailyGoal();
+            final dailyGoal = manager.getReadingPlan()?.dailyGoal;
             late final Widget child;
             if (!readingModeEnabled || dailyGoal == null) {
               child = const SizedBox.shrink(key: ValueKey('hidden'));

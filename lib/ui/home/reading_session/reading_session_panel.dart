@@ -56,9 +56,7 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
       valueListenable: manager.selectedMainTab,
       builder: (context, selectedTab, _) {
         return CutoutView(
-          enabled:
-              selectedTab == MainTab.goals &&
-              manager.dailyGoalNotifier.value == null,
+          enabled: selectedTab == MainTab.goals,
           objects: [
             SpotlightObject.fromKey(
               key: _goalButtonKey,
@@ -256,6 +254,7 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
                 chaptersRead: 0,
                 versesRead: 0,
                 updatedAt: DateTime.now(),
+                readingPlanId: 0,
               );
 
         final latestNewTestament = newTestamentProgressList.isNotEmpty
@@ -267,6 +266,7 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
                 chaptersRead: 0,
                 versesRead: 0,
                 updatedAt: DateTime.now(),
+                readingPlanId: 0,
               );
         //Books read
         var oldTestamentBooksRead = 0;
@@ -530,7 +530,7 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
           onTap: () async {
             log("starting reading session");
 
-            await widget.readingSessionManager.startReadingSession();
+            //await widget.readingSessionManager.startReadingSession(0);
             if (!mounted) return;
 
             widget.homeManager.onBookSelected(context, bookProgress.bookId);
@@ -621,16 +621,7 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
   }
 
   Widget _startButtonOrNone() {
-    return ValueListenableBuilder(
-      valueListenable: manager.dailyGoalNotifier,
-      builder: (_, dailyGoal, child) {
-        if (dailyGoal == null) {
-          return const SizedBox.shrink();
-        } else {
-          return _startButton();
-        }
-      },
-    );
+    return _startButton();
   }
 
   Widget _startButton() {
@@ -651,7 +642,7 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
               onTap: () async {
                 log("starting reading session");
 
-                await widget.readingSessionManager.startReadingSession();
+                //await widget.readingSessionManager.startReadingSession();
                 if (!mounted) return;
 
                 widget.homeManager.onBookSelected(
@@ -694,28 +685,21 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
             ),
           );
 
-          if (manager.dailyGoalNotifier.value == null) {
-            return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              child: SizedBox(width: double.infinity, child: child),
-            );
-          } else {
-            final color = Theme.of(context).colorScheme.primary;
-            return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              child: SizedBox(
-                width: double.infinity,
-                child: GlowingButton(
-                  duration: 6000,
-                  primaryColor: color,
-                  borderRadius: borderRadius,
-                  glowInset: 10,
-                  strokeWidth: 3,
-                  child: child,
-                ),
+          final color = Theme.of(context).colorScheme.primary;
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: SizedBox(
+              width: double.infinity,
+              child: GlowingButton(
+                duration: 6000,
+                primaryColor: color,
+                borderRadius: borderRadius,
+                glowInset: 10,
+                strokeWidth: 3,
+                child: child,
               ),
-            );
-          }
+            ),
+          );
         }
       },
     );
@@ -840,36 +824,20 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
 
     await showDialog<void>(
       context: context,
-      builder: (context) => DetailedProgressPanel(date: progress.day),
+      builder: (context) =>
+          DetailedProgressPanel(readingPlanId: 0, date: progress.day),
     );
   }
 
   Widget _dailyGoalText() {
-    final l10n = AppLocalizations.of(context)!;
-    final color = Theme.of(context).colorScheme.primary;
+    // final l10n = AppLocalizations.of(context)!;
+    // final color = Theme.of(context).colorScheme.primary;
 
-    return ValueListenableBuilder(
-      valueListenable: manager.dailyGoalNotifier,
-      builder: (_, value, _) {
-        if (value == null) {
-          return Center(
-            child: Text(
-              l10n.dailyGoalNotSet,
-              style: TextStyle(color: color, fontSize: 16),
-            ),
-          );
-        }
-
-        final minuteLabel = l10n.minutes;
-        final versesLabel = l10n.verses;
-
-        return Center(
-          child: Text(
-            "${l10n.dailyGoal}: ${value.value} ${value.type == GoalType.minutes ? minuteLabel : versesLabel}",
-            style: TextStyle(color: color, fontSize: 16),
-          ),
-        );
-      },
+    return Center(
+      // child: Text(
+      //   "${l10n.dailyGoal}: ${value.value} ${value.type == GoalType.minutes ? minuteLabel : versesLabel}",
+      //   style: TextStyle(color: color, fontSize: 16),
+      // ),
     );
   }
 
@@ -927,7 +895,7 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
     final colorScheme = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context)!;
 
-    final currentGoal = manager.dailyGoalNotifier.value;
+    final currentGoal = null;
 
     final button = ElevatedButton.icon(
       key: _goalButtonKey,
@@ -940,7 +908,7 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
       ),
       onPressed: () async {
-        final result = await showModalBottomSheet<(GoalType, int)>(
+        await showModalBottomSheet<(GoalType, int)>(
           context: context,
           isScrollControlled: true,
           isDismissible: true,
@@ -950,10 +918,6 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
             initialValue: currentGoal?.value,
           ),
         );
-
-        if (result != null) {
-          manager.updateGoal(result.$1, result.$2);
-        }
 
         setState(() {});
       },

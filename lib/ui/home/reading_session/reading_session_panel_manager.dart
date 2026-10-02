@@ -25,40 +25,30 @@ class ReadingSessionPanelManager {
     BookProgressTab.christian,
   );
 
-  final dailyGoalNotifier = ValueNotifier<DailyGoal?>(null);
-
   ReadingSessionPanelManager() {
     _rsManager.subsribeForBookProgress(onBookProgressUpdated);
     _rsManager.subsribeForStats(onStatsUpdated);
     selectedGTabNotifier.addListener(onStatsUpdated);
-    booksProgressNotifier.value = _rsManager.booksProgress;
+    //booksProgressNotifier.value = _rsManager.booksProgress;
     latestBookProgressNotifier.value = _rsManager.latestBookProgress;
-    dailyGoalNotifier.value = _rsManager.getDailyGoal();
 
-    if (dailyGoalNotifier.value == null) {
-      selectedMainTab.value = MainTab.goals;
-      selectedGTabNotifier.value = GoalsTab.byWeek;
-    }
+    selectedMainTab.value = MainTab.goals;
+    selectedGTabNotifier.value = GoalsTab.byWeek;
 
     onStatsUpdated();
   }
 
   void onBookProgressUpdated() {
-    booksProgressNotifier.value = _rsManager.booksProgress;
+    //booksProgressNotifier.value = _rsManager.booksProgress;
     latestBookProgressNotifier.value = _rsManager.latestBookProgress;
   }
 
   void onStatsUpdated() {
     if (selectedGTabNotifier.value == GoalsTab.byMonth) {
-      goalsDataNotifier.value = _rsManager.monthProgress;
+      //goalsDataNotifier.value = _rsManager.monthProgress;
     } else {
-      goalsDataNotifier.value = _rsManager.weekProgress;
+      //goalsDataNotifier.value = _rsManager.weekProgress;
     }
-  }
-
-  void updateGoal(GoalType type, int value) {
-    _rsManager.setDailyGoal(type, value);
-    dailyGoalNotifier.value = DailyGoal(type, value);
   }
 
   void dispose() {

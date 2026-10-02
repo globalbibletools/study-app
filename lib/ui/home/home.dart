@@ -8,7 +8,7 @@ import 'package:gbt/ui/home/common/cutout_view.dart';
 import 'package:gbt/ui/home/common/guide_bubble.dart';
 import 'package:gbt/ui/home/panel_area/panel_area.dart';
 import 'package:gbt/ui/home/keypad/keypad_layer.dart';
-import 'package:gbt/ui/home/reading_session/reading_session_panel.dart';
+import 'package:gbt/ui/home/reading_plan/reading_sheet.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import 'appbar/appbar.dart';
@@ -215,7 +215,7 @@ class _HomeScreenState extends State<HomeScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (context) {
-        return ReadingSessionPanel(homeManager: manager);
+        return ReadingSheet(homeManager: manager);
       },
     );
   }

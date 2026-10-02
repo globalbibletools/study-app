@@ -452,6 +452,158 @@ class AppLocalizationsEs extends AppLocalizations {
   String get no => 'No';
 
   @override
+  String get errorLoadingContent => 'Error al cargar el contenido.';
+
+  @override
+  String errorLoadingVerse(String error) {
+    return 'Error al cargar el versículo: $error';
+  }
+
+  @override
+  String errorMessage(String error) {
+    return 'Error: $error';
+  }
+
+  @override
+  String downloadError(String error) {
+    return 'Error de descarga: $error';
+  }
+
+  @override
+  String get readingPlans => 'Planes de lectura';
+
+  @override
+  String get yourReadingPlans => 'Tus planes de lectura';
+
+  @override
+  String get edit => 'Editar';
+
+  @override
+  String get createNewPlan => 'Crear nuevo plan';
+
+  @override
+  String get current => 'Actual';
+
+  @override
+  String get startReading => 'Iniciar lectura';
+
+  @override
+  String get resumeReading => 'Reanudar lectura';
+
+  @override
+  String booksReadOfTotal(int read, int total) {
+    return '$read de $total libros';
+  }
+
+  @override
+  String get todaysGoal => 'Objetivo de hoy';
+
+  @override
+  String get completedToday => 'Completado hoy';
+
+  @override
+  String get estimatedCompletion => 'Finalización estimada';
+
+  @override
+  String get planComplete => '¡Plan completo!';
+
+  @override
+  String daysCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count días',
+      one: '1 día',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String monthsCount(String count) {
+    return '($count meses)';
+  }
+
+  @override
+  String get booksInThisPlan => 'Libros en este plan';
+
+  @override
+  String get done => 'Listo';
+
+  @override
+  String get editOrder => 'Editar orden';
+
+  @override
+  String get defaultReadingPlanName => 'Plan 1';
+
+  @override
+  String get collection => 'Colección';
+
+  @override
+  String get goal => 'Objetivo';
+
+  @override
+  String get planName => 'Nombre del plan';
+
+  @override
+  String get wholeBible => 'Biblia completa';
+
+  @override
+  String get torah => 'Torá';
+
+  @override
+  String get prophets => 'Profetas';
+
+  @override
+  String get writings => 'Escritos';
+
+  @override
+  String get gospels => 'Evangelios';
+
+  @override
+  String get paulineEpistles => 'Epístolas paulinas';
+
+  @override
+  String allBooksSelected(int total) {
+    return 'Los $total libros seleccionados';
+  }
+
+  @override
+  String booksSelected(int selected, int total) {
+    return '$selected/$total libros seleccionados';
+  }
+
+  @override
+  String get updateReadingPlan => 'Actualizar plan de lectura';
+
+  @override
+  String get addReadingPlan => 'Añadir plan de lectura';
+
+  @override
+  String get deselectAll => 'Deseleccionar todo';
+
+  @override
+  String get selectAll => 'Seleccionar todo';
+
+  @override
+  String get selectAtLeastOneBook => 'Selecciona al menos un libro';
+
+  @override
+  String doneSelected(int count) {
+    return 'Listo ($count seleccionados)';
+  }
+
+  @override
+  String bookCompletedTitle(String book) {
+    return '¡Has completado $book!';
+  }
+
+  @override
+  String get completed => 'Completado';
+
+  @override
+  String get nextBookInPlan => 'Siguiente libro del plan';
+
+  @override
   String get bookGenesis => 'Génesis';
 
   @override

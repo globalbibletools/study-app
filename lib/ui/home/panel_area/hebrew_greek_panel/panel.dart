@@ -127,6 +127,9 @@ class HebrewGreekPanelState extends State<HebrewGreekPanel> {
                             final fontSize =
                                 _manager.baseFontSize * chapterScale;
 
+                            Set<int> readingPlanBooks =
+                                _manager.readingPlanBooks ?? {};
+
                             return HebrewGreekChapter(
                               key: ValueKey('page-$bookId-$chapter'),
                               bookId: bookId,
@@ -135,7 +138,9 @@ class HebrewGreekPanelState extends State<HebrewGreekPanel> {
                               fontSize: fontSize,
                               syncController: widget.syncController,
                               verseLayout: verseLayout,
-                              readingModeEnabled: readingModeEnabled,
+                              readingModeEnabled:
+                                  readingModeEnabled &&
+                                  readingPlanBooks.contains(bookId),
                               onReadingCheckboxGuideRectChanged:
                                   bookId == widget.bookId &&
                                       chapter == widget.chapter &&

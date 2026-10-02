@@ -570,6 +570,230 @@
   "@no": {
     "description": "No button label"
   },
+  "errorLoadingContent": "Error loading content.",
+  "@errorLoadingContent": {
+    "description": "Fallback error shown when localized markdown content cannot load"
+  },
+  "errorLoadingVerse": "Error loading verse: {error}",
+  "@errorLoadingVerse": {
+    "description": "Error shown when a verse result cannot load",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errorMessage": "Error: {error}",
+  "@errorMessage": {
+    "description": "Generic error message",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadError": "Download error: {error}",
+  "@downloadError": {
+    "description": "Error shown when an audio download fails",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "readingPlans": "Reading Plans",
+  "@readingPlans": {
+    "description": "Title for reading plans screens"
+  },
+  "yourReadingPlans": "Your Reading Plans",
+  "@yourReadingPlans": {
+    "description": "Section title for the user's reading plans"
+  },
+  "edit": "Edit",
+  "@edit": {
+    "description": "Button label for editing"
+  },
+  "createNewPlan": "Create New Plan",
+  "@createNewPlan": {
+    "description": "Button label for creating a new reading plan"
+  },
+  "current": "Current",
+  "@current": {
+    "description": "Label for the current reading position"
+  },
+  "startReading": "Start Reading",
+  "@startReading": {
+    "description": "Button label to begin reading a plan"
+  },
+  "resumeReading": "Resume Reading",
+  "@resumeReading": {
+    "description": "Button label to continue reading a plan"
+  },
+  "booksReadOfTotal": "{read} of {total} books",
+  "@booksReadOfTotal": {
+    "description": "Reading-plan progress count for completed books out of total books",
+    "placeholders": {
+      "read": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "todaysGoal": "Today's Goal",
+  "@todaysGoal": {
+    "description": "Title for today's reading goal card"
+  },
+  "completedToday": "Completed today",
+  "@completedToday": {
+    "description": "Message shown when today's goal is complete"
+  },
+  "estimatedCompletion": "Estimated Completion",
+  "@estimatedCompletion": {
+    "description": "Section title for an estimated reading-plan completion date"
+  },
+  "planComplete": "Plan complete!",
+  "@planComplete": {
+    "description": "Message shown when a reading plan is complete"
+  },
+  "daysCount": "{count, plural, =1{1 day} other{{count} days}}",
+  "@daysCount": {
+    "description": "Duration in days",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "monthsCount": "({count} months)",
+  "@monthsCount": {
+    "description": "Approximate duration in months shown in parentheses",
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "booksInThisPlan": "Books in this Plan",
+  "@booksInThisPlan": {
+    "description": "Section title for books included in a reading plan"
+  },
+  "done": "Done",
+  "@done": {
+    "description": "Button label for finishing an action"
+  },
+  "editOrder": "Edit Order",
+  "@editOrder": {
+    "description": "Button label to reorder books in a reading plan"
+  },
+  "defaultReadingPlanName": "Plan 1",
+  "@defaultReadingPlanName": {
+    "description": "Default editable name for a new reading plan"
+  },
+  "collection": "Collection",
+  "@collection": {
+    "description": "Section label for choosing a Bible collection"
+  },
+  "goal": "Goal",
+  "@goal": {
+    "description": "Section label for setting a reading plan goal"
+  },
+  "planName": "Plan name",
+  "@planName": {
+    "description": "Hint text for the reading plan name input"
+  },
+  "wholeBible": "Whole Bible",
+  "@wholeBible": {
+    "description": "Bible collection containing all books"
+  },
+  "torah": "Torah",
+  "@torah": {
+    "description": "Bible collection for the Torah"
+  },
+  "prophets": "Prophets",
+  "@prophets": {
+    "description": "Bible collection for the Prophets"
+  },
+  "writings": "Writings",
+  "@writings": {
+    "description": "Bible collection for the Writings"
+  },
+  "gospels": "Gospels",
+  "@gospels": {
+    "description": "Bible collection for the Gospels"
+  },
+  "paulineEpistles": "Pauline Epistles",
+  "@paulineEpistles": {
+    "description": "Bible collection for Paul's epistles"
+  },
+  "allBooksSelected": "All {total} books selected",
+  "@allBooksSelected": {
+    "description": "Summary shown when all books in a collection are selected",
+    "placeholders": {
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "booksSelected": "{selected}/{total} books selected",
+  "@booksSelected": {
+    "description": "Summary shown for selected books in a collection",
+    "placeholders": {
+      "selected": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "updateReadingPlan": "Update Reading Plan",
+  "@updateReadingPlan": {
+    "description": "Button label for updating an existing reading plan"
+  },
+  "addReadingPlan": "Add Reading Plan",
+  "@addReadingPlan": {
+    "description": "Button label for creating a reading plan"
+  },
+  "deselectAll": "Deselect All",
+  "@deselectAll": {
+    "description": "Button label to deselect every book"
+  },
+  "selectAll": "Select All",
+  "@selectAll": {
+    "description": "Button label to select every book"
+  },
+  "selectAtLeastOneBook": "Select at least one book",
+  "@selectAtLeastOneBook": {
+    "description": "Disabled button prompt when no books are selected"
+  },
+  "doneSelected": "Done ({count} selected)",
+  "@doneSelected": {
+    "description": "Button label confirming a number of selected books",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bookCompletedTitle": "You've completed {book}!",
+  "@bookCompletedTitle": {
+    "description": "Overlay title shown when a book has been completed",
+    "placeholders": {
+      "book": {
+        "type": "String"
+      }
+    }
+  },
+  "completed": "Completed",
+  "@completed": {
+    "description": "Completion status label"
+  },
+  "nextBookInPlan": "Next Book in Plan",
+  "@nextBookInPlan": {
+    "description": "Button label for continuing to the next book in a reading plan"
+  },
   "bookGenesis": "Genesis",
   "@bookGenesis": {
     "description": "The name of the first book of the Bible"
