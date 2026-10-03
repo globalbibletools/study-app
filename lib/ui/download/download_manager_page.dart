@@ -18,7 +18,7 @@ class _DownloadManagerPageState extends State<DownloadManagerPage> {
   Future<void> _refreshResources() async {
     setState(() => _refreshing = true);
     try {
-      await _resourceService.refreshResources();
+      await _resourceService.refresh();
     } finally {
       if (mounted) setState(() => _refreshing = false);
     }

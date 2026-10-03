@@ -26,7 +26,7 @@ Future<void> main() async {
     androidNotificationOngoing: true,
   );
   // Don't await this to not block launching the app.
-  getIt<ResourceService>().refreshResources();
+  getIt<ResourceService>().refresh();
   runApp(const GbtStudyApp());
 }
 

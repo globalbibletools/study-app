@@ -58,6 +58,7 @@ class Resource {
   String resourceName;
   String? creatorName;
   InstallableDetails? installableDetails;
+  String? langCode;
 
   Resource({
     this.id = '',
@@ -65,6 +66,7 @@ class Resource {
     this.resourceName = '',
     this.creatorName,
     this.installableDetails,
+    this.langCode,
   });
 
   factory Resource.fromJson(dynamic json, {required ResourceType type}) {
@@ -81,6 +83,7 @@ class Resource {
     final url = json['url'];
     final resourceName = json['resourceName'];
     final creatorName = json['creatorName'];
+    final langCode = json['langCode'];
 
     if (id is! String) {
       throw FormatException(
@@ -152,6 +155,7 @@ class Resource {
       resourceName: resourceName,
       creatorName: creatorName,
       installableDetails: installableDetails,
+      langCode: langCode,
     );
   }
 
@@ -169,6 +173,7 @@ class Resource {
       'resource_name': resourceName,
       'creator_name': creatorName,
       'install_state': d?.installState,
+      'lang_code': langCode,
     };
   }
 }
