@@ -263,6 +263,7 @@ class _WordDetailsDialogState extends State<WordDetailsDialog> {
         child: SelectableText(
           wordDetails.gloss,
           textAlign: TextAlign.center,
+          textDirection: wordDetails.glossTextDirection,
           style: style,
         ),
       );
@@ -272,6 +273,7 @@ class _WordDetailsDialogState extends State<WordDetailsDialog> {
     return FittedBox(
       child: Row(
         mainAxisSize: MainAxisSize.min,
+        textDirection: wordDetails.glossTextDirection,
         children: [
           SparkleIconWidget(
             size: iconSize,
@@ -281,6 +283,7 @@ class _WordDetailsDialogState extends State<WordDetailsDialog> {
           SelectableText(
             wordDetails.gloss,
             textAlign: TextAlign.center,
+            textDirection: wordDetails.glossTextDirection,
             style: style,
           ),
         ],

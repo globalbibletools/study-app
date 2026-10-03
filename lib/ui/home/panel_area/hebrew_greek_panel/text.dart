@@ -15,11 +15,17 @@ import 'package:gbt/ui/common/sparkle_icon.dart';
 typedef AsyncWordActionCallback = Future<void> Function(String wordId);
 
 class WordPopup {
-  const WordPopup({required this.text, this.isAiGenerated = false});
+  const WordPopup({
+    required this.text,
+    this.isAiGenerated = false,
+    this.textDirection = TextDirection.ltr,
+  });
 
   final String text;
 
   final bool isAiGenerated;
+
+  final TextDirection textDirection;
 }
 
 /// A function that returns the popup content for a given word ID.
@@ -461,6 +467,7 @@ class RenderHebrewGreekText extends RenderBox {
   String? _tappedWordId;
   String? _popupText;
   bool _popupIsAi = false;
+  TextDirection _popupTextDirection = TextDirection.ltr;
   TextPainter? _popupPainter;
   Timer? _popupDismissTimer;
   late final TapGestureRecognizer _tapRecognizer;
@@ -645,7 +652,7 @@ class RenderHebrewGreekText extends RenderBox {
     }
     _popupPainter = TextPainter(
       text: TextSpan(text: _popupText!, style: _popupTextStyle),
-      textDirection: TextDirection.ltr,
+      textDirection: _popupTextDirection,
     )..layout();
   }
 
@@ -719,6 +726,7 @@ class RenderHebrewGreekText extends RenderBox {
     _tappedWordId = null;
     _popupText = null;
     _popupIsAi = false;
+    _popupTextDirection = TextDirection.ltr;
     _popupPainter = null;
     markNeedsPaint();
   }
@@ -1463,6 +1471,7 @@ class RenderHebrewGreekText extends RenderBox {
           if (popup != null && popup.text.isNotEmpty) {
             _popupText = popup.text;
             _popupIsAi = popup.isAiGenerated;
+            _popupTextDirection = popup.textDirection;
             _preparePopupPainter();
 
             // Notify parent about the popup rect for potential scrolling.
@@ -1768,18 +1777,26 @@ class RenderHebrewGreekText extends RenderBox {
     if (_popupIsAi) {
       final iconExtent = _popupIconExtent;
       final textCenterY = textOffset.dy + _popupPainter!.height / 2;
+      final isRtl = _popupTextDirection == TextDirection.rtl;
+
+      final iconCenterX = isRtl
+          ? bgRect.right - kPopupHorizontalPadding - iconExtent / 2
+          : textOffset.dx + iconExtent / 2;
+      if (!isRtl) {
+        textOffset = Offset(
+          textOffset.dx + iconExtent + _popupIconGap,
+          textOffset.dy,
+        );
+      }
+
       SparkleIcon.paint(
         canvas,
         Rect.fromCenter(
-          center: Offset(textOffset.dx + iconExtent / 2, textCenterY),
+          center: Offset(iconCenterX, textCenterY),
           width: iconExtent,
           height: iconExtent,
         ),
         _primaryColor,
-      );
-      textOffset = Offset(
-        textOffset.dx + iconExtent + _popupIconGap,
-        textOffset.dy,
       );
     }
 

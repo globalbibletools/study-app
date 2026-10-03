@@ -141,6 +141,13 @@ class ResourceService {
     return _resourceDatabase.queryByPath(resourceType, path);
   }
 
+  Future<ResourceLanguage?> getLanguageForResource(
+    ResourceType resourceType,
+    String id,
+  ) async {
+    return _resourceDatabase.getLanguageForResource(resourceType, id);
+  }
+
   Future<bool> resourceExists(
     ResourceType resourceType,
     String id,
