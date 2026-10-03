@@ -1,13 +1,19 @@
 import 'dart:developer';
 
 import 'package:database_builder/database_builder.dart';
+import 'package:gbt/services/resources/resource_language.dart';
 import 'package:sqflite/sqflite.dart';
 
 class GlossResult {
-  const GlossResult({required this.gloss, required this.isAiGenerated});
+  const GlossResult({
+    required this.gloss,
+    required this.isAiGenerated,
+    required this.textDirection,
+  });
 
   final String gloss;
   final bool isAiGenerated;
+  final ResourceLanguageTextDirection textDirection;
 }
 
 class GlossDatabase {
@@ -22,7 +28,10 @@ class GlossDatabase {
 
   Future<void> close() async => await _database.close();
 
-  Future<GlossResult?> getGloss(String wordId) async {
+  Future<GlossResult?> getGloss(
+    String wordId,
+    ResourceLanguageTextDirection textDirection,
+  ) async {
     try {
       final query =
           '''
@@ -42,7 +51,11 @@ class GlossDatabase {
       if (gloss == null || gloss.isEmpty) return null;
 
       final isAi = (words.first['is_ai'] as int? ?? 0) == 1;
-      return GlossResult(gloss: gloss, isAiGenerated: isAi);
+      return GlossResult(
+        gloss: gloss,
+        isAiGenerated: isAi,
+        textDirection: textDirection,
+      );
     } catch (e, s) {
       log('Error getting gloss for wordId $wordId', error: e, stackTrace: s);
       rethrow;

@@ -5,6 +5,7 @@ import 'package:gbt/services/hebrew_greek/database.dart';
 import 'package:gbt/services/reading_session/rs_manager.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/services/settings/user_settings.dart';
+import 'package:gbt/ui/common/resource_language_text_direction.dart';
 import 'package:gbt/ui/home/panel_area/hebrew_greek_panel/text.dart';
 
 class HebrewGreekChapterManager {
@@ -78,7 +79,11 @@ class HebrewGreekChapterManager {
       onDatabaseMissing: onGlossDownloadNeeded,
     );
     if (gloss == null || gloss.gloss.isEmpty) return null;
-    return WordPopup(text: gloss.gloss, isAiGenerated: gloss.isAiGenerated);
+    return WordPopup(
+      text: gloss.gloss,
+      isAiGenerated: gloss.isAiGenerated,
+      textDirection: gloss.textDirection.toTextDirection,
+    );
   }
 
   Future<void> unsetGlossLang() async {

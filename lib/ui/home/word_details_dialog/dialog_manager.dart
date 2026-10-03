@@ -1,9 +1,12 @@
+import 'dart:ui' show TextDirection;
+
 import 'package:flutter/foundation.dart';
 import 'package:gbt/services/gloss/gloss_service.dart';
 import 'package:gbt/services/hebrew_greek/database.dart';
 import 'package:gbt/services/lexicon/database.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/services/settings/user_settings.dart';
+import 'package:gbt/ui/common/resource_language_text_direction.dart';
 
 class WordDetailsDialogManager extends ChangeNotifier {
   final _hebrewGreekDb = getIt<HebrewGreekDatabase>();
@@ -31,6 +34,8 @@ class WordDetailsDialogManager extends ChangeNotifier {
       word: word?.text ?? '',
       gloss: gloss?.gloss ?? '',
       glossIsAi: gloss?.isAiGenerated ?? false,
+      glossTextDirection:
+          gloss?.textDirection.toTextDirection ?? TextDirection.ltr,
       strongsCode: strongs,
       grammar: grammar,
     );
@@ -79,6 +84,7 @@ class WordDetails {
     required this.word,
     required this.gloss,
     required this.glossIsAi,
+    required this.glossTextDirection,
     required this.strongsCode,
     required this.grammar,
   });
@@ -87,6 +93,7 @@ class WordDetails {
   final String gloss;
 
   final bool glossIsAi;
+  final TextDirection glossTextDirection;
 
   final String strongsCode;
   final String grammar;

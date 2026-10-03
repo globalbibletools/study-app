@@ -2,8 +2,17 @@ import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 import 'resource.dart';
+import 'resource_language.dart';
 
 class ResourceDatabase {
+  static const _createLanguagesTable = '''
+    create table languages (
+      code text primary key,
+      name text not null,
+      text_direction text not null
+    );
+  ''';
+
   final Future<Database> _database;
 
   ResourceDatabase()
@@ -14,8 +23,9 @@ class ResourceDatabase {
     final path = join(docDir.path, "resources.db");
     return openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: (db, version) async {
+        await db.execute(_createLanguagesTable);
         await db.execute('''
           create table resource (
             id text primary key,
@@ -29,11 +39,52 @@ class ResourceDatabase {
             url text,
             resource_name text not null,
             creator_name text,
-            depth integer not null
+            depth integer not null,
+            lang_code text
           );
         ''');
       },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute(_createLanguagesTable);
+          await db.execute(
+            "alter table resource add column lang_code text;",
+          );
+        }
+      },
     );
+  }
+
+  Future<void> updateLanguagesFromManifest(
+    List<ResourceLanguage> languages,
+  ) async {
+    final db = await _database;
+    final batch = db.batch();
+
+    if (languages.isEmpty) {
+      batch.delete('languages');
+    } else {
+      final placeholders = List.filled(languages.length, '?').join(', ');
+      batch.rawDelete(
+        'delete from languages where code not in ($placeholders);',
+        languages.map((l) => l.code).toList(),
+      );
+    }
+
+    for (final language in languages) {
+      batch.rawInsert(
+        '''
+          insert into languages (code, name, text_direction)
+          values (?, ?, ?)
+          on conflict(code) do update set
+            name = excluded.name,
+            text_direction = excluded.text_direction;
+        ''',
+        [language.code, language.name, language.textDirection.name],
+      );
+    }
+
+    await batch.commit(noResult: true);
   }
 
   Future<void> updateResourcesFromManifest(ResourceType resourceType, List<Resource> resources) async {
@@ -53,8 +104,8 @@ class ResourceDatabase {
       final d = resource.installableDetails;
       batch.rawInsert(
         '''
-          insert into resource (id, resource_type, server_state, install_state, server_updated_at, sha_256, size, url, resource_name, creator_name, depth)
-          values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          insert into resource (id, resource_type, server_state, install_state, server_updated_at, sha_256, size, url, resource_name, creator_name, depth, lang_code)
+          values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           on conflict(id) do update set
             server_state = excluded.server_state,
             server_updated_at = excluded.server_updated_at,
@@ -63,7 +114,8 @@ class ResourceDatabase {
             url = excluded.url,
             resource_name = excluded.resource_name,
             creator_name = excluded.creator_name,
-            depth = excluded.depth;
+            depth = excluded.depth,
+            lang_code = excluded.lang_code;
         ''',
         [
           resource.id,
@@ -77,6 +129,7 @@ class ResourceDatabase {
           resource.resourceName,
           resource.creatorName,
           '/'.allMatches(resource.id).length,
+          resource.langCode,
         ],
       );
     }
@@ -164,6 +217,35 @@ class ResourceDatabase {
       resourceName: row['resource_name'] as String,
       creatorName: row['creator_name'] as String?,
       installableDetails: installableDetails,
+      langCode: row['lang_code'] as String?,
+    );
+  }
+
+  Future<ResourceLanguage?> getLanguageForResource(
+    ResourceType resourceType,
+    String id,
+  ) async {
+    final db = await _database;
+    final rows = await db.rawQuery(
+      '''
+        select languages.code, languages.name, languages.text_direction
+        from resource
+        join languages on languages.code = resource.lang_code
+        where resource.resource_type = ? and resource.id = ?
+        limit 1;
+      ''',
+      [resourceType.name, id],
+    );
+    if (rows.isEmpty) return null;
+
+    final row = rows.first;
+    return ResourceLanguage(
+      code: row['code'] as String,
+      name: row['name'] as String,
+      textDirection: ResourceLanguageTextDirection.values.firstWhere(
+        (d) => d.name == row['text_direction'],
+        orElse: () => ResourceLanguageTextDirection.ltr,
+      ),
     );
   }
 

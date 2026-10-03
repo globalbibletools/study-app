@@ -7,6 +7,7 @@ import 'package:gbt/services/download/download.dart';
 import 'package:gbt/services/resources/remote_asset_service.dart';
 import 'package:gbt/services/resources/resource.dart';
 import 'package:gbt/services/resources/resource_database.dart';
+import 'package:gbt/services/resources/resource_language.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -138,6 +139,13 @@ class ResourceService {
     List<PathMatcher> path,
   ) async {
     return _resourceDatabase.queryByPath(resourceType, path);
+  }
+
+  Future<ResourceLanguage?> getLanguageForResource(
+    ResourceType resourceType,
+    String id,
+  ) async {
+    return _resourceDatabase.getLanguageForResource(resourceType, id);
   }
 
   Future<bool> resourceExists(
@@ -299,6 +307,31 @@ class ResourceService {
           debugPrint('${type.name} manifest update error: $error');
       }
     }
+  }
+
+  static const String languagesManifestPath = 'languages.jsonl';
+
+  Future<void> refreshLanguages() async {
+    try {
+      final manifestUrl = '${_assetService.baseHost}/$languagesManifestPath';
+      log('Refreshing languages from $manifestUrl');
+
+      final languages = await _downloadService.getJsonl(
+        manifestUrl,
+        convert: (json) => ResourceLanguage.fromJson(json),
+      );
+
+      debugPrint('Language manifest contained ${languages.length} entries');
+
+      await _resourceDatabase.updateLanguagesFromManifest(languages);
+    } catch (error) {
+      debugPrint('Language manifest update error: $error');
+    }
+  }
+
+  Future<void> refresh() async {
+    await refreshLanguages();
+    await refreshResources();
   }
 }
 

@@ -5,6 +5,7 @@ import 'package:scripture/scripture.dart';
 import 'package:gbt/common/book_name.dart';
 import 'package:gbt/services/resources/resource.dart';
 import 'package:gbt/services/settings/user_settings.dart';
+import 'package:gbt/ui/common/resource_language_text_direction.dart';
 import 'package:gbt/ui/common/resource_ui_helper.dart';
 import 'bible_chapter_manager.dart';
 
@@ -139,7 +140,10 @@ class _BibleChapterState extends State<BibleChapter> {
                 ),
               ),
               const SizedBox(height: 10),
-              verses,
+              Directionality(
+                textDirection: manager.textDirection.toTextDirection,
+                child: verses,
+              ),
             ],
           ),
         );
@@ -152,7 +156,7 @@ class _BibleChapterState extends State<BibleChapter> {
       verseLines: verseLines,
       selectionController: ScriptureSelectionController(),
       onFootnoteTapped: (footnote) {
-        _showFootnoteDialog(footnote);
+        _showFootnoteDialog(footnote, manager.textDirection.toTextDirection);
       },
       onWordTapped: (id) => log("Tapped word $id"),
       onSelectionRequested: (wordId) {},
@@ -173,7 +177,10 @@ class _BibleChapterState extends State<BibleChapter> {
     );
   }
 
-  Future<void> _showFootnoteDialog(String footnote) async {
+  Future<void> _showFootnoteDialog(
+    String footnote,
+    TextDirection textDirection,
+  ) async {
     return await showDialog(
       context: context,
       builder: (context) {
@@ -183,6 +190,7 @@ class _BibleChapterState extends State<BibleChapter> {
             child: SingleChildScrollView(
               child: Text(
                 footnote,
+                textDirection: textDirection,
                 style: TextStyle(fontSize: widget.fontSize),
               ),
             ),
