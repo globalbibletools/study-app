@@ -32,7 +32,7 @@
   "@emailCopied": {
     "description": "Message shown after email button clicked"
   },
-  "settings": "Settings",
+  "settings": "Settings Changed",
   "@settings": {
     "description": "The title of the Settings screen"
   },
