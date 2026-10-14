@@ -52,6 +52,7 @@
     "unknownAudioError": "خطأ غير معروف في الصوت",
     "verseCopied": "تم نسخ الآية إلى الحافظة",
     "downloads": "التنزيلات",
+    "allLanguages": "كل اللغات",
     "backupRestore": "النسخ الاحتياطي/الاستعادة",
     "backupCreated": "تم إنشاء النسخة الاحتياطية: {path}",
     "chooseBackupLocation": "اختر موقع النسخة الاحتياطية",

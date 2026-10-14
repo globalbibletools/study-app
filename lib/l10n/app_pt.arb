@@ -52,6 +52,7 @@
     "unknownAudioError": "Erro de áudio desconhecido",
     "verseCopied": "Versículo copiado para a área de transferência",
     "downloads": "Downloads",
+    "allLanguages": "Todos os idiomas",
     "backupRestore": "Backup/restauração",
     "backupCreated": "Backup criado: {path}",
     "chooseBackupLocation": "Escolher local do backup",

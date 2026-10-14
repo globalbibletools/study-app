@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:scripture/scripture.dart';
 import 'package:gbt/services/bible/bible_database.dart';
-import 'package:gbt/services/resources/resource_language.dart';
 import 'package:gbt/services/resources/resource_service.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/services/settings/user_settings.dart';

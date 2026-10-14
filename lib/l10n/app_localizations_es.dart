@@ -183,6 +183,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get downloads => 'Descargas';
 
   @override
+  String get allLanguages => 'Todos los idiomas';
+
+  @override
   String get backupRestore => 'Copia de seguridad/restauración';
 
   @override

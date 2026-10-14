@@ -229,6 +229,10 @@
   "@downloads": {
     "description": "Title for the Download Manager screen"
   },
+  "allLanguages": "All languages",
+  "@allLanguages": {
+    "description": "Dropdown option in the downloads screen to show resources for all languages"
+  },
   "backupRestore": "Backup/restore",
   "@backupRestore": {
     "description": "Drawer menu item for the backup and restore screen"

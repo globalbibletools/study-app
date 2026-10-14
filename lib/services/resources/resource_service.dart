@@ -12,6 +12,7 @@ import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 
 export 'package:gbt/services/resources/resource.dart';
+export 'package:gbt/services/resources/resource_language.dart';
 export 'package:gbt/services/resources/resource_database.dart' show PathMatcher;
 
 typedef ResourceChangeListener = void Function(ResourceType type);
@@ -133,11 +134,17 @@ class ResourceService {
   Future<List<Resource>> getResourcesByType(
     ResourceType resourceType, {
     bool includeRemoved = true,
+    String? langCode,
   }) async {
       return _resourceDatabase.getAllForType(
         resourceType,
         includeRemoved: includeRemoved,
+        langCode: langCode,
       );
+  }
+
+  Future<List<ResourceLanguage>> getLanguages() async {
+    return _resourceDatabase.getAllLanguages();
   }
 
   Future<List<Resource>> getResourcesByPath(

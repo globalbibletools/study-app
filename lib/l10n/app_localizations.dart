@@ -416,6 +416,12 @@ abstract class AppLocalizations {
   /// **'Downloads'**
   String get downloads;
 
+  /// Dropdown option in the downloads screen to show resources for all languages
+  ///
+  /// In en, this message translates to:
+  /// **'All languages'**
+  String get allLanguages;
+
   /// Drawer menu item for the backup and restore screen
   ///
   /// In en, this message translates to:

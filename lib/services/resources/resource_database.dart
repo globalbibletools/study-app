@@ -140,17 +140,34 @@ class ResourceDatabase {
   Future<List<Resource>> getAllForType(
     ResourceType resourceType, {
     bool includeRemoved = true,
+    String? langCode,
   }) async {
     final db = await _database;
+
+    final conditions = <String>['resource_type = ?'];
+    final args = <Object?>[resourceType.name];
+
+    if (!includeRemoved) {
+      conditions.add("(server_state IS NULL OR server_state != 'removed')");
+    }
+    if (langCode != null) {
+      conditions.add('(lang_code = ? OR lang_code IS NULL)');
+      args.add(langCode);
+    }
+
     final rows = await db.query(
       'resource',
-      where: includeRemoved
-          ? 'resource_type = ?'
-          : '''resource_type = ? AND (server_state IS NULL OR server_state != 'removed')''',
-      whereArgs: [resourceType.name]
+      where: conditions.join(' AND '),
+      whereArgs: args,
     );
 
     return rows.map(_rowToResource).toList();
+  }
+
+  Future<List<ResourceLanguage>> getAllLanguages() async {
+    final db = await _database;
+    final rows = await db.query('languages', orderBy: 'name');
+    return rows.map((row) => ResourceLanguage.fromMap(row)).toList();
   }
 
   Future<List<Resource>> queryByPath(

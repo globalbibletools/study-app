@@ -52,6 +52,7 @@
     "unknownAudioError": "Erreur audio inconnue",
     "verseCopied": "Verset copié dans le presse-papiers",
     "downloads": "Téléchargements",
+    "allLanguages": "Toutes les langues",
     "backupRestore": "Sauvegarde/restauration",
     "backupCreated": "Sauvegarde créée : {path}",
     "chooseBackupLocation": "Choisir l'emplacement de la sauvegarde",

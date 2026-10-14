@@ -25,6 +25,7 @@ class UserSettings {
   static const _isHebrewSearchKey = 'isHebrewSearch';
   static const _useSystemKeyboardKey = 'useSystemKeyboard';
   static const _currentBible = 'currentBible';
+  static const _downloadLangKey = 'downloadLang';
   static const _verseLayout = "verseLayout";
   static const _rsDailyGoalKey = 'rsDailyGoal';
   static const _hasSeenReadingCheckboxGuideKey = '_hasSeenReadingCheckboxGuide';
@@ -132,6 +133,18 @@ class UserSettings {
       await _prefs.remove(_currentBible);
     } else {
       await _prefs.setString(_currentBible, bibleCode);
+    }
+  }
+
+  String? get downloadLang {
+    return _prefs.getString(_downloadLangKey);
+  }
+
+  Future<void> setDownloadLang(String? code) async {
+    if (code == null) {
+      await _prefs.remove(_downloadLangKey);
+    } else {
+      await _prefs.setString(_downloadLangKey, code);
     }
   }
 

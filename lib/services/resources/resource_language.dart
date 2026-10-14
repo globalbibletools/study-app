@@ -14,6 +14,17 @@ class ResourceLanguage {
     required this.textDirection,
   });
 
+  factory ResourceLanguage.fromMap(Map<String, dynamic> map) {
+    return ResourceLanguage(
+      code: map['code'] as String,
+      name: map['name'] as String,
+      textDirection: ResourceLanguageTextDirection.values.firstWhere(
+        (d) => d.name == map['text_direction'],
+        orElse: () => ResourceLanguageTextDirection.ltr,
+      ),
+    );
+  }
+
   factory ResourceLanguage.fromJson(dynamic json) {
     if (json is! Map<String, dynamic>) {
       throw FormatException(

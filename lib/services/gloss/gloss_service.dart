@@ -1,5 +1,4 @@
 import 'package:gbt/services/gloss/gloss_database.dart';
-import 'package:gbt/services/resources/resource_language.dart';
 import 'package:gbt/services/resources/resource_service.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/services/settings/user_settings.dart';
