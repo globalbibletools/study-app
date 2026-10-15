@@ -54,7 +54,17 @@ class HebrewGreekDatabase {
     await File(path).writeAsBytes(bytes, flush: true);
   }
 
+  static String _formatVerseId(int bookId, int chapter, [int? verse]) {
+    final book = bookId.toString().padLeft(2, '0');
+    final chapterStr = chapter.toString().padLeft(3, '0');
+    if (verse == null) {
+      return '$book$chapterStr';
+    }
+    return '$book$chapterStr${verse.toString().padLeft(3, '0')}';
+  }
+
   Future<List<HebrewGreekWord>> getChapter(int bookId, int chapter) async {
+    final verseIdPrefix = _formatVerseId(bookId, chapter);
     final List<Map<String, dynamic>> rows = await _database.rawQuery(
       'SELECT w.${HebrewGreekSchema.wordsColWordId}, '
       'v.${HebrewGreekSchema.versesColBook}, '
@@ -66,10 +76,10 @@ class HebrewGreekDatabase {
       'ON w.${HebrewGreekSchema.wordsColVerseId} = v.${HebrewGreekSchema.versesColVerseId} '
       'JOIN ${HebrewGreekSchema.textTable} t '
       'ON w.${HebrewGreekSchema.wordsColText} = t.${HebrewGreekSchema.textColId} '
-      'WHERE v.${HebrewGreekSchema.versesColBook} = ? '
-      'AND v.${HebrewGreekSchema.versesColChapter} = ? '
+      'WHERE w.${HebrewGreekSchema.wordsColVerseId} >= ? '
+      'AND w.${HebrewGreekSchema.wordsColVerseId} <= ? '
       'ORDER BY w.${HebrewGreekSchema.wordsColWordId} ASC',
-      [bookId, chapter],
+      ['${verseIdPrefix}000', '${verseIdPrefix}999'],
     );
 
     return rows.map(_toHebrewGreekWord).toList();
@@ -207,15 +217,19 @@ class HebrewGreekDatabase {
       );
     }
     sql.write(
-      'WHERE v.${HebrewGreekSchema.versesColBook} = ? '
-      'AND v.${HebrewGreekSchema.versesColChapter} = ? '
-      'AND v.${HebrewGreekSchema.versesColVerse} = ? '
+      'WHERE w.${HebrewGreekSchema.wordsColVerseId} = ? '
       'ORDER BY w.${HebrewGreekSchema.wordsColWordId} ASC',
     );
 
     final List<Map<String, dynamic>> words = await _database.rawQuery(
       sql.toString(),
-      [reference.bookId, reference.chapter, reference.verse],
+      [
+        _formatVerseId(
+          reference.bookId,
+          reference.chapter,
+          reference.verse,
+        ),
+      ],
     );
 
     return words.map(_toHebrewGreekWord).toList();
