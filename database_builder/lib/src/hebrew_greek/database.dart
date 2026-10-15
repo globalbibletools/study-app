@@ -95,6 +95,9 @@ class HebrewGreekDatabase {
 
     // add indexes
     _database.execute(HebrewGreekSchema.createWordsVerseIdIndex);
+    _database.execute(HebrewGreekSchema.createWordsStrongsIndex);
+    _database.execute(HebrewGreekSchema.createWordsTextIndex);
+    _database.execute(HebrewGreekSchema.createStrongsCodeIndex);
     _database.execute(HebrewGreekSchema.createTextNormalizedIndex);
     _database.execute(HebrewGreekSchema.createTextNoPunctuationIndex);
   }

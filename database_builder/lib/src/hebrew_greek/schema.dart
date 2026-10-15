@@ -1,5 +1,5 @@
 class HebrewGreekSchema {
-  static const databaseVersion = 12;
+  static const databaseVersion = 13;
 
   // Verses table
   //
@@ -60,6 +60,22 @@ class HebrewGreekSchema {
       '''
   CREATE INDEX IF NOT EXISTS idx_words_verse_id
   ON $wordsTable ($wordsColVerseId);
+  ''';
+
+  // Speeds up joins/filters from words to their strongs entry
+  // (see allVersesForStrongsCode and getStrongsAndGrammar).
+  static const createWordsStrongsIndex =
+      '''
+  CREATE INDEX IF NOT EXISTS idx_words_strongs
+  ON $wordsTable ($wordsColStrongs);
+  ''';
+
+  // Speeds up joins/filters from words to their text entry
+  // (see searchExactMatchNoPunctuation).
+  static const createWordsTextIndex =
+      '''
+  CREATE INDEX IF NOT EXISTS idx_words_text
+  ON $wordsTable ($wordsColText);
   ''';
 
   static const insertWord =
@@ -148,5 +164,13 @@ class HebrewGreekSchema {
   INSERT INTO $strongsTable
     ($strongsColId, $strongsColCode, $strongsColRoot)
     VALUES (?, ?, ?);
+  ''';
+
+  // Speeds up looking up a strongs entry by its code
+  // (see allVersesForStrongsCode and strongsCodeRoot).
+  static const createStrongsCodeIndex =
+      '''
+  CREATE INDEX IF NOT EXISTS idx_strongs_code
+  ON $strongsTable ($strongsColCode);
   ''';
 }
