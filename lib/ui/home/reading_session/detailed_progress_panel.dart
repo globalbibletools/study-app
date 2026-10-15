@@ -6,8 +6,11 @@ import 'package:gbt/ui/home/reading_session/detailed_progress_panel_manager.dart
 
 class DetailedProgressPanel extends StatefulWidget {
   final DetailedProgressPanelManager manager;
-  DetailedProgressPanel({super.key, required DateTime date})
-    : manager = DetailedProgressPanelManager(date);
+  DetailedProgressPanel({
+    super.key,
+    required int readingPlanId,
+    required DateTime date,
+  }) : manager = DetailedProgressPanelManager(readingPlanId, date);
 
   @override
   State<DetailedProgressPanel> createState() => _DetailedProgressPanelState();
