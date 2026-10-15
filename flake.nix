@@ -36,6 +36,7 @@
           platforms-android-36
           emulator
           system-images-android-36-google-apis-x86-64
+          system-images-android-29-google-apis-x86-64
           ndk-28-2-13676358
           cmake-3-22-1
         ]);

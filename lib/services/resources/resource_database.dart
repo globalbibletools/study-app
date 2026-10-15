@@ -74,13 +74,19 @@ class ResourceDatabase {
     for (final language in languages) {
       batch.rawInsert(
         '''
-          insert into languages (code, name, text_direction)
-          values (?, ?, ?)
-          on conflict(code) do update set
-            name = excluded.name,
-            text_direction = excluded.text_direction;
+          insert or ignore into languages (code, name, text_direction)
+          values (?, ?, ?);
         ''',
         [language.code, language.name, language.textDirection.name],
+      );
+      batch.rawUpdate(
+        '''
+          update languages set
+            name = ?,
+            text_direction = ?
+          where code = ?;
+        ''',
+        [language.name, language.textDirection.name, language.code],
       );
     }
 
@@ -104,18 +110,8 @@ class ResourceDatabase {
       final d = resource.installableDetails;
       batch.rawInsert(
         '''
-          insert into resource (id, resource_type, server_state, install_state, server_updated_at, sha_256, size, url, resource_name, creator_name, depth, lang_code)
-          values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-          on conflict(id) do update set
-            server_state = excluded.server_state,
-            server_updated_at = excluded.server_updated_at,
-            sha_256 = excluded.sha_256,
-            size = excluded.size,
-            url = excluded.url,
-            resource_name = excluded.resource_name,
-            creator_name = excluded.creator_name,
-            depth = excluded.depth,
-            lang_code = excluded.lang_code;
+          insert or ignore into resource (id, resource_type, server_state, install_state, server_updated_at, sha_256, size, url, resource_name, creator_name, depth, lang_code)
+          values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
         ''',
         [
           resource.id,
@@ -130,6 +126,33 @@ class ResourceDatabase {
           resource.creatorName,
           '/'.allMatches(resource.id).length,
           resource.langCode,
+        ],
+      );
+      batch.rawUpdate(
+        '''
+          update resource set
+            server_state = ?,
+            server_updated_at = ?,
+            sha_256 = ?,
+            size = ?,
+            url = ?,
+            resource_name = ?,
+            creator_name = ?,
+            depth = ?,
+            lang_code = ?
+          where id = ?;
+        ''',
+        [
+          d?.serverState.name,
+          d?.serverUpdatedAt,
+          d?.sha256,
+          d?.size,
+          d?.url,
+          resource.resourceName,
+          resource.creatorName,
+          '/'.allMatches(resource.id).length,
+          resource.langCode,
+          resource.id,
         ],
       );
     }
