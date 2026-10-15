@@ -57,6 +57,7 @@ class HomeManager {
 
   HomeManager() {
     _bibleService.addBibleResourceChangeListener(_onBibleResourceChanged);
+    syncController.listenToAudioReference(audioPlayerViewModel.reference);
   }
 
   Future<void> _onBibleResourceChanged(String bibleId) async {
@@ -83,7 +84,6 @@ class HomeManager {
     panelAnchorNotifier.value = ref;
 
     syncController.addListener(_onSyncUpdate);
-    // audioManager.setSyncController(syncController);
 
     syncController.clearActiveSource();
     syncController.updatePosition('manager', bookId, chapter, 0.0, verse: 1);

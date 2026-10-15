@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:gbt/common/reference.dart';
 
 class VerseHighlight {
   final int bookId;
@@ -35,6 +36,8 @@ class ScrollSyncController extends ChangeNotifier {
   Object? _activeSource;
   final _verseJumpController = StreamController<VerseHighlight>.broadcast();
   Stream<VerseHighlight> get onVerseJump => _verseJumpController.stream;
+
+  ValueNotifier<Reference?>? _audioReferenceNotifier;
 
   void setActiveSource(Object source) {
     _activeSource = source;
@@ -99,8 +102,32 @@ class ScrollSyncController extends ChangeNotifier {
     );
   }
 
+  void listenToAudioReference(ValueNotifier<Reference?> reference) {
+    if (identical(_audioReferenceNotifier, reference)) return;
+
+    _audioReferenceNotifier?.removeListener(_onAudioReferenceChanged);
+    _audioReferenceNotifier = reference;
+    _audioReferenceNotifier?.addListener(_onAudioReferenceChanged);
+  }
+
+  void _onAudioReferenceChanged() {
+    // Don't override the user scrolling
+    if (_activeSource != null) return;
+
+    final reference = _audioReferenceNotifier?.value;
+    if (reference == null) return;
+
+    jumpToVerse(
+      reference.bookId,
+      reference.chapter,
+      reference.verse,
+      isAuto: true,
+    );
+  }
+
   @override
   void dispose() {
+    _audioReferenceNotifier?.removeListener(_onAudioReferenceChanged);
     _verseJumpController.close();
     super.dispose();
   }
