@@ -17,9 +17,11 @@ class DetailedProgressPanelManager {
   final DateTime date;
 
   DetailedProgressPanelManager(this.date) {
-    _rsManager.getDetailedProgressFor(date).then((value) {
-      details.value = value;
-    });
+    reload();
+  }
+
+  Future<void> reload() async {
+    details.value = await _rsManager.getDetailedProgressFor(date);
   }
 
   void dispose() {
