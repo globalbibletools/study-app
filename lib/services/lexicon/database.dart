@@ -1,4 +1,4 @@
-import 'dart:developer';
+import 'package:gbt/services/logging/log.dart';
 import 'dart:io';
 
 import 'package:database_builder/database_builder.dart';
@@ -37,19 +37,19 @@ class LexiconsDatabase {
     var exists = await databaseExists(path);
 
     if (!exists) {
-      log('Creating new copy of $databaseName from assets');
+      info('Creating new copy of $databaseName from assets');
       await _copyDatabaseFromAssets(path, databaseName);
     } else {
       // Check if database needs update
       var currentVersion = await _getDatabaseVersion(path);
       if (currentVersion != databaseVersion) {
-        log(
+        info(
           'Updating Hebrew/Greek database from version $currentVersion to $databaseVersion',
         );
         await deleteDatabase(path);
         await _copyDatabaseFromAssets(path, databaseName);
       } else {
-        log("Opening existing $databaseName database");
+        info("Opening existing $databaseName database");
       }
     }
     return await openDatabase(path, version: databaseVersion);

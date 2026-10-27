@@ -1,4 +1,4 @@
-import 'dart:developer';
+import 'package:gbt/services/logging/log.dart';
 
 import 'package:flutter/material.dart';
 import 'package:scripture/scripture.dart';
@@ -158,7 +158,7 @@ class _BibleChapterState extends State<BibleChapter> {
       onFootnoteTapped: (footnote) {
         _showFootnoteDialog(footnote, manager.textDirection.toTextDirection);
       },
-      onWordTapped: (id) => log("Tapped word $id"),
+      onWordTapped: (id) => debug("Tapped word $id"),
       onSelectionRequested: (wordId) {},
       showHeadings: false,
       styleBuilder: (format) {

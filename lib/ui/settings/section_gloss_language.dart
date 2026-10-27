@@ -1,4 +1,4 @@
-import 'dart:developer';
+import 'package:gbt/services/logging/log.dart';
 
 import 'package:flutter/material.dart';
 import 'package:gbt/l10n/app_localizations.dart';
@@ -28,15 +28,25 @@ class _GlossLanguageSectionState extends State<GlossLanguageSection> {
 
   Future<void> _initGlossResources() async {
     try {
-      final resources = await _resourceService.getResourcesByType(ResourceType.gloss);
+      final resources = await _resourceService.getResourcesByType(
+        ResourceType.gloss,
+      );
       setState(() {
-          glossResources = resources.map((resource) => GlossLanguageOption(resource.id, resource.resourceName)).toList();
+        glossResources = resources
+            .map(
+              (resource) =>
+                  GlossLanguageOption(resource.id, resource.resourceName),
+            )
+            .toList();
       });
     } catch (err, stack) {
-      log('Failed to initialize gloss resources', error: err, stackTrace: stack);
+      error(
+        'Failed to initialize gloss resources',
+        error: err,
+        stackTrace: stack,
+      );
     }
   }
-
 
   /// Sentinel representing "no gloss language" in the picker.
   static final _noneGloss = GlossLanguageOption('', '');
@@ -125,8 +135,8 @@ class _GlossLanguageSectionState extends State<GlossLanguageSection> {
 }
 
 class GlossLanguageOption {
-    String id;
-    String name;
+  String id;
+  String name;
 
-    GlossLanguageOption(this.id, this.name);
+  GlossLanguageOption(this.id, this.name);
 }

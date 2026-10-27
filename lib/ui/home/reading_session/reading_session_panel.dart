@@ -1,4 +1,4 @@
-import 'dart:developer';
+import 'package:gbt/services/logging/log.dart';
 import 'package:flutter/material.dart';
 import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/l10n/app_localizations.dart';
@@ -528,7 +528,7 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: () async {
-            log("starting reading session");
+            info("starting reading session");
 
             await widget.readingSessionManager.startReadingSession();
             if (!mounted) return;
@@ -649,7 +649,7 @@ class ReadingSessionPanelState extends State<ReadingSessionPanel> {
             child: InkWell(
               borderRadius: BorderRadius.circular(borderRadius),
               onTap: () async {
-                log("starting reading session");
+                info("starting reading session");
 
                 await widget.readingSessionManager.startReadingSession();
                 if (!mounted) return;

@@ -1,4 +1,4 @@
-import 'dart:developer';
+import 'package:gbt/services/logging/log.dart';
 
 import 'package:database_builder/database_builder.dart';
 import 'package:gbt/services/resources/resource_language.dart';
@@ -57,7 +57,7 @@ class GlossDatabase {
         textDirection: textDirection,
       );
     } catch (e, s) {
-      log('Error getting gloss for wordId $wordId', error: e, stackTrace: s);
+      error('Error getting gloss for wordId $wordId', error: e, stackTrace: s);
       rethrow;
     }
   }

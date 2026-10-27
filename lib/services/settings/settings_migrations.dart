@@ -13,7 +13,7 @@ It is important that we do not delete any migrations
 since we don't know how many versions the user might have skipped.
 */
 
-import 'dart:developer';
+import 'package:gbt/services/logging/log.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -25,10 +25,14 @@ Future<void> migrateSettings(SharedPreferences settings) async {
 
   for (var i = currentVersion; i < expectedVersion; i++) {
     try {
-        await _settingsMigrations[i](settings);
-        log("Migrated settings to version ${currentVersion + 1}");
-    } catch (error) {
-        log("Failed to migrate settings to version ${currentVersion + 1}: $error");
+      await _settingsMigrations[i](settings);
+      info("Migrated settings to version ${currentVersion + 1}");
+    } catch (err, stack) {
+      error(
+        "Failed to migrate settings to version ${currentVersion + 1}",
+        error: err,
+        stackTrace: stack
+      );
     }
 
     await settings.setInt(_settingsVersionKey, i + 1);
@@ -36,33 +40,37 @@ Future<void> migrateSettings(SharedPreferences settings) async {
 }
 
 const List<Future<void> Function(SharedPreferences)> _settingsMigrations = [
-    migrateV1,
+  migrateV1,
 ];
 
 Future<void> migrateV1(SharedPreferences settings) async {
-    final locale = settings.getString('locale');
+  final locale = settings.getString('locale');
 
-    switch (locale) {
-        case 'es': {
-            await settings.setString("currentBible", "spa_blm");
-            await settings.setString("glossLang", "spa");
-        }
-        case 'fr': {
-            await settings.setString("currentBible", "fra_lsg");
-            await settings.setString("glossLang", "fra");
-        }
-        case 'pt': {
-            await settings.setString("currentBible", "por_blj");
-            await settings.setString("glossLang", "por");
-        }
-        case 'ar': {
-            await settings.setString("currentBible", "arb_vdv");
-            await settings.setString("glossLang", "are");
-        }
-        default: {
-            await settings.setString("currentBible", "eng_bsb");
-            await settings.setString("glossLang", "eng");
-        }
-    }
+  switch (locale) {
+    case 'es':
+      {
+        await settings.setString("currentBible", "spa_blm");
+        await settings.setString("glossLang", "spa");
+      }
+    case 'fr':
+      {
+        await settings.setString("currentBible", "fra_lsg");
+        await settings.setString("glossLang", "fra");
+      }
+    case 'pt':
+      {
+        await settings.setString("currentBible", "por_blj");
+        await settings.setString("glossLang", "por");
+      }
+    case 'ar':
+      {
+        await settings.setString("currentBible", "arb_vdv");
+        await settings.setString("glossLang", "are");
+      }
+    default:
+      {
+        await settings.setString("currentBible", "eng_bsb");
+        await settings.setString("glossLang", "eng");
+      }
+  }
 }
-
