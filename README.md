@@ -34,5 +34,7 @@ However, the app also makes use of other resources that are not in the public do
 
 ## Local development
 
+The Flutter version is pinned with [FVM](https://fvm.app) in `.fvmrc`. Install the SDK with `fvm install`, then run Flutter commands through `fvm flutter`. If you use the Nix flake, Flutter is already provided, so FVM is not needed.
+
 Run `docker compose up` to start ministack to be able to test asset downloads.
 Assets stored in `ministack/assets` are available for the app to fetch.
