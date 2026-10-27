@@ -147,7 +147,7 @@ class AudioService {
                 debugPrint("Local timings file missing: $localDirectory/timings.bin");
                 throw AudioMissingException(bookId, chapter);
             }
-            return AudioTimingDatabase.openFile('$localDirectory/timings.bin');
+            return await AudioTimingDatabase.openFile('$localDirectory/timings.bin');
         } on ResourceMissingException {
             final remoteUrl = await _resourceService.getResourceStreamingUrl(ResourceType.audio, resourceId);
             final timingsUrl = '$remoteUrl/timings.bin';
