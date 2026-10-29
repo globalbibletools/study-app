@@ -3,6 +3,7 @@ import 'package:just_audio_background/just_audio_background.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/services/hebrew_greek/database.dart';
 import 'package:gbt/services/lexicon/database.dart';
+import 'package:gbt/services/logging/log.dart';
 import 'package:gbt/services/reading_session/rs_database.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/services/settings/user_settings.dart';
@@ -15,6 +16,8 @@ import 'theme.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   setupServiceLocator();
+  await getIt.allReady();
+  info('App starting');
   await getIt<UserSettings>().init();
   await getIt<HebrewGreekDatabase>().init();
   // TODO: Maybe we should delay loading the lexicon until it is needed.

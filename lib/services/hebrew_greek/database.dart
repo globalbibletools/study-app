@@ -1,4 +1,4 @@
-import 'dart:developer';
+import 'package:gbt/services/logging/log.dart';
 import 'dart:io';
 
 import 'package:database_builder/database_builder.dart';
@@ -19,19 +19,19 @@ class HebrewGreekDatabase {
     var exists = await databaseExists(path);
 
     if (!exists) {
-      log('Creating new copy of $_databaseName from assets');
+      info('Creating new copy of $_databaseName from assets');
       await _copyDatabaseFromAssets(path);
     } else {
       // Check if database needs update
       var currentVersion = await _getDatabaseVersion(path);
       if (currentVersion != _databaseVersion) {
-        log(
+        info(
           'Updating Hebrew/Greek database from version $currentVersion to $_databaseVersion',
         );
         await deleteDatabase(path);
         await _copyDatabaseFromAssets(path);
       } else {
-        log("Opening existing $_databaseName database");
+        info("Opening existing $_databaseName database");
       }
     }
     _database = await openDatabase(path, version: _databaseVersion);
@@ -223,13 +223,7 @@ class HebrewGreekDatabase {
 
     final List<Map<String, dynamic>> words = await _database.rawQuery(
       sql.toString(),
-      [
-        _formatVerseId(
-          reference.bookId,
-          reference.chapter,
-          reference.verse,
-        ),
-      ],
+      [_formatVerseId(reference.bookId, reference.chapter, reference.verse)],
     );
 
     return words.map(_toHebrewGreekWord).toList();

@@ -1,4 +1,4 @@
-import 'dart:developer';
+import 'package:gbt/services/logging/log.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:gbt/services/service_locator.dart';
@@ -16,7 +16,8 @@ export 'package:gbt/services/resources/resource_language.dart';
 export 'package:gbt/services/resources/resource_database.dart' show PathMatcher;
 
 typedef ResourceChangeListener = void Function(ResourceType type);
-typedef ResourceTypeChangeListener = void Function(ResourceType type, String id);
+typedef ResourceTypeChangeListener =
+    void Function(ResourceType type, String id);
 
 class ResourceTypeConfig {
   final String localPathTemplate;
@@ -40,13 +41,11 @@ class ResourceMissingException implements Exception {
   final ResourceType resourceType;
   final String id;
 
-  ResourceMissingException(
-    this.resourceType,
-    this.id
-  );
+  ResourceMissingException(this.resourceType, this.id);
 
   @override
-  String toString() => 'ResourceMissingException: resourceType=$resourceType, id=$id';
+  String toString() =>
+      'ResourceMissingException: resourceType=$resourceType, id=$id';
 }
 
 class ResourceService {
@@ -76,8 +75,9 @@ class ResourceService {
 
   final ResourceDatabase _resourceDatabase = ResourceDatabase();
 
-  final outdatedResourceCounts =
-      ValueNotifier<OutdatedResourceCounts>(const OutdatedResourceCounts());
+  final outdatedResourceCounts = ValueNotifier<OutdatedResourceCounts>(
+    const OutdatedResourceCounts(),
+  );
 
   final Map<ResourceType, ResourceTypeListenerGroup> _listeners = {
     for (final type in ResourceType.values) type: ResourceTypeListenerGroup(),
@@ -114,8 +114,10 @@ class ResourceService {
   Future<void> _recomputeOutdatedCounts() async {
     final byType = await _resourceDatabase.countOutdatedResourcesByType();
     final total = byType.values.fold(0, (sum, n) => sum + n);
-    outdatedResourceCounts.value =
-        OutdatedResourceCounts(total: total, byType: byType);
+    outdatedResourceCounts.value = OutdatedResourceCounts(
+      total: total,
+      byType: byType,
+    );
   }
 
   void _notifyTypeResourceChange(ResourceType type) {
@@ -136,11 +138,11 @@ class ResourceService {
     bool includeRemoved = true,
     String? langCode,
   }) async {
-      return _resourceDatabase.getAllForType(
-        resourceType,
-        includeRemoved: includeRemoved,
-        langCode: langCode,
-      );
+    return _resourceDatabase.getAllForType(
+      resourceType,
+      includeRemoved: includeRemoved,
+      langCode: langCode,
+    );
   }
 
   Future<List<ResourceLanguage>> getLanguages() async {
@@ -161,16 +163,13 @@ class ResourceService {
     return _resourceDatabase.getLanguageForResource(resourceType, id);
   }
 
-  Future<bool> resourceExists(
-    ResourceType resourceType,
-    String id,
-  ) async {
-      try {
-          await getResourceLocalPath(resourceType, id);
-          return true;
-      } on ResourceMissingException {
-          return false;
-      }
+  Future<bool> resourceExists(ResourceType resourceType, String id) async {
+    try {
+      await getResourceLocalPath(resourceType, id);
+      return true;
+    } on ResourceMissingException {
+      return false;
+    }
   }
 
   Future<String> getResourceLocalPath(
@@ -179,13 +178,13 @@ class ResourceService {
   ) async {
     final installed = await _resourceDatabase.isInstalled(resourceType, id);
     if (!installed) {
-        throw ResourceMissingException(resourceType, id);
+      throw ResourceMissingException(resourceType, id);
     }
 
     final filePath = await _resolveLocalFilePath(resourceType, id);
     final pathType = await FileSystemEntity.type(filePath);
     if (pathType == FileSystemEntityType.notFound) {
-        throw ResourceMissingException(resourceType, id);
+      throw ResourceMissingException(resourceType, id);
     }
 
     return filePath;
@@ -197,22 +196,21 @@ class ResourceService {
   ) async {
     final config = resourceConfigs[resourceType];
     if (config == null) {
-        throw Exception('Config not found for resource ${resourceType.name}');
+      throw Exception('Config not found for resource ${resourceType.name}');
     }
 
     final template = config.streamingUrlTemplate;
     if (template == null) {
-        throw Exception("Config for resource ${resourceType.name} does not support streaming");
+      throw Exception(
+        "Config for resource ${resourceType.name} does not support streaming",
+      );
     }
 
     final path = template.replaceAll('{id}', id);
     return "${_assetService.baseHost}/$path";
   }
 
-  Future<void> deleteResource(
-    ResourceType resourceType,
-    String id,
-  ) async {
+  Future<void> deleteResource(ResourceType resourceType, String id) async {
     await _resourceDatabase.setInstallState(id, InstallState.notInstalled);
 
     final filePath = await _resolveLocalFilePath(resourceType, id);
@@ -238,19 +236,19 @@ class ResourceService {
     final filePath = await _resolveLocalFilePath(resourceType, id);
 
     final remoteUrl = await _resolveUrl(resourceType, id);
-    final version = await _resourceDatabase.getResourceVersion(resourceType, id);
+    final version = await _resourceDatabase.getResourceVersion(
+      resourceType,
+      id,
+    );
 
     var url = Uri.parse(remoteUrl);
     if (version != null) {
       url = url.replace(
-        queryParameters: {
-          ...url.queryParameters,
-          'v': version,
-        },
+        queryParameters: {...url.queryParameters, 'v': version},
       );
     }
 
-    log('Downloading glosses for $id from $remoteUrl');
+    info('Downloading glosses for $id from $remoteUrl');
 
     try {
       await _downloadService.downloadZip(
@@ -262,11 +260,11 @@ class ResourceService {
 
       await _resourceDatabase.setInstallState(id, InstallState.installed);
 
-      log('Gloss download successful.');
+      info('Gloss download successful.');
       _notifyTypeResourceChange(resourceType);
       _notifyResourceChange(resourceType, id);
-    } catch (e) {
-      log('Gloss download failed for $id', error: e);
+    } catch (e, stack) {
+      error('Gloss download failed for $id', error: e, stackTrace: stack);
       rethrow;
     }
   }
@@ -277,7 +275,7 @@ class ResourceService {
   ) async {
     final config = resourceConfigs[resourceType];
     if (config == null) {
-        throw Exception('Config not found for resource ${resourceType.name}');
+      throw Exception('Config not found for resource ${resourceType.name}');
     }
 
     final relativePath = config.localPathTemplate.replaceAll('{id}', id);
@@ -285,13 +283,10 @@ class ResourceService {
     return join(docDir.path, relativePath);
   }
 
-  Future<String> _resolveUrl(
-    ResourceType resourceType,
-    String id,
-  ) async {
+  Future<String> _resolveUrl(ResourceType resourceType, String id) async {
     final config = resourceConfigs[resourceType];
     if (config == null) {
-        throw Exception('Config not found for resource ${resourceType.name}');
+      throw Exception('Config not found for resource ${resourceType.name}');
     }
 
     final path = config.urlTemplate.replaceAll('{id}', id);
@@ -301,23 +296,23 @@ class ResourceService {
   Future<void> refreshResources() async {
     for (final type in ResourceType.values) {
       try {
-          final config = resourceConfigs[type];
-          if (config == null) continue;
+        final config = resourceConfigs[type];
+        if (config == null) continue;
 
-          final manifestUrl = config.manifestUrl(_assetService.baseHost);
-          log('Refreshing ${type.name} resources from $manifestUrl');
+        final manifestUrl = config.manifestUrl(_assetService.baseHost);
+        info('Refreshing ${type.name} resources from $manifestUrl');
 
-          final entries = await _downloadService.getJsonl(
-            manifestUrl,
-            convert: (json) => Resource.fromJson(json, type: type),
-          );
+        final entries = await _downloadService.getJsonl(
+          manifestUrl,
+          convert: (json) => Resource.fromJson(json, type: type),
+        );
 
-          debugPrint('${type.name} manifest contained ${entries.length} entries');
+        debugPrint('${type.name} manifest contained ${entries.length} entries');
 
-          await _resourceDatabase.updateResourcesFromManifest(type, entries);
-          _notifyTypeResourceChange(type);
+        await _resourceDatabase.updateResourcesFromManifest(type, entries);
+        _notifyTypeResourceChange(type);
       } catch (error) {
-          debugPrint('${type.name} manifest update error: $error');
+        debugPrint('${type.name} manifest update error: $error');
       }
     }
   }
@@ -327,7 +322,7 @@ class ResourceService {
   Future<void> refreshLanguages() async {
     try {
       final manifestUrl = '${_assetService.baseHost}/$languagesManifestPath';
-      log('Refreshing languages from $manifestUrl');
+      info('Refreshing languages from $manifestUrl');
 
       final languages = await _downloadService.getJsonl(
         manifestUrl,
@@ -349,46 +344,54 @@ class ResourceService {
 }
 
 class ResourceTypeListenerGroup {
-    final List<ResourceChangeListener> typeListeners = [];
-    final List<ResourceTypeChangeListener> resourceListeners = [];
+  final List<ResourceChangeListener> typeListeners = [];
+  final List<ResourceTypeChangeListener> resourceListeners = [];
 
-    void notifyTypeListeners(ResourceType type) {
-        final listeners = typeListeners;
+  void notifyTypeListeners(ResourceType type) {
+    final listeners = typeListeners;
 
-        for (final listener in listeners) {
-          try {
-            listener(type);
-          } catch (e, stackTrace) {
-            log('Resource change listener threw', error: e, stackTrace: stackTrace);
-          }
-        }
+    for (final listener in listeners) {
+      try {
+        listener(type);
+      } catch (e, stackTrace) {
+        error(
+          'Resource change listener threw',
+          error: e,
+          stackTrace: stackTrace,
+        );
+      }
     }
+  }
 
-    void notifyResourceListeners(ResourceType type, String id) {
-        final listeners = resourceListeners;
+  void notifyResourceListeners(ResourceType type, String id) {
+    final listeners = resourceListeners;
 
-        for (final listener in listeners) {
-          try {
-            listener(type, id);
-          } catch (e, stackTrace) {
-            log('Resource change listener threw', error: e, stackTrace: stackTrace);
-          }
-        }
+    for (final listener in listeners) {
+      try {
+        listener(type, id);
+      } catch (e, stackTrace) {
+        error(
+          'Resource change listener threw',
+          error: e,
+          stackTrace: stackTrace,
+        );
+      }
     }
+  }
 
-    void addTypeListener(ResourceChangeListener listener) {
-        typeListeners.add(listener);
-    }
+  void addTypeListener(ResourceChangeListener listener) {
+    typeListeners.add(listener);
+  }
 
-    void removeTypeListener(ResourceChangeListener listener) {
-        typeListeners.remove(listener);
-    }
+  void removeTypeListener(ResourceChangeListener listener) {
+    typeListeners.remove(listener);
+  }
 
-    void addResourceListener(ResourceTypeChangeListener listener) {
-        resourceListeners.add(listener);
-    }
+  void addResourceListener(ResourceTypeChangeListener listener) {
+    resourceListeners.add(listener);
+  }
 
-    void removeResourceListener(ResourceTypeChangeListener listener) {
-        resourceListeners.remove(listener);
-    }
+  void removeResourceListener(ResourceTypeChangeListener listener) {
+    resourceListeners.remove(listener);
+  }
 }
