@@ -10,6 +10,7 @@ import 'package:gbt/services/files/file_service.dart';
 import 'package:gbt/services/gloss/gloss_service.dart';
 import 'package:gbt/services/hebrew_greek/database.dart';
 import 'package:gbt/services/lexicon/database.dart';
+import 'package:gbt/services/logging/app_logger.dart';
 import 'package:gbt/services/resources/resource_service.dart';
 
 import 'settings/user_settings.dart';
@@ -24,6 +25,7 @@ void setupServiceLocator() {
   getIt.registerLazySingleton<LexiconsDatabase>(() => LexiconsDatabase());
   getIt.registerLazySingleton<UserSettings>(() => UserSettings());
   getIt.registerLazySingleton<AppState>(() => AppState());
+  getIt.registerSingletonAsync<AppLogger>(AppLogger.createDefault);
   getIt.registerLazySingleton<DownloadService>(() => DownloadService());
   getIt.registerLazySingleton<BibleService>(() => BibleService());
   getIt.registerLazySingleton<ResourceService>(() => ResourceService());
