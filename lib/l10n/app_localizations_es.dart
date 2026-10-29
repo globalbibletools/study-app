@@ -261,6 +261,26 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String get exportLogs => 'Exportar registros';
+
+  @override
+  String get exportLogsDescription =>
+      'Guarda los registros de los últimos 30 días en un archivo zip para enviarlo por correo electrónico.';
+
+  @override
+  String get chooseLogLocation => 'Elegir ubicación del archivo de registro';
+
+  @override
+  String get logsExported => 'Registros exportados';
+
+  @override
+  String get noLogsToExport =>
+      'No existen archivos de registro de los últimos 30 días.';
+
+  @override
+  String get logExportFailed => 'No se pudieron exportar los registros.';
+
+  @override
   String get audio => 'Audio';
 
   @override

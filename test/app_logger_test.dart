@@ -1,12 +1,14 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:archive/archive.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gbt/services/logging/app_logger.dart';
 import 'package:gbt/services/logging/console_log_writer.dart';
 import 'package:gbt/services/logging/file_log_writer.dart';
 import 'package:gbt/services/logging/log.dart';
 import 'package:gbt/services/logging/log_directory.dart';
+import 'package:gbt/services/logging/log_exporter.dart';
 import 'package:gbt/services/logging/log_statement.dart';
 import 'package:gbt/services/logging/log_writer.dart';
 import 'package:gbt/services/service_locator.dart';
@@ -195,6 +197,46 @@ void main() {
       expect(first.statements, hasLength(1));
       expect(second.statements, hasLength(1));
       expect(first.statements.single.message, 'Both');
+    });
+
+    test('zips the last 30 days of logs', () async {
+      var now = DateTime.utc(2026, 9, 26, 12);
+      final logger = await buildLogger(clock: () => now);
+
+      for (var day = 0; day < 31; day++) {
+        info('Day $day');
+        now = now.add(const Duration(days: 1));
+      }
+
+      now = DateTime.utc(2026, 10, 26, 12);
+      await logger.flush();
+      final exporter = LogExporter(logDirectory);
+      final bytes = await exporter.getExportAsBytes(now: now);
+      final archive = ZipDecoder().decodeBytes(bytes);
+      final names = archive.files.map((file) => file.name).toList();
+
+      expect(names, hasLength(30));
+      expect(names, isNot(contains('2026-09-26.jsonl')));
+      expect(names, contains('2026-09-27.jsonl'));
+      expect(names, contains('2026-10-26.jsonl'));
+    });
+
+    test('names the log zip with the current UTC timestamp', () {
+      expect(
+        LogExporter.exportFileNameForDate(DateTime.utc(2026, 10, 26, 12)),
+        'gbt-logs-2026-10-26T12:00:00.000Z.zip',
+      );
+    });
+
+    test('returns empty zip bytes when no logs are in range', () async {
+      final logger = await buildLogger();
+      await logger.flush();
+      final exporter = LogExporter(logDirectory);
+
+      expect(
+        await exporter.getExportAsBytes(now: DateTime.utc(2026, 10, 26, 12)),
+        isEmpty,
+      );
     });
   });
 }
