@@ -148,6 +148,7 @@ class AudioPlayerViewModel extends ChangeNotifier {
   final player = AudioPlayer();
 
   final _audioService = AudioService();
+  Reference? _chapterReference;
   List<AudioTiming> _timings = [];
 
   AppLocalizations? _localizations;
@@ -178,7 +179,7 @@ class AudioPlayerViewModel extends ChangeNotifier {
   }
 
   void _onAudioResourceChanged(String source, int bookId) {
-    final ref = reference.value;
+    final ref = reference.value ?? _chapterReference;
     if (ref == null || ref.bookId != bookId) return;
 
     final testament = AudioService.testamentForBookId(ref.bookId);
@@ -425,6 +426,7 @@ class AudioPlayerViewModel extends ChangeNotifier {
     setError(error);
     setPlaybackState(AudioPlaybackState.paused);
     _timings = [];
+    _chapterReference = null;
   }
 
   Future<void> _reload({
@@ -493,7 +495,7 @@ class AudioPlayerViewModel extends ChangeNotifier {
         prevReference?.chapter != newReference.chapter ||
         activeSource != oldSource.forTestament(nextTestament);
     if (!needsReload && !force) {
-      _seekToReference(newReference);
+      await _seekToReference(newReference);
 
       return;
     }
@@ -526,6 +528,11 @@ class AudioPlayerViewModel extends ChangeNotifier {
 
     setError(null);
     _timings = timings;
+    _chapterReference = Reference(
+      bookId: newReference.bookId,
+      chapter: newReference.chapter,
+      verse: 1,
+    );
 
     final l = _localizations;
     final title = l == null
@@ -549,7 +556,7 @@ class AudioPlayerViewModel extends ChangeNotifier {
         await _reset(reference: newReference, error: AudioUnknownError(newReference));
     }
 
-    _seekToReference(newReference);
+    await _seekToReference(newReference);
     setReference(newReference);
 
     if (wasPlaying) {
@@ -643,8 +650,8 @@ class AudioPlayerViewModel extends ChangeNotifier {
   }
 
   Reference? _positionToReference(Duration position) {
-    final reference = this.reference.value;
-    if (reference == null) return null;
+    final chapterReference = _chapterReference;
+    if (chapterReference == null) return null;
 
     try {
       final timing = _timings.reversed.firstWhere(
@@ -652,8 +659,8 @@ class AudioPlayerViewModel extends ChangeNotifier {
       );
 
       return Reference(
-        bookId: reference.bookId,
-        chapter: reference.chapter,
+        bookId: chapterReference.bookId,
+        chapter: chapterReference.chapter,
         verse: timing.verseNumber,
       );
     } catch (err) {
