@@ -347,6 +347,30 @@
       }
     }
   },
+  "exportLogs": "Export Logs",
+  "@exportLogs": {
+    "description": "Button label for exporting the app logs"
+  },
+  "exportLogsDescription": "Save the last 30 days of logs in a zip file so you can email it.",
+  "@exportLogsDescription": {
+    "description": "Description for the export logs button"
+  },
+  "chooseLogLocation": "Choose log file location",
+  "@chooseLogLocation": {
+    "description": "Dialog title for choosing where to save a log file"
+  },
+  "logsExported": "Logs exported",
+  "@logsExported": {
+    "description": "Snackbar shown after exporting logs"
+  },
+  "noLogsToExport": "No log files exist for the last 30 days.",
+  "@noLogsToExport": {
+    "description": "Message shown when there is no log file to export"
+  },
+  "logExportFailed": "Could not export logs.",
+  "@logExportFailed": {
+    "description": "Message shown when exporting logs fails"
+  },
   "audio": "Audio",
   "@audio": {
     "description": "Section header for Audio downloads"

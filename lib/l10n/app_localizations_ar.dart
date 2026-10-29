@@ -258,6 +258,25 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String get exportLogs => 'تصدير السجلات';
+
+  @override
+  String get exportLogsDescription =>
+      'احفظ سجلات آخر 30 يومًا في ملف zip حتى تتمكن من إرساله بالبريد الإلكتروني.';
+
+  @override
+  String get chooseLogLocation => 'اختر موقع ملف السجل';
+
+  @override
+  String get logsExported => 'تم تصدير السجلات';
+
+  @override
+  String get noLogsToExport => 'لا توجد ملفات سجل للـ 30 يومًا الماضية.';
+
+  @override
+  String get logExportFailed => 'تعذر تصدير السجلات.';
+
+  @override
   String get audio => 'الصوت';
 
   @override

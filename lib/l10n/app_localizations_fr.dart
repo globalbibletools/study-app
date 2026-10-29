@@ -260,6 +260,26 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get exportLogs => 'Exporter les journaux';
+
+  @override
+  String get exportLogsDescription =>
+      'Enregistrez les journaux des 30 derniers jours dans un fichier zip pour pouvoir l\'envoyer par e-mail.';
+
+  @override
+  String get chooseLogLocation => 'Choisir l\'emplacement du fichier journal';
+
+  @override
+  String get logsExported => 'Journaux exportés';
+
+  @override
+  String get noLogsToExport =>
+      'Aucun fichier journal n\'existe pour les 30 derniers jours.';
+
+  @override
+  String get logExportFailed => 'Impossible d\'exporter les journaux.';
+
+  @override
   String get audio => 'Audio';
 
   @override

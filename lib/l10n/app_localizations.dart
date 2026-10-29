@@ -536,6 +536,42 @@ abstract class AppLocalizations {
   /// **'{count} bytes'**
   String bytesCount(int count);
 
+  /// Button label for exporting the app logs
+  ///
+  /// In en, this message translates to:
+  /// **'Export Logs'**
+  String get exportLogs;
+
+  /// Description for the export logs button
+  ///
+  /// In en, this message translates to:
+  /// **'Save the last 30 days of logs in a zip file so you can email it.'**
+  String get exportLogsDescription;
+
+  /// Dialog title for choosing where to save a log file
+  ///
+  /// In en, this message translates to:
+  /// **'Choose log file location'**
+  String get chooseLogLocation;
+
+  /// Snackbar shown after exporting logs
+  ///
+  /// In en, this message translates to:
+  /// **'Logs exported'**
+  String get logsExported;
+
+  /// Message shown when there is no log file to export
+  ///
+  /// In en, this message translates to:
+  /// **'No log files exist for the last 30 days.'**
+  String get noLogsToExport;
+
+  /// Message shown when exporting logs fails
+  ///
+  /// In en, this message translates to:
+  /// **'Could not export logs.'**
+  String get logExportFailed;
+
   /// Section header for Audio downloads
   ///
   /// In en, this message translates to:
