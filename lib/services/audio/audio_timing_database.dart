@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:gbt/services/logging/log.dart';
+
 import 'audio_timing.dart';
 
 class AudioTimingDatabase {
@@ -13,7 +15,19 @@ class AudioTimingDatabase {
 
     static Future<AudioTimingDatabase> openFile(String filepath) async {
       final file = File(filepath);
-      final bytes = await file.readAsBytes();
+
+      Uint8List bytes;
+      try {
+        bytes = await file.readAsBytes();
+      } catch (e, stackTrace) {
+        error(
+          'Failed to read audio timing file: $filepath',
+          error: e,
+          stackTrace: stackTrace,
+        );
+        rethrow;
+      }
+
       return AudioTimingDatabase(bytes);
     }
 
@@ -23,25 +37,28 @@ class AudioTimingDatabase {
     }
 
     static List<List<AudioTiming>> _openBytes(Uint8List bytes) {
-      final buffer = ByteData.sublistView(bytes);
+      try {
+        final buffer = ByteData.sublistView(bytes);
 
-      final stride = 11;
-      final size = buffer.lengthInBytes ~/ stride;
-      int offset = stride * size;
+        const stride = 11;
+        if (buffer.lengthInBytes % stride != 0) {
+          warn(
+            'Audio timing data length ${buffer.lengthInBytes} is not a '
+            'multiple of the $stride-byte record size',
+          );
+        }
 
-      if (size == 0) {
-          return [];
-      }
+        final recordCount = buffer.lengthInBytes ~/ stride;
 
-      final chapterCount = buffer.getUint8(size * stride - 10);
-      final chapters = List<List<AudioTiming>>.filled(chapterCount, []);
+        if (recordCount == 0) {
+            return [];
+        }
 
-      for (int chapter = chapterCount - 1; chapter >= 0; chapter--) {
-        final verseCount = buffer.getUint8(offset - 9);
-        offset -= stride * verseCount;
+        final byChapter = <int, List<AudioTiming>>{};
+        var maxChapter = 0;
 
-        chapters[chapter] = List<AudioTiming>.generate(verseCount, (int index) {
-          final pos = offset + index * stride;
+        for (var i = 0; i < recordCount; i++) {
+          final pos = i * stride;
 
           final book = buffer.getUint8(pos);
           final chapter = buffer.getUint8(pos + 1);
@@ -54,14 +71,30 @@ class AudioTimingDatabase {
               ? double.infinity
               : endRaw / 100;
 
-          return AudioTiming(
-            verseId: verseId,
-            start: start,
-            end: end
+          (byChapter[chapter] ??= []).add(
+            AudioTiming(
+              verseId: verseId,
+              start: start,
+              end: end
+            ),
           );
-        });
-      }
 
-      return chapters;
+          if (chapter > maxChapter) {
+            maxChapter = chapter;
+          }
+        }
+
+        return List<List<AudioTiming>>.generate(maxChapter, (index) {
+          return byChapter[index + 1] ?? const [];
+        });
+      } catch (e, stackTrace) {
+        error(
+          'Failed to parse audio timing data '
+          '(${bytes.lengthInBytes} bytes)',
+          error: e,
+          stackTrace: stackTrace,
+        );
+        rethrow;
+      }
     }
 }

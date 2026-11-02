@@ -1,10 +1,11 @@
-import 'dart:developer';
+import 'package:gbt/services/logging/log.dart';
 
 import 'package:flutter/material.dart';
 import 'package:scripture/scripture.dart';
 import 'package:gbt/common/book_name.dart';
 import 'package:gbt/services/resources/resource.dart';
 import 'package:gbt/services/settings/user_settings.dart';
+import 'package:gbt/ui/common/resource_language_text_direction.dart';
 import 'package:gbt/ui/common/resource_ui_helper.dart';
 import 'bible_chapter_manager.dart';
 
@@ -16,6 +17,7 @@ class BibleChapter extends StatefulWidget {
     required this.verseLayout,
     this.fontSize = 20.0,
     this.settingsVersion = 0,
+    this.onResourceUnavailable,
   });
 
   final int bookId;
@@ -23,6 +25,7 @@ class BibleChapter extends StatefulWidget {
   final double fontSize;
   final VerseLayout verseLayout;
   final int settingsVersion;
+  final VoidCallback? onResourceUnavailable;
 
   @override
   State<BibleChapter> createState() => _BibleChapterState();
@@ -70,9 +73,15 @@ class _BibleChapterState extends State<BibleChapter> {
       bibleId,
     );
 
-    if (success && mounted) {
+    if (!mounted) return;
+
+    if (success) {
       // Retry the chapter load now that the bible is downloaded.
       _loadChapterData();
+    } else {
+      // The user declined the download, or it failed / was cancelled.
+      // Close the panel instead of leaving it stuck in a loading state.
+      widget.onResourceUnavailable?.call();
     }
   }
 
@@ -131,7 +140,10 @@ class _BibleChapterState extends State<BibleChapter> {
                 ),
               ),
               const SizedBox(height: 10),
-              verses,
+              Directionality(
+                textDirection: manager.textDirection.toTextDirection,
+                child: verses,
+              ),
             ],
           ),
         );
@@ -144,9 +156,9 @@ class _BibleChapterState extends State<BibleChapter> {
       verseLines: verseLines,
       selectionController: ScriptureSelectionController(),
       onFootnoteTapped: (footnote) {
-        _showFootnoteDialog(footnote);
+        _showFootnoteDialog(footnote, manager.textDirection.toTextDirection);
       },
-      onWordTapped: (id) => log("Tapped word $id"),
+      onWordTapped: (id) => debug("Tapped word $id"),
       onSelectionRequested: (wordId) {},
       showHeadings: false,
       styleBuilder: (format) {
@@ -165,7 +177,10 @@ class _BibleChapterState extends State<BibleChapter> {
     );
   }
 
-  Future<void> _showFootnoteDialog(String footnote) async {
+  Future<void> _showFootnoteDialog(
+    String footnote,
+    TextDirection textDirection,
+  ) async {
     return await showDialog(
       context: context,
       builder: (context) {
@@ -175,6 +190,7 @@ class _BibleChapterState extends State<BibleChapter> {
             child: SingleChildScrollView(
               child: Text(
                 footnote,
+                textDirection: textDirection,
                 style: TextStyle(fontSize: widget.fontSize),
               ),
             ),

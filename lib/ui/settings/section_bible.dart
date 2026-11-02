@@ -1,4 +1,4 @@
-import 'dart:developer';
+import 'package:gbt/services/logging/log.dart';
 
 import 'package:flutter/material.dart';
 import 'package:gbt/l10n/app_localizations.dart';
@@ -28,13 +28,21 @@ class _BibleSectionState extends State<BibleSection> {
 
   Future<void> _initBibleResources() async {
     try {
-      final resources = await _resourceService.getResourcesByType(ResourceType.bible);
+      final resources = await _resourceService.getResourcesByType(
+        ResourceType.bible,
+      );
       if (!mounted) return;
       setState(() {
-          bibleResources = resources.map((resource) => BibleOption(resource.id, resource.resourceName)).toList();
+        bibleResources = resources
+            .map((resource) => BibleOption(resource.id, resource.resourceName))
+            .toList();
       });
     } catch (err, stack) {
-      log('Failed to initialize bible resources', error: err, stackTrace: stack);
+      error(
+        'Failed to initialize bible resources',
+        error: err,
+        stackTrace: stack,
+      );
     }
   }
 

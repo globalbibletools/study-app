@@ -1,4 +1,8 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:gbt/services/logging/app_logger.dart';
+import 'package:gbt/services/logging/log.dart';
+import 'package:gbt/services/logging/log_exporter.dart';
 import 'package:gbt/services/resources/resource_service.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/about/about.dart';
@@ -105,9 +109,51 @@ class AppDrawer extends StatelessWidget {
                 );
               },
             ),
+            ListTile(
+              title: Text(AppLocalizations.of(context)!.exportLogs),
+              leading: const Icon(Icons.archive_outlined),
+              onTap: () => _exportLogs(context),
+            ),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _exportLogs(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
+    final messenger = ScaffoldMessenger.of(context);
+    final logger = getIt<AppLogger>();
+
+    Navigator.pop(context);
+
+    try {
+      await logger.flush();
+      final now = DateTime.now();
+      final exporter = await LogExporter.createDefault();
+
+      final bytes = await exporter.getExportAsBytes(now: now);
+      if (bytes.isEmpty) {
+        messenger.showSnackBar(SnackBar(content: Text(l10n.noLogsToExport)));
+        return;
+      }
+
+      final targetPath = await FilePicker.platform.saveFile(
+        dialogTitle: l10n.chooseLogLocation,
+        fileName: LogExporter.exportFileNameForDate(now),
+        bytes: bytes,
+        type: FileType.custom,
+        allowedExtensions: ['zip'],
+      );
+
+      if (targetPath == null) {
+        return;
+      }
+
+      messenger.showSnackBar(SnackBar(content: Text(l10n.logsExported)));
+    } catch (e, stackTrace) {
+      error('Failed to export logs', error: e, stackTrace: stackTrace);
+      messenger.showSnackBar(SnackBar(content: Text(l10n.logExportFailed)));
+    }
   }
 }

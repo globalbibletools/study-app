@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:developer';
+import 'package:gbt/services/logging/log.dart';
 import 'dart:io';
 
 import 'package:flutter/services.dart';
@@ -59,14 +59,14 @@ class ReadingSessionDatabase {
       path,
       version: _databaseVersion,
       onCreate: (db, version) async {
-        log("Creating reading session database");
+        info("Creating reading session database");
         String sql = await rootBundle.loadString(
           'assets/schemas/reading_session.sql',
         );
         await _executeSqlBatch(db, sql);
       },
       onUpgrade: (db, oldVersion, newVersion) async {
-        log(
+        info(
           "Upgrading reading session database from $oldVersion to $newVersion",
         );
         for (int v = oldVersion + 1; v <= newVersion; v++) {

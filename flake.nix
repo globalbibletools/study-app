@@ -36,6 +36,7 @@
           platforms-android-36
           emulator
           system-images-android-36-google-apis-x86-64
+          system-images-android-29-google-apis-x86-64
           ndk-28-2-13676358
           cmake-3-22-1
         ]);
@@ -44,7 +45,7 @@
         devShells.default = pkgs.mkShell {
 
           packages = with pkgs; [
-            flutter344
+            flutter347
             jdk17
             android-sdk
             gradle
@@ -53,7 +54,7 @@
             clang
             cmake
             ninja
-            rsync
+            fastlane
           ];
 
           ANDROID_HOME = "${android-sdk}/share/android-sdk";

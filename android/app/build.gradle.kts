@@ -24,7 +24,11 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.globalbibletools.gbt"
+        // Optional suffix (e.g. "pr123") set via APPLICATION_ID_SUFFIX env var
+        // so test builds can be installed side by side with production.
+        val idSuffix = System.getenv("APPLICATION_ID_SUFFIX")?.takeIf { it.isNotBlank() }
+        applicationId = "com.globalbibletools.gbt" + (idSuffix?.let { ".$it" } ?: "")
+        manifestPlaceholders["appLabel"] = if (idSuffix != null) "GBT ($idSuffix)" else "GBT"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion

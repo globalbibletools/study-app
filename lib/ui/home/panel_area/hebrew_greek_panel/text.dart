@@ -15,11 +15,17 @@ import 'package:gbt/ui/common/sparkle_icon.dart';
 typedef AsyncWordActionCallback = Future<void> Function(String wordId);
 
 class WordPopup {
-  const WordPopup({required this.text, this.isAiGenerated = false});
+  const WordPopup({
+    required this.text,
+    this.isAiGenerated = false,
+    this.textDirection = TextDirection.ltr,
+  });
 
   final String text;
 
   final bool isAiGenerated;
+
+  final TextDirection textDirection;
 }
 
 /// A function that returns the popup content for a given word ID.
@@ -461,6 +467,7 @@ class RenderHebrewGreekText extends RenderBox {
   String? _tappedWordId;
   String? _popupText;
   bool _popupIsAi = false;
+  TextDirection _popupTextDirection = TextDirection.ltr;
   TextPainter? _popupPainter;
   Timer? _popupDismissTimer;
   late final TapGestureRecognizer _tapRecognizer;
@@ -645,7 +652,7 @@ class RenderHebrewGreekText extends RenderBox {
     }
     _popupPainter = TextPainter(
       text: TextSpan(text: _popupText!, style: _popupTextStyle),
-      textDirection: TextDirection.ltr,
+      textDirection: _popupTextDirection,
     )..layout();
   }
 
@@ -719,6 +726,7 @@ class RenderHebrewGreekText extends RenderBox {
     _tappedWordId = null;
     _popupText = null;
     _popupIsAi = false;
+    _popupTextDirection = TextDirection.ltr;
     _popupPainter = null;
     markNeedsPaint();
   }
@@ -732,6 +740,9 @@ class RenderHebrewGreekText extends RenderBox {
 
   late TextPainter _spacePainter;
   final List<VerseRenderer> _verseRenderer = [];
+
+  final Map<int, int> _verseIndex = {};
+  int _indexForVerse(int verse) => _verseIndex[verse] ?? -1;
 
   void _updatePainters({bool duringLayout = false}) {
     if (_needsTextPaintersUpdate || _needsResetVersesRenderers) {
@@ -802,6 +813,7 @@ class RenderHebrewGreekText extends RenderBox {
   }
 
   void _initializeVerseRenderers() {
+    _verseIndex.clear();
     //for each verse of the chapter
     for (final verse in verses) {
       final verseNumberPainter = TextPainter(
@@ -811,6 +823,7 @@ class RenderHebrewGreekText extends RenderBox {
 
       final verseRenderer = VerseRenderer(verse.verse, verseNumberPainter);
 
+      _verseIndex[verse.verse] = _verseRenderer.length;
       _verseRenderer.add(verseRenderer);
 
       //for each word of the verse
@@ -1374,9 +1387,13 @@ class RenderHebrewGreekText extends RenderBox {
       return false;
     }
 
+    final int lowestIndex = _indexForVerse(verse.lowestVerseOnLine);
+    final int highestIndex = _indexForVerse(verse.highestVerseOnLine);
+
     for (
-      int i = verse.lowestVerseOnLine - 1;
-      i < verse.highestVerseOnLine && i < _verseRenderer.length;
+      int i = lowestIndex < 0 ? 0 : lowestIndex;
+      i <= (highestIndex < 0 ? _verseRenderer.length - 1 : highestIndex) &&
+          i < _verseRenderer.length;
       i++
     ) {
       VerseRenderer vr = _verseRenderer[i];
@@ -1463,6 +1480,7 @@ class RenderHebrewGreekText extends RenderBox {
           if (popup != null && popup.text.isNotEmpty) {
             _popupText = popup.text;
             _popupIsAi = popup.isAiGenerated;
+            _popupTextDirection = popup.textDirection;
             _preparePopupPainter();
 
             // Notify parent about the popup rect for potential scrolling.
@@ -1558,11 +1576,15 @@ class RenderHebrewGreekText extends RenderBox {
     canvas.translate(offset.dx, offset.dy);
 
     // --- 0. Paint audio highlight (Continuous Line Style) ---
-    if (_highlightedVerse != null && _highlightColor != null) {
+    final int highlightedIndex = _highlightedVerse == null
+        ? -1
+        : _indexForVerse(_highlightedVerse!);
+
+    if (highlightedIndex != -1 && _highlightColor != null) {
       _highlightPaint.color = _highlightColor!;
       final List<Rect> verseRects = [];
 
-      VerseRenderer verse = _verseRenderer[_highlightedVerse! - 1];
+      VerseRenderer verse = _verseRenderer[highlightedIndex];
 
       // A. Collect Verse Number Rect
       verseRects.add(verse.verseNumberRect!);
@@ -1637,12 +1659,16 @@ class RenderHebrewGreekText extends RenderBox {
     final firstLine = _findLineAtOffset(visibleRect.top);
     final lastLine = _findLineAtOffset(visibleRect.bottom);
 
-    int startVerse = firstLine?.labelVerse ?? 1;
-    int endVerse = lastLine?.highestVerseOnLine ?? _verseRenderer.length;
+    final int startVerse = firstLine?.labelVerse ?? _verseRenderer.first.verse;
+    final int endVerse =
+        lastLine?.highestVerseOnLine ?? _verseRenderer.last.verse;
+    final int startIndex = _indexForVerse(startVerse);
+    final int endIndex = _indexForVerse(endVerse);
 
     for (
-      int i = startVerse - 1;
-      i < endVerse && i < _verseRenderer.length;
+      int i = startIndex < 0 ? 0 : startIndex;
+      i <= (endIndex < 0 ? _verseRenderer.length - 1 : endIndex) &&
+          i < _verseRenderer.length;
       i++
     ) {
       final verse = _verseRenderer[i];
@@ -1768,18 +1794,26 @@ class RenderHebrewGreekText extends RenderBox {
     if (_popupIsAi) {
       final iconExtent = _popupIconExtent;
       final textCenterY = textOffset.dy + _popupPainter!.height / 2;
+      final isRtl = _popupTextDirection == TextDirection.rtl;
+
+      final iconCenterX = isRtl
+          ? bgRect.right - kPopupHorizontalPadding - iconExtent / 2
+          : textOffset.dx + iconExtent / 2;
+      if (!isRtl) {
+        textOffset = Offset(
+          textOffset.dx + iconExtent + _popupIconGap,
+          textOffset.dy,
+        );
+      }
+
       SparkleIcon.paint(
         canvas,
         Rect.fromCenter(
-          center: Offset(textOffset.dx + iconExtent / 2, textCenterY),
+          center: Offset(iconCenterX, textCenterY),
           width: iconExtent,
           height: iconExtent,
         ),
         _primaryColor,
-      );
-      textOffset = Offset(
-        textOffset.dx + iconExtent + _popupIconGap,
-        textOffset.dy,
       );
     }
 

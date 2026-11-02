@@ -1,4 +1,4 @@
-import 'dart:developer';
+import 'package:gbt/services/logging/log.dart';
 import 'dart:io';
 
 import 'package:database_builder/database_builder.dart';
@@ -19,19 +19,19 @@ class HebrewGreekDatabase {
     var exists = await databaseExists(path);
 
     if (!exists) {
-      log('Creating new copy of $_databaseName from assets');
+      info('Creating new copy of $_databaseName from assets');
       await _copyDatabaseFromAssets(path);
     } else {
       // Check if database needs update
       var currentVersion = await _getDatabaseVersion(path);
       if (currentVersion != _databaseVersion) {
-        log(
+        info(
           'Updating Hebrew/Greek database from version $currentVersion to $_databaseVersion',
         );
         await deleteDatabase(path);
         await _copyDatabaseFromAssets(path);
       } else {
-        log("Opening existing $_databaseName database");
+        info("Opening existing $_databaseName database");
       }
     }
     _database = await openDatabase(path, version: _databaseVersion);
@@ -54,7 +54,17 @@ class HebrewGreekDatabase {
     await File(path).writeAsBytes(bytes, flush: true);
   }
 
+  static String _formatVerseId(int bookId, int chapter, [int? verse]) {
+    final book = bookId.toString().padLeft(2, '0');
+    final chapterStr = chapter.toString().padLeft(3, '0');
+    if (verse == null) {
+      return '$book$chapterStr';
+    }
+    return '$book$chapterStr${verse.toString().padLeft(3, '0')}';
+  }
+
   Future<List<HebrewGreekWord>> getChapter(int bookId, int chapter) async {
+    final verseIdPrefix = _formatVerseId(bookId, chapter);
     final List<Map<String, dynamic>> rows = await _database.rawQuery(
       'SELECT w.${HebrewGreekSchema.wordsColWordId}, '
       'v.${HebrewGreekSchema.versesColBook}, '
@@ -66,10 +76,10 @@ class HebrewGreekDatabase {
       'ON w.${HebrewGreekSchema.wordsColVerseId} = v.${HebrewGreekSchema.versesColVerseId} '
       'JOIN ${HebrewGreekSchema.textTable} t '
       'ON w.${HebrewGreekSchema.wordsColText} = t.${HebrewGreekSchema.textColId} '
-      'WHERE v.${HebrewGreekSchema.versesColBook} = ? '
-      'AND v.${HebrewGreekSchema.versesColChapter} = ? '
+      'WHERE w.${HebrewGreekSchema.wordsColVerseId} >= ? '
+      'AND w.${HebrewGreekSchema.wordsColVerseId} <= ? '
       'ORDER BY w.${HebrewGreekSchema.wordsColWordId} ASC',
-      [bookId, chapter],
+      ['${verseIdPrefix}000', '${verseIdPrefix}999'],
     );
 
     return rows.map(_toHebrewGreekWord).toList();
@@ -207,15 +217,13 @@ class HebrewGreekDatabase {
       );
     }
     sql.write(
-      'WHERE v.${HebrewGreekSchema.versesColBook} = ? '
-      'AND v.${HebrewGreekSchema.versesColChapter} = ? '
-      'AND v.${HebrewGreekSchema.versesColVerse} = ? '
+      'WHERE w.${HebrewGreekSchema.wordsColVerseId} = ? '
       'ORDER BY w.${HebrewGreekSchema.wordsColWordId} ASC',
     );
 
     final List<Map<String, dynamic>> words = await _database.rawQuery(
       sql.toString(),
-      [reference.bookId, reference.chapter, reference.verse],
+      [_formatVerseId(reference.bookId, reference.chapter, reference.verse)],
     );
 
     return words.map(_toHebrewGreekWord).toList();

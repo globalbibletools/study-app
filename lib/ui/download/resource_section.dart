@@ -10,12 +10,14 @@ class ResourceSection extends StatefulWidget {
   final ResourceType resourceType;
   final String title;
   final IconData icon;
+  final String? langCode;
 
   const ResourceSection({
       super.key,
       required this.resourceType,
       required this.title,
       required this.icon,
+      this.langCode,
   });
 
   @override
@@ -38,6 +40,14 @@ class _ResourceSectionState extends State<ResourceSection> {
   }
 
   @override
+  void didUpdateWidget(covariant ResourceSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.langCode != widget.langCode) {
+      _loadResources();
+    }
+  }
+
+  @override
   void dispose() {
     _resourceService.removeResourceTypeChangeListener(
       widget.resourceType,
@@ -53,8 +63,11 @@ class _ResourceSectionState extends State<ResourceSection> {
   }
 
   Future<void> _loadResources() async {
-    final resources =
-        await _resourceService.getResourcesByType(widget.resourceType);
+    final resources = await _resourceService.getResourcesByType(
+      widget.resourceType,
+      includeRemoved: false,
+      langCode: widget.langCode,
+    );
     if (!mounted) return;
     setState(() {
         _resources = ResourceTreeNode.buildTree(resources);

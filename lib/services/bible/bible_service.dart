@@ -13,6 +13,10 @@ class BibleService {
 
   BibleDatabase? _db;
   String? currentBibleId;
+  ResourceLanguage? _currentLanguage;
+
+  ResourceLanguageTextDirection get currentTextDirection =>
+      _currentLanguage?.textDirection ?? ResourceLanguageTextDirection.ltr;
 
   final List<BibleResourceChangeListener> _resourceChangeListeners = [];
 
@@ -76,17 +80,23 @@ class BibleService {
       ResourceType.bible,
       bibleId,
     );
+    final language = await _resourceService.getLanguageForResource(
+      ResourceType.bible,
+      bibleId,
+    );
 
     await _close();
 
     _db = await BibleDatabase.open(path);
     currentBibleId = bibleId;
+    _currentLanguage = language;
   }
 
   Future<void> _close() async {
     final db = _db;
     _db = null;
     currentBibleId = null;
+    _currentLanguage = null;
     if (db != null) {
       await db.close();
     }

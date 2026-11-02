@@ -91,6 +91,7 @@ class BiblePanelArea extends StatelessWidget {
                       syncController: manager.syncController,
                       settingsVersion: settingsVersion,
                       scrollingEnabled: !disableScrolling,
+                      onResourceUnavailable: manager.closeBiblePanel,
                     ),
                   ),
                 ],

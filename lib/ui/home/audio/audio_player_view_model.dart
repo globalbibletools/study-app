@@ -8,6 +8,7 @@ import 'package:gbt/l10n/book_names.dart';
 import 'package:gbt/rxutils/combine_streams.dart';
 import 'package:gbt/services/audio/audio_service.dart';
 import 'package:gbt/services/audio/audio_timing.dart';
+import 'package:gbt/services/logging/log.dart' as log;
 import 'package:gbt/services/resources/resource.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:just_audio_background/just_audio_background.dart';
@@ -108,11 +109,19 @@ class AudioPlayerViewModel extends ChangeNotifier {
   }
 
   double get speed => player.speed;
-  void setSpeed(double speed) {
+  Future<void> setSpeed(double speed) async {
     if (speed == player.speed) return;
 
-    player.setSpeed(speed);
-    notifyListeners();
+    try {
+      await player.setSpeed(speed);
+      notifyListeners();
+    } catch (error, stackTrace) {
+      log.error(
+        'Failed to set audio playback speed to $speed',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
   }
 
   var playbackState = AudioPlaybackState.paused;
@@ -139,6 +148,7 @@ class AudioPlayerViewModel extends ChangeNotifier {
   final player = AudioPlayer();
 
   final _audioService = AudioService();
+  Reference? _chapterReference;
   List<AudioTiming> _timings = [];
 
   AppLocalizations? _localizations;
@@ -169,7 +179,7 @@ class AudioPlayerViewModel extends ChangeNotifier {
   }
 
   void _onAudioResourceChanged(String source, int bookId) {
-    final ref = reference.value;
+    final ref = reference.value ?? _chapterReference;
     if (ref == null || ref.bookId != bookId) return;
 
     final testament = AudioService.testamentForBookId(ref.bookId);
@@ -222,19 +232,35 @@ class AudioPlayerViewModel extends ChangeNotifier {
   Future<void> play() async {
     if (!isVisible) return;
 
-    await player.play();
+    try {
+      await player.play();
+    } catch (error, stackTrace) {
+      log.error('Failed to play audio', error: error, stackTrace: stackTrace);
+    }
   }
 
   Future<void> pause() async {
     if (!isVisible) return;
 
-    await player.pause();
+    try {
+      await player.pause();
+    } catch (error, stackTrace) {
+      log.error('Failed to pause audio', error: error, stackTrace: stackTrace);
+    }
   }
 
   Future<void> seek(Duration position) async {
     if (!isVisible) return;
 
-    await player.seek(position);
+    try {
+      await player.seek(position);
+    } catch (error, stackTrace) {
+      log.error(
+        'Failed to seek audio to $position',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
   }
 
   Future<void> jumpTo(Reference reference) async {
@@ -287,95 +313,120 @@ class AudioPlayerViewModel extends ChangeNotifier {
   }
 
   Future<void> _playerStateStreamHandler(PlayerState state) async {
-    if (state.processingState == ProcessingState.idle) return;
-    if (state.processingState != ProcessingState.completed) {
-      if (state.processingState != ProcessingState.ready) {
-        setPlaybackState(AudioPlaybackState.loading);
-      } else if (state.playing) {
-        setPlaybackState(AudioPlaybackState.playing);
-      } else {
-        setPlaybackState(AudioPlaybackState.paused);
+    try {
+      if (state.processingState == ProcessingState.idle) return;
+      if (state.processingState != ProcessingState.completed) {
+        if (state.processingState != ProcessingState.ready) {
+          setPlaybackState(AudioPlaybackState.loading);
+        } else if (state.playing) {
+          setPlaybackState(AudioPlaybackState.playing);
+        } else {
+          setPlaybackState(AudioPlaybackState.paused);
+        }
+        return;
       }
-      return;
-    }
 
-    final reference = this.reference.value;
-    if (reference == null) return;
+      final reference = this.reference.value;
+      if (reference == null) return;
 
-    switch (repeatMode.type) {
-      case AudioRepeatModeType.none:
-        final nextReference = _resolveNextVerse(reference);
+      switch (repeatMode.type) {
+        case AudioRepeatModeType.none:
+          final nextReference = _resolveNextVerse(reference);
 
-        // End of the Bible, nothing to continue to.
-        if (nextReference == null) {
-          await player.stop();
+          // End of the Bible, nothing to continue to.
+          if (nextReference == null) {
+            await player.stop();
+            break;
+          }
+
+          // The next verse is within the chapter, so there is a hole in the audio.
+          if (nextReference.bookId == reference.bookId &&
+              nextReference.chapter == reference.chapter) {
+            await player.pause();
+            break;
+          }
+
+          await _reload(source: audioSource, newReference: nextReference);
           break;
-        }
-
-        // The next verse is within the chapter, so there is a hole in the audio.
-        if (nextReference.bookId == reference.bookId &&
-            nextReference.chapter == reference.chapter) {
-          await player.pause();
+        case AudioRepeatModeType.chapter:
+          await _seekToReference(
+            Reference(
+              bookId: reference.bookId,
+              chapter: reference.chapter,
+              verse: 1,
+            ),
+          );
           break;
-        }
-
-        await _reload(source: audioSource, newReference: nextReference);
-        break;
-      case AudioRepeatModeType.chapter:
-        await _seekToReference(
-          Reference(
-            bookId: reference.bookId,
-            chapter: reference.chapter,
-            verse: 1,
-          ),
-        );
-        break;
-      default:
-        break;
+        default:
+          break;
+      }
+    } catch (error, stackTrace) {
+      log.error(
+        'Failed to handle audio player state change: $state',
+        error: error,
+        stackTrace: stackTrace,
+      );
     }
   }
 
   Future<void> _errorStreamHandler(Object error) async {
-    debugPrint("Audio player error: $error");
+    log.error('Audio player error', error: error);
     await _reset(reference: reference.value, error: AudioUnknownError(reference.value));
   }
 
   Future<void> _positionStreamHandler(Duration? position) async {
-    if (position == null) {
-      setReference(null);
-      return;
+    try {
+      if (position == null) {
+        setReference(null);
+        return;
+      }
+
+      final reference = _positionToReference(position);
+      setReference(reference);
+
+      if (repeatMode.type != AudioRepeatModeType.verse) return;
+
+      final targetVerse = repeatMode.target;
+      if (reference == null || targetVerse == null) return;
+
+      final targetReference = Reference(
+        bookId: reference.bookId,
+        chapter: reference.chapter,
+        verse: targetVerse,
+      );
+
+      final timing = _referenceToTiming(targetReference);
+      if (timing == null) return;
+
+      final beforeStart = position.inMilliseconds < timing.start * 1000;
+      final pastEnd = position.inMilliseconds - (timing.end * 1000) >= -1;
+      if (!beforeStart && !pastEnd) return;
+
+      await _seekToReference(targetReference);
+    } catch (error, stackTrace) {
+      log.error(
+        'Failed to handle audio position update: $position',
+        error: error,
+        stackTrace: stackTrace,
+      );
     }
-
-    final reference = _positionToReference(position);
-    setReference(reference);
-
-    if (repeatMode.type != AudioRepeatModeType.verse) return;
-
-    final targetVerse = repeatMode.target;
-    if (reference == null || targetVerse == null) return;
-
-    final targetReference = Reference(
-      bookId: reference.bookId,
-      chapter: reference.chapter,
-      verse: targetVerse,
-    );
-
-    final timing = _referenceToTiming(targetReference);
-    if (timing == null) return;
-
-    final beforeStart = position.inMilliseconds < timing.start * 1000;
-    final pastEnd = position.inMilliseconds - (timing.end * 1000) >= -1;
-    if (!beforeStart && !pastEnd) return;
-
-    await _seekToReference(targetReference);
   }
 
   Future<void> _reset({ Reference? reference, AudioPlaybackError? error }) async {
-    await player.clearAudioSources();
+    try {
+      await player.clearAudioSources();
+    } catch (e, stackTrace) {
+      log.error(
+        'Failed to clear audio sources',
+        error: e,
+        stackTrace: stackTrace,
+      );
+    }
     setReference(reference);
     setError(error);
     setPlaybackState(AudioPlaybackState.paused);
     _timings = [];
+    _chapterReference = null;
   }
 
   Future<void> _reload({
@@ -403,8 +454,25 @@ class AudioPlayerViewModel extends ChangeNotifier {
         : AudioService.testamentForBookId(prevReference.bookId);
 
     if (nextTestament != prevTestament) {
-      speakers = await _audioService.getSpeakers(nextTestament);
+      try {
+        speakers = await _audioService.getSpeakers(nextTestament);
+      } catch (e, stackTrace) {
+        log.error(
+          'Failed to load audio speakers for ${nextTestament.key}',
+          error: e,
+          stackTrace: stackTrace,
+        );
+        await _reset(
+          reference: newReference,
+          error: AudioUnknownError(newReference),
+        );
+        return;
+      }
+
       if (speakers.isEmpty) {
+        log.warn(
+          'No audio speakers available for ${nextTestament.key}',
+        );
         await _reset(reference: newReference, error: AudioFileMissingError(newReference));
         return;
       }
@@ -427,7 +495,7 @@ class AudioPlayerViewModel extends ChangeNotifier {
         prevReference?.chapter != newReference.chapter ||
         activeSource != oldSource.forTestament(nextTestament);
     if (!needsReload && !force) {
-      _seekToReference(newReference);
+      await _seekToReference(newReference);
 
       return;
     }
@@ -443,10 +511,28 @@ class AudioPlayerViewModel extends ChangeNotifier {
     } on AudioMissingException {
       await _reset(reference: newReference, error: AudioFileMissingError(newReference));
       return;
+    } catch (e, stackTrace) {
+      log.error(
+        'Failed to load audio chapter data for '
+        'source $activeSource, book ${newReference.bookId}, '
+        'chapter ${newReference.chapter}',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      await _reset(
+        reference: newReference,
+        error: AudioUnknownError(newReference),
+      );
+      return;
     }
 
     setError(null);
     _timings = timings;
+    _chapterReference = Reference(
+      bookId: newReference.bookId,
+      chapter: newReference.chapter,
+      verse: 1,
+    );
 
     final l = _localizations;
     final title = l == null
@@ -461,16 +547,28 @@ class AudioPlayerViewModel extends ChangeNotifier {
             tag: MediaItem(id: audioUrl, title: title),
           ),
         );
-    } catch (error) {
-        debugPrint("Failed to load audio: $error");
+    } catch (error, stackTrace) {
+        log.error(
+          'Failed to load audio from $audioUrl',
+          error: error,
+          stackTrace: stackTrace,
+        );
         await _reset(reference: newReference, error: AudioUnknownError(newReference));
     }
 
-    _seekToReference(newReference);
+    await _seekToReference(newReference);
     setReference(newReference);
 
     if (wasPlaying) {
-      await player.play();
+      try {
+        await player.play();
+      } catch (error, stackTrace) {
+        log.error(
+          'Failed to resume audio playback after reloading $audioUrl',
+          error: error,
+          stackTrace: stackTrace,
+        );
+      }
     }
   }
 
@@ -488,7 +586,16 @@ class AudioPlayerViewModel extends ChangeNotifier {
   Future<void> _seekToReference(Reference reference) async {
     final timing = _referenceToTiming(reference);
     if (timing != null) {
-      await player.seek(Duration(milliseconds: (timing.start * 1000).toInt()));
+      try {
+        await player.seek(Duration(milliseconds: (timing.start * 1000).toInt()));
+      } catch (error, stackTrace) {
+        log.error(
+          'Failed to seek audio to reference '
+          '${reference.bookId}:${reference.chapter}:${reference.verse}',
+          error: error,
+          stackTrace: stackTrace,
+        );
+      }
     }
   }
 
@@ -543,8 +650,8 @@ class AudioPlayerViewModel extends ChangeNotifier {
   }
 
   Reference? _positionToReference(Duration position) {
-    final reference = this.reference.value;
-    if (reference == null) return null;
+    final chapterReference = _chapterReference;
+    if (chapterReference == null) return null;
 
     try {
       final timing = _timings.reversed.firstWhere(
@@ -552,8 +659,8 @@ class AudioPlayerViewModel extends ChangeNotifier {
       );
 
       return Reference(
-        bookId: reference.bookId,
-        chapter: reference.chapter,
+        bookId: chapterReference.bookId,
+        chapter: chapterReference.chapter,
         verse: timing.verseNumber,
       );
     } catch (err) {
@@ -562,14 +669,22 @@ class AudioPlayerViewModel extends ChangeNotifier {
   }
 
   @override
-  void dispose() {
+  Future<void> dispose() async {
     _audioService.removeResourceChangeListener(_onAudioResourceChanged);
 
     super.dispose();
-    player.dispose();
 
-    playerStateSubscription.cancel();
-    positionSubscription.cancel();
-    errorSubscription.cancel();
+    try {
+      await player.dispose();
+      await playerStateSubscription.cancel();
+      await positionSubscription.cancel();
+      await errorSubscription.cancel();
+    } catch (error, stackTrace) {
+      log.error(
+        'Error occurred disposing the audio player view model',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
   }
 }

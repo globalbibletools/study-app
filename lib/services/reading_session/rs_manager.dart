@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:gbt/services/logging/log.dart';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -761,6 +762,9 @@ class ReadingSessionManager {
       DayProgress entry;
 
       if (stats != null) {
+        info(
+          "stats : ${stats.rsSeconds} ${stats.rsVerses} ${stats.goalReached} ${stats.statsDate}",
+        );
         entry = DayProgress(
           d,
           stats.rsSeconds ~/ 60,

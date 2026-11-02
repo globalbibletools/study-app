@@ -38,7 +38,7 @@ class RemoteAssetService {
       kReleaseMode ? _prodBaseHost : _devBaseHost;
 
   /// Public accessor for the resolved asset base URL, used when constructing
-  /// manifest URLs (e.g. by [ResourceService.refreshResources]).
+  /// manifest URLs (e.g. by [ResourceService.refresh]).
   String get baseHost => _baseHost;
 
   // --- AUDIO ASSETS ---

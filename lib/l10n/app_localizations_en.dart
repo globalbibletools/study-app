@@ -182,6 +182,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get downloads => 'Downloads';
 
   @override
+  String get allLanguages => 'All languages';
+
+  @override
   String get backupRestore => 'Backup/restore';
 
   @override
@@ -253,6 +256,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String bytesCount(int count) {
     return '$count bytes';
   }
+
+  @override
+  String get exportLogs => 'Export Logs';
+
+  @override
+  String get exportLogsDescription =>
+      'Save the last 30 days of logs in a zip file so you can email it.';
+
+  @override
+  String get chooseLogLocation => 'Choose log file location';
+
+  @override
+  String get logsExported => 'Logs exported';
+
+  @override
+  String get noLogsToExport => 'No log files exist for the last 30 days.';
+
+  @override
+  String get logExportFailed => 'Could not export logs.';
 
   @override
   String get audio => 'Audio';

@@ -9,6 +9,7 @@ class GlossService {
 
   GlossDatabase? _db;
   String? _currentLangCode;
+  ResourceLanguage? _currentLanguage;
 
   GlossService() {
     _resourceService.addResourceChangeListener(
@@ -40,11 +41,17 @@ class GlossService {
       }
     }
 
-    return _db!.getGloss(wordId);
+    final textDirection =
+        _currentLanguage?.textDirection ?? ResourceLanguageTextDirection.ltr;
+    return _db!.getGloss(wordId, textDirection);
   }
 
   Future<void> _openForLang(String langCode) async {
     final path = await _resourceService.getResourceLocalPath(
+      ResourceType.gloss,
+      langCode,
+    );
+    final language = await _resourceService.getLanguageForResource(
       ResourceType.gloss,
       langCode,
     );
@@ -53,6 +60,7 @@ class GlossService {
 
     _db = await GlossDatabase.open(path);
     _currentLangCode = langCode;
+    _currentLanguage = language;
   }
 
   Future<void> _close() async {
@@ -60,6 +68,7 @@ class GlossService {
       await _db!.close();
       _db = null;
       _currentLangCode = null;
+      _currentLanguage = null;
     }
   }
 

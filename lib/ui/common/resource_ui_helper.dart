@@ -6,7 +6,25 @@ import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/common/download_progress_dialog.dart';
 
 class ResourceUIHelper {
+  static final Map<String, Future<bool>> _pendingRequests = {};
+
   static Future<bool> ensureResource(
+    BuildContext context,
+    ResourceType resourceType,
+    String id,
+  ) {
+    final key = '${resourceType.name}:$id';
+    final pending = _pendingRequests[key];
+    if (pending != null) return pending;
+
+    final future = _ensureResource(context, resourceType, id).whenComplete(() {
+      _pendingRequests.remove(key);
+    });
+    _pendingRequests[key] = future;
+    return future;
+  }
+
+  static Future<bool> _ensureResource(
     BuildContext context,
     ResourceType resourceType,
     String id,
