@@ -14,10 +14,11 @@ class DetailedProgressPanelManager {
 
   final details = ValueNotifier<List<Session>>([]);
 
+  final int readingPlanId;
   final DateTime date;
 
-  DetailedProgressPanelManager(this.date) {
-    _rsManager.getDetailedProgressFor(date).then((value) {
+  DetailedProgressPanelManager(this.readingPlanId, this.date) {
+    _rsManager.getDetailedProgressFor(date, readingPlanId).then((value) {
       details.value = value;
     });
   }

@@ -1,9 +1,155 @@
+import 'package:gbt/services/reading_session/rs_manager.dart';
+
+class ReadingPlan {
+  final int? id;
+  final String planName;
+  final DateTime createdAt;
+  final DateTime? lastRead;
+  final int collectionId;
+  final String goalType;
+  final int goalValue;
+  final bool isBookmarked;
+
+  ReadingPlan({
+    this.id,
+    required this.planName,
+    required this.createdAt,
+    this.lastRead,
+    required this.collectionId,
+    required this.goalType,
+    required this.goalValue,
+    required this.isBookmarked,
+  });
+
+  static const _undefined = Object();
+
+  ReadingPlan copyWith({
+    Object? id = _undefined,
+    String? planName,
+    DateTime? createdAt,
+    Object? lastRead = _undefined,
+    int? collectionId,
+    String? goalType,
+    int? goalValue,
+    bool? isBookmarked,
+  }) {
+    return ReadingPlan(
+      id: id == _undefined ? this.id : id as int?,
+      planName: planName ?? this.planName,
+      createdAt: createdAt ?? this.createdAt,
+      lastRead: lastRead == _undefined ? this.lastRead : lastRead as DateTime?,
+      collectionId: collectionId ?? this.collectionId,
+      goalType: goalType ?? this.goalType,
+      goalValue: goalValue ?? this.goalValue,
+      isBookmarked: isBookmarked ?? this.isBookmarked,
+    );
+  }
+
+  factory ReadingPlan.fromMap(Map<String, dynamic> map) {
+    return ReadingPlan(
+      id: map['id'],
+      planName: map['plan_name'],
+      createdAt: DateTime.parse(map['created_at']),
+      lastRead: map['last_read'] != null
+          ? DateTime.parse(map['last_read'])
+          : null,
+      collectionId: map['collection_id'],
+      goalType: map['goal_type'],
+      goalValue: map['goal_value'],
+      isBookmarked: map['is_bookmarked'] == 1,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'plan_name': planName,
+      'created_at': createdAt.toIso8601String(),
+      'last_read': lastRead?.toIso8601String(),
+      'collection_id': collectionId,
+      'goal_type': goalType,
+      'goal_value': goalValue,
+      'is_bookmarked': isBookmarked ? 1 : 0,
+    };
+  }
+}
+
+class ReadingPlanBook {
+  final int? id;
+  final int readingPlanId;
+  final int bookId;
+  final int ord;
+
+  ReadingPlanBook({
+    this.id,
+    required this.readingPlanId,
+    required this.bookId,
+    required this.ord,
+  });
+
+  static const _undefined = Object();
+
+  ReadingPlanBook copyWith({
+    Object? id = _undefined,
+    int? readingPlanId,
+    int? bookId,
+    int? ord,
+  }) {
+    return ReadingPlanBook(
+      id: id == _undefined ? this.id : id as int?,
+      readingPlanId: readingPlanId ?? this.readingPlanId,
+      bookId: bookId ?? this.bookId,
+      ord: ord ?? this.ord,
+    );
+  }
+
+  factory ReadingPlanBook.fromMap(Map<String, dynamic> map) {
+    return ReadingPlanBook(
+      id: map['id'],
+      readingPlanId: map['reading_plan_id'],
+      bookId: map['book_id'],
+      ord: map['ord'],
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'reading_plan_id': readingPlanId,
+      'book_id': bookId,
+      'ord': ord,
+    };
+  }
+}
+
+class ReadingPlanDetails {
+  ReadingPlan readingPlan;
+  final List<ReadingPlanBook> books;
+  int totalChapters;
+  int totalVerses;
+  int versesRead;
+  int booksRead;
+  DailyGoal dailyGoal;
+  RsBookProgress? latestBookProgress;
+
+  ReadingPlanDetails(this.readingPlan, this.books)
+    : totalChapters = 0,
+      totalVerses = 0,
+      versesRead = 0,
+      booksRead = 0,
+      dailyGoal = DailyGoal(
+        readingPlan.goalType == "M" ? GoalType.minutes : GoalType.verses,
+        readingPlan.goalValue,
+      );
+}
+
 class RsDailyLog {
   final int? id;
   final DateTime rsDate;
   final DateTime startTime;
   final DateTime? endTime;
   final int verses;
+  final int readingPlanId;
 
   RsDailyLog({
     this.id,
@@ -11,6 +157,7 @@ class RsDailyLog {
     required this.startTime,
     this.endTime,
     required this.verses,
+    required this.readingPlanId,
   });
 
   static const _undefined = Object();
@@ -21,6 +168,7 @@ class RsDailyLog {
     DateTime? startTime,
     Object? endTime = _undefined,
     int? verses,
+    int? readingPlanId,
   }) {
     return RsDailyLog(
       id: id == _undefined ? this.id : id as int?,
@@ -28,6 +176,7 @@ class RsDailyLog {
       startTime: startTime ?? this.startTime,
       endTime: endTime == _undefined ? this.endTime : endTime as DateTime?,
       verses: verses ?? this.verses,
+      readingPlanId: readingPlanId ?? this.readingPlanId,
     );
   }
 
@@ -38,6 +187,7 @@ class RsDailyLog {
       startTime: DateTime.parse(map['start_time']),
       endTime: map['end_time'] != null ? DateTime.parse(map['end_time']) : null,
       verses: map['verses'],
+      readingPlanId: map['reading_plan_id'],
     );
   }
 
@@ -48,6 +198,7 @@ class RsDailyLog {
       'start_time': startTime.toIso8601String(),
       'end_time': endTime?.toIso8601String(),
       'verses': verses,
+      'reading_plan_id': readingPlanId,
     };
   }
 }
@@ -59,6 +210,7 @@ class RsLog {
   final int chapter;
   final int verse;
   final DateTime dateTime;
+  final int readingPlanId;
 
   RsLog({
     this.id,
@@ -67,6 +219,7 @@ class RsLog {
     required this.chapter,
     required this.verse,
     required this.dateTime,
+    required this.readingPlanId,
   });
 
   static const _undefined = Object();
@@ -78,6 +231,7 @@ class RsLog {
     int? chapter,
     int? verse,
     DateTime? dateTime,
+    int? readingPlanId,
   }) {
     return RsLog(
       id: id == _undefined ? this.id : id as int?,
@@ -86,6 +240,7 @@ class RsLog {
       chapter: chapter ?? this.chapter,
       verse: verse ?? this.verse,
       dateTime: dateTime ?? this.dateTime,
+      readingPlanId: readingPlanId ?? this.readingPlanId,
     );
   }
 
@@ -97,6 +252,7 @@ class RsLog {
       chapter: map['chapter'],
       verse: map['verse'],
       dateTime: DateTime.parse(map['date_time']),
+      readingPlanId: map['reading_plan_id'],
     );
   }
 
@@ -108,6 +264,7 @@ class RsLog {
       'chapter': chapter,
       'verse': verse,
       'date_time': dateTime.toIso8601String(),
+      'reading_plan_id': readingPlanId,
     };
   }
 }
@@ -130,6 +287,7 @@ class RsStats {
   final int rsSeconds;
   final int rsVerses;
   final bool goalReached;
+  final int readingPlanId;
 
   RsStats({
     this.id,
@@ -138,6 +296,7 @@ class RsStats {
     required this.rsSeconds,
     required this.rsVerses,
     required this.goalReached,
+    required this.readingPlanId,
   });
 
   static const _undefined = Object();
@@ -149,6 +308,7 @@ class RsStats {
     int? rsSeconds,
     int? rsVerses,
     bool? goalReached,
+    int? readingPlanId,
   }) {
     return RsStats(
       id: id == _undefined ? this.id : id as int?,
@@ -157,6 +317,7 @@ class RsStats {
       rsSeconds: rsSeconds ?? this.rsSeconds,
       rsVerses: rsVerses ?? this.rsVerses,
       goalReached: goalReached ?? this.goalReached,
+      readingPlanId: readingPlanId ?? this.readingPlanId,
     );
   }
 
@@ -168,6 +329,7 @@ class RsStats {
       rsSeconds: map['rs_seconds'],
       rsVerses: map['rs_verses'],
       goalReached: map['goal_reached'] == 1,
+      readingPlanId: map['reading_plan_id'],
     );
   }
 
@@ -179,6 +341,7 @@ class RsStats {
       'rs_seconds': rsSeconds,
       'rs_verses': rsVerses,
       'goal_reached': goalReached ? 1 : 0,
+      'reading_plan_id': readingPlanId,
     };
   }
 }
@@ -191,6 +354,7 @@ class RsBookProgress {
   final int chaptersRead;
   final int versesRead;
   final DateTime updatedAt;
+  final int readingPlanId;
 
   RsBookProgress({
     this.id,
@@ -200,6 +364,7 @@ class RsBookProgress {
     required this.chaptersRead,
     required this.versesRead,
     required this.updatedAt,
+    required this.readingPlanId,
   });
 
   static const _undefined = Object();
@@ -212,6 +377,7 @@ class RsBookProgress {
     int? chaptersRead,
     int? versesRead,
     DateTime? updatedAt,
+    int? readingPlanId,
   }) {
     return RsBookProgress(
       id: id == _undefined ? this.id : id as int?,
@@ -221,6 +387,7 @@ class RsBookProgress {
       chaptersRead: chaptersRead ?? this.chaptersRead,
       versesRead: versesRead ?? this.versesRead,
       updatedAt: updatedAt ?? DateTime.now(),
+      readingPlanId: readingPlanId ?? this.readingPlanId,
     );
   }
 
@@ -233,6 +400,7 @@ class RsBookProgress {
       chaptersRead: map['chapters_read'],
       versesRead: map['verses_read'],
       updatedAt: DateTime.parse(map['updated_at']),
+      readingPlanId: map['reading_plan_id'],
     );
   }
 
@@ -245,6 +413,7 @@ class RsBookProgress {
       'chapters_read': chaptersRead,
       'verses_read': versesRead,
       'updated_at': updatedAt.toIso8601String(),
+      'reading_plan_id': readingPlanId,
     };
   }
 }
