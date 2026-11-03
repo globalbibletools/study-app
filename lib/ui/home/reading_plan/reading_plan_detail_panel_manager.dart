@@ -25,7 +25,7 @@ class ReadingPlanDetailPanelManager {
   void init() async {
     final planId = readingPlanDetails.readingPlan.id!;
     bookmarkNotifier.value = readingPlanDetails.readingPlan.isBookmarked;
-    _rsManager.subsribeForStats(onStatsUpdated);
+    _rsManager.subscribeForStats(onStatsUpdated);
     booksProgressNotifier.value = await _rsManager.loadBooksProgress(planId);
     await onStatsUpdated();
   }
@@ -51,7 +51,7 @@ class ReadingPlanDetailPanelManager {
   }
 
   void dispose() {
-    _rsManager.unsubsribeForStats(onStatsUpdated);
+    _rsManager.unsubscribeForStats(onStatsUpdated);
   }
 
   Future<void> startReadingSession() async {

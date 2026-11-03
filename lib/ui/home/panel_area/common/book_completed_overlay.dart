@@ -119,23 +119,6 @@ class _BookCompletedOverlayState extends State<BookCompletedOverlay> {
 
                           const SizedBox(height: 20),
 
-                          // // Completed count
-                          // Row(
-                          //   mainAxisAlignment: MainAxisAlignment.center,
-                          //   children: [
-                          //     Text(
-                          //       l10n.completed,
-                          //       style: TextStyle(
-                          //         fontSize: 23,
-                          //         color: Colors.white.withValues(alpha: 0.82),
-                          //       ),
-                          //     ),
-                          //     const SizedBox(width: 12),
-                          //   ],
-                          // ),
-
-                          // const SizedBox(height: 36),
-
                           // Divider
                           Container(
                             height: 1,
@@ -160,9 +143,6 @@ class _BookCompletedOverlayState extends State<BookCompletedOverlay> {
                                   disabledForegroundColor: cyan.withValues(
                                     alpha: 0.45,
                                   ),
-                                  // disabledBorderColor: cyan.withValues(
-                                  //   alpha: 0.45,
-                                  // ),
                                 ),
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.center,

@@ -28,30 +28,19 @@ class ReadingSessionManager {
 
   ReadingSessionManager();
 
-  final List<VoidCallback> _booksProgressListeners = [];
   final List<VoidCallback> _statsListeners = [];
 
-  void subsribeForBookProgress(VoidCallback cb) {
-    _booksProgressListeners.add(cb);
-  }
-
-  void unsubsribeForBookProgress(VoidCallback cb) {
-    _booksProgressListeners.remove(cb);
-  }
-
-  void subsribeForStats(VoidCallback cb) {
+  void subscribeForStats(VoidCallback cb) {
     _statsListeners.add(cb);
   }
 
-  void unsubsribeForStats(VoidCallback cb) {
+  void unsubscribeForStats(VoidCallback cb) {
     _statsListeners.remove(cb);
   }
 
   final Map<int, List<RsBookProgress>> _booksProgress = {};
-  RsBookProgress? _latestBookProgress;
   final Map<int, List<DayProgress>> _monthProgress = {};
 
-  RsBookProgress? get latestBookProgress => _latestBookProgress;
   DateTime? get currentSessionStartTime => _rsDailyLog?.startTime;
 
   ReadingPlanDetails? _readingPlan;
@@ -537,18 +526,12 @@ class ReadingSessionManager {
     final filtered = readingProgress.where((b) => b.id != null).toList();
 
     if (filtered.isEmpty) {
-      _latestBookProgress = null;
       return null;
     }
 
     final latest = filtered.reduce(
       (a, b) => a.updatedAt.isAfter(b.updatedAt) ? a : b,
     );
-
-    _latestBookProgress = latest;
-    for (VoidCallback x in _booksProgressListeners) {
-      x.call();
-    }
 
     return latest;
   }
@@ -692,10 +675,6 @@ class ReadingSessionManager {
     //todo to be optimized
     await _loadMonthProgress(readingPlanId);
 
-    for (VoidCallback x in _booksProgressListeners) {
-      x.call();
-    }
-
     return nextChapter;
   }
 
@@ -782,22 +761,8 @@ class ReadingSessionManager {
 
   Future<void> _reloadFromDatabase() async {
     _bookVerseReadCount.clear();
-    //_booksProgress = null;
-    _latestBookProgress = null;
     _monthProgress.clear();
-
-    //await loadBooksProgress();
     readingModeNotifier.value = _rsDailyLog != null;
-    //getLatestBookProgress();
-  }
-
-  bool isSameWeek(DateTime a, DateTime b) {
-    final aStartOfWeek = a.subtract(Duration(days: a.weekday - 1));
-    final bStartOfWeek = b.subtract(Duration(days: b.weekday - 1));
-
-    return aStartOfWeek.year == bStartOfWeek.year &&
-        aStartOfWeek.month == bStartOfWeek.month &&
-        aStartOfWeek.day == bStartOfWeek.day;
   }
 
   Future<List<Session>> getDetailedProgressFor(
