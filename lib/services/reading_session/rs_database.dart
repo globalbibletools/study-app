@@ -229,12 +229,12 @@ class ReadingSessionDatabase {
     await _database.transaction((txn) async {
       final batch = txn.batch();
 
-      batch.delete('reading_plan');
-      batch.delete('reading_plan_book');
       batch.delete('rs_log');
+      batch.delete('rs_daily_log');
       batch.delete('rs_stats');
       batch.delete('rs_book_progress');
-      batch.delete('rs_daily_log');
+      batch.delete('reading_plan_book');
+      batch.delete('reading_plan');
 
       await __executeSqlBatch(batch, sql);
 
@@ -252,6 +252,7 @@ class ReadingSessionDatabase {
       }
       for (final row in bookProgressRows) {
         row['reading_plan_id'] = 1;
+        row['verses_read'] ??= 0;
         batch.insert('rs_book_progress', row);
       }
 
@@ -270,12 +271,12 @@ class ReadingSessionDatabase {
     await _database.transaction((txn) async {
       final batch = txn.batch();
 
-      batch.delete('reading_plan');
-      batch.delete('reading_plan_book');
       batch.delete('rs_log');
+      batch.delete('rs_daily_log');
       batch.delete('rs_stats');
       batch.delete('rs_book_progress');
-      batch.delete('rs_daily_log');
+      batch.delete('reading_plan_book');
+      batch.delete('reading_plan');
 
       for (final row in readingPlanRows) {
         batch.insert('reading_plan', row);
@@ -293,6 +294,7 @@ class ReadingSessionDatabase {
         batch.insert('rs_stats', row);
       }
       for (final row in bookProgressRows) {
+        row['verses_read'] ??= 0;
         batch.insert('rs_book_progress', row);
       }
 

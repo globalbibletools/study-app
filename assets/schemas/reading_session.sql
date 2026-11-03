@@ -77,7 +77,7 @@ create table rs_stats (
 );
 
 CREATE UNIQUE INDEX hash_type_date
-ON rs_stats(type, stats_date);
+ON rs_stats(type, stats_date, reading_plan_id);
 
 
 ---------------------------------

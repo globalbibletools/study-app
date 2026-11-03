@@ -27,100 +27,6 @@ create table reading_plan_book (
     foreign key (reading_plan_id) references reading_plan(id)
 );
 
-PRAGMA foreign_keys = OFF;
-
-ALTER TABLE rs_daily_log RENAME TO rs_daily_log_old;
-
-create table rs_daily_log (
-    id integer primary key autoincrement,
-    rs_date date not null,
-    start_time timestamp not null,
-    end_time timestamp,
-    verses int not null,
-    reading_plan_id int not null,
-    foreign key (reading_plan_id) references reading_plan(id)
-);
-
-INSERT INTO rs_daily_log
-SELECT rs_daily_log_old.*, 1
-FROM rs_daily_log_old;
-
-DROP TABLE rs_daily_log_old;
-
-
-ALTER TABLE rs_log RENAME TO rs_log_old;
-
-create table rs_log (
-    id integer primary key autoincrement,
-    rs_daily_log_id integer not null,
-    book_id integer not null,
-    chapter integer not null,
-    verse integer not null,
-    date_time timestamp not null,
-    reading_plan_id int not null,
-    foreign key (rs_daily_log_id) references rs_daily_log(id),
-    foreign key (reading_plan_id) references reading_plan(id)
-);
-
-INSERT INTO rs_log
-SELECT rs_log_old.*, 1
-FROM rs_log_old;
-
-DROP TABLE rs_log_old;
-
-ALTER TABLE rs_book_progress RENAME TO rs_book_progress_old;
-
-drop index hash_rs_book_progress;
-
-create table rs_book_progress (
-    id integer primary key autoincrement,
-    book_id int not null,
-    chapter int not null,
-    verse int not null,
-    chapters_read int not null,
-    verses_read int not null,
-    updated_at datetime not null,
-    reading_plan_id int not null,
-    foreign key (reading_plan_id) references reading_plan(id)
-);
-
-CREATE UNIQUE INDEX hash_rs_book_progress
-ON rs_book_progress(book_id, reading_plan_id);
-
-INSERT INTO rs_book_progress
-SELECT rs_book_progress_old.*, 1
-FROM rs_book_progress_old;
-
-drop table rs_book_progress_old;
-
-
-
-ALTER TABLE rs_stats RENAME TO rs_stats_old;
-
-drop index hash_type_date;
-
-create table rs_stats (
-    id integer primary key autoincrement,
-    type varchar(1) not null,
-    stats_date date not null,
-    rs_seconds int not null,
-    rs_verses int not null,
-    goal_reached int not null,
-    reading_plan_id int not null,
-    foreign key (reading_plan_id) references reading_plan(id)
-);
-
-CREATE UNIQUE INDEX hash_type_date
-ON rs_stats(type, stats_date, reading_plan_id);
-
-INSERT INTO rs_stats
-SELECT rs_stats_old.*, 1
-FROM rs_stats_old;
-
-drop table rs_stats_old;
-
-PRAGMA foreign_keys = ON;
-
 insert into reading_plan (id, plan_name, created_at, last_read, collection_id, goal_type, goal_value, is_bookmarked)
 values (1, 'Whole Bible', CURRENT_TIMESTAMP, null, 1, 'M', 10, 0);
 
@@ -192,3 +98,157 @@ values
 (1, 64, 64),
 (1, 65, 65),
 (1, 66, 66);
+
+PRAGMA foreign_keys = OFF;
+
+ALTER TABLE rs_daily_log RENAME TO rs_daily_log_old;
+
+create table rs_daily_log (
+    id integer primary key autoincrement,
+    rs_date date not null,
+    start_time timestamp not null,
+    end_time timestamp,
+    verses int not null,
+    reading_plan_id int not null,
+    foreign key (reading_plan_id) references reading_plan(id)
+);
+
+INSERT INTO rs_daily_log (
+    id,
+    rs_date,
+    start_time,
+    end_time,
+    verses,
+    reading_plan_id
+)
+SELECT
+    id,
+    rs_date,
+    start_time,
+    end_time,
+    verses,
+    1
+FROM rs_daily_log_old;
+
+DROP TABLE rs_daily_log_old;
+
+
+ALTER TABLE rs_log RENAME TO rs_log_old;
+
+create table rs_log (
+    id integer primary key autoincrement,
+    rs_daily_log_id integer not null,
+    book_id integer not null,
+    chapter integer not null,
+    verse integer not null,
+    date_time timestamp not null,
+    reading_plan_id int not null,
+    foreign key (rs_daily_log_id) references rs_daily_log(id),
+    foreign key (reading_plan_id) references reading_plan(id)
+);
+
+INSERT INTO rs_log (
+    id,
+    rs_daily_log_id,
+    book_id,
+    chapter,
+    verse,
+    date_time,
+    reading_plan_id
+)
+SELECT
+    id,
+    rs_daily_log_id,
+    book_id,
+    chapter,
+    verse,
+    date_time,
+    1
+FROM rs_log_old;
+
+DROP TABLE rs_log_old;
+
+ALTER TABLE rs_book_progress RENAME TO rs_book_progress_old;
+
+drop index hash_rs_book_progress;
+
+create table rs_book_progress (
+    id integer primary key autoincrement,
+    book_id int not null,
+    chapter int not null,
+    verse int not null,
+    chapters_read int not null,
+    verses_read int not null,
+    updated_at datetime not null,
+    reading_plan_id int not null,
+    foreign key (reading_plan_id) references reading_plan(id)
+);
+
+CREATE UNIQUE INDEX hash_rs_book_progress
+ON rs_book_progress(book_id, reading_plan_id);
+
+INSERT INTO rs_book_progress (
+    id,
+    book_id,
+    chapter,
+    verse,
+    chapters_read,
+    verses_read,
+    updated_at,
+    reading_plan_id
+)
+SELECT
+    id,
+    book_id,
+    chapter,
+    verse,
+    chapters_read,
+    verses_read,
+    updated_at,
+    1
+FROM rs_book_progress_old;
+
+drop table rs_book_progress_old;
+
+
+
+ALTER TABLE rs_stats RENAME TO rs_stats_old;
+
+drop index hash_type_date;
+
+create table rs_stats (
+    id integer primary key autoincrement,
+    type varchar(1) not null,
+    stats_date date not null,
+    rs_seconds int not null,
+    rs_verses int not null,
+    goal_reached int not null,
+    reading_plan_id int not null,
+    foreign key (reading_plan_id) references reading_plan(id)
+);
+
+CREATE UNIQUE INDEX hash_type_date
+ON rs_stats(type, stats_date, reading_plan_id);
+
+INSERT INTO rs_stats (
+    id,
+    type,
+    stats_date,
+    rs_seconds,
+    rs_verses,
+    goal_reached,
+    reading_plan_id
+)
+SELECT
+    id,
+    type,
+    stats_date,
+    rs_seconds,
+    rs_verses,
+    goal_reached,
+    1
+FROM rs_stats_old;
+
+drop table rs_stats_old;
+
+PRAGMA foreign_keys = ON;
