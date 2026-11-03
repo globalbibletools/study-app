@@ -138,15 +138,14 @@ class AppDrawer extends StatelessWidget {
         return;
       }
 
-      final targetPath = await FilePicker.platform.saveFile(
+      final targetUri = await FilePicker.saveFile(
         dialogTitle: l10n.chooseLogLocation,
         fileName: LogExporter.exportFileNameForDate(now),
         bytes: bytes,
-        type: FileType.custom,
-        allowedExtensions: ['zip'],
+        mimeType: 'application/zip',
       );
 
-      if (targetPath == null) {
+      if (targetUri == null) {
         return;
       }
 
