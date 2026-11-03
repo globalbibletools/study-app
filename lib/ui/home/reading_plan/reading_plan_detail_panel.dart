@@ -7,7 +7,7 @@ import 'package:gbt/services/reading_session/rs_model.dart';
 import 'package:gbt/ui/home/home_manager.dart';
 import 'package:gbt/ui/home/panel_area/common/calendar_view.dart';
 import 'package:gbt/ui/home/reading_plan/reading_plan_detail_panel_manager.dart';
-import 'package:gbt/ui/home/reading_session/detailed_progress_panel.dart';
+import 'package:gbt/ui/home/reading_plan/detailed_progress_panel.dart';
 
 class ReadingPlanDetailPanel extends StatefulWidget {
   final ReadingPlanDetails readingPlanDetails;
@@ -443,7 +443,6 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
             itemCount: _books.length,
             onReorderItem: (oldIndex, newIndex) {
               setState(() {
-                //if (newIndex > oldIndex) newIndex -= 1;
                 final book = _books.removeAt(oldIndex);
                 _books.insert(newIndex, book);
               });

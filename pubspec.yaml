@@ -22,10 +22,10 @@ dependencies:
   intl: ^0.20.2
   connectivity_plus: ^7.0.0
   archive: ^4.0.7
-  file_picker: ^10.3.2
+  file_picker: ^13.3.2
   http: ^1.4.0
   path_provider: ^2.1.5
-  package_info_plus: ^9.0.0
+  package_info_plus: ^10.2.2
   url_launcher: ^6.3.1
   unorm_dart: ^0.3.1+1
   scripture: ^0.4.0
@@ -39,10 +39,9 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  sqlite3: ^3.3.4
 
 flutter:
-  config:
-    enable-swift-package-manager: false
   uses-material-design: true
   generate: true # needed for generating localization files
   fonts:

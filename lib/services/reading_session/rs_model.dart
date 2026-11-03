@@ -138,7 +138,10 @@ class ReadingPlanDetails {
       versesRead = 0,
       booksRead = 0,
       dailyGoal = DailyGoal(
-        readingPlan.goalType == "M" ? GoalType.minutes : GoalType.verses,
+        (readingPlan.goalType == "M" ||
+                readingPlan.goalType.toLowerCase().startsWith("m"))
+            ? GoalType.minutes
+            : GoalType.verses,
         readingPlan.goalValue,
       );
 }
@@ -398,9 +401,9 @@ class RsBookProgress {
       chapter: map['chapter'],
       verse: map['verse'],
       chaptersRead: map['chapters_read'],
-      versesRead: map['verses_read'],
+      versesRead: map['verses_read'] ?? 0,
       updatedAt: DateTime.parse(map['updated_at']),
-      readingPlanId: map['reading_plan_id'],
+      readingPlanId: map['reading_plan_id'] ?? 1,
     );
   }
 

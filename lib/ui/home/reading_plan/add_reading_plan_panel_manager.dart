@@ -22,7 +22,7 @@ class AddReadingPlanPanelManager {
       plan = readingPlan!.readingPlan.copyWith(
         planName: planName,
         collectionId: collectionId,
-        goalType: goalType.name,
+        goalType: goalType == GoalType.minutes ? 'M' : 'V',
         goalValue: goalValue,
       );
       await _rsdbManager.updateReadingPlan(plan);
@@ -32,7 +32,7 @@ class AddReadingPlanPanelManager {
         planName: planName,
         createdAt: DateTime.now(),
         collectionId: collectionId,
-        goalType: goalType.name,
+        goalType: goalType == GoalType.minutes ? 'M' : 'V',
         goalValue: goalValue,
         isBookmarked: false,
       );
