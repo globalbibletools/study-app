@@ -14,6 +14,48 @@ import 'package:gbt/ui/common/bible_chooser.dart';
 import 'package:gbt/ui/home/appbar/reference_chooser/reference_chooser.dart';
 import 'package:gbt/ui/home/common/scroll_sync_controller.dart';
 import 'package:gbt/services/reading_session/rs_manager.dart';
+import 'package:gbt/ui/home/word_details_dialog/dialog_manager.dart';
+import 'package:gbt/ui/home/word_details_dialog/similar_verses/similar_verses_page.dart';
+
+class OccurrenceSearchContext {
+  final WordDetails word;
+  final String? wordId;
+  final SearchType searchType;
+  final Reference anchorReference;
+  final double scrollOffset;
+
+  const OccurrenceSearchContext({
+    required this.word,
+    this.wordId,
+    required this.searchType,
+    required this.anchorReference,
+    this.scrollOffset = 0.0,
+  });
+}
+
+class WordStudySession {
+  final String wordId;
+  final bool isRtl;
+  final Reference originalReference;
+  final isOverlayVisibleNotifier = ValueNotifier<bool>(true);
+  final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+  WordStudySession({
+    required this.wordId,
+    required this.isRtl,
+    required this.originalReference,
+    bool isOverlayVisible = true,
+  }) {
+    isOverlayVisibleNotifier.value = isOverlayVisible;
+  }
+
+  bool get isOverlayVisible => isOverlayVisibleNotifier.value;
+  set isOverlayVisible(bool value) => isOverlayVisibleNotifier.value = value;
+
+  void dispose() {
+    isOverlayVisibleNotifier.dispose();
+  }
+}
 
 class HomeManager {
   final currentReference = ValueNotifier<Reference>(
@@ -26,6 +68,9 @@ class HomeManager {
     const Reference(bookId: 1, chapter: 1, verse: 1),
   );
   final settingsVersionNotifier = ValueNotifier<int>(0);
+  final searchContextNotifier = ValueNotifier<OccurrenceSearchContext?>(null);
+  final wordStudySessionNotifier = ValueNotifier<WordStudySession?>(null);
+  final flashedWordIdNotifier = ValueNotifier<String?>(null);
 
   final chooserKey = GlobalKey<ReferenceChooserState>();
 
@@ -212,6 +257,8 @@ class HomeManager {
   }
 
   void onBookSelected(BuildContext context, int bookId) {
+    dismissWordStudySession(keepCurrentLocation: true);
+    clearSearchContext();
     final ref = Reference(bookId: bookId, chapter: 1, verse: 1);
     audioPlayerViewModel.pause();
     audioPlayerViewModel.jumpTo(ref);
@@ -222,6 +269,8 @@ class HomeManager {
   }
 
   void onChapterSelected(int chapter) {
+    dismissWordStudySession(keepCurrentLocation: true);
+    clearSearchContext();
     final ref = Reference(bookId: currentBookId, chapter: chapter, verse: 1);
     audioPlayerViewModel.pause();
     audioPlayerViewModel.jumpTo(ref);
@@ -237,7 +286,119 @@ class HomeManager {
     );
   }
 
+  /// Starts a new word study session, preserving the original reading reference.
+  void startWordStudy({required String wordId, required bool isRtl}) {
+    if (wordStudySessionNotifier.value != null) {
+      dismissWordStudySession(keepCurrentLocation: true);
+    }
+    wordStudySessionNotifier.value = WordStudySession(
+      wordId: wordId,
+      isRtl: isRtl,
+      originalReference: currentReference.value,
+    );
+  }
+
+  /// Toggles visibility of the word study offstage overlay layer.
+  void setWordStudyOverlayVisible(bool visible) {
+    final session = wordStudySessionNotifier.value;
+    if (session != null) {
+      session.isOverlayVisible = visible;
+    }
+  }
+
+  /// Ends the word study session and cleans up resources.
+  ///
+  /// If [keepCurrentLocation] is false, restores the reader to the original
+  /// reference where the word was initially long-pressed.
+  /// If true (e.g. user tapped 'x' on return pill or navigated explicitly),
+  /// keeps the reader at its current location and persists it to user settings.
+  void dismissWordStudySession({required bool keepCurrentLocation}) {
+    final session = wordStudySessionNotifier.value;
+    if (session == null) return;
+
+    if (!keepCurrentLocation) {
+      final wordIdToFlash = session.wordId;
+      final ref = session.originalReference;
+      currentReference.value = Reference(
+        bookId: ref.bookId,
+        chapter: ref.chapter,
+        verse: ref.verse,
+      );
+      panelAnchorNotifier.value = Reference(
+        bookId: ref.bookId,
+        chapter: ref.chapter,
+        verse: ref.verse,
+      );
+      saveBookAndChapter(ref.bookId, ref.chapter);
+      syncController.clearActiveSource();
+      syncController.jumpToVerse(ref.bookId, ref.chapter, ref.verse);
+      flashWord(wordIdToFlash);
+    } else {
+      final current = currentReference.value;
+      saveBookAndChapter(current.bookId, current.chapter);
+    }
+
+    session.dispose();
+    wordStudySessionNotifier.value = null;
+    searchContextNotifier.value = null;
+  }
+
+  /// Sets the active search context, navigates the reader to the context verse,
+  /// and mounts the floating return pill.
+  void jumpToContextReference(OccurrenceSearchContext context) {
+    searchContextNotifier.value = context;
+    final ref = context.anchorReference;
+
+    currentReference.value = Reference(
+      bookId: ref.bookId,
+      chapter: ref.chapter,
+      verse: ref.verse,
+    );
+    panelAnchorNotifier.value = Reference(
+      bookId: ref.bookId,
+      chapter: ref.chapter,
+      verse: ref.verse,
+    );
+
+    // Note: Do not saveBookAndChapter here as this is a temporary preview!
+
+    syncController.clearActiveSource();
+    syncController.jumpToVerse(ref.bookId, ref.chapter, ref.verse);
+    flashVerse(ref);
+  }
+
+  Timer? _flashTimer;
+  Timer? _wordFlashTimer;
+
+  /// Flashes the highlight for a given verse reference for 1.5 seconds.
+  void flashVerse(Reference ref) {
+    _flashTimer?.cancel();
+    audioPlayerViewModel.reference.value = ref;
+    _flashTimer = Timer(const Duration(milliseconds: 1500), () {
+      if (audioPlayerViewModel.playbackState != AudioPlaybackState.playing) {
+        audioPlayerViewModel.reference.value = null;
+      }
+    });
+  }
+
+  /// Flashes the highlight for a given word ID for 1.5 seconds.
+  void flashWord(String wordId) {
+    _wordFlashTimer?.cancel();
+    flashedWordIdNotifier.value = wordId;
+    _wordFlashTimer = Timer(const Duration(milliseconds: 1500), () {
+      flashedWordIdNotifier.value = null;
+    });
+  }
+
+  /// Clears the active search context and unmounts the floating return pill.
+  void clearSearchContext() {
+    searchContextNotifier.value = null;
+  }
+
   void dispose() {
+    _flashTimer?.cancel();
+    _wordFlashTimer?.cancel();
+    dismissWordStudySession(keepCurrentLocation: true);
     _bibleService.removeBibleResourceChangeListener(_onBibleResourceChanged);
 
     syncController.removeListener(_onSyncUpdate);
@@ -250,5 +411,8 @@ class HomeManager {
     inputModeNotifier.dispose();
     enabledDigitsNotifier.dispose();
     readingSessionManager.dispose();
+    flashedWordIdNotifier.dispose();
+    wordStudySessionNotifier.dispose();
+    searchContextNotifier.dispose();
   }
 }

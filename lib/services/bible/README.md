@@ -16,6 +16,7 @@ Coordinates read-only SQLite Bible text database connections and provides struct
 - [bible_database.dart:BibleDatabase.open]: Asynchronously opens a read-only SQLite handle at the specified file path.
 - [bible_database.dart:BibleDatabase.close]: Closes the underlying database connection.
 - [bible_database.dart:BibleDatabase.getChapter]: Executes range queries across `BibleSchema.colReference` to return USFM formatted verses.
+- [bible_database.dart:BibleDatabase.getVerses]: Batch queries multiple verse references in chunks of $\le 500$ parameters, filtering out section headers/non-scripture lines and joining multi-line poetry rows with single spaces.
 
 ## Invariants
 - SQLite databases are opened exclusively with `readOnly: true`.

@@ -12,12 +12,14 @@ import 'package:gbt/services/hebrew_greek/database.dart';
 import 'package:gbt/services/lexicon/database.dart';
 import 'package:gbt/services/logging/app_logger.dart';
 import 'package:gbt/services/resources/resource_service.dart';
+import 'package:gbt/ui/home/home_manager.dart';
 
 import 'settings/user_settings.dart';
 
 final getIt = GetIt.instance;
 
 void setupServiceLocator() {
+  getIt.registerLazySingleton<HomeManager>(() => HomeManager());
   getIt.registerLazySingleton<FileService>(() => FileService());
   getIt.registerLazySingleton<RemoteAssetService>(() => RemoteAssetService());
   getIt.registerLazySingleton<HebrewGreekDatabase>(() => HebrewGreekDatabase());

@@ -29,6 +29,7 @@ class UserSettings {
   static const _verseLayout = "verseLayout";
   static const _hasSeenReadingCheckboxGuideKey = '_hasSeenReadingCheckboxGuide';
   static const _hasSeenReadingSessionGuideKey = '_hasSeenReadingSessionGuide';
+  static const _occurrenceParallelBiblesKey = 'occurrenceParallelBibles';
 
   String? get themeMode {
     return _prefs.getString(_themeModeKey);
@@ -169,5 +170,13 @@ class UserSettings {
 
   Future<void> setHasSeenReadingSessionGuide(bool value) async {
     await _prefs.setBool(_hasSeenReadingSessionGuideKey, value);
+  }
+
+  List<String> get occurrenceParallelBibles {
+    return _prefs.getStringList(_occurrenceParallelBiblesKey) ?? const [];
+  }
+
+  Future<void> setOccurrenceParallelBibles(List<String> bibles) async {
+    await _prefs.setStringList(_occurrenceParallelBiblesKey, bibles);
   }
 }

@@ -7,26 +7,15 @@ import 'package:flutter/rendering.dart';
 import 'package:gbt/common/word.dart';
 import 'package:gbt/services/settings/user_settings.dart';
 import 'package:gbt/ui/common/sparkle_icon.dart';
+import 'package:gbt/ui/common/word_popup.dart';
+
+export 'package:gbt/ui/common/word_popup.dart' show WordPopup;
 
 /// A function that is called when a word is long-pressed.
 ///
 /// The function can be asynchronous to allow waiting for user
 /// interaction (e.g., closing a dialog).
 typedef AsyncWordActionCallback = Future<void> Function(String wordId);
-
-class WordPopup {
-  const WordPopup({
-    required this.text,
-    this.isAiGenerated = false,
-    this.textDirection = TextDirection.ltr,
-  });
-
-  final String text;
-
-  final bool isAiGenerated;
-
-  final TextDirection textDirection;
-}
 
 /// A function that returns the popup content for a given word ID.
 ///
@@ -160,6 +149,7 @@ class HebrewGreekText extends LeafRenderObjectWidget {
     this.onVerseCheckboxTap,
     this.onVerseNumberLongPress,
     this.flashColor,
+    this.flashedWordId,
     this.highlightedVerse,
     this.highlightColor,
     required this.verseLayout,
@@ -218,6 +208,9 @@ class HebrewGreekText extends LeafRenderObjectWidget {
   ///
   /// Defaults to the same color as [verseNumberStyle].
   final Color? flashColor;
+
+  /// The word ID to flash highlight.
+  final String? flashedWordId;
 
   /// The verse number to highlight
   final int? highlightedVerse;
@@ -279,6 +272,7 @@ class HebrewGreekText extends LeafRenderObjectWidget {
           flashColor ??
           effectiveVerseNumberStyle?.color?.withValues(alpha: 0.4) ??
           const Color(0xFFFFFFFF),
+      flashedWordId: flashedWordId,
       highlightedVerse: highlightedVerse,
       highlightColor:
           highlightColor ??
@@ -334,6 +328,7 @@ class HebrewGreekText extends LeafRenderObjectWidget {
           flashColor ??
           effectiveVerseNumberStyle?.color?.withValues(alpha: 0.4) ??
           const Color(0xFFFFFFFF)
+      ..flashedWordId = flashedWordId
       ..highlightedVerse = highlightedVerse
       ..highlightColor =
           highlightColor ??
@@ -386,6 +381,7 @@ class HebrewGreekText extends LeafRenderObjectWidget {
       ),
     );
     properties.add(ColorProperty('flashColor', flashColor));
+    properties.add(StringProperty('flashedWordId', flashedWordId));
     properties.add(IntProperty('highlightedVerse', highlightedVerse));
     properties.add(ColorProperty('highlightColor', highlightColor));
   }
@@ -409,6 +405,7 @@ class RenderHebrewGreekText extends RenderBox {
     ValueChanged<int>? onVerseNumberLongPress,
     ValueChanged<int>? onVerseCheckboxTap,
     required Color flashColor,
+    String? flashedWordId,
     int? highlightedVerse,
     Color? highlightColor,
     required VerseLayout verseLayout,
@@ -434,6 +431,7 @@ class RenderHebrewGreekText extends RenderBox {
        _onVerseCheckboxTap = onVerseCheckboxTap,
        _onVerseNumberLongPress = onVerseNumberLongPress,
        _flashColor = flashColor,
+       _flashedWordId = flashedWordId,
        _highlightedVerse = highlightedVerse,
        _highlightColor = highlightColor,
        _verseLayout = verseLayout,
@@ -472,8 +470,6 @@ class RenderHebrewGreekText extends RenderBox {
   Timer? _popupDismissTimer;
   late final TapGestureRecognizer _tapRecognizer;
   late final LongPressGestureRecognizer _longPressRecognizer;
-  String? _flashedWordId;
-  Timer? _flashTimer;
   final List<_LineMetrics> _lineMetrics = [];
   VerseLayout _verseLayout;
   bool _readingModeEnabled;
@@ -699,6 +695,14 @@ class RenderHebrewGreekText extends RenderBox {
     if (_flashedWordId != null) {
       markNeedsPaint();
     }
+  }
+
+  String? _flashedWordId;
+  String? get flashedWordId => _flashedWordId;
+  set flashedWordId(String? value) {
+    if (_flashedWordId == value) return;
+    _flashedWordId = value;
+    markNeedsPaint();
   }
 
   int? _highlightedVerse;
@@ -1551,19 +1555,7 @@ class RenderHebrewGreekText extends RenderBox {
     if (onWordLongPress == null) return;
     if (entry is HebrewGreekWordHitTestEntry) {
       _dismissPopup();
-      // Await the parent's action (e.g., for the dialog to be closed)
       await onWordLongPress!(entry.wordId);
-
-      // After the action is complete, trigger the flash internally.
-      _flashedWordId = entry.wordId;
-      markNeedsPaint();
-
-      // Clear the flash after a short duration.
-      _flashTimer?.cancel();
-      _flashTimer = Timer(const Duration(milliseconds: 1500), () {
-        _flashedWordId = null;
-        markNeedsPaint();
-      });
     }
   }
 
@@ -1826,7 +1818,6 @@ class RenderHebrewGreekText extends RenderBox {
     _tapRecognizer.dispose();
     _longPressRecognizer.dispose();
     _popupDismissTimer?.cancel();
-    _flashTimer?.cancel();
     super.detach();
   }
 }
