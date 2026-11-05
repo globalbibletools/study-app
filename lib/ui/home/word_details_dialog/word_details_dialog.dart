@@ -205,7 +205,11 @@ class _WordDetailsDialogState extends State<WordDetailsDialog> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => SimilarVersesPage(word: wordDetails),
+                builder:
+                    (context) => SimilarVersesPage(
+                      word: wordDetails,
+                      wordId: widget.wordId,
+                    ),
               ),
             );
           },

@@ -91,15 +91,22 @@ class ScrollSyncController extends ChangeNotifier {
 
   bool isSourceActive(Object source) => _activeSource == source;
 
+  VerseHighlight? _pendingVerseJump;
+  VerseHighlight? get pendingVerseJump => _pendingVerseJump;
+
   void jumpToVerse(int bookId, int chapter, int verse, {bool isAuto = false}) {
-    _verseJumpController.add(
-      VerseHighlight(
-        bookId: bookId,
-        chapter: chapter,
-        verse: verse,
-        isAuto: isAuto,
-      ),
+    final target = VerseHighlight(
+      bookId: bookId,
+      chapter: chapter,
+      verse: verse,
+      isAuto: isAuto,
     );
+    _pendingVerseJump = target;
+    _verseJumpController.add(target);
+  }
+
+  void clearPendingJump() {
+    _pendingVerseJump = null;
   }
 
   void listenToAudioReference(ValueNotifier<Reference?> reference) {

@@ -15,6 +15,19 @@ class Reference {
   /// If not null, the reference is a range of verses.
   final int? endVerse;
 
+  /// Encodes this reference into a 32-bit BBCCCVVV integer:
+  /// `bookId * 1000000 + chapter * 1000 + verse`.
+  int get toPackedInt => bookId * 1000000 + chapter * 1000 + verse;
+
+  /// Decodes a 32-bit BBCCCVVV integer back into a [Reference].
+  factory Reference.fromPackedInt(int packed) {
+    final bookId = packed ~/ 1000000;
+    final remainder = packed % 1000000;
+    final chapter = remainder ~/ 1000;
+    final verse = remainder % 1000;
+    return Reference(bookId: bookId, chapter: chapter, verse: verse);
+  }
+
   @override
   String toString() {
     return '$bookId $chapter:$verse${endVerse == null ? '' : '–$endVerse'}';

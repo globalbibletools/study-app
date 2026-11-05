@@ -7,13 +7,14 @@ import 'package:gbt/common/word.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/services/reading_session/rs_manager.dart';
 import 'package:gbt/services/resources/resource.dart';
+import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/common/resource_ui_helper.dart';
 import 'package:gbt/services/settings/user_settings.dart';
+import 'package:gbt/ui/home/home_manager.dart';
 import 'package:gbt/ui/home/panel_area/common/infinite_scroll_view.dart';
 import 'package:gbt/ui/home/common/scroll_sync_controller.dart';
 import 'package:gbt/ui/home/panel_area/hebrew_greek_panel/chapter_manager.dart';
 import 'package:gbt/ui/home/panel_area/hebrew_greek_panel/text.dart';
-import 'package:gbt/ui/home/word_details_dialog/word_details_dialog.dart';
 
 class VerseNumberTapNotification extends Notification {
   final int bookId;
@@ -154,6 +155,13 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter>
     return _textController.getVerseForOffset(yOffset);
   }
 
+  ValueNotifier<String?>? get _flashedWordIdNotifier {
+    if (getIt.isRegistered<HomeManager>()) {
+      return getIt<HomeManager>().flashedWordIdNotifier;
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -182,6 +190,80 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter>
                 final spotlightVerse =
                     widget.onReadingCheckboxGuideRectChanged != null ? 1 : null;
 
+                Widget textWidget(String? flashedWordId) => HebrewGreekText(
+                  key: _hebrewGreekTextKey,
+                  words: words,
+                  verseLayout: widget.verseLayout,
+                  readingModeEnabled: widget.readingModeEnabled,
+                  checkedVerses: checkedVerses,
+                  changedCheckedVerse: changedVerse,
+                  resetCheckedVerses: resetCheckedVerses,
+                  checkedVersesRevision: checkedVersesRevision,
+                  spotlightVerse: spotlightVerse,
+                  controller: _textController,
+                  textDirection: manager.isRtl(widget.bookId)
+                      ? TextDirection.rtl
+                      : TextDirection.ltr,
+                  textStyle: TextStyle(fontSize: widget.fontSize),
+                  verseNumberStyle: TextStyle(
+                    color: Theme.of(context).colorScheme.primary,
+                    fontSize: widget.fontSize * 0.7,
+                  ),
+                  onVerseNumberTap: (verse) {
+                    VerseNumberTapNotification(
+                      bookId: widget.bookId,
+                      chapter: widget.chapter,
+                      verse: verse,
+                    ).dispatch(context);
+                  },
+                  onVerseCheckboxTap: (verse) async {
+                    if (widget.onReadingCheckboxGuideCompleted != null) {
+                      widget.onReadingCheckboxGuideCompleted!.call();
+                      return;
+                    }
+
+                    int count = checkedVerses[verse] ?? 0;
+                    if (count < ReadingSessionManager.maximumReadCount) {
+                      await manager.markVerseAsRead(
+                        widget.bookId,
+                        widget.chapter,
+                        verse,
+                      );
+                    } else {
+                      await manager.resetVerseProgress(
+                        widget.bookId,
+                        widget.chapter,
+                        verse,
+                      );
+                    }
+                  },
+                  onVerseNumberLongPress: (verse) {
+                    _copyVerseToClipboard(context, verse);
+                  },
+                  popupBackgroundColor: Theme.of(
+                    context,
+                  ).colorScheme.inverseSurface,
+                  popupTextStyle: TextStyle(
+                    fontFamily: 'sbl',
+                    fontSize: widget.fontSize * 0.7,
+                    color: Theme.of(context).colorScheme.onInverseSurface,
+                  ),
+                  popupWordProvider: (wordId) {
+                    return manager.getPopupTextForId(
+                      wordId,
+                      (langCode) => _handleMissingGloss(langCode),
+                    );
+                  },
+                  onPopupShown: _ensurePopupIsVisible,
+                  onWordLongPress: _showWordDetails,
+                  flashedWordId: flashedWordId,
+                  highlightedVerse: verseToHighlight,
+                  highlightColor: Theme.of(
+                    context,
+                  ).colorScheme.primary.withValues(alpha: 0.25),
+                );
+
+                final flashNotifier = _flashedWordIdNotifier;
                 return Padding(
                   padding: const EdgeInsets.only(left: 16.0, right: 16.0),
                   child: Column(
@@ -192,77 +274,13 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter>
                         style: TextStyle(fontSize: 30),
                       ),
                       const SizedBox(height: 10),
-                      HebrewGreekText(
-                        key: _hebrewGreekTextKey,
-                        words: words,
-                        verseLayout: widget.verseLayout,
-                        readingModeEnabled: widget.readingModeEnabled,
-                        checkedVerses: checkedVerses,
-                        changedCheckedVerse: changedVerse,
-                        resetCheckedVerses: resetCheckedVerses,
-                        checkedVersesRevision: checkedVersesRevision,
-                        spotlightVerse: spotlightVerse,
-                        controller: _textController,
-                        textDirection: manager.isRtl(widget.bookId)
-                            ? TextDirection.rtl
-                            : TextDirection.ltr,
-                        textStyle: TextStyle(fontSize: widget.fontSize),
-                        verseNumberStyle: TextStyle(
-                          color: Theme.of(context).colorScheme.primary,
-                          fontSize: widget.fontSize * 0.7,
-                        ),
-                        onVerseNumberTap: (verse) {
-                          VerseNumberTapNotification(
-                            bookId: widget.bookId,
-                            chapter: widget.chapter,
-                            verse: verse,
-                          ).dispatch(context);
-                        },
-                        onVerseCheckboxTap: (verse) async {
-                          if (widget.onReadingCheckboxGuideCompleted != null) {
-                            widget.onReadingCheckboxGuideCompleted!.call();
-                            return;
-                          }
-
-                          int count = checkedVerses[verse] ?? 0;
-                          if (count < ReadingSessionManager.maximumReadCount) {
-                            await manager.markVerseAsRead(
-                              widget.bookId,
-                              widget.chapter,
-                              verse,
-                            );
-                          } else {
-                            await manager.resetVerseProgress(
-                              widget.bookId,
-                              widget.chapter,
-                              verse,
-                            );
-                          }
-                        },
-                        onVerseNumberLongPress: (verse) {
-                          _copyVerseToClipboard(context, verse);
-                        },
-                        popupBackgroundColor: Theme.of(
-                          context,
-                        ).colorScheme.inverseSurface,
-                        popupTextStyle: TextStyle(
-                          fontFamily: 'sbl',
-                          fontSize: widget.fontSize * 0.7,
-                          color: Theme.of(context).colorScheme.onInverseSurface,
-                        ),
-                        popupWordProvider: (wordId) {
-                          return manager.getPopupTextForId(
-                            wordId,
-                            (langCode) => _handleMissingGloss(langCode),
-                          );
-                        },
-                        onPopupShown: _ensurePopupIsVisible,
-                        onWordLongPress: _showWordDetails,
-                        highlightedVerse: verseToHighlight,
-                        highlightColor: Theme.of(
-                          context,
-                        ).colorScheme.primary.withValues(alpha: 0.25),
-                      ),
+                      flashNotifier != null
+                          ? ValueListenableBuilder<String?>(
+                              valueListenable: flashNotifier,
+                              builder: (context, flashedWordId, _) =>
+                                  textWidget(flashedWordId),
+                            )
+                          : textWidget(null),
                     ],
                   ),
                 );
@@ -346,12 +364,9 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter>
   }
 
   Future<void> _showWordDetails(String wordId) async {
-    await showDialog(
-      context: context,
-      builder: (context) => WordDetailsDialog(
-        wordId: wordId,
-        isRtl: manager.isRtl(widget.bookId),
-      ),
+    getIt<HomeManager>().startWordStudy(
+      wordId: wordId,
+      isRtl: manager.isRtl(widget.bookId),
     );
   }
 

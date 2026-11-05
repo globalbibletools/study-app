@@ -53,6 +53,8 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
   final Map<ChapterIdentifier, GlobalKey> _chapterKeys = {};
   final String _panelId = UniqueKey().toString();
   StreamSubscription? _verseJumpSubscription;
+  VerseHighlight? _pendingJump;
+  int _retryCount = 0;
 
   // Flag to prevent the scroll listener from overwriting the selected verse
   // with the geometrically visible verse during a programmatic jump.
@@ -69,6 +71,19 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
       _verseJumpSubscription = widget.syncController!.onVerseJump.listen(
         _handleVerseJump,
       );
+
+      if (widget.syncController!.pendingVerseJump != null) {
+        final pending = widget.syncController!.pendingVerseJump!;
+        if (pending.bookId == widget.bookId &&
+            pending.chapter == widget.chapter) {
+          _pendingJump = pending;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted && _pendingJump != null) {
+              _handleVerseJump(_pendingJump!);
+            }
+          });
+        }
+      }
     }
 
     _resetChapters();
@@ -408,14 +423,18 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
     // We construct a temporary ID to look up the key
     final targetId = ChapterIdentifier(target.bookId, target.chapter);
     final key = _chapterKeys[targetId];
-    if (key == null) return;
+    if (key == null || key.currentContext == null) {
+      _scheduleRetry(target);
+      return;
+    }
 
     // Get context using the specific chapter's key
-    final sliverContext = key.currentContext;
-    if (sliverContext == null) return;
-
+    final sliverContext = key.currentContext!;
     final renderSliver = sliverContext.findRenderObject() as RenderSliver?;
-    if (renderSliver == null || renderSliver.geometry == null) return;
+    if (renderSliver == null || renderSliver.geometry == null) {
+      _scheduleRetry(target);
+      return;
+    }
 
     VerseScrollable? scrollableState;
     State? actualState;
@@ -435,43 +454,63 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
     if (scrollableState != null && actualState != null) {
       final verseOffset = scrollableState!.getOffsetForVerse(target.verse);
 
-      if (verseOffset != null) {
-        _isProgrammaticScroll = true;
-        widget.syncController?.setActiveSource(_panelId);
+      if (verseOffset == null) {
+        _scheduleRetry(target);
+        return;
+      }
 
-        // Update sync controller (so other panels follow)
-        final double chapterHeight = renderSliver.geometry!.scrollExtent;
-        final double progress = chapterHeight > 0
-            ? verseOffset / chapterHeight
-            : 0.0;
+      _pendingJump = null;
+      _retryCount = 0;
+      widget.syncController?.clearPendingJump();
 
-        widget.syncController!.updatePosition(
-          _panelId,
-          target.bookId,
-          target.chapter,
-          progress.clamp(0.0, 1.0),
-          verse: target.verse,
+      _isProgrammaticScroll = true;
+      widget.syncController?.setActiveSource(_panelId);
+
+      // Update sync controller (so other panels follow)
+      final double chapterHeight = renderSliver.geometry!.scrollExtent;
+      final double progress =
+          chapterHeight > 0 ? verseOffset / chapterHeight : 0.0;
+
+      widget.syncController!.updatePosition(
+        _panelId,
+        target.bookId,
+        target.chapter,
+        progress.clamp(0.0, 1.0),
+        verse: target.verse,
+      );
+
+      // Perform the scroll (Animate if Auto, Jump if Manual)
+      // We use an async closure to handle the cleanup AFTER the animation finishes
+      () async {
+        await _scrollToAbsolutePosition(
+          actualState!.context,
+          verseOffset,
+          animate: target.isAuto,
+          verseNumber: target.verse,
         );
 
-        // Perform the scroll (Animate if Auto, Jump if Manual)
-        // We use an async closure to handle the cleanup AFTER the animation finishes
-        () async {
-          await _scrollToAbsolutePosition(
-            actualState!.context,
-            verseOffset,
-            animate: target.isAuto,
-            verseNumber: target.verse,
-          );
-
-          if (mounted) {
-            _isProgrammaticScroll = false;
-            if (widget.syncController != null &&
-                widget.syncController!.isSourceActive(_panelId)) {
-              widget.syncController!.clearActiveSource();
-            }
+        if (mounted) {
+          _isProgrammaticScroll = false;
+          if (widget.syncController != null &&
+              widget.syncController!.isSourceActive(_panelId)) {
+            widget.syncController!.clearActiveSource();
           }
-        }();
-      }
+        }
+      }();
+    } else {
+      _scheduleRetry(target);
+    }
+  }
+
+  void _scheduleRetry(VerseHighlight target) {
+    _pendingJump = target;
+    if (_retryCount < 10) {
+      _retryCount++;
+      Future.delayed(const Duration(milliseconds: 50), () {
+        if (mounted && _pendingJump != null) {
+          _handleVerseJump(_pendingJump!);
+        }
+      });
     }
   }
 

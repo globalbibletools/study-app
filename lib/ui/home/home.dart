@@ -12,7 +12,10 @@ import 'package:gbt/ui/home/reading_plan/reading_sheet.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import 'appbar/appbar.dart';
+import 'package:gbt/services/service_locator.dart';
+import 'floating_return_pill.dart';
 import 'home_manager.dart';
+import 'word_study_overlay_layer.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -22,12 +25,13 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final manager = HomeManager();
+  late final HomeManager manager;
   final _guideOverlayKey = GlobalKey();
 
   @override
   void initState() {
     super.initState();
+    manager = getIt<HomeManager>();
     WakelockPlus.enable();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       manager.checkOnboarding(context);
@@ -49,16 +53,64 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      key: _guideOverlayKey,
-      children: [
-        Scaffold(
-          appBar: _buildAppBar(),
-          drawer: AppDrawer(onSettingsClosed: manager.notifySettingsChanged),
-          body: _buildBody(),
-        ),
-        _buildGuideOverlay(),
-      ],
+    return ListenableBuilder(
+      listenable: manager.searchContextNotifier,
+      builder: (context, _) {
+        final hasActiveSearch = manager.searchContextNotifier.value != null;
+        return PopScope(
+          canPop: !hasActiveSearch,
+          onPopInvokedWithResult: (didPop, result) {
+            if (didPop) return;
+            if (hasActiveSearch) {
+              manager.setWordStudyOverlayVisible(true);
+            }
+          },
+          child: Stack(
+            key: _guideOverlayKey,
+            children: [
+              Scaffold(
+                appBar: _buildAppBar(),
+                drawer: AppDrawer(
+                  onSettingsClosed: manager.notifySettingsChanged,
+                ),
+                body: _buildBody(),
+              ),
+              _buildGuideOverlay(),
+              _buildWordStudyOverlay(),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildWordStudyOverlay() {
+    return ListenableBuilder(
+      listenable: manager.wordStudySessionNotifier,
+      builder: (context, _) {
+        final session = manager.wordStudySessionNotifier.value;
+        if (session == null) return const SizedBox.shrink();
+
+        return Positioned.fill(
+          child: ListenableBuilder(
+            listenable: session.isOverlayVisibleNotifier,
+            builder: (context, _) {
+              final isVisible = session.isOverlayVisible;
+              return Offstage(
+                key: const Key('word_study_offstage'),
+                offstage: !isVisible,
+                child: TickerMode(
+                  enabled: isVisible,
+                  child: WordStudyOverlayLayer(
+                    session: session,
+                    manager: manager,
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 
@@ -114,6 +166,29 @@ class _HomeScreenState extends State<HomeScreen> {
           onPointerDown: _handlePointerDown,
           behavior: HitTestBehavior.translucent,
           child: BiblePanelArea(manager: manager),
+        ),
+        ListenableBuilder(
+          listenable: Listenable.merge([
+            manager.searchContextNotifier,
+            manager.audioPlayerViewModel,
+          ]),
+          builder: (context, _) {
+            final searchContext = manager.searchContextNotifier.value;
+            if (searchContext == null) return const SizedBox.shrink();
+            final bottomPadding =
+                manager.audioPlayerViewModel.isVisible ? 180.0 : 16.0;
+            return Positioned(
+              bottom: bottomPadding,
+              left: 0,
+              right: 0,
+              child: SafeArea(
+                top: false,
+                child: Center(
+                  child: FloatingReturnPill(contextData: searchContext),
+                ),
+              ),
+            );
+          },
         ),
         BottomAudioPlayer(viewModel: manager.audioPlayerViewModel),
         KeypadLayer(manager: manager),
