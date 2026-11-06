@@ -70,15 +70,15 @@ class _BookCompletedOverlayState extends State<BookCompletedOverlay> {
                       margin: const EdgeInsets.symmetric(horizontal: 32),
                       padding: const EdgeInsets.fromLTRB(48, 34, 48, 54),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF101112).withValues(alpha: 0.96),
+                        color: Theme.of(context).colorScheme.surface,
                         borderRadius: BorderRadius.circular(42),
                         border: Border.all(
-                          color: const Color(0xFF4A4D50),
+                          color: Theme.of(context).colorScheme.outlineVariant,
                           width: 1,
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.45),
+                            color: Colors.black.withValues(alpha: 0.25),
                             blurRadius: 40,
                             spreadRadius: 5,
                           ),
@@ -109,10 +109,10 @@ class _BookCompletedOverlayState extends State<BookCompletedOverlay> {
                           Text(
                             l10n.bookCompletedTitle(oldBookName),
                             textAlign: TextAlign.center,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 34,
                               fontWeight: FontWeight.w400,
-                              color: Color(0xFFF2F2F2),
+                              color: Theme.of(context).colorScheme.onSurface,
                               height: 1.15,
                             ),
                           ),
@@ -122,7 +122,7 @@ class _BookCompletedOverlayState extends State<BookCompletedOverlay> {
                           // Divider
                           Container(
                             height: 1,
-                            color: Colors.white.withValues(alpha: 0.13),
+                            color: Theme.of(context).colorScheme.outlineVariant,
                           ),
 
                           const SizedBox(height: 35),
@@ -157,6 +157,32 @@ class _BookCompletedOverlayState extends State<BookCompletedOverlay> {
                                     const SizedBox(width: 18),
                                     const Icon(Icons.chevron_right, size: 34),
                                   ],
+                                ),
+                              ),
+                            )
+                          else
+                            // Done button for final book completion
+                            SizedBox(
+                              width: double.infinity,
+                              height: 82,
+                              child: OutlinedButton(
+                                onPressed: _dismissOverlay,
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: cyan,
+                                  side: BorderSide(color: cyan, width: 1.5),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(17),
+                                  ),
+                                  disabledForegroundColor: cyan.withValues(
+                                    alpha: 0.45,
+                                  ),
+                                ),
+                                child: Text(
+                                  l10n.done,
+                                  style: const TextStyle(
+                                    fontSize: 25,
+                                    fontWeight: FontWeight.w400,
+                                  ),
                                 ),
                               ),
                             ),

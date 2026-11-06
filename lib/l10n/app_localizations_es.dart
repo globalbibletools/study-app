@@ -85,6 +85,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get cancel => 'Cancelar';
 
   @override
+  String get close => 'Cerrar';
+
+  @override
   String get gotIt => 'Entendido';
 
   @override
@@ -131,6 +134,9 @@ class AppLocalizationsEs extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get parallelTranslations => 'Traducciones paralelas';
 
   @override
   String get repeatNone => 'Ninguno';
@@ -599,7 +605,18 @@ class AppLocalizationsEs extends AppLocalizations {
   String get updateReadingPlan => 'Actualizar plan de lectura';
 
   @override
-  String get addReadingPlan => 'Añadir plan de lectura';
+  String get addReadingPlan => 'Guardar plan de lectura';
+
+  @override
+  String get deleteReadingPlan => 'Eliminar plan de lectura';
+
+  @override
+  String get deleteReadingPlanConfirmTitle => '¿Eliminar plan de lectura?';
+
+  @override
+  String deleteReadingPlanConfirmMessage(String name) {
+    return '¿Estás seguro de que quieres eliminar \"$name\"? Todo el progreso de lectura de este plan se eliminará permanentemente.';
+  }
 
   @override
   String get deselectAll => 'Deseleccionar todo';

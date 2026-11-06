@@ -85,6 +85,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get cancel => 'إلغاء';
 
   @override
+  String get close => 'إغلاق';
+
+  @override
   String get gotIt => 'فهمت';
 
   @override
@@ -131,6 +134,9 @@ class AppLocalizationsAr extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get parallelTranslations => 'الترجمات الموازية';
 
   @override
   String get repeatNone => 'بدون';
@@ -596,7 +602,18 @@ class AppLocalizationsAr extends AppLocalizations {
   String get updateReadingPlan => 'تحديث خطة القراءة';
 
   @override
-  String get addReadingPlan => 'إضافة خطة قراءة';
+  String get addReadingPlan => 'حفظ خطة القراءة';
+
+  @override
+  String get deleteReadingPlan => 'حذف خطة القراءة';
+
+  @override
+  String get deleteReadingPlanConfirmTitle => 'هل تريد حذف خطة القراءة؟';
+
+  @override
+  String deleteReadingPlanConfirmMessage(String name) {
+    return 'هل أنت متأكد أنك تريد حذف \"$name\"؟ سيتم إزالة كل تقدم القراءة لهذه الخطة نهائياً.';
+  }
 
   @override
   String get deselectAll => 'إلغاء تحديد الكل';

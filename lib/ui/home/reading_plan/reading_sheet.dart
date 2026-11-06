@@ -9,12 +9,18 @@ class ReadingSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Navigator(
-      onGenerateRoute: (_) => MaterialPageRoute(
-        builder: (innerContext) => ReadingPlanPanel(
-          homeManager: homeManager,
-          onClose: () =>
-              Navigator.of(context).pop(), // outer context, captured here
+    return SizedBox(
+      height: MediaQuery.sizeOf(context).height * 0.85,
+      child: ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        child: Navigator(
+          onGenerateRoute: (_) => MaterialPageRoute(
+            builder: (innerContext) => ReadingPlanPanel(
+              homeManager: homeManager,
+              onClose: () =>
+                  Navigator.of(context).pop(), // outer context, captured here
+            ),
+          ),
         ),
       ),
     );

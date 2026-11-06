@@ -134,7 +134,7 @@ class _ParallelTranslationsSheetState extends State<ParallelTranslationsSheet> {
           child: Row(
             children: [
               Text(
-                'Parallel Translations',
+                l10n.parallelTranslations,
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
@@ -142,6 +142,7 @@ class _ParallelTranslationsSheetState extends State<ParallelTranslationsSheet> {
               const Spacer(),
               IconButton(
                 icon: const Icon(Icons.close),
+                tooltip: l10n.close,
                 onPressed: () => Navigator.of(context).pop(),
               ),
             ],

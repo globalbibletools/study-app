@@ -9,6 +9,36 @@ import 'package:gbt/ui/home/reading_plan/add_reading_plan_panel.dart';
 import 'package:gbt/ui/home/reading_plan/reading_plan_detail_panel.dart';
 import 'package:gbt/ui/home/reading_plan/reading_plan_panel_manager.dart';
 
+Future<bool> confirmDeleteReadingPlan(
+  BuildContext context,
+  String planName,
+) async {
+  final l10n = AppLocalizations.of(context)!;
+  final result = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) {
+      return AlertDialog(
+        title: Text(l10n.deleteReadingPlanConfirmTitle),
+        content: Text(l10n.deleteReadingPlanConfirmMessage(planName)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.error,
+            ),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l10n.delete),
+          ),
+        ],
+      );
+    },
+  );
+  return result ?? false;
+}
+
 class ReadingPlanPanel extends StatefulWidget {
   final HomeManager homeManager;
   final Function onClose;
@@ -50,25 +80,23 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
-
-    return SafeArea(
-      top: false,
-      child: Container(
-        height: screenHeight * 0.85,
-        padding: const EdgeInsets.all(16),
-        decoration: const BoxDecoration(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _handle(),
-            const SizedBox(height: 16),
-            _topTitle(),
-            const SizedBox(height: 12),
-            Flexible(child: _content()),
-          ],
+    return SizedBox.expand(
+      child: SafeArea(
+        top: false,
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: const BoxDecoration(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            children: [
+              _handle(),
+              const SizedBox(height: 16),
+              _topTitle(),
+              const SizedBox(height: 12),
+              Expanded(child: _content()),
+            ],
+          ),
         ),
       ),
     );
@@ -128,7 +156,7 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
                       });
                     },
                     child: Text(
-                      l10n.edit,
+                      _editMode ? l10n.done : l10n.edit,
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.primary,
                         fontWeight: FontWeight.w500,
@@ -188,7 +216,7 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
           onTap: () async {
             await Navigator.of(
               context,
-            ).push(MaterialPageRoute(builder: (_) => AddReadingPlanPanel()));
+            ).push(MaterialPageRoute(builder: (_) => const AddReadingPlanPanel()));
 
             manager.init();
           },
@@ -197,11 +225,12 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.add),
+                Icon(Icons.add, color: colorScheme.onPrimary),
                 const SizedBox(width: 8),
                 Text(
                   AppLocalizations.of(context)!.createNewPlan,
-                  style: const TextStyle(
+                  style: TextStyle(
+                    color: colorScheme.onPrimary,
                     fontWeight: FontWeight.w600,
                     fontSize: 16,
                   ),
@@ -247,6 +276,8 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
   ) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context)!;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -412,6 +443,25 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
                             ),
                           ],
                         ),
+                      )
+                    else
+                      IconButton(
+                        icon: Icon(
+                          Icons.delete_outline_rounded,
+                          color: colorScheme.error,
+                        ),
+                        tooltip: l10n.deleteReadingPlan,
+                        onPressed: () async {
+                          final confirmed = await confirmDeleteReadingPlan(
+                            context,
+                            planDet.readingPlan.planName,
+                          );
+                          if (confirmed) {
+                            await manager.deleteReadingPlan(
+                              planDet.readingPlan.id!,
+                            );
+                          }
+                        },
                       ),
                   ],
                 ),

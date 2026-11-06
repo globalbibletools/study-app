@@ -254,6 +254,12 @@ abstract class AppLocalizations {
   /// **'Cancel'**
   String get cancel;
 
+  /// Label for close buttons or tooltips
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get close;
+
   /// Label for a button that dismisses an instructional overlay
   ///
   /// In en, this message translates to:
@@ -325,6 +331,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =0{No results} =1{1 result} other{{count} results}}'**
   String resultsCount(int count);
+
+  /// Title and tooltip for parallel Bible translations in word study occurrences
+  ///
+  /// In en, this message translates to:
+  /// **'Parallel Translations'**
+  String get parallelTranslations;
 
   /// Audio setting: Repeat node
   ///
@@ -1082,11 +1094,29 @@ abstract class AppLocalizations {
   /// **'Update Reading Plan'**
   String get updateReadingPlan;
 
-  /// Button label for creating a reading plan
+  /// Button label for creating or saving a reading plan
   ///
   /// In en, this message translates to:
-  /// **'Add Reading Plan'**
+  /// **'Save Reading Plan'**
   String get addReadingPlan;
+
+  /// Tooltip or button label for deleting a reading plan
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Reading Plan'**
+  String get deleteReadingPlan;
+
+  /// Title of confirmation dialog when deleting a reading plan
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Reading Plan?'**
+  String get deleteReadingPlanConfirmTitle;
+
+  /// Confirmation message when deleting a reading plan
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete \"{name}\"? All reading progress for this plan will be permanently removed.'**
+  String deleteReadingPlanConfirmMessage(String name);
 
   /// Button label to deselect every book
   ///

@@ -51,6 +51,7 @@ class ReadingSessionDatabase {
     final path = await getDatabasesPath();
     final dbPath = '$path/$_databaseName';
 
+    _initFuture = null;
     await deleteDatabase(dbPath);
   }
 
@@ -384,15 +385,145 @@ class ReadingSessionDatabase {
     );
   }
 
-  void updateReadingPlanBooks(List<ReadingPlanBook> books) async {
-    for (ReadingPlanBook b in books) {
-      await _database.update(
+  Future<ReadingPlanDetails?> getReadingPlanById(int planId) async {
+    final result = await _database.query(
+      'reading_plan',
+      where: 'id = ?',
+      whereArgs: [planId],
+    );
+    if (result.isEmpty) return null;
+
+    final plan = ReadingPlan.fromMap(result.first);
+    final books = await getReadingPlanBooks(planId);
+    return ReadingPlanDetails(plan, books);
+  }
+
+  Future<ReadingPlan> saveReadingPlan({
+    ReadingPlan? existingPlan,
+    required String planName,
+    required int collectionId,
+    required String goalType,
+    required int goalValue,
+    required List<int> orderedBookIds,
+  }) async {
+    return await _database.transaction((txn) async {
+      final int planId;
+      final ReadingPlan plan;
+      if (existingPlan != null) {
+        planId = existingPlan.id!;
+        plan = existingPlan.copyWith(
+          planName: planName,
+          collectionId: collectionId,
+          goalType: goalType,
+          goalValue: goalValue,
+        );
+        await txn.update(
+          'reading_plan',
+          plan.toMap(),
+          where: 'id = ?',
+          whereArgs: [planId],
+        );
+      } else {
+        final newPlan = ReadingPlan(
+          planName: planName,
+          createdAt: DateTime.now(),
+          collectionId: collectionId,
+          goalType: goalType,
+          goalValue: goalValue,
+          isBookmarked: false,
+        );
+        planId = await txn.insert(
+          'reading_plan',
+          newPlan.toMap()..remove('id'),
+        );
+        plan = newPlan.copyWith(id: planId);
+      }
+
+      await txn.delete(
         'reading_plan_book',
-        b.toMap(),
-        where: 'id = ?',
-        whereArgs: [b.id],
+        where: 'reading_plan_id = ?',
+        whereArgs: [planId],
       );
-    }
+
+      final batch = txn.batch();
+      for (int i = 0; i < orderedBookIds.length; i++) {
+        final book = ReadingPlanBook(
+          readingPlanId: planId,
+          bookId: orderedBookIds[i],
+          ord: i + 1,
+        );
+        batch.insert('reading_plan_book', book.toMap()..remove('id'));
+      }
+
+      if (existingPlan != null) {
+        if (orderedBookIds.isNotEmpty) {
+          final placeholders =
+              List.filled(orderedBookIds.length, '?').join(',');
+          batch.delete(
+            'rs_book_progress',
+            where: 'reading_plan_id = ? AND book_id NOT IN ($placeholders)',
+            whereArgs: [planId, ...orderedBookIds],
+          );
+        } else {
+          batch.delete(
+            'rs_book_progress',
+            where: 'reading_plan_id = ?',
+            whereArgs: [planId],
+          );
+        }
+      }
+
+      await batch.commit(noResult: true);
+      return plan;
+    });
+  }
+
+  Future<void> updateReadingPlanBooks(List<ReadingPlanBook> books) async {
+    await _database.transaction((txn) async {
+      final batch = txn.batch();
+      for (ReadingPlanBook b in books) {
+        batch.update(
+          'reading_plan_book',
+          b.toMap(),
+          where: 'id = ?',
+          whereArgs: [b.id],
+        );
+      }
+      await batch.commit(noResult: true);
+    });
+  }
+
+  Future<void> deleteReadingPlan(int planId) async {
+    await _database.transaction((txn) async {
+      final batch = txn.batch();
+      batch.delete('rs_log', where: 'reading_plan_id = ?', whereArgs: [planId]);
+      batch.delete(
+        'rs_daily_log',
+        where: 'reading_plan_id = ?',
+        whereArgs: [planId],
+      );
+      batch.delete(
+        'rs_stats',
+        where: 'reading_plan_id = ?',
+        whereArgs: [planId],
+      );
+      batch.delete(
+        'rs_book_progress',
+        where: 'reading_plan_id = ?',
+        whereArgs: [planId],
+      );
+      batch.delete(
+        'reading_plan_book',
+        where: 'reading_plan_id = ?',
+        whereArgs: [planId],
+      );
+      batch.delete(
+        'reading_plan',
+        where: 'id = ?',
+        whereArgs: [planId],
+      );
+      await batch.commit(noResult: true);
+    });
   }
 
   /* RS DAILY LOG */
@@ -556,8 +687,48 @@ class ReadingSessionDatabase {
     return res;
   }
 
+  Future<Map<int, int>> getDistinctVersesReadPerChapter(
+    int readingPlanId,
+    int bookId,
+  ) async {
+    final result = await _database.rawQuery(
+      'SELECT chapter, COUNT(DISTINCT verse) AS count '
+      'FROM rs_log '
+      'WHERE reading_plan_id = ? AND book_id = ? '
+      'GROUP BY chapter',
+      [readingPlanId, bookId],
+    );
+
+    if (result.isEmpty) return {};
+
+    final Map<int, int> res = {};
+    for (final row in result) {
+      final chapter = row['chapter'] as int?;
+      final count = row['count'] as int?;
+      if (chapter != null && count != null) {
+        res[chapter] = count;
+      }
+    }
+    return res;
+  }
+
+  Future<int> deleteRsLogsForVerse(
+    int readingPlanId,
+    int bookId,
+    int chapter,
+    int verse,
+  ) async {
+    return await _database.delete(
+      'rs_log',
+      where:
+          'reading_plan_id = ? AND book_id = ? AND chapter = ? AND verse = ?',
+      whereArgs: [readingPlanId, bookId, chapter, verse],
+    );
+  }
+
   void dispose() {
     _database.close();
+    _initFuture = null;
   }
 
   Future<List<RsStats>> getRsStatsForType(

@@ -100,6 +100,10 @@
   "@cancel": {
     "description": "Label for the cancel button"
   },
+  "close": "Close",
+  "@close": {
+    "description": "Label for close buttons or tooltips"
+  },
   "gotIt": "Got it",
   "@gotIt": {
     "description": "Label for a button that dismisses an instructional overlay"
@@ -152,6 +156,10 @@
         "type": "int"
       }
     }
+  },
+  "parallelTranslations": "Parallel Translations",
+  "@parallelTranslations": {
+    "description": "Title and tooltip for parallel Bible translations in word study occurrences"
   },
   "repeatNone": "None",
   "@repeatNone": {
@@ -780,9 +788,26 @@
   "@updateReadingPlan": {
     "description": "Button label for updating an existing reading plan"
   },
-  "addReadingPlan": "Add Reading Plan",
+  "addReadingPlan": "Save Reading Plan",
   "@addReadingPlan": {
-    "description": "Button label for creating a reading plan"
+    "description": "Button label for creating or saving a reading plan"
+  },
+  "deleteReadingPlan": "Delete Reading Plan",
+  "@deleteReadingPlan": {
+    "description": "Tooltip or button label for deleting a reading plan"
+  },
+  "deleteReadingPlanConfirmTitle": "Delete Reading Plan?",
+  "@deleteReadingPlanConfirmTitle": {
+    "description": "Title of confirmation dialog when deleting a reading plan"
+  },
+  "deleteReadingPlanConfirmMessage": "Are you sure you want to delete \"{name}\"? All reading progress for this plan will be permanently removed.",
+  "@deleteReadingPlanConfirmMessage": {
+    "description": "Confirmation message when deleting a reading plan",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
   },
   "deselectAll": "Deselect All",
   "@deselectAll": {

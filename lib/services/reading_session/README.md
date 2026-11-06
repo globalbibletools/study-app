@@ -1,10 +1,10 @@
 # Reading Session Service
 
 ## Overview
-Coordinates interactive Scripture reading sessions, real-time timer tracking, verse read auditing, daily goal calculations (minutes or verses), and aggregated reading analytics. Manages local persistence and versioned JSON backup/restore using SQLite (`reading_session.db`).
+Coordinates interactive Scripture reading sessions, real-time timer tracking, verse read auditing, daily goal calculations (minutes or verses), and aggregated reading analytics. Manages local persistence and versioned JSON backup/restore using SQLite (`reading_session.db`). Serves as the single facade and source of truth for reading plan mutations, deterministic book progress derivations, and resume positions.
 
 ## Interface
-- [rs_manager.dart:ReadingSessionManager]: Central manager coordinating timer lifecycle, verse read actions, goal fulfillment, and progress state.
+- [rs_manager.dart:ReadingSessionManager]: Central facade and manager coordinating timer lifecycle, verse read actions, goal fulfillment, and progress state.
 - [rs_manager.dart:ReadingSessionManager.init]: Asynchronously initializes database connections and caches.
 - [rs_manager.dart:ReadingSessionManager.readingModeNotifier]: `ValueNotifier<bool>` signaling whether an active session is running.
 - [rs_manager.dart:ReadingSessionManager.displayGoalProgresNotifier]: `ValueNotifier<bool>` governing goal HUD visibility.
@@ -12,23 +12,33 @@ Coordinates interactive Scripture reading sessions, real-time timer tracking, ve
 - [rs_manager.dart:ReadingSessionManager.totalSecondsReadPerDay]: `ValueNotifier<int>` tracking seconds elapsed today.
 - [rs_manager.dart:ReadingSessionManager.totalSecondsReadPerSession]: `ValueNotifier<int>` tracking current session duration.
 - [rs_manager.dart:ReadingSessionManager.goalReachedNotifier]: `ValueNotifier<bool>` triggering when the daily goal is accomplished.
-- [rs_manager.dart:ReadingSessionManager.bookCompletedNotifier]: `ValueNotifier<(int, int)>` broadcasting chapter and book completion transitions.
-- [rs_manager.dart:ReadingSessionManager.startReadingSession]: Initiates a timed reading session for a plan.
+- [rs_manager.dart:ReadingSessionManager.bookCompletedNotifier]: `ValueNotifier<(int, int)>` broadcasting book completion transitions `(completedBookId, nextBookId)`.
+- [rs_manager.dart:ReadingSessionManager.startReadingSession]: Initiates or resumes a timed reading session for a plan, ending any active session for another plan first.
 - [rs_manager.dart:ReadingSessionManager.endReadingSession]: Stops the active timer and persists or cleans up daily session logs.
-- [rs_manager.dart:ReadingSessionManager.markVerseAsRead]: Records verse completion, updates progress pointers, and recalculates daily goals.
-- [rs_manager.dart:ReadingSessionManager.resetReadingCountForVerse]: Decrements verse reading count and reverts book progress if zeroed.
-- [rs_manager.dart:ReadingSessionManager.loadBooksProgress]: Retrieves or synthesizes progress records for all 66 Bible books.
-- [rs_manager.dart:ReadingSessionManager.getLatestBookProgress]: Returns the most recently updated book progress entry.
-- [rs_manager.dart:ReadingSessionManager.loadMonthProgress]: Loads daily reading metrics for calendar grid displays.
+- [rs_manager.dart:ReadingSessionManager.markVerseAsRead]: Records verse completion in `rs_log`, updates daily log totals, and triggers deterministic progress recomputation from SQLite when read for the first time.
+- [rs_manager.dart:ReadingSessionManager.resetReadingCountForVerse]: Clears all `rs_log` entries for a verse in the active plan across sessions, adjusts the active daily log for current session reads, and recomputes book progress from SQLite.
+- [rs_manager.dart:ReadingSessionManager.loadBooksProgress]: Retrieves or synthesizes progress records for all 66 Bible books for a reading plan.
+- [rs_manager.dart:ReadingSessionManager.getLatestBookProgress]: Returns the first incomplete book progress entry adhering to the plan sequence `orderedBookIds`, or falls back to the most recently updated book progress entry.
+- [rs_manager.dart:ReadingSessionManager.getBookProgressForActivePlan]: Synchronously retrieves cached book progress for a book ID in the currently active plan.
+- [rs_manager.dart:ReadingSessionManager.getReadingPlansWithProgress]: Loads all reading plans with aggregated chapter, verse, and book completion metrics.
+- [rs_manager.dart:ReadingSessionManager.saveReadingPlan]: Atomically creates or updates a reading plan, preserving custom book order for retained books, re-evaluating goals, and refreshing active sessions.
+- [rs_manager.dart:ReadingSessionManager.toggleReadingPlanBookmark]: Updates bookmark status on a reading plan.
+- [rs_manager.dart:ReadingSessionManager.reorderReadingPlanBooks]: Persists updated book sequence `ord` values inside a transaction, synchronizes in-memory book lists, and updates `latestBookProgress`.
+- [rs_manager.dart:ReadingSessionManager.deleteReadingPlan]: Terminates any active session for the plan and deletes all associated records across all six tables in a single transaction.
+- [rs_manager.dart:ReadingSessionManager.loadMonthProgress]: Loads daily reading metrics for calendar grid displays with 1-to-1 day calendar mapping immune to daylight saving time fall-back shifts.
 - [rs_manager.dart:ReadingSessionManager.getDetailedProgressFor]: Reconstructs contiguous verse intervals read across sessions on a date.
 - [rs_manager.dart:ReadingSessionManager.createBackup]: Creates a versioned JSON backup of reading plans, logs, and statistics.
-- [rs_manager.dart:ReadingSessionManager.restoreBackup]: Restores database tables from a backup file path.
+- [rs_manager.dart:ReadingSessionManager.restoreBackup]: Restores database tables from a backup file path and purges in-memory caches.
 - [rs_manager.dart:DailyGoal]: Immutable structure representing goal target `(GoalType type, int value)`.
 - [rs_manager.dart:GoalType]: Enum for daily targets (`minutes`, `verses`).
 - [rs_manager.dart:StatsType]: Enum for statistical aggregation intervals (`weekly`, `monthly`).
 - [rs_manager.dart:ProgressType]: Enum for progress visualization (`byBook`, `bySection`).
 - [rs_database.dart:ReadingSessionDatabase]: SQLite persistence layer managing schema migrations, queries, and JSON backup/restore.
 - [rs_database.dart:ReadingSessionDatabase.init]: Opens database with migrations loaded from `assets/schemas/`.
+- [rs_database.dart:ReadingSessionDatabase.getDistinctVersesReadPerChapter]: Queries SQLite for distinct verse counts per chapter in a book.
+- [rs_database.dart:ReadingSessionDatabase.deleteRsLogsForVerse]: Deletes all `rs_log` rows for a specific verse in a reading plan.
+- [rs_database.dart:ReadingSessionDatabase.saveReadingPlan]: Transactional plan creation or update with book sequence batching.
+- [rs_database.dart:ReadingSessionDatabase.deleteReadingPlan]: Transactional cascade delete across `rs_log`, `rs_daily_log`, `rs_stats`, `rs_book_progress`, `reading_plan_book`, and `reading_plan`.
 - [rs_database.dart:ReadingSessionDatabase.createBackup]: Serializes tables into JSON backup files.
 - [rs_database.dart:ReadingSessionDatabase.restoreBackup]: Ingests JSON backup payloads (versions 1 and 2) inside a transaction.
 - [rs_database.dart:ReadingSessionBackupInfo]: Backup file metadata (`path`, `name`, `modifiedAt`, `sizeBytes`).
@@ -45,6 +55,10 @@ Coordinates interactive Scripture reading sessions, real-time timer tracking, ve
 
 ## Invariants
 - Database is version 3 with automated sequential schema upgrades executed from `assets/schemas/reading_session_<version>.sql`.
+- Verse read cache in `ReadingSessionManager` is scoped by `(readingPlanId, bookId, chapter)` tuples to prevent cross-plan collisions.
+- A book is marked complete if and only if `versesRead == BibleNavigation.getTotalVerseCount(bookId)`. Out-of-order reading is fully supported.
+- Resume cursor always deterministically points to the lowest unread verse in the current chapter, or the lowest unread verse in the next incomplete chapter of that book, or the final verse upon 100% book completion.
+- Plan deletion cascades across all dependent tables in a single SQLite transaction and resets any active session running on that plan.
 - Sessions that record 0 verses read are deleted upon `endReadingSession()`, subtracting elapsed session seconds from daily statistics.
 - Sessions spanning across midnight are split at the 23:59:59 boundary into consecutive daily session logs.
 - Format version 1 backups are automatically adapted by assigning missing foreign keys to default plan ID 1.
