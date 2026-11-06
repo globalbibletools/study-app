@@ -148,7 +148,8 @@ class _CalendarViewState<E, T extends List<E>>
   }
 
   Widget _dayCalendar(DateTime date, bool isToday, E entry) {
-    final color = Theme.of(context).colorScheme.primary;
+    final colorScheme = Theme.of(context).colorScheme;
+    final color = colorScheme.primary;
     final bool isHighlighted = widget.isHighlighted(entry);
 
     return Material(
@@ -158,11 +159,11 @@ class _CalendarViewState<E, T extends List<E>>
         onTap: () => widget.onTap(entry),
         child: Container(
           margin: const EdgeInsets.all(2),
-          padding: const EdgeInsets.all(2),
+          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 4),
           decoration: BoxDecoration(
             color: isHighlighted
                 ? color
-                : Theme.of(context).colorScheme.surfaceContainerLow,
+                : colorScheme.surfaceContainerLow,
             borderRadius: BorderRadius.circular(14),
             border: isToday ? Border.all(color: color, width: 2) : null,
           ),
@@ -174,20 +175,23 @@ class _CalendarViewState<E, T extends List<E>>
                 child: Text(
                   "${date.day}",
                   style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
+                    fontSize: 12,
+                    height: 1.0,
+                    fontWeight: FontWeight.w600,
                     color: isHighlighted
-                        ? Colors.white.withValues(alpha: 0.9)
-                        : null,
+                        ? colorScheme.onPrimary
+                        : colorScheme.onSurface,
                   ),
                 ),
               ),
               if (isHighlighted)
-                const Center(
+                Positioned(
+                  bottom: 0,
+                  right: 0,
                   child: Icon(
                     Icons.check_rounded,
-                    color: Colors.white,
-                    size: 42,
+                    color: colorScheme.onPrimary,
+                    size: 18,
                     weight: 700,
                   ),
                 ),

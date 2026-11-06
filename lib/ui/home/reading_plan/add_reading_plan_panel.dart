@@ -7,6 +7,7 @@ import 'package:gbt/services/reading_session/rs_manager.dart';
 import 'package:gbt/services/reading_session/rs_model.dart';
 import 'package:gbt/ui/home/keypad/numeric_keypad.dart';
 import 'package:gbt/ui/home/reading_plan/add_reading_plan_panel_manager.dart';
+import 'package:gbt/ui/home/reading_plan/reading_plan_panel.dart';
 
 class AddReadingPlanPanel extends StatefulWidget {
   final ReadingPlanDetails? planDetails;
@@ -105,16 +106,12 @@ class _AddReadingPlanPanelState extends State<AddReadingPlanPanel> {
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
-
     final panel = Container(
-      height: screenHeight * (_isEditingValue ? 0.55 : 0.85),
       padding: const EdgeInsets.all(16),
       decoration: const BoxDecoration(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         children: [
           _handle(),
           const SizedBox(height: 16),
@@ -125,17 +122,14 @@ class _AddReadingPlanPanelState extends State<AddReadingPlanPanel> {
       ),
     );
 
-    return SafeArea(
-      top: false,
-      child: Material(
-        color: Colors.transparent,
-        child: AnimatedSize(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOutCubic,
+    return SizedBox.expand(
+      child: SafeArea(
+        top: false,
+        child: Material(
+          color: Theme.of(context).colorScheme.surface,
           child: Column(
-            mainAxisSize: MainAxisSize.min,
             children: [
-              panel,
+              Expanded(child: panel),
               if (_isEditingValue)
                 Material(
                   elevation: 16,
@@ -184,6 +178,30 @@ class _AddReadingPlanPanelState extends State<AddReadingPlanPanel> {
           l10n.readingPlans,
           style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
         ),
+        if (widget.planDetails != null)
+          Align(
+            alignment: Alignment.centerRight,
+            child: IconButton(
+              icon: Icon(
+                Icons.delete_outline_rounded,
+                color: Theme.of(context).colorScheme.error,
+              ),
+              tooltip: l10n.deleteReadingPlan,
+              onPressed: () async {
+                final confirmed = await confirmDeleteReadingPlan(
+                  context,
+                  widget.planDetails!.readingPlan.planName,
+                );
+                if (confirmed) {
+                  await manager.deleteReadingPlan(
+                    widget.planDetails!.readingPlan.id!,
+                  );
+                  if (!mounted) return;
+                  Navigator.of(context).pop();
+                }
+              },
+            ),
+          ),
       ],
     );
   }
@@ -365,6 +383,7 @@ class _AddReadingPlanPanelState extends State<AddReadingPlanPanel> {
     final result = await showModalBottomSheet<Set<int>>(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -423,17 +442,28 @@ class _AddReadingPlanPanelState extends State<AddReadingPlanPanel> {
     required bool selected,
     required VoidCallback onTap,
   }) {
+    final colorScheme = Theme.of(context).colorScheme;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
           color: selected
-              ? Theme.of(context).colorScheme.primary
-              : Theme.of(context).colorScheme.surface,
+              ? colorScheme.primary
+              : colorScheme.surfaceContainerLow,
           borderRadius: BorderRadius.circular(12),
         ),
-        child: Center(child: Text(title)),
+        child: Center(
+          child: Text(
+            title,
+            style: TextStyle(
+              color: selected
+                  ? colorScheme.onPrimary
+                  : colorScheme.onSurface,
+              fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -604,15 +634,17 @@ class _AddReadingPlanPanelState extends State<AddReadingPlanPanel> {
 
         return SizedBox(
           width: double.infinity,
-          child: OutlinedButton(
-            style: OutlinedButton.styleFrom(
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 16),
-              side: BorderSide(
-                color: canSubmit
-                    ? colorScheme.primary
-                    : colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
-                width: 1.5,
-              ),
+              backgroundColor: canSubmit
+                  ? colorScheme.primary
+                  : colorScheme.surfaceContainerHighest,
+              foregroundColor: canSubmit
+                  ? colorScheme.onPrimary
+                  : colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+              elevation: canSubmit ? 2 : 0,
+              side: BorderSide.none,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(14),
               ),
@@ -627,16 +659,14 @@ class _AddReadingPlanPanelState extends State<AddReadingPlanPanel> {
                     height: 20,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: colorScheme.onSurfaceVariant.withValues(
-                        alpha: 0.4,
-                      ),
+                      color: colorScheme.onPrimary,
                     ),
                   )
                 else
                   Icon(
-                    Icons.add,
+                    Icons.check_rounded,
                     color: canSubmit
-                        ? colorScheme.primary
+                        ? colorScheme.onPrimary
                         : colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
                   ),
                 const SizedBox(width: 8),
@@ -646,7 +676,7 @@ class _AddReadingPlanPanelState extends State<AddReadingPlanPanel> {
                       : AppLocalizations.of(context)!.addReadingPlan,
                   style: TextStyle(
                     color: canSubmit
-                        ? colorScheme.primary
+                        ? colorScheme.onPrimary
                         : colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
                     fontWeight: FontWeight.w600,
                     fontSize: 16,

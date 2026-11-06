@@ -63,25 +63,26 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
-
-    return SafeArea(
-      top: false,
-      child: Container(
-        height: screenHeight * 0.85,
-        padding: const EdgeInsets.all(16),
-        decoration: const BoxDecoration(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _handle(),
-            const SizedBox(height: 16),
-            _topTitle(),
-            const SizedBox(height: 12),
-            Flexible(child: _content()),
-          ],
+    return Material(
+      color: Theme.of(context).colorScheme.surface,
+      child: SizedBox.expand(
+        child: SafeArea(
+          top: false,
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: const BoxDecoration(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            child: Column(
+              children: [
+                _handle(),
+                const SizedBox(height: 16),
+                _topTitle(),
+                const SizedBox(height: 12),
+                Expanded(child: _content()),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -148,32 +149,7 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
         : 0.0;
 
     final progressPercent = (progress * 100).round();
-
-    final latestBookProgress = widget.readingPlanDetails.latestBookProgress;
     final l10n = AppLocalizations.of(context)!;
-
-    final Widget progressWidget = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          l10n.booksReadOfTotal(
-            widget.readingPlanDetails.booksRead,
-            widget.readingPlanDetails.books.length,
-          ),
-        ),
-        const SizedBox(height: 4),
-        if (latestBookProgress != null) ...[
-          Text(
-            l10n.current,
-            style: TextStyle(color: Theme.of(context).colorScheme.primary),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            '${bookNameFromId(context, latestBookProgress.bookId)} ${latestBookProgress.chapter}',
-          ),
-        ],
-      ],
-    );
 
     final Widget bookmarkWidget = ValueListenableBuilder<bool>(
       valueListenable: manager.bookmarkNotifier,
@@ -187,30 +163,62 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
       },
     );
 
-    return Row(
-      children: [
-        Stack(
-          alignment: Alignment.center,
+    return ValueListenableBuilder<RsBookProgress?>(
+      valueListenable: manager.latestBookProgressNotifier,
+      builder: (context, latestBookProgress, _) {
+        final Widget progressWidget = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(
-              width: 70,
-              height: 70,
-              child: CircularProgressIndicator(
-                value: progress,
-                strokeWidth: 6,
-                backgroundColor: Colors.grey.shade800,
+            Text(
+              l10n.booksReadOfTotal(
+                widget.readingPlanDetails.booksRead,
+                widget.readingPlanDetails.books.length,
               ),
             ),
-            Text(
-              "$progressPercent%",
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
+            const SizedBox(height: 4),
+            if (latestBookProgress != null) ...[
+              Text(
+                l10n.current,
+                style: TextStyle(color: Theme.of(context).colorScheme.primary),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                '${bookNameFromId(context, latestBookProgress.bookId)} ${latestBookProgress.chapter}',
+              ),
+            ],
           ],
-        ),
-        const SizedBox(width: 16),
-        Expanded(child: progressWidget),
-        bookmarkWidget,
-      ],
+        );
+
+        return Row(
+          children: [
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                SizedBox(
+                  width: 70,
+                  height: 70,
+                  child: CircularProgressIndicator(
+                    value: progress,
+                    strokeWidth: 6,
+                    backgroundColor:
+                        Theme.of(context).colorScheme.surfaceContainerHighest,
+                  ),
+                ),
+                Text(
+                  "$progressPercent%",
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(width: 16),
+            Expanded(child: progressWidget),
+            bookmarkWidget,
+          ],
+        );
+      },
     );
   }
 
@@ -221,43 +229,59 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
         ? l10n.startReading
         : l10n.resumeReading;
 
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton.icon(
-        style: ElevatedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30),
+    return ValueListenableBuilder<RsBookProgress?>(
+      valueListenable: manager.latestBookProgressNotifier,
+      builder: (_, latestBookProgress, child) {
+        return SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Theme.of(context).colorScheme.onPrimary,
+              side: BorderSide.none,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(30),
+              ),
+            ),
+            onPressed: () async {
+              await manager.startReadingSession();
+
+              if (!mounted) return;
+
+              int bookId, chapter, verse;
+
+              if (latestBookProgress != null) {
+                bookId = latestBookProgress.bookId;
+                chapter = latestBookProgress.chapter;
+                verse = latestBookProgress.verse;
+              } else if (_books.isNotEmpty) {
+                bookId = _books[0].bookId;
+                chapter = 1;
+                verse = 1;
+              } else {
+                bookId = 1;
+                chapter = 1;
+                verse = 1;
+              }
+
+              widget.homeManager.onBookSelected(context, bookId);
+
+              widget.homeManager.onChapterSelected(chapter);
+
+              widget.homeManager.syncController.jumpToVerse(
+                bookId,
+                chapter,
+                verse,
+              );
+
+              widget.onClose();
+            },
+            icon: const Icon(Icons.play_arrow),
+            label: Text(txt),
           ),
-        ),
-        onPressed: () async {
-          await manager.startReadingSession();
-
-          if (!mounted) return;
-
-          int bookId, chapter, verse;
-
-          if (widget.readingPlanDetails.latestBookProgress != null) {
-            bookId = widget.readingPlanDetails.latestBookProgress!.bookId;
-            chapter = widget.readingPlanDetails.latestBookProgress!.chapter;
-            verse = widget.readingPlanDetails.latestBookProgress!.verse;
-          } else {
-            bookId = widget.readingPlanDetails.books[0].bookId;
-            chapter = 1;
-            verse = 1;
-          }
-
-          widget.homeManager.onBookSelected(context, bookId);
-
-          widget.homeManager.onChapterSelected(chapter);
-
-          widget.homeManager.syncController.jumpToVerse(bookId, chapter, verse);
-
-          widget.onClose();
-        },
-        icon: const Icon(Icons.play_arrow),
-        label: Text(txt),
-      ),
+        );
+      },
     );
   }
 
@@ -302,14 +326,15 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
                   child: CircularProgressIndicator(
                     value: progressValue,
                     strokeWidth: 6,
-                    backgroundColor: Colors.grey.shade800,
+                    backgroundColor:
+                        Theme.of(context).colorScheme.surfaceContainerHighest,
                   ),
                 ),
-                Text(progressStr, style: TextStyle(fontSize: 10)),
+                Text(progressStr, style: const TextStyle(fontSize: 10)),
               ],
             ),
 
-            SizedBox(height: 4),
+            const SizedBox(height: 4),
             if (progressValue >= 1) Text(l10n.completedToday),
           ],
         );
@@ -388,13 +413,27 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
   }
 
   Widget _statCard({required String title, required Widget child}) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.grey.shade900,
+        color: colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(16),
       ),
-      child: Column(children: [Text(title), const SizedBox(height: 8), child]),
+      child: Column(
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              color: colorScheme.onSurfaceVariant,
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 8),
+          child,
+        ],
+      ),
     );
   }
 
@@ -416,14 +455,16 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
     );
   }
 
-  void _toggleReorderMode() {
+  void _toggleReorderMode() async {
+    final wasReorder = _reorderMode;
     setState(() {
       _reorderMode = !_reorderMode;
     });
 
     // Persist the new order once the user finishes reordering.
-    if (!_reorderMode) {
-      manager.reorderBooks(_books);
+    if (wasReorder) {
+      await manager.reorderBooks(_books);
+      if (mounted) setState(() {});
     }
   }
 
@@ -531,11 +572,12 @@ class _BookRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 6),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.grey.shade900,
+        color: colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -543,30 +585,42 @@ class _BookRow extends StatelessWidget {
           Icon(
             progress == 1.0 ? Icons.check_circle : Icons.circle_outlined,
             color: progress == 1.0
-                ? Theme.of(context).colorScheme.primary
-                : Colors.grey,
+                ? colorScheme.primary
+                : colorScheme.outline,
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(name),
+                Text(
+                  name,
+                  style: TextStyle(
+                    color: colorScheme.onSurface,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
                 const SizedBox(height: 6),
                 LinearProgressIndicator(
                   value: progress,
                   minHeight: 6,
-                  color: Theme.of(context).colorScheme.primary,
-                  backgroundColor: Colors.grey.shade800,
+                  color: colorScheme.primary,
+                  backgroundColor: colorScheme.surfaceContainerHighest,
                 ),
               ],
             ),
           ),
           const SizedBox(width: 12),
           if (reorderable)
-            const Icon(Icons.drag_handle)
+            Icon(Icons.drag_handle, color: colorScheme.onSurfaceVariant)
           else ...[
-            Text('${(progress * 100).toInt()}%'),
+            Text(
+              '${(progress * 100).toInt()}%',
+              style: TextStyle(
+                color: colorScheme.onSurfaceVariant,
+                fontSize: 14,
+              ),
+            ),
           ],
         ],
       ),

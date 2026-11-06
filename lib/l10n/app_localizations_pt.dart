@@ -597,7 +597,18 @@ class AppLocalizationsPt extends AppLocalizations {
   String get updateReadingPlan => 'Atualizar plano de leitura';
 
   @override
-  String get addReadingPlan => 'Adicionar plano de leitura';
+  String get addReadingPlan => 'Salvar plano de leitura';
+
+  @override
+  String get deleteReadingPlan => 'Excluir plano de leitura';
+
+  @override
+  String get deleteReadingPlanConfirmTitle => 'Excluir plano de leitura?';
+
+  @override
+  String deleteReadingPlanConfirmMessage(String name) {
+    return 'Tem certeza de que deseja excluir \"$name\"? Todo o progresso de leitura deste plano será removido permanentemente.';
+  }
 
   @override
   String get deselectAll => 'Desmarcar tudo';

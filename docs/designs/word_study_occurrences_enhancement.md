@@ -1,6 +1,6 @@
 # Word Study Occurrences Enhancement
 
-*   **Author:** suragch
+*   **Author:** ethnosdev
 *   **Status:** Approved
 *   **Date:** 2026-11-04
 
@@ -47,13 +47,13 @@ Currently, `SimilarVersesPage` operates as an isolated list of verse snippets:
 
 ## Risks & Mitigations
 
-| Risk | Impact | Mitigation |
-| --- | --- | --- |
-| **SQLite Host Parameter Overflow** | Concordance searches for high-frequency words (e.g., H1732 *David* with 1,000+ occurrences) can exceed SQLite's variable limit (`SQLITE_MAX_VARIABLE_NUMBER`, default 999), causing runtime crashes. | `BibleDatabase.getVerses` partitions reference lists into chunks of $\le 500$ parameters before executing SQL `IN` queries. |
-| **SQLite Connection Locks on Deletion** | Holding long-lived database connections to installed Bibles locks `.db` files on Windows, Android, and iOS, causing `EBUSY` deletion errors if a user uninstalls a translation. | Do not maintain a global permanent connection pool. Scope open `BibleDatabase` handles to `SimilarVerseManager`'s page lifecycle; close and dispose connections in `SimilarVerseManager.dispose()`. |
-| **Gesture Arena Memory Leaks** | Attaching unmanaged `TapGestureRecognizer` instances to `TextSpan` children in virtualized lists without `AutomaticKeepAliveClientMixin` leaks native recognizers on scroll. | Use `TapGestureRecognizer(onTapDown: (details) => ...)` with explicit lifecycle disposal in `VerseListItemState.dispose()`, capturing coordinates directly from `details.globalPosition`. |
-| **Navigation Stack Unwinding Race** | Rapid double-tapping on a verse reference header could trigger concurrent `Navigator.popUntil` invocations or state collisions. | Guard reference header taps with an `isNavigating` lock flag in `SimilarVersesPageState` before executing the pop transition. |
-| **Cross-Book Context Loading Mismatch** | Jumping from an occurrence in one biblical book (e.g., Ruth 4) while `HomeScreen` is displaying another (e.g., Genesis 1) cannot simply scroll existing slivers. | In `HomeManager.jumpToContextReference`, check if `targetRef.bookId` or `chapter` differs from `currentReference`. If so, update `currentReference` and `panelAnchorNotifier` to re-mount the target chapter before initiating the verse scroll. |
+| Risk                                    | Impact                                                                                                                                                                                               | Mitigation                                                                                                                                                                                                                                       |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **SQLite Host Parameter Overflow**      | Concordance searches for high-frequency words (e.g., H1732 *David* with 1,000+ occurrences) can exceed SQLite's variable limit (`SQLITE_MAX_VARIABLE_NUMBER`, default 999), causing runtime crashes. | `BibleDatabase.getVerses` partitions reference lists into chunks of $\le 500$ parameters before executing SQL `IN` queries.                                                                                                                      |
+| **SQLite Connection Locks on Deletion** | Holding long-lived database connections to installed Bibles locks `.db` files on Windows, Android, and iOS, causing `EBUSY` deletion errors if a user uninstalls a translation.                      | Do not maintain a global permanent connection pool. Scope open `BibleDatabase` handles to `SimilarVerseManager`'s page lifecycle; close and dispose connections in `SimilarVerseManager.dispose()`.                                              |
+| **Gesture Arena Memory Leaks**          | Attaching unmanaged `TapGestureRecognizer` instances to `TextSpan` children in virtualized lists without `AutomaticKeepAliveClientMixin` leaks native recognizers on scroll.                         | Use `TapGestureRecognizer(onTapDown: (details) => ...)` with explicit lifecycle disposal in `VerseListItemState.dispose()`, capturing coordinates directly from `details.globalPosition`.                                                        |
+| **Navigation Stack Unwinding Race**     | Rapid double-tapping on a verse reference header could trigger concurrent `Navigator.popUntil` invocations or state collisions.                                                                      | Guard reference header taps with an `isNavigating` lock flag in `SimilarVersesPageState` before executing the pop transition.                                                                                                                    |
+| **Cross-Book Context Loading Mismatch** | Jumping from an occurrence in one biblical book (e.g., Ruth 4) while `HomeScreen` is displaying another (e.g., Genesis 1) cannot simply scroll existing slivers.                                     | In `HomeManager.jumpToContextReference`, check if `targetRef.bookId` or `chapter` differs from `currentReference`. If so, update `currentReference` and `panelAnchorNotifier` to re-mount the target chapter before initiating the verse scroll. |
 
 --------------------------------------------------------------------------------
 
@@ -134,7 +134,7 @@ graph TD
 
 To eliminate the need for a global session singleton and avoid fragile scroll-distance heuristics:
 
-*   **Location**: [`lib/ui/home/home_manager.dart`](file:///Users/suragch/Dev/ethnosdev/gbt/studyapp/lib/ui/home/home_manager.dart)
+*   **Location**: [`lib/ui/home/home_manager.dart`](../../lib/ui/home/home_manager.dart)
 *   **State Stored**:
     ```dart
     class OccurrenceSearchContext {
@@ -176,7 +176,7 @@ To eliminate the need for a global session singleton and avoid fragile scroll-di
 
 ### 3. Parallel Translation Batch Querying via `BibleDatabase`
 
-Rather than introducing a separate singleton service with permanent open database connections, extend the existing [`BibleDatabase`](file:///Users/suragch/Dev/ethnosdev/gbt/studyapp/lib/services/bible/bible_database.dart):
+Rather than introducing a separate singleton service with permanent open database connections, extend the existing [`BibleDatabase`](../../lib/services/bible/bible_database.dart):
 
 *   **Location**: `lib/services/bible/bible_database.dart`
 *   **Batch Query Method**:
@@ -478,9 +478,9 @@ The implementation is partitioned into five sequential phases with compile and t
 ### Phase 5: Documentation & End-to-End Verification
 
 #### Target 16: Documentation Contracts (Modify)
-*   [`lib/services/bible/README.md`](file:///Users/suragch/Dev/ethnosdev/gbt/studyapp/lib/services/bible/README.md): Document `BibleDatabase.getVerses` batch query interface and chunking invariants.
-*   [`lib/ui/home/README.md`](file:///Users/suragch/Dev/ethnosdev/gbt/studyapp/lib/ui/home/README.md): Document `FloatingReturnPill` and `HomeManager` context navigation coordination.
-*   [`lib/ui/home/word_details_dialog/similar_verses/README.md`](file:///Users/suragch/Dev/ethnosdev/gbt/studyapp/lib/ui/home/word_details_dialog/similar_verses/README.md): Document parallel translation lifecycle and `ParallelTranslationsSheet`.
+*   [`lib/services/bible/README.md`](../../lib/services/bible/README.md): Document `BibleDatabase.getVerses` batch query interface and chunking invariants.
+*   [`lib/ui/home/README.md`](../../lib/ui/home/README.md): Document `FloatingReturnPill` and `HomeManager` context navigation coordination.
+*   [`lib/ui/home/word_details_dialog/similar_verses/README.md`](../../lib/ui/home/word_details_dialog/similar_verses/README.md): Document parallel translation lifecycle and `ParallelTranslationsSheet`.
 
 ---
 

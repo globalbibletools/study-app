@@ -1082,11 +1082,29 @@ abstract class AppLocalizations {
   /// **'Update Reading Plan'**
   String get updateReadingPlan;
 
-  /// Button label for creating a reading plan
+  /// Button label for creating or saving a reading plan
   ///
   /// In en, this message translates to:
-  /// **'Add Reading Plan'**
+  /// **'Save Reading Plan'**
   String get addReadingPlan;
+
+  /// Tooltip or button label for deleting a reading plan
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Reading Plan'**
+  String get deleteReadingPlan;
+
+  /// Title of confirmation dialog when deleting a reading plan
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Reading Plan?'**
+  String get deleteReadingPlanConfirmTitle;
+
+  /// Confirmation message when deleting a reading plan
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete \"{name}\"? All reading progress for this plan will be permanently removed.'**
+  String deleteReadingPlanConfirmMessage(String name);
 
   /// Button label to deselect every book
   ///

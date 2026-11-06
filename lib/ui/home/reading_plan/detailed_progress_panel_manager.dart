@@ -3,12 +3,6 @@ import 'package:gbt/services/reading_session/rs_manager.dart';
 import 'package:gbt/services/reading_session/rs_model.dart';
 import 'package:gbt/services/service_locator.dart';
 
-enum MainTab { progress, goals }
-
-enum ProgressTab { bySection, byBook }
-
-enum GoalsTab { byWeek, byMonth }
-
 class DetailedProgressPanelManager {
   final _rsManager = getIt<ReadingSessionManager>();
 
@@ -16,14 +10,18 @@ class DetailedProgressPanelManager {
 
   final int readingPlanId;
   final DateTime date;
+  bool _isDisposed = false;
 
   DetailedProgressPanelManager(this.readingPlanId, this.date) {
     _rsManager.getDetailedProgressFor(date, readingPlanId).then((value) {
-      details.value = value;
+      if (!_isDisposed) {
+        details.value = value;
+      }
     });
   }
 
   void dispose() {
+    _isDisposed = true;
     details.dispose();
   }
 }
