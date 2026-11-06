@@ -100,6 +100,10 @@
   "@cancel": {
     "description": "Label for the cancel button"
   },
+  "close": "Close",
+  "@close": {
+    "description": "Label for close buttons or tooltips"
+  },
   "gotIt": "Got it",
   "@gotIt": {
     "description": "Label for a button that dismisses an instructional overlay"
@@ -152,6 +156,10 @@
         "type": "int"
       }
     }
+  },
+  "parallelTranslations": "Parallel Translations",
+  "@parallelTranslations": {
+    "description": "Title and tooltip for parallel Bible translations in word study occurrences"
   },
   "repeatNone": "None",
   "@repeatNone": {

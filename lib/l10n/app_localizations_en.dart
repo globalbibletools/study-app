@@ -85,6 +85,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cancel => 'Cancel';
 
   @override
+  String get close => 'Close';
+
+  @override
   String get gotIt => 'Got it';
 
   @override
@@ -131,6 +134,9 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get parallelTranslations => 'Parallel Translations';
 
   @override
   String get repeatNone => 'None';

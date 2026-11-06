@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/home/home_manager.dart';
 
@@ -13,6 +14,7 @@ class FloatingReturnPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final homeManager = getIt<HomeManager>();
 
     return Material(
@@ -71,7 +73,7 @@ class FloatingReturnPill extends StatelessWidget {
             ),
             IconButton(
               icon: const Icon(Icons.close, size: 18),
-              tooltip: 'Close return pill',
+              tooltip: l10n?.close ?? 'Close',
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               constraints: const BoxConstraints(),
               splashRadius: 18,

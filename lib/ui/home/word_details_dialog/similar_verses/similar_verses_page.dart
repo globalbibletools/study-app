@@ -91,7 +91,7 @@ class _SimilarVersesPageState extends State<SimilarVersesPage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.table_rows_outlined),
-            tooltip: 'Parallel Translations',
+            tooltip: l10n.parallelTranslations,
             onPressed:
                 () => showParallelTranslationsSheet(
                   context,

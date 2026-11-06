@@ -254,6 +254,12 @@ abstract class AppLocalizations {
   /// **'Cancel'**
   String get cancel;
 
+  /// Label for close buttons or tooltips
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get close;
+
   /// Label for a button that dismisses an instructional overlay
   ///
   /// In en, this message translates to:
@@ -325,6 +331,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =0{No results} =1{1 result} other{{count} results}}'**
   String resultsCount(int count);
+
+  /// Title and tooltip for parallel Bible translations in word study occurrences
+  ///
+  /// In en, this message translates to:
+  /// **'Parallel Translations'**
+  String get parallelTranslations;
 
   /// Audio setting: Repeat node
   ///

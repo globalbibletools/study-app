@@ -85,6 +85,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get cancel => 'إلغاء';
 
   @override
+  String get close => 'إغلاق';
+
+  @override
   String get gotIt => 'فهمت';
 
   @override
@@ -131,6 +134,9 @@ class AppLocalizationsAr extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get parallelTranslations => 'الترجمات الموازية';
 
   @override
   String get repeatNone => 'بدون';
