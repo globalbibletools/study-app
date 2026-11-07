@@ -71,6 +71,10 @@
 
             export PATH="$ANDROID_SDK_ROOT/platform-tools:$PATH"
             export PATH="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$PATH"
+
+            export ANDROID_EMULATOR_USE_SYSTEM_LIBS=1
+            export VK_DRIVER_FILES=/run/opengl-driver/share/vulkan/icd.d/radeon_icd.x86_64.json
+            export LD_LIBRARY_PATH="${pkgs.libglvnd}/lib:/run/opengl-driver/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
           '';
         };
       });
