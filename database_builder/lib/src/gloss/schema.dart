@@ -14,7 +14,8 @@ class GlossSchema {
   // Whether the gloss for this word is AI generated.
   static const String versesColIsAi = 'is_ai';
 
-  static const String createVersesTable = '''
+  static const String createVersesTable =
+      '''
   CREATE TABLE IF NOT EXISTS $versesTable (
     $versesColWordId TEXT PRIMARY KEY,
     $versesColText INTEGER,
@@ -22,7 +23,8 @@ class GlossSchema {
   )
   ''';
 
-  static const insertVerseGloss = '''
+  static const insertVerseGloss =
+      '''
   INSERT INTO $versesTable
     ($versesColWordId, $versesColText, $versesColIsAi)
     VALUES (?, ?, ?);
@@ -35,14 +37,16 @@ class GlossSchema {
   // This is the gloss word or phrase itself.
   static const String textColText = 'text';
 
-  static const String createTextTable = '''
+  static const String createTextTable =
+      '''
   CREATE TABLE IF NOT EXISTS $textTable (
     $textColId INTEGER PRIMARY KEY,
     $textColText TEXT NOT NULL
   )
   ''';
 
-  static const String insertText = '''
+  static const String insertText =
+      '''
   INSERT INTO $textTable
     ($textColId, $textColText)
     VALUES (?, ?);

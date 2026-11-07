@@ -468,8 +468,9 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
 
       // Update sync controller (so other panels follow)
       final double chapterHeight = renderSliver.geometry!.scrollExtent;
-      final double progress =
-          chapterHeight > 0 ? verseOffset / chapterHeight : 0.0;
+      final double progress = chapterHeight > 0
+          ? verseOffset / chapterHeight
+          : 0.0;
 
       widget.syncController!.updatePosition(
         _panelId,

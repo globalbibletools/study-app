@@ -77,4 +77,3 @@ class WordDetails {
 
   bool get isRtl => strongsCode.startsWith('H');
 }
-

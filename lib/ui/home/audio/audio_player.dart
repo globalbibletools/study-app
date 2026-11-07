@@ -24,131 +24,128 @@ class BottomAudioPlayer extends StatelessWidget {
       builder: (buildContext, _) => _PlayerLauncher(
         isVisible: viewModel.isVisible,
         child: Container(
-            decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerHigh,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
-                  blurRadius: 8,
-                  offset: const Offset(0, -2),
-                ),
-              ],
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(16),
+          decoration: BoxDecoration(
+            color: colorScheme.surfaceContainerHigh,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 8,
+                offset: const Offset(0, -2),
               ),
-            ),
-            child: SafeArea(
-              top: false,
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _ReferenceOrErrorRow(
-                      error: viewModel.error,
-                      reference: viewModel.reference.value,
-                    ),
-                    Row(
-                      spacing: 8,
-                      children: [
-                        _VoiceMenuButton(
-                          testament: viewModel.testament,
-                          activeSource: viewModel.testament != null
-                              ? viewModel.audioSource.forTestament(viewModel.testament!)
+            ],
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+          ),
+          child: SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _ReferenceOrErrorRow(
+                    error: viewModel.error,
+                    reference: viewModel.reference.value,
+                  ),
+                  Row(
+                    spacing: 8,
+                    children: [
+                      _VoiceMenuButton(
+                        testament: viewModel.testament,
+                        activeSource: viewModel.testament != null
+                            ? viewModel.audioSource.forTestament(
+                                viewModel.testament!,
+                              )
+                            : null,
+                        speakers: viewModel.speakers,
+                        onChange: viewModel.changeSource,
+                      ),
+                      Expanded(
+                        child: _ProgressBar(
+                          playback: viewModel.playback,
+                          onSeek: viewModel.error == null
+                              ? viewModel.seek
                               : null,
-                          speakers: viewModel.speakers,
-                          onChange: viewModel.changeSource,
                         ),
-                        Expanded(
-                          child: _ProgressBar(
-                            playback: viewModel.playback,
-                            onSeek: viewModel.error == null
-                                ? viewModel.seek
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        visualDensity: VisualDensity.compact,
+                        onPressed: viewModel.close,
+                      ),
+                    ],
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _RepeatMenuButton(
+                        repeatMode: viewModel.repeatMode,
+                        onChange: viewModel.changeRepeatMode,
+                      ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        spacing: 12,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.chevron_left_rounded),
+                            iconSize: 28,
+                            color: colorScheme.primary,
+                            onPressed: viewModel.error == null
+                                ? viewModel.jumpToPrev
                                 : null,
                           ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.close),
-                          visualDensity: VisualDensity.compact,
-                          onPressed: viewModel.close,
-                        ),
-                      ],
-                    ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        _RepeatMenuButton(
-                          repeatMode: viewModel.repeatMode,
-                          onChange: viewModel.changeRepeatMode,
-                        ),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          spacing: 12,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.chevron_left_rounded),
-                              iconSize: 28,
-                              color: colorScheme.primary,
-                              onPressed: viewModel.error == null
-                                  ? viewModel.jumpToPrev
-                                  : null,
-                            ),
-                            _PlayButton(
-                              playbackState: viewModel.playbackState,
-                              onPlay: viewModel.error == null
-                                  ? viewModel.play
-                                  : null,
-                              onPause: viewModel.error == null
-                                  ? viewModel.pause
-                                  : null,
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.chevron_right_rounded),
-                              iconSize: 28,
-                              color: colorScheme.primary,
-                              onPressed: viewModel.error == null
-                                  ? viewModel.jumpToNext
-                                  : null,
-                            ),
-                          ],
-                        ),
-                        _SpeedMenuButton(
-                          speed: viewModel.speed,
-                          onChange: viewModel.setSpeed,
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                          _PlayButton(
+                            playbackState: viewModel.playbackState,
+                            onPlay: viewModel.error == null
+                                ? viewModel.play
+                                : null,
+                            onPause: viewModel.error == null
+                                ? viewModel.pause
+                                : null,
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.chevron_right_rounded),
+                            iconSize: 28,
+                            color: colorScheme.primary,
+                            onPressed: viewModel.error == null
+                                ? viewModel.jumpToNext
+                                : null,
+                          ),
+                        ],
+                      ),
+                      _SpeedMenuButton(
+                        speed: viewModel.speed,
+                        onChange: viewModel.setSpeed,
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ),
         ),
+      ),
     );
   }
 }
 
 class _PlayerLauncher extends StatelessWidget {
-    final Widget child;
-    final bool isVisible;
+  final Widget child;
+  final bool isVisible;
 
-    const _PlayerLauncher({
-        required this.child,
-        required this.isVisible,
-    });
+  const _PlayerLauncher({required this.child, required this.isVisible});
 
-    @override
-    Widget build(BuildContext context) {
-        return AnimatedSlide(
-            offset: isVisible ? Offset.zero : Offset(0, 1),
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
-            child: Align(
-              alignment: Alignment.bottomCenter,
-              child: isVisible ? child : SizedBox.shrink(),
-            )
-        );
-    }
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSlide(
+      offset: isVisible ? Offset.zero : Offset(0, 1),
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+      child: Align(
+        alignment: Alignment.bottomCenter,
+        child: isVisible ? child : SizedBox.shrink(),
+      ),
+    );
+  }
 }
 
 // --- SUB-WIDGETS ---

@@ -64,8 +64,9 @@ class _SimilarVersesPageState extends State<SimilarVersesPage> {
       wordId: widget.wordId,
       searchType: _searchType,
       anchorReference: reference,
-      scrollOffset:
-          _scrollController.hasClients ? _scrollController.offset : 0.0,
+      scrollOffset: _scrollController.hasClients
+          ? _scrollController.offset
+          : 0.0,
     );
     final homeManager = getIt<HomeManager>();
     homeManager.jumpToContextReference(contextData);
@@ -92,11 +93,10 @@ class _SimilarVersesPageState extends State<SimilarVersesPage> {
           IconButton(
             icon: const Icon(Icons.table_rows_outlined),
             tooltip: l10n.parallelTranslations,
-            onPressed:
-                () => showParallelTranslationsSheet(
-                  context,
-                  onChanged: () => manager.reloadParallelVerses(),
-                ),
+            onPressed: () => showParallelTranslationsSheet(
+              context,
+              onChanged: () => manager.reloadParallelVerses(),
+            ),
           ),
         ],
       ),
@@ -168,8 +168,8 @@ class _SimilarVersesPageState extends State<SimilarVersesPage> {
                         return VerseListItem(
                           key: ValueKey(reference),
                           wordsFuture: manager.getVerseWords(reference),
-                          highlightPredicate:
-                              (word) => manager.isWordHighlighted(
+                          highlightPredicate: (word) =>
+                              manager.isWordHighlighted(
                                 word,
                                 widget.word,
                                 _searchType,

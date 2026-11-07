@@ -85,10 +85,7 @@ class _ParallelTranslationsSheetState extends State<ParallelTranslationsSheet> {
   Future<void> _toggleBible(Resource resource) async {
     final isInstalled =
         resource.installableDetails?.installState == InstallState.installed ||
-        await _resourceService.resourceExists(
-          ResourceType.bible,
-          resource.id,
-        );
+        await _resourceService.resourceExists(ResourceType.bible, resource.id);
 
     if (!isInstalled) {
       if (!mounted) return;
@@ -150,49 +147,48 @@ class _ParallelTranslationsSheetState extends State<ParallelTranslationsSheet> {
         ),
         const Divider(height: 1),
         Expanded(
-          child:
-              _loading
-                  ? const Center(child: CircularProgressIndicator())
-                  : _resources.isEmpty
-                  ? Center(child: Text(l10n.bibleTranslation))
-                  : ListView.builder(
-                    controller: widget.scrollController,
-                    itemCount: _resources.length,
-                    itemBuilder: (context, index) {
-                      final resource = _resources[index];
-                      final isSelected = _selectedBibles.contains(resource.id);
-                      final isInstalled =
-                          resource.installableDetails?.installState ==
-                          InstallState.installed;
+          child: _loading
+              ? const Center(child: CircularProgressIndicator())
+              : _resources.isEmpty
+              ? Center(child: Text(l10n.bibleTranslation))
+              : ListView.builder(
+                  controller: widget.scrollController,
+                  itemCount: _resources.length,
+                  itemBuilder: (context, index) {
+                    final resource = _resources[index];
+                    final isSelected = _selectedBibles.contains(resource.id);
+                    final isInstalled =
+                        resource.installableDetails?.installState ==
+                        InstallState.installed;
 
-                      return CheckboxListTile(
-                        value: isSelected,
-                        onChanged: (_) => _toggleBible(resource),
-                        title: Text(
-                          resource.resourceName.isNotEmpty
-                              ? resource.resourceName
-                              : resource.id,
-                          style: TextStyle(
-                            fontWeight:
-                                isSelected ? FontWeight.bold : FontWeight.normal,
-                          ),
+                    return CheckboxListTile(
+                      value: isSelected,
+                      onChanged: (_) => _toggleBible(resource),
+                      title: Text(
+                        resource.resourceName.isNotEmpty
+                            ? resource.resourceName
+                            : resource.id,
+                        style: TextStyle(
+                          fontWeight: isSelected
+                              ? FontWeight.bold
+                              : FontWeight.normal,
                         ),
-                        subtitle:
-                            resource.creatorName != null &&
-                                    resource.creatorName!.isNotEmpty
-                                ? Text(resource.creatorName!)
-                                : null,
-                        secondary:
-                            !isInstalled
-                                ? IconButton(
-                                  icon: const Icon(Icons.download),
-                                  tooltip: l10n.download,
-                                  onPressed: () => _toggleBible(resource),
-                                )
-                                : null,
-                      );
-                    },
-                  ),
+                      ),
+                      subtitle:
+                          resource.creatorName != null &&
+                              resource.creatorName!.isNotEmpty
+                          ? Text(resource.creatorName!)
+                          : null,
+                      secondary: !isInstalled
+                          ? IconButton(
+                              icon: const Icon(Icons.download),
+                              tooltip: l10n.download,
+                              onPressed: () => _toggleBible(resource),
+                            )
+                          : null,
+                    );
+                  },
+                ),
         ),
       ],
     );

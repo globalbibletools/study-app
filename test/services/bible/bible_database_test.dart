@@ -29,7 +29,11 @@ void main() {
       for (final bookId in [1, 19, 40, 66]) {
         for (final chapter in [1, 23, 119, 150]) {
           for (final verse in [1, 15, 99, 176]) {
-            final original = Reference(bookId: bookId, chapter: chapter, verse: verse);
+            final original = Reference(
+              bookId: bookId,
+              chapter: chapter,
+              verse: verse,
+            );
             final unpacked = Reference.fromPackedInt(original.toPackedInt);
             expect(unpacked, equals(original));
           }
@@ -66,7 +70,8 @@ void main() {
       // Ruth 4:17 single line
       await rawDb.insert(BibleSchema.bibleTextTable, {
         BibleSchema.colReference: 8004017,
-        BibleSchema.colText: 'And the women said: There is a son born to Naomi.',
+        BibleSchema.colText:
+            'And the women said: There is a son born to Naomi.',
         BibleSchema.colFormat: 'p',
       });
 
@@ -109,25 +114,34 @@ void main() {
       const ruth417 = Reference(bookId: 8, chapter: 4, verse: 17);
       final verses = await bibleDb.getVerses([ruth417]);
       expect(verses.length, 1);
-      expect(verses[ruth417], 'And the women said: There is a son born to Naomi.');
+      expect(
+        verses[ruth417],
+        'And the women said: There is a son born to Naomi.',
+      );
     });
 
-    test('joins multi-row poetic lines with space and excludes section headers', () async {
-      const psalm231 = Reference(bookId: 19, chapter: 23, verse: 1);
-      final verses = await bibleDb.getVerses([psalm231]);
-      expect(verses.length, 1);
-      expect(verses[psalm231], 'The LORD is my shepherd; I shall not want.');
-    });
+    test(
+      'joins multi-row poetic lines with space and excludes section headers',
+      () async {
+        const psalm231 = Reference(bookId: 19, chapter: 23, verse: 1);
+        final verses = await bibleDb.getVerses([psalm231]);
+        expect(verses.length, 1);
+        expect(verses[psalm231], 'The LORD is my shepherd; I shall not want.');
+      },
+    );
 
-    test('queries multiple references and ignores unseeded references', () async {
-      const ruth417 = Reference(bookId: 8, chapter: 4, verse: 17);
-      const psalm231 = Reference(bookId: 19, chapter: 23, verse: 1);
-      const missingRef = Reference(bookId: 1, chapter: 1, verse: 1);
+    test(
+      'queries multiple references and ignores unseeded references',
+      () async {
+        const ruth417 = Reference(bookId: 8, chapter: 4, verse: 17);
+        const psalm231 = Reference(bookId: 19, chapter: 23, verse: 1);
+        const missingRef = Reference(bookId: 1, chapter: 1, verse: 1);
 
-      final verses = await bibleDb.getVerses([ruth417, psalm231, missingRef]);
-      expect(verses.length, 2);
-      expect(verses.containsKey(missingRef), isFalse);
-    });
+        final verses = await bibleDb.getVerses([ruth417, psalm231, missingRef]);
+        expect(verses.length, 2);
+        expect(verses.containsKey(missingRef), isFalse);
+      },
+    );
 
     test('handles large reference lists (> 500) by chunking safely', () async {
       // Generate 550 references
@@ -144,7 +158,10 @@ void main() {
       const raw =
           r'In the beginning \f + \ft Some footnote\f* God created \add the heavens\add* and the earth.';
       final cleaned = BibleDatabase.stripParatext(raw);
-      expect(cleaned, 'In the beginning God created the heavens and the earth.');
+      expect(
+        cleaned,
+        'In the beginning God created the heavens and the earth.',
+      );
     });
   });
 }

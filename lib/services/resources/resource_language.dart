@@ -1,7 +1,4 @@
-enum ResourceLanguageTextDirection {
-  ltr,
-  rtl;
-}
+enum ResourceLanguageTextDirection { ltr, rtl }
 
 class ResourceLanguage {
   String code;
@@ -58,10 +55,6 @@ class ResourceLanguage {
       ),
     );
 
-    return ResourceLanguage(
-      code: code,
-      name: name,
-      textDirection: direction,
-    );
+    return ResourceLanguage(code: code, name: name, textDirection: direction);
   }
 }

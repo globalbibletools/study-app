@@ -18,8 +18,9 @@ class ReadingPlanDetailPanelManager {
 
   ReadingPlanDetailPanelManager(this.readingPlanDetails) {
     bookmarkNotifier.value = readingPlanDetails.readingPlan.isBookmarked;
-    final orderedBookIds =
-        readingPlanDetails.books.map((b) => b.bookId).toList();
+    final orderedBookIds = readingPlanDetails.books
+        .map((b) => b.bookId)
+        .toList();
     readingPlanDetails.latestBookProgress = _rsManager.getLatestBookProgress(
       readingPlanDetails.readingPlan.id!,
       orderedBookIds: orderedBookIds,
@@ -36,8 +37,9 @@ class ReadingPlanDetailPanelManager {
     final loaded = await _rsManager.loadBooksProgress(planId);
     if (_isDisposed) return;
     booksProgressNotifier.value = loaded;
-    final orderedBookIds =
-        readingPlanDetails.books.map((b) => b.bookId).toList();
+    final orderedBookIds = readingPlanDetails.books
+        .map((b) => b.bookId)
+        .toList();
     readingPlanDetails.latestBookProgress = _rsManager.getLatestBookProgress(
       planId,
       orderedBookIds: orderedBookIds,
@@ -60,8 +62,9 @@ class ReadingPlanDetailPanelManager {
   }
 
   Future<void> markToggleReadingPlanBookmark() async {
-    final isBookmarked =
-        await _rsManager.toggleReadingPlanBookmark(readingPlanDetails);
+    final isBookmarked = await _rsManager.toggleReadingPlanBookmark(
+      readingPlanDetails,
+    );
     bookmarkNotifier.value = isBookmarked;
   }
 

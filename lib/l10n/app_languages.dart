@@ -4,44 +4,26 @@ class LanguageConfig {
   final String code; // Flutter Locale code (e.g., 'es')
   final String nativeName; // For UI selection (e.g., 'Español')
 
-  const LanguageConfig({
-    required this.code,
-    required this.nativeName,
-  });
+  const LanguageConfig({required this.code, required this.nativeName});
 }
 
 class AppLanguages {
   /// THE CENTRAL LIST OF SUPPORTED LANGUAGES
   static const List<LanguageConfig> supported = [
     // English (Default/Internal)
-    LanguageConfig(
-      code: 'en',
-      nativeName: 'English',
-    ),
+    LanguageConfig(code: 'en', nativeName: 'English'),
 
     // Spanish
-    LanguageConfig(
-      code: 'es',
-      nativeName: 'Español',
-    ),
+    LanguageConfig(code: 'es', nativeName: 'Español'),
 
     // French
-    LanguageConfig(
-      code: 'fr',
-      nativeName: 'Français',
-    ),
+    LanguageConfig(code: 'fr', nativeName: 'Français'),
 
     // Portuguese
-    LanguageConfig(
-      code: 'pt',
-      nativeName: 'Português',
-    ),
+    LanguageConfig(code: 'pt', nativeName: 'Português'),
 
     // Arabic
-    LanguageConfig(
-      code: 'ar',
-      nativeName: 'العربية',
-    ),
+    LanguageConfig(code: 'ar', nativeName: 'العربية'),
   ];
 
   /// Helper to get config by code

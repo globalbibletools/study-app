@@ -4,10 +4,7 @@ import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/home/home_manager.dart';
 
 class FloatingReturnPill extends StatelessWidget {
-  const FloatingReturnPill({
-    super.key,
-    required this.contextData,
-  });
+  const FloatingReturnPill({super.key, required this.contextData});
 
   final OccurrenceSearchContext contextData;
 
@@ -40,7 +37,10 @@ class FloatingReturnPill extends StatelessWidget {
                 homeManager.setWordStudyOverlayVisible(true);
               },
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [

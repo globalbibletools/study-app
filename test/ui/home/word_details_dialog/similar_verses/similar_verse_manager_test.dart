@@ -129,14 +129,8 @@ void main() {
       strongsCode: 'H1732',
     );
 
-    expect(
-      manager.isWordHighlighted(word, testWord, SearchType.root),
-      isTrue,
-    );
-    expect(
-      manager.isWordHighlighted(word, testWord, SearchType.exact),
-      isTrue,
-    );
+    expect(manager.isWordHighlighted(word, testWord, SearchType.root), isTrue);
+    expect(manager.isWordHighlighted(word, testWord, SearchType.exact), isTrue);
 
     final otherWord = HebrewGreekWord(
       id: 'w2',
@@ -154,10 +148,13 @@ void main() {
     );
   });
 
-  test('getParallelVersesFor returns empty when no parallel bibles selected', () {
-    final verses = manager.getParallelVersesFor(
-      const Reference(bookId: 8, chapter: 4, verse: 17),
-    );
-    expect(verses, isEmpty);
-  });
+  test(
+    'getParallelVersesFor returns empty when no parallel bibles selected',
+    () {
+      final verses = manager.getParallelVersesFor(
+        const Reference(bookId: 8, chapter: 4, verse: 17),
+      );
+      expect(verses, isEmpty);
+    },
+  );
 }

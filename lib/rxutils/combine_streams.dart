@@ -26,51 +26,51 @@ Stream<R> combineStreams3<A, B, C, R>(
   }
 
   Future<void> done() async {
-      if (closed) return;
-      closed = true;
-      for (final sub in subscriptions) {
-          await sub.cancel();
-      }
-      await controller.close();
+    if (closed) return;
+    closed = true;
+    for (final sub in subscriptions) {
+      await sub.cancel();
+    }
+    await controller.close();
   }
 
   controller = StreamController<R>.broadcast(
     onListen: () {
       subscriptions.addAll([
-          a.listen(
-            (value) {
-              latestA = value;
-              hasA = true;
-              emit();
-            },
-            onError: controller.addError,
-            onDone: done,
-          ),
-          b.listen(
-            (value) {
-              latestB = value;
-              hasB = true;
-              emit();
-            },
-            onError: controller.addError,
-            onDone: done,
-          ),
-          c.listen(
-            (value) {
-              latestC = value;
-              hasC = true;
-              emit();
-            },
-            onError: controller.addError,
-            onDone: done,
-          )
+        a.listen(
+          (value) {
+            latestA = value;
+            hasA = true;
+            emit();
+          },
+          onError: controller.addError,
+          onDone: done,
+        ),
+        b.listen(
+          (value) {
+            latestB = value;
+            hasB = true;
+            emit();
+          },
+          onError: controller.addError,
+          onDone: done,
+        ),
+        c.listen(
+          (value) {
+            latestC = value;
+            hasC = true;
+            emit();
+          },
+          onError: controller.addError,
+          onDone: done,
+        ),
       ]);
     },
     onCancel: () async {
-        closed = true;
-        for (final sub in subscriptions) {
-            await sub.cancel();
-        }
+      closed = true;
+      for (final sub in subscriptions) {
+        await sub.cancel();
+      }
     },
   );
 

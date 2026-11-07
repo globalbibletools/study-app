@@ -97,7 +97,9 @@ class FakeBibleService implements BibleService {
   @override
   void addBibleResourceChangeListener(BibleResourceChangeListener listener) {}
   @override
-  void removeBibleResourceChangeListener(BibleResourceChangeListener listener) {}
+  void removeBibleResourceChangeListener(
+    BibleResourceChangeListener listener,
+  ) {}
   @override
   Future<bool> bibleExists(String bibleId) async => true;
   @override
@@ -247,6 +249,9 @@ void main() {
     final searchCtx = homeManager.searchContextNotifier.value;
     expect(searchCtx, isNotNull);
     expect(searchCtx!.word.word, 'דָּוִד');
-    expect(searchCtx.anchorReference, const Reference(bookId: 8, chapter: 4, verse: 17));
+    expect(
+      searchCtx.anchorReference,
+      const Reference(bookId: 8, chapter: 4, verse: 17),
+    );
   });
 }

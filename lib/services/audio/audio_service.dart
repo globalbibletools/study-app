@@ -24,249 +24,271 @@ enum Testament {
 typedef AudioResourceChangeListener = void Function(String source, int bookId);
 
 class AudioService {
-    final _resourceService = getIt<ResourceService>();
-    final _downloadService = getIt<DownloadService>();
+  final _resourceService = getIt<ResourceService>();
+  final _downloadService = getIt<DownloadService>();
 
-    String? _currentSpeaker;
-    final Map<int, AudioTimingDatabase> _timingDbs = {};
+  String? _currentSpeaker;
+  final Map<int, AudioTimingDatabase> _timingDbs = {};
 
-    final List<AudioResourceChangeListener> _resourceChangeListeners = [];
+  final List<AudioResourceChangeListener> _resourceChangeListeners = [];
 
-    AudioService() {
-        _resourceService.addResourceChangeListener(
-          ResourceType.audio,
-          _onAudioResourceChanged,
+  AudioService() {
+    _resourceService.addResourceChangeListener(
+      ResourceType.audio,
+      _onAudioResourceChanged,
+    );
+  }
+
+  void addResourceChangeListener(AudioResourceChangeListener listener) {
+    _resourceChangeListeners.add(listener);
+  }
+
+  void removeResourceChangeListener(AudioResourceChangeListener listener) {
+    _resourceChangeListeners.remove(listener);
+  }
+
+  void _onAudioResourceChanged(ResourceType type, String id) {
+    final parsed = _parseResourceId(id);
+    if (parsed == null) return;
+
+    final (:source, :bookId) = parsed;
+
+    if (_currentSpeaker == source) {
+      _timingDbs.remove(bookId);
+    }
+
+    for (final listener in _resourceChangeListeners) {
+      try {
+        listener(source, bookId);
+      } catch (e, stackTrace) {
+        error(
+          'Audio resource change listener threw',
+          error: e,
+          stackTrace: stackTrace,
         );
+      }
     }
+  }
 
-    void addResourceChangeListener(AudioResourceChangeListener listener) {
-        _resourceChangeListeners.add(listener);
+  ({String source, int bookId})? _parseResourceId(String id) {
+    final parts = id.split('/');
+    if (parts.length != 3) return null;
+
+    final source = parts[1];
+    final bookIndex = bookKeys.indexOf(parts[2]);
+    if (bookIndex < 0) return null;
+
+    return (source: source, bookId: bookIndex + 1);
+  }
+
+  static const int _newTestamentStartBookId = 40;
+  static Testament testamentForBookId(int bookId) {
+    return bookId < _newTestamentStartBookId ? Testament.ot : Testament.nt;
+  }
+
+  String? buildResourceId(String source, int bookId) {
+    if (bookId < 1 || bookId > bookKeys.length) return null;
+    final bookKey = bookKeys[bookId - 1];
+    final testament = testamentForBookId(bookId);
+
+    return "${testament.key}/$source/$bookKey";
+  }
+
+  Future<List<Resource>> getSpeakers(Testament testament) async {
+    try {
+      return await _resourceService.getResourcesByPath(ResourceType.audio, [
+        PathMatcher.exact(testament.key),
+        PathMatcher.any(),
+      ]);
+    } catch (e, stackTrace) {
+      error(
+        'Failed to load audio speakers for ${testament.key}',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      rethrow;
     }
+  }
 
-    void removeResourceChangeListener(AudioResourceChangeListener listener) {
-        _resourceChangeListeners.remove(listener);
-    }
+  Future<({String audioUrl, List<AudioTiming> timings})> getChapterData(
+    String source,
+    int bookId,
+    int chapter,
+  ) async {
+    try {
+      final resourceId = buildResourceId(source, bookId);
+      if (resourceId == null) {
+        warn(
+          'Cannot resolve audio resource for source $source, '
+          'book $bookId, chapter $chapter',
+        );
+        throw AudioMissingException(bookId, chapter);
+      }
 
-    void _onAudioResourceChanged(ResourceType type, String id) {
-        final parsed = _parseResourceId(id);
-        if (parsed == null) return;
+      if (source != _currentSpeaker) {
+        _currentSpeaker = source;
+        _timingDbs.clear();
+      }
 
-        final (:source, :bookId) = parsed;
+      final fileName = "${chapter.toString().padLeft(3, '0')}.mp3";
 
-        if (_currentSpeaker == source) {
-            _timingDbs.remove(bookId);
+      final db =
+          _timingDbs[bookId] ??
+          await _loadTimingDb(bookId, chapter, resourceId);
+      _timingDbs.putIfAbsent(bookId, () => db);
+
+      final timings = db.getTimingsForChapter(chapter - 1);
+      if (timings == null) {
+        warn(
+          'No audio timings for source $source, '
+          'book $bookId, chapter $chapter',
+        );
+        throw AudioMissingException(bookId, chapter);
+      }
+
+      // --- Audio URL ---
+      try {
+        final localDirectory = await _resourceService.getResourceLocalPath(
+          ResourceType.audio,
+          resourceId,
+        );
+        final fullPath = "$localDirectory/$fileName";
+
+        final exists = await File(fullPath).exists();
+        if (!exists) {
+          warn('Local audio file missing: $fullPath');
+          throw AudioMissingException(bookId, chapter);
         }
 
-        for (final listener in _resourceChangeListeners) {
-            try {
-                listener(source, bookId);
-            } catch (e, stackTrace) {
-                error(
-                  'Audio resource change listener threw',
-                  error: e,
-                  stackTrace: stackTrace,
-                );
-            }
+        final url = Uri.file(fullPath).toString();
+        return (audioUrl: url, timings: timings);
+      } on ResourceMissingException {
+        final remoteUrl = await _resourceService.getResourceStreamingUrl(
+          ResourceType.audio,
+          resourceId,
+        );
+        final url = "$remoteUrl/$fileName";
+
+        final exists = await _downloadService.checkExistence(url);
+        if (!exists) {
+          warn('Remote audio file missing: $url');
+          throw AudioMissingException(bookId, chapter);
         }
+
+        return (audioUrl: url, timings: timings);
+      }
+    } on AudioMissingException {
+      rethrow;
+    } catch (e, stackTrace) {
+      error(
+        'Failed to load audio chapter data for source $source, '
+        'book $bookId, chapter $chapter',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      rethrow;
     }
+  }
 
-    ({String source, int bookId})? _parseResourceId(String id) {
-        final parts = id.split('/');
-        if (parts.length != 3) return null;
+  Future<AudioTimingDatabase> _loadTimingDb(
+    int bookId,
+    int chapter,
+    String resourceId,
+  ) async {
+    try {
+      final localDirectory = await _resourceService.getResourceLocalPath(
+        ResourceType.audio,
+        resourceId,
+      );
+      final timingsFile = File('$localDirectory/timings.bin');
+      if (!await timingsFile.exists()) {
+        warn('Local audio timings file missing: ${timingsFile.path}');
+        throw AudioMissingException(bookId, chapter);
+      }
+      return await AudioTimingDatabase.openFile(timingsFile.path);
+    } on ResourceMissingException {
+      final remoteUrl = await _resourceService.getResourceStreamingUrl(
+        ResourceType.audio,
+        resourceId,
+      );
+      final timingsUrl = '$remoteUrl/timings.bin';
 
-        final source = parts[1];
-        final bookIndex = bookKeys.indexOf(parts[2]);
-        if (bookIndex < 0) return null;
-
-        return (source: source, bookId: bookIndex + 1);
+      try {
+        final bytes = await _downloadService.getBytes(timingsUrl);
+        return AudioTimingDatabase(bytes);
+      } on HttpNotFoundException {
+        warn('Remote audio timings file missing: $timingsUrl');
+        throw AudioMissingException(bookId, chapter);
+      }
     }
-
-    static const int _newTestamentStartBookId = 40;
-    static Testament testamentForBookId(int bookId) {
-        return bookId < _newTestamentStartBookId ? Testament.ot : Testament.nt;
-    }
-
-    String? buildResourceId(String source, int bookId) {
-        if (bookId < 1 || bookId > bookKeys.length) return null;
-        final bookKey = bookKeys[bookId - 1];
-        final testament = testamentForBookId(bookId);
-
-        return "${testament.key}/$source/$bookKey";
-    }
-
-    Future<List<Resource>> getSpeakers(Testament testament) async {
-        try {
-            return await _resourceService.getResourcesByPath(
-              ResourceType.audio,
-              [PathMatcher.exact(testament.key), PathMatcher.any()],
-            );
-        } catch (e, stackTrace) {
-            error(
-              'Failed to load audio speakers for ${testament.key}',
-              error: e,
-              stackTrace: stackTrace,
-            );
-            rethrow;
-        }
-    }
-
-    Future<({String audioUrl, List<AudioTiming> timings})> getChapterData(String source, int bookId, int chapter) async {
-        try {
-            final resourceId = buildResourceId(source, bookId);
-            if (resourceId == null) {
-                warn(
-                  'Cannot resolve audio resource for source $source, '
-                  'book $bookId, chapter $chapter',
-                );
-                throw AudioMissingException(bookId, chapter);
-            }
-
-            if (source != _currentSpeaker) {
-                _currentSpeaker = source;
-                _timingDbs.clear();
-            }
-
-            final fileName = "${chapter.toString().padLeft(3, '0')}.mp3";
-
-            final db = _timingDbs[bookId] ?? await _loadTimingDb(bookId, chapter, resourceId);
-            _timingDbs.putIfAbsent(bookId, () => db);
-
-            final timings = db.getTimingsForChapter(chapter - 1);
-            if (timings == null) {
-                warn(
-                  'No audio timings for source $source, '
-                  'book $bookId, chapter $chapter',
-                );
-                throw AudioMissingException(bookId, chapter);
-            }
-
-            // --- Audio URL ---
-            try {
-                final localDirectory = await _resourceService.getResourceLocalPath(ResourceType.audio, resourceId);
-                final fullPath = "$localDirectory/$fileName";
-
-                final exists = await File(fullPath).exists();
-                if (!exists) {
-                    warn('Local audio file missing: $fullPath');
-                    throw AudioMissingException(bookId, chapter);
-                }
-
-                final url = Uri.file(fullPath).toString();
-                return (audioUrl: url, timings: timings);
-            } on ResourceMissingException {
-                final remoteUrl = await _resourceService.getResourceStreamingUrl(ResourceType.audio, resourceId);
-                final url = "$remoteUrl/$fileName";
-
-                final exists = await _downloadService.checkExistence(url);
-                if (!exists) {
-                    warn('Remote audio file missing: $url');
-                    throw AudioMissingException(bookId, chapter);
-                }
-
-                return (audioUrl: url, timings: timings);
-            }
-        } on AudioMissingException {
-            rethrow;
-        } catch (e, stackTrace) {
-            error(
-              'Failed to load audio chapter data for source $source, '
-              'book $bookId, chapter $chapter',
-              error: e,
-              stackTrace: stackTrace,
-            );
-            rethrow;
-        }
-    }
-
-    Future<AudioTimingDatabase> _loadTimingDb(int bookId, int chapter, String resourceId) async {
-        try {
-            final localDirectory = await _resourceService.getResourceLocalPath(ResourceType.audio, resourceId);
-            final timingsFile = File('$localDirectory/timings.bin');
-            if (!await timingsFile.exists()) {
-                warn('Local audio timings file missing: ${timingsFile.path}');
-                throw AudioMissingException(bookId, chapter);
-            }
-            return await AudioTimingDatabase.openFile(timingsFile.path);
-        } on ResourceMissingException {
-            final remoteUrl = await _resourceService.getResourceStreamingUrl(ResourceType.audio, resourceId);
-            final timingsUrl = '$remoteUrl/timings.bin';
-
-            try {
-                final bytes = await _downloadService.getBytes(timingsUrl);
-                return AudioTimingDatabase(bytes);
-            } on HttpNotFoundException {
-                warn('Remote audio timings file missing: $timingsUrl');
-                throw AudioMissingException(bookId, chapter);
-            }
-        }
-    }
+  }
 }
 
 const List<String> bookKeys = [
-    'Gen',
-    'Exo',
-    'Lev',
-    'Num',
-    'Deu',
-    'Jos',
-    'Jdg',
-    'Rut',
-    '1Sa',
-    '2Sa',
-    '1Ki',
-    '2Ki',
-    '1Ch',
-    '2Ch',
-    'Ezr',
-    'Neh',
-    'Est',
-    'Job',
-    'Psa',
-    'Pro',
-    'Ecc',
-    'Sng',
-    'Isa',
-    'Jer',
-    'Lam',
-    'Ezk',
-    'Dan',
-    'Hos',
-    'Jol',
-    'Amo',
-    'Oba',
-    'Jon',
-    'Mic',
-    'Nam',
-    'Hab',
-    'Zep',
-    'Hag',
-    'Zec',
-    'Mal',
-    'Mat',
-    'Mrk',
-    'Luk',
-    'Jhn',
-    'Act',
-    'Rom',
-    '1Co',
-    '2Co',
-    'Gal',
-    'Eph',
-    'Php',
-    'Col',
-    '1Th',
-    '2Th',
-    '1Ti',
-    '2Ti',
-    'Tit',
-    'Phm',
-    'Heb',
-    'Jas',
-    '1Pe',
-    '2Pe',
-    '1Jn',
-    '2Jn',
-    '3Jn',
-    'Jud',
-    'Rev',
+  'Gen',
+  'Exo',
+  'Lev',
+  'Num',
+  'Deu',
+  'Jos',
+  'Jdg',
+  'Rut',
+  '1Sa',
+  '2Sa',
+  '1Ki',
+  '2Ki',
+  '1Ch',
+  '2Ch',
+  'Ezr',
+  'Neh',
+  'Est',
+  'Job',
+  'Psa',
+  'Pro',
+  'Ecc',
+  'Sng',
+  'Isa',
+  'Jer',
+  'Lam',
+  'Ezk',
+  'Dan',
+  'Hos',
+  'Jol',
+  'Amo',
+  'Oba',
+  'Jon',
+  'Mic',
+  'Nam',
+  'Hab',
+  'Zep',
+  'Hag',
+  'Zec',
+  'Mal',
+  'Mat',
+  'Mrk',
+  'Luk',
+  'Jhn',
+  'Act',
+  'Rom',
+  '1Co',
+  '2Co',
+  'Gal',
+  'Eph',
+  'Php',
+  'Col',
+  '1Th',
+  '2Th',
+  '1Ti',
+  '2Ti',
+  'Tit',
+  'Phm',
+  'Heb',
+  'Jas',
+  '1Pe',
+  '2Pe',
+  '1Jn',
+  '2Jn',
+  '3Jn',
+  'Jud',
+  'Rev',
 ];

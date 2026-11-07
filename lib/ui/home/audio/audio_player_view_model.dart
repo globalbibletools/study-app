@@ -371,7 +371,10 @@ class AudioPlayerViewModel extends ChangeNotifier {
 
   Future<void> _errorStreamHandler(Object error) async {
     log.error('Audio player error', error: error);
-    await _reset(reference: reference.value, error: AudioUnknownError(reference.value));
+    await _reset(
+      reference: reference.value,
+      error: AudioUnknownError(reference.value),
+    );
   }
 
   Future<void> _positionStreamHandler(Duration? position) async {
@@ -412,7 +415,7 @@ class AudioPlayerViewModel extends ChangeNotifier {
     }
   }
 
-  Future<void> _reset({ Reference? reference, AudioPlaybackError? error }) async {
+  Future<void> _reset({Reference? reference, AudioPlaybackError? error}) async {
     try {
       await player.clearAudioSources();
     } catch (e, stackTrace) {
@@ -470,19 +473,24 @@ class AudioPlayerViewModel extends ChangeNotifier {
       }
 
       if (speakers.isEmpty) {
-        log.warn(
-          'No audio speakers available for ${nextTestament.key}',
+        log.warn('No audio speakers available for ${nextTestament.key}');
+        await _reset(
+          reference: newReference,
+          error: AudioFileMissingError(newReference),
         );
-        await _reset(reference: newReference, error: AudioFileMissingError(newReference));
         return;
       }
 
-
-      String speakerKey(String speakerId) => speakerId.substring(speakerId.indexOf('/') + 1);
-      final sourceAvailable =
-          speakers.any((s) => speakerKey(s.id) == source.forTestament(nextTestament));
+      String speakerKey(String speakerId) =>
+          speakerId.substring(speakerId.indexOf('/') + 1);
+      final sourceAvailable = speakers.any(
+        (s) => speakerKey(s.id) == source.forTestament(nextTestament),
+      );
       if (!sourceAvailable) {
-        source = source.withTestament(nextTestament, speakerKey(speakers.first.id));
+        source = source.withTestament(
+          nextTestament,
+          speakerKey(speakers.first.id),
+        );
       }
     }
 
@@ -509,7 +517,10 @@ class AudioPlayerViewModel extends ChangeNotifier {
         newReference.chapter,
       );
     } on AudioMissingException {
-      await _reset(reference: newReference, error: AudioFileMissingError(newReference));
+      await _reset(
+        reference: newReference,
+        error: AudioFileMissingError(newReference),
+      );
       return;
     } catch (e, stackTrace) {
       log.error(
@@ -541,19 +552,22 @@ class AudioPlayerViewModel extends ChangeNotifier {
 
     final wasPlaying = player.playing;
     try {
-        await player.setAudioSource(
-          AudioSource.uri(
-            Uri.parse(audioUrl),
-            tag: MediaItem(id: audioUrl, title: title),
-          ),
-        );
+      await player.setAudioSource(
+        AudioSource.uri(
+          Uri.parse(audioUrl),
+          tag: MediaItem(id: audioUrl, title: title),
+        ),
+      );
     } catch (error, stackTrace) {
-        log.error(
-          'Failed to load audio from $audioUrl',
-          error: error,
-          stackTrace: stackTrace,
-        );
-        await _reset(reference: newReference, error: AudioUnknownError(newReference));
+      log.error(
+        'Failed to load audio from $audioUrl',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      await _reset(
+        reference: newReference,
+        error: AudioUnknownError(newReference),
+      );
     }
 
     await _seekToReference(newReference);
@@ -587,7 +601,9 @@ class AudioPlayerViewModel extends ChangeNotifier {
     final timing = _referenceToTiming(reference);
     if (timing != null) {
       try {
-        await player.seek(Duration(milliseconds: (timing.start * 1000).toInt()));
+        await player.seek(
+          Duration(milliseconds: (timing.start * 1000).toInt()),
+        );
       } catch (error, stackTrace) {
         log.error(
           'Failed to seek audio to reference '

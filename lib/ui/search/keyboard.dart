@@ -137,8 +137,9 @@ class _HebrewGreekKeyboardState extends State<HebrewGreekKeyboard> {
     return ValueListenableBuilder<List<String>>(
       valueListenable: widget.candidatesNotifier!,
       builder: (context, candidates, child) {
-        final direction =
-            widget.isHebrew ? TextDirection.rtl : TextDirection.ltr;
+        final direction = widget.isHebrew
+            ? TextDirection.rtl
+            : TextDirection.ltr;
 
         List<Widget> slots = [
           const Expanded(child: SizedBox()), // Slot 1 (Start)
@@ -243,17 +244,16 @@ class _HebrewGreekKeyboardState extends State<HebrewGreekKeyboard> {
     return Row(
       textDirection: direction,
       mainAxisAlignment: MainAxisAlignment.center,
-      children:
-          letters
-              .map(
-                (letter) => _KeyboardKey(
-                  text: letter,
-                  onKeyPressed: () => _onKeyPressed(letter),
-                  keyColor: widget.keyColor,
-                  textColor: widget.keyTextColor,
-                ),
-              )
-              .toList(),
+      children: letters
+          .map(
+            (letter) => _KeyboardKey(
+              text: letter,
+              onKeyPressed: () => _onKeyPressed(letter),
+              keyColor: widget.keyColor,
+              textColor: widget.keyTextColor,
+            ),
+          )
+          .toList(),
     );
   }
 
@@ -283,8 +283,9 @@ class _HebrewGreekKeyboardState extends State<HebrewGreekKeyboard> {
                 onPressed: () {
                   HapticFeedback.lightImpact();
                   final isHebrew = !widget.isHebrew;
-                  final direction =
-                      isHebrew ? TextDirection.rtl : TextDirection.ltr;
+                  final direction = isHebrew
+                      ? TextDirection.rtl
+                      : TextDirection.ltr;
                   widget.onLanguageChange.call(direction);
                 },
                 child: Icon(
@@ -323,8 +324,9 @@ class _HebrewGreekKeyboardState extends State<HebrewGreekKeyboard> {
                 ),
                 onPressed: _onBackspacePressed,
                 child: Directionality(
-                  textDirection:
-                      widget.isHebrew ? TextDirection.rtl : TextDirection.ltr,
+                  textDirection: widget.isHebrew
+                      ? TextDirection.rtl
+                      : TextDirection.ltr,
                   child: Icon(
                     Icons.backspace_outlined,
                     size: 24,

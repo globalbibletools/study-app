@@ -4,7 +4,10 @@ import 'package:gbt/services/hebrew_greek/srgnt_grammar.dart';
 void main() {
   group('parseSrgntGrammar', () {
     test('expands a noun', () {
-      expect(parseSrgntGrammar('N....NFS'), 'noun: nominative feminine singular');
+      expect(
+        parseSrgntGrammar('N....NFS'),
+        'noun: nominative feminine singular',
+      );
     });
 
     test('expands a finite verb', () {
@@ -29,7 +32,10 @@ void main() {
     });
 
     test('expands an article', () {
-      expect(parseSrgntGrammar('E....GNS'), 'article: genitive neuter singular');
+      expect(
+        parseSrgntGrammar('E....GNS'),
+        'article: genitive neuter singular',
+      );
     });
 
     test('expands an infinitive', () {

@@ -70,7 +70,10 @@ class _VerseListItemState extends State<VerseListItem> {
     super.dispose();
   }
 
-  Future<void> _onWordTapped(HebrewGreekWord word, Offset globalPosition) async {
+  Future<void> _onWordTapped(
+    HebrewGreekWord word,
+    Offset globalPosition,
+  ) async {
     final gloss = await getIt<GlossService>().glossForId(
       wordId: word.id,
       onDatabaseMissing: (langCode) async {
@@ -106,17 +109,15 @@ class _VerseListItemState extends State<VerseListItem> {
 
     for (final word in words) {
       final isHighlighted = widget.highlightPredicate?.call(word) ?? false;
-      final color =
-          isHighlighted
-              ? (widget.highlightColor ?? defaultHighlightColor)
-              : null;
+      final color = isHighlighted
+          ? (widget.highlightColor ?? defaultHighlightColor)
+          : null;
       final text = word.text.endsWith(maqaph) ? word.text : '${word.text} ';
 
-      final recognizer =
-          TapGestureRecognizer()
-            ..onTapUp = (details) {
-              _onWordTapped(word, details.globalPosition);
-            };
+      final recognizer = TapGestureRecognizer()
+        ..onTapUp = (details) {
+          _onWordTapped(word, details.globalPosition);
+        };
       _recognizers.add(recognizer);
 
       spans.add(
@@ -159,10 +160,9 @@ class _VerseListItemState extends State<VerseListItem> {
                           vertical: 1.5,
                         ),
                         decoration: BoxDecoration(
-                          color:
-                              Theme.of(
-                                context,
-                              ).colorScheme.surfaceContainerHighest,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.surfaceContainerHighest,
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
@@ -170,8 +170,9 @@ class _VerseListItemState extends State<VerseListItem> {
                           style: TextStyle(
                             fontSize: 10.5,
                             fontWeight: FontWeight.bold,
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ),
@@ -180,10 +181,9 @@ class _VerseListItemState extends State<VerseListItem> {
                         child: Text(
                           parallel.text,
                           textDirection: parallel.textDirection,
-                          textAlign:
-                              parallel.textDirection == TextDirection.rtl
-                                  ? TextAlign.right
-                                  : TextAlign.left,
+                          textAlign: parallel.textDirection == TextDirection.rtl
+                              ? TextAlign.right
+                              : TextAlign.left,
                           style: TextStyle(
                             fontSize: 13.5,
                             color: Theme.of(context).colorScheme.onSurface,
@@ -205,16 +205,14 @@ class _VerseListItemState extends State<VerseListItem> {
     Widget titleWidget = Text(
       widget.formattedReference,
       style: TextStyle(
-        color:
-            widget.onReferenceTapped != null
-                ? Theme.of(context).colorScheme.primary
-                : Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
-        fontWeight:
-            widget.onReferenceTapped != null
-                ? FontWeight.w600
-                : FontWeight.normal,
+        color: widget.onReferenceTapped != null
+            ? Theme.of(context).colorScheme.primary
+            : Theme.of(
+                context,
+              ).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+        fontWeight: widget.onReferenceTapped != null
+            ? FontWeight.w600
+            : FontWeight.normal,
       ),
     );
 

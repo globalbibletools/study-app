@@ -31,7 +31,7 @@ Future<void> migrateSettings(SharedPreferences settings) async {
       error(
         "Failed to migrate settings to version ${currentVersion + 1}",
         error: err,
-        stackTrace: stack
+        stackTrace: stack,
       );
     }
 

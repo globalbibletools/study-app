@@ -214,9 +214,9 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: () async {
-            await Navigator.of(
-              context,
-            ).push(MaterialPageRoute(builder: (_) => const AddReadingPlanPanel()));
+            await Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const AddReadingPlanPanel()),
+            );
 
             manager.init();
           },

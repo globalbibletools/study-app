@@ -200,8 +200,9 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
                   child: CircularProgressIndicator(
                     value: progress,
                     strokeWidth: 6,
-                    backgroundColor:
-                        Theme.of(context).colorScheme.surfaceContainerHighest,
+                    backgroundColor: Theme.of(
+                      context,
+                    ).colorScheme.surfaceContainerHighest,
                   ),
                 ),
                 Text(
@@ -326,8 +327,9 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
                   child: CircularProgressIndicator(
                     value: progressValue,
                     strokeWidth: 6,
-                    backgroundColor:
-                        Theme.of(context).colorScheme.surfaceContainerHighest,
+                    backgroundColor: Theme.of(
+                      context,
+                    ).colorScheme.surfaceContainerHighest,
                   ),
                 ),
                 Text(progressStr, style: const TextStyle(fontSize: 10)),
@@ -584,9 +586,7 @@ class _BookRow extends StatelessWidget {
         children: [
           Icon(
             progress == 1.0 ? Icons.check_circle : Icons.circle_outlined,
-            color: progress == 1.0
-                ? colorScheme.primary
-                : colorScheme.outline,
+            color: progress == 1.0 ? colorScheme.primary : colorScheme.outline,
           ),
           const SizedBox(width: 12),
           Expanded(

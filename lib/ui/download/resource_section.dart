@@ -5,7 +5,6 @@ import 'package:gbt/services/resources/resource_service.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/common/download_progress_dialog.dart';
 
-
 class ResourceSection extends StatefulWidget {
   final ResourceType resourceType;
   final String title;
@@ -13,11 +12,11 @@ class ResourceSection extends StatefulWidget {
   final String? langCode;
 
   const ResourceSection({
-      super.key,
-      required this.resourceType,
-      required this.title,
-      required this.icon,
-      this.langCode,
+    super.key,
+    required this.resourceType,
+    required this.title,
+    required this.icon,
+    this.langCode,
   });
 
   @override
@@ -57,9 +56,9 @@ class _ResourceSectionState extends State<ResourceSection> {
   }
 
   void _onResourcesChanged(ResourceType type) {
-      if (type != widget.resourceType) return;
+    if (type != widget.resourceType) return;
 
-      _loadResources();
+    _loadResources();
   }
 
   Future<void> _loadResources() async {
@@ -70,8 +69,12 @@ class _ResourceSectionState extends State<ResourceSection> {
     );
     if (!mounted) return;
     setState(() {
-        _resources = ResourceTreeNode.buildTree(resources);
-        _descendantStaleCount = _resources.fold(0, (count, child) => count + child.descendantStaleCount + (child.needsUpdate ? 1 : 0));
+      _resources = ResourceTreeNode.buildTree(resources);
+      _descendantStaleCount = _resources.fold(
+        0,
+        (count, child) =>
+            count + child.descendantStaleCount + (child.needsUpdate ? 1 : 0),
+      );
     });
   }
 
@@ -84,76 +87,73 @@ class _ResourceSectionState extends State<ResourceSection> {
       collapsedShape: Border(),
       title: Text.rich(
         TextSpan(
-            children: [
-                WidgetSpan(
-                    alignment: PlaceholderAlignment.middle,
-                    child: Padding(
-                        padding: const EdgeInsets.only(right: 4, bottom: 3),
-                        child: Icon(widget.icon, size: 16),
-                    )
+          children: [
+            WidgetSpan(
+              alignment: PlaceholderAlignment.middle,
+              child: Padding(
+                padding: const EdgeInsets.only(right: 4, bottom: 3),
+                child: Icon(widget.icon, size: 16),
+              ),
+            ),
+            TextSpan(text: widget.title),
+            if (_descendantStaleCount > 0)
+              WidgetSpan(
+                alignment: PlaceholderAlignment.middle,
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 4, bottom: 3),
+                  child: Container(
+                    margin: const EdgeInsets.only(left: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.orange,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '$_descendantStaleCount',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
                 ),
-                TextSpan(text: widget.title),
-                if (_descendantStaleCount > 0)
-                  WidgetSpan(
-                    alignment: PlaceholderAlignment.middle,
-                    child: Padding(
-                        padding: const EdgeInsets.only(right: 4, bottom: 3),
-                        child: Container(
-                            margin: const EdgeInsets.only(left: 4),
-                            padding: const EdgeInsets.symmetric(horizontal: 6),
-                            decoration: BoxDecoration(
-                                color: Colors.orange,
-                                borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                                '$_descendantStaleCount',
-                                style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                ),
-                            ),
-                        ),
-                    )
-                ),
-            ]
-        )
+              ),
+          ],
+        ),
       ),
       children: [
         _ResourceGroup(
-            resourceType: widget.resourceType, 
-            resources: _resources,
-        )
+          resourceType: widget.resourceType,
+          resources: _resources,
+        ),
       ],
     );
   }
 }
 
 class _ResourceGroup extends StatelessWidget {
-  const _ResourceGroup({
-    required this.resources,
-    required this.resourceType,
-  });
+  const _ResourceGroup({required this.resources, required this.resourceType});
 
   final List<ResourceTreeNode> resources;
   final ResourceType resourceType;
 
   @override
   Widget build(BuildContext context) {
-      return Padding(
-        padding: EdgeInsets.only(left: 16),
-        child: Column(
-            children: resources
-                .map(
-                  (resource) => _DownloadTile(
-                    key: ValueKey('${resourceType.name}_${resource.id}'),
-                    resource: resource,
-                    resourceType: resourceType,
-                  ),
-                )
-                .toList()
-        )
-      );
+    return Padding(
+      padding: EdgeInsets.only(left: 16),
+      child: Column(
+        children: resources
+            .map(
+              (resource) => _DownloadTile(
+                key: ValueKey('${resourceType.name}_${resource.id}'),
+                resource: resource,
+                resourceType: resourceType,
+              ),
+            )
+            .toList(),
+      ),
+    );
   }
 }
 
@@ -246,137 +246,144 @@ class _DownloadTileState extends State<_DownloadTile> {
       trailing = IconButton(
         icon: Icon(widget.resource.isInstalled ? Icons.delete : Icons.download),
         color: primaryColor,
-        onPressed: _busy ? null : (widget.resource.isInstalled ? _delete : _download),
+        onPressed: _busy
+            ? null
+            : (widget.resource.isInstalled ? _delete : _download),
         tooltip: widget.resource.isInstalled ? l10n.delete : l10n.download,
       );
     }
 
     if (widget.resource.children.isEmpty) {
-        return ListTile(
-          title: Text(widget.resource.resourceName),
-          trailing: trailing,
-        );
+      return ListTile(
+        title: Text(widget.resource.resourceName),
+        trailing: trailing,
+      );
     } else {
-        final nestedCount = widget.resource.descendantStaleCount;
-        return ExpansionTile(
-          key: PageStorageKey('section_${widget.resourceType.name}_${widget.resource.id}'),
-          title: Text.rich(
-            TextSpan(children: [
+      final nestedCount = widget.resource.descendantStaleCount;
+      return ExpansionTile(
+        key: PageStorageKey(
+          'section_${widget.resourceType.name}_${widget.resource.id}',
+        ),
+        title: Text.rich(
+          TextSpan(
+            children: [
               TextSpan(text: widget.resource.resourceName),
               if (nestedCount > 0)
-                  WidgetSpan(
-                    alignment: PlaceholderAlignment.middle,
-                    child: Padding(
-                        padding: const EdgeInsets.only(right: 4, bottom: 3),
-                        child: Container(
-                            margin: const EdgeInsets.only(left: 4),
-                            padding: const EdgeInsets.symmetric(horizontal: 6),
-                            decoration: BoxDecoration(
-                                color: Colors.orange,
-                                borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                                '$nestedCount',
-                                style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                ),
-                            ),
+                WidgetSpan(
+                  alignment: PlaceholderAlignment.middle,
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 4, bottom: 3),
+                    child: Container(
+                      margin: const EdgeInsets.only(left: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.orange,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        '$nestedCount',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
                         ),
-                    )
-                )
-            ]),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
-          controlAffinity: ListTileControlAffinity.leading,
-          shape: Border(),
-          collapsedShape: Border(),
-          children: [
-            _ResourceGroup(
-                resourceType: widget.resourceType, 
-                resources: widget.resource.children,
-            )
-          ],
-        );
+        ),
+        controlAffinity: ListTileControlAffinity.leading,
+        shape: Border(),
+        collapsedShape: Border(),
+        children: [
+          _ResourceGroup(
+            resourceType: widget.resourceType,
+            resources: widget.resource.children,
+          ),
+        ],
+      );
     }
   }
 }
 
 class ResourceTreeNode {
-    final String id;
-    final String resourceName;
-    final bool isInstalled;
-    final bool needsUpdate;
-    final int descendantStaleCount;
-    final List<ResourceTreeNode> children;
+  final String id;
+  final String resourceName;
+  final bool isInstalled;
+  final bool needsUpdate;
+  final int descendantStaleCount;
+  final List<ResourceTreeNode> children;
 
-    ResourceTreeNode({
-        required this.id,
-        required this.resourceName,
-        required this.isInstalled,
-        required this.needsUpdate,
-        this.descendantStaleCount = 0,
-        this.children = const [],
-    });
+  ResourceTreeNode({
+    required this.id,
+    required this.resourceName,
+    required this.isInstalled,
+    required this.needsUpdate,
+    this.descendantStaleCount = 0,
+    this.children = const [],
+  });
 
-    static List<ResourceTreeNode> buildTree(List<Resource> resourceList) {
-        Map<int, Map<String, List<Resource>>> parentMap = {};
+  static List<ResourceTreeNode> buildTree(List<Resource> resourceList) {
+    Map<int, Map<String, List<Resource>>> parentMap = {};
 
-        for (final resource in resourceList) {
-            var depth = 0;
-            var lastIndex = 0;
-            for (var i = 0; i < resource.id.length; i++) {
-                if (resource.id[i] == '/') {
-                    depth += 1;
-                    lastIndex = i;
-                }
-            }
-            final parentId = resource.id.substring(0, lastIndex);
-
-            var depthMap = parentMap[depth];
-            if (depthMap == null) {
-                depthMap = {};
-                parentMap[depth] = depthMap;
-            }
-
-            var siblings = depthMap[parentId];
-            if (siblings == null) {
-                siblings = [];
-                depthMap[parentId] = siblings;
-            }
-
-            siblings.add(resource);
+    for (final resource in resourceList) {
+      var depth = 0;
+      var lastIndex = 0;
+      for (var i = 0; i < resource.id.length; i++) {
+        if (resource.id[i] == '/') {
+          depth += 1;
+          lastIndex = i;
         }
+      }
+      final parentId = resource.id.substring(0, lastIndex);
 
-        List<ResourceTreeNode> buildTree(int depth, String parentId) {
-            final depthMap = parentMap[depth]; 
-            if (depthMap == null) return const [];
+      var depthMap = parentMap[depth];
+      if (depthMap == null) {
+        depthMap = {};
+        parentMap[depth] = depthMap;
+      }
 
-            final children = depthMap[parentId] ?? [];
-            
-            return children.map((child) {
-                final details = child.installableDetails;
-                final isInstalled = details?.installState == InstallState.installed;
-                final needsUpdate =
-                    isInstalled && details?.localUpdatedAt != details?.serverUpdatedAt;
+      var siblings = depthMap[parentId];
+      if (siblings == null) {
+        siblings = [];
+        depthMap[parentId] = siblings;
+      }
 
-                final children = buildTree(depth + 1, child.id);
-                final descendantStaleCount = children.fold(
-                    0,
-                    (count, child) => count + child.descendantStaleCount + (child.needsUpdate ? 1 : 0)
-                );
-
-                return ResourceTreeNode(
-                    id: child.id,
-                    resourceName: child.resourceName,
-                    isInstalled: isInstalled,
-                    needsUpdate: needsUpdate,
-                    children: children,
-                    descendantStaleCount: descendantStaleCount,
-                );
-            }).toList();
-        }
-
-        return buildTree(0, '');
+      siblings.add(resource);
     }
+
+    List<ResourceTreeNode> buildTree(int depth, String parentId) {
+      final depthMap = parentMap[depth];
+      if (depthMap == null) return const [];
+
+      final children = depthMap[parentId] ?? [];
+
+      return children.map((child) {
+        final details = child.installableDetails;
+        final isInstalled = details?.installState == InstallState.installed;
+        final needsUpdate =
+            isInstalled && details?.localUpdatedAt != details?.serverUpdatedAt;
+
+        final children = buildTree(depth + 1, child.id);
+        final descendantStaleCount = children.fold(
+          0,
+          (count, child) =>
+              count + child.descendantStaleCount + (child.needsUpdate ? 1 : 0),
+        );
+
+        return ResourceTreeNode(
+          id: child.id,
+          resourceName: child.resourceName,
+          isInstalled: isInstalled,
+          needsUpdate: needsUpdate,
+          children: children,
+          descendantStaleCount: descendantStaleCount,
+        );
+      }).toList();
+    }
+
+    return buildTree(0, '');
+  }
 }

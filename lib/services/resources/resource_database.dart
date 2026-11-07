@@ -15,8 +15,7 @@ class ResourceDatabase {
 
   final Future<Database> _database;
 
-  ResourceDatabase()
-      : _database = _open();
+  ResourceDatabase() : _database = _open();
 
   static Future<Database> _open() async {
     final docDir = await getApplicationDocumentsDirectory();
@@ -47,9 +46,7 @@ class ResourceDatabase {
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) {
           await db.execute(_createLanguagesTable);
-          await db.execute(
-            "alter table resource add column lang_code text;",
-          );
+          await db.execute("alter table resource add column lang_code text;");
         }
       },
     );
@@ -93,7 +90,10 @@ class ResourceDatabase {
     await batch.commit(noResult: true);
   }
 
-  Future<void> updateResourcesFromManifest(ResourceType resourceType, List<Resource> resources) async {
+  Future<void> updateResourcesFromManifest(
+    ResourceType resourceType,
+    List<Resource> resources,
+  ) async {
     final db = await _database;
     final batch = db.batch();
 
@@ -206,11 +206,7 @@ class ResourceDatabase {
     final rows = await db.query(
       'resource',
       where: "resource_type = ? AND id GLOB ? AND depth = ?",
-      whereArgs: [
-        resourceType.name,
-        path.join('/'),
-        path.length - 1,
-      ],
+      whereArgs: [resourceType.name, path.join('/'), path.length - 1],
     );
 
     return rows.map(_rowToResource).toList();
@@ -294,16 +290,14 @@ class ResourceDatabase {
 
   Future<Map<ResourceType, int>> countOutdatedResourcesByType() async {
     final db = await _database;
-    final rows = await db.rawQuery(
-      '''
+    final rows = await db.rawQuery('''
         select resource_type, count(*) as cnt from resource
         where server_state = 'available'
           and install_state = 'installed'
           and local_updated_at is not null
           and local_updated_at != server_updated_at
         group by resource_type;
-      ''',
-    );
+      ''');
     final result = <ResourceType, int>{};
     for (final row in rows) {
       final type = ResourceType.values.firstWhere(
@@ -330,10 +324,7 @@ class ResourceDatabase {
     return rows.first['server_updated_at'] as String?;
   }
 
-  Future<bool> isInstalled(
-    ResourceType resourceType,
-    String id,
-  ) async {
+  Future<bool> isInstalled(ResourceType resourceType, String id) async {
     final db = await _database;
     final rows = await db.query(
       'resource',
@@ -346,10 +337,7 @@ class ResourceDatabase {
     return rows.first['install_state'] == InstallState.installed.name;
   }
 
-  Future<void> setInstallState(
-    String id,
-    InstallState installState,
-  ) async {
+  Future<void> setInstallState(String id, InstallState installState) async {
     final db = await _database;
     final state = installState.name;
     await db.rawUpdate(
@@ -371,14 +359,13 @@ class PathMatcher {
 
   PathMatcher.exact(String value)
     : sqlSegment = value
-      .replaceAll(r'*', r'[8]')
-      .replaceAll(r'?', r'[?]')
-      .replaceAll(r'[', r'[[]')
-      .replaceAll(r']', r'[]]');
+          .replaceAll(r'*', r'[8]')
+          .replaceAll(r'?', r'[?]')
+          .replaceAll(r'[', r'[[]')
+          .replaceAll(r']', r'[]]');
 
   @override
   String toString() {
-      return sqlSegment;
+    return sqlSegment;
   }
 }
-

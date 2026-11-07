@@ -457,8 +457,10 @@ class ReadingSessionDatabase {
 
       if (existingPlan != null) {
         if (orderedBookIds.isNotEmpty) {
-          final placeholders =
-              List.filled(orderedBookIds.length, '?').join(',');
+          final placeholders = List.filled(
+            orderedBookIds.length,
+            '?',
+          ).join(',');
           batch.delete(
             'rs_book_progress',
             where: 'reading_plan_id = ? AND book_id NOT IN ($placeholders)',
@@ -517,11 +519,7 @@ class ReadingSessionDatabase {
         where: 'reading_plan_id = ?',
         whereArgs: [planId],
       );
-      batch.delete(
-        'reading_plan',
-        where: 'id = ?',
-        whereArgs: [planId],
-      );
+      batch.delete('reading_plan', where: 'id = ?', whereArgs: [planId]);
       await batch.commit(noResult: true);
     });
   }

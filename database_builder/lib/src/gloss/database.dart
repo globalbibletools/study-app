@@ -114,11 +114,7 @@ class GlossDatabase {
       final text = word.gloss ?? word.aiGloss;
       final textForeignId = textMap[text];
       final isAi = word.gloss == null && word.aiGloss != null;
-      _insertVerseGloss.execute([
-        word.sourceId,
-        textForeignId,
-        isAi ? 1 : 0,
-      ]);
+      _insertVerseGloss.execute([word.sourceId, textForeignId, isAi ? 1 : 0]);
     }
     _database.execute('COMMIT;');
   }
@@ -149,5 +145,6 @@ class Gloss {
   }
 
   @override
-  String toString() => 'Word(sourceId: $sourceId, gloss: $gloss, aiGloss: $aiGloss)';
+  String toString() =>
+      'Word(sourceId: $sourceId, gloss: $gloss, aiGloss: $aiGloss)';
 }

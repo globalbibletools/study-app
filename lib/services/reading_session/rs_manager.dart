@@ -230,11 +230,7 @@ class ReadingSessionManager {
 
     Map<int, int>? current = _bookVerseReadCount[key];
     if (current == null) {
-      current = await getVersesReadForChapter(
-        readingPlanId,
-        bookId,
-        chapter,
-      );
+      current = await getVersesReadForChapter(readingPlanId, bookId, chapter);
 
       _bookVerseReadCount[key] = current;
     }
@@ -300,13 +296,8 @@ class ReadingSessionManager {
       chapter,
     );
 
-    final List<RsLog> todayVerseLogs =
-        await _rsdbManager.getRsLogForDailyLogAndVerse(
-      _rsDailyLog!.id!,
-      bookId,
-      chapter,
-      verse,
-    );
+    final List<RsLog> todayVerseLogs = await _rsdbManager
+        .getRsLogForDailyLogAndVerse(_rsDailyLog!.id!, bookId, chapter, verse);
     final todaySessionCount = todayVerseLogs.length;
 
     await _rsdbManager.deleteRsLogsForVerse(
@@ -322,8 +313,10 @@ class ReadingSessionManager {
       _rsDailyLog = _rsDailyLog!.copyWith(
         verses: math.max(0, _rsDailyLog!.verses - todaySessionCount),
       );
-      totalVersesReadPerDay.value =
-          math.max(0, totalVersesReadPerDay.value - todaySessionCount);
+      totalVersesReadPerDay.value = math.max(
+        0,
+        totalVersesReadPerDay.value - todaySessionCount,
+      );
       await _rsdbManager.updateDailyLog(_rsDailyLog!);
     }
 
@@ -573,7 +566,8 @@ class ReadingSessionManager {
       }
 
       for (final bookId in orderedBookIds) {
-        final progress = progressMap[bookId] ??
+        final progress =
+            progressMap[bookId] ??
             RsBookProgress(
               bookId: bookId,
               chapter: 1,
@@ -673,8 +667,9 @@ class ReadingSessionManager {
         updatedAt: DateTime.now(),
       );
       if (currentProgress.id == null) {
-        currentProgress =
-            await _rsdbManager.insertBookProgresss(currentProgress);
+        currentProgress = await _rsdbManager.insertBookProgresss(
+          currentProgress,
+        );
       } else {
         await _rsdbManager.updateBookProgress(currentProgress);
       }
@@ -724,8 +719,10 @@ class ReadingSessionManager {
     } else {
       // Book is not yet complete. Check touched chapter vs other chapters.
       final touchedChapterCount = chapterCounts[touchedChapter] ?? 0;
-      final touchedChapterTotal =
-          BibleNavigation.getVerseCount(bookId, touchedChapter);
+      final touchedChapterTotal = BibleNavigation.getVerseCount(
+        bookId,
+        touchedChapter,
+      );
 
       if (touchedChapterCount < touchedChapterTotal) {
         // Case A: Touched chapter still has unread verses
@@ -764,8 +761,10 @@ class ReadingSessionManager {
         }
 
         cursorChapter = targetChapter;
-        final targetChapterTotal =
-            BibleNavigation.getVerseCount(bookId, targetChapter);
+        final targetChapterTotal = BibleNavigation.getVerseCount(
+          bookId,
+          targetChapter,
+        );
         final versesReadForChapter = await _rsdbManager.getVersesReadForChapter(
           readingPlanId,
           bookId,
@@ -789,8 +788,9 @@ class ReadingSessionManager {
         updatedAt: DateTime.now(),
       );
       if (currentProgress.id == null) {
-        currentProgress =
-            await _rsdbManager.insertBookProgresss(currentProgress);
+        currentProgress = await _rsdbManager.insertBookProgresss(
+          currentProgress,
+        );
       } else {
         await _rsdbManager.updateBookProgress(currentProgress);
       }

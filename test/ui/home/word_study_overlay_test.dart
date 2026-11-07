@@ -79,7 +79,8 @@ class FakeGlossService implements GlossService {
 
 class FakeLexiconsDatabase implements LexiconsDatabase {
   @override
-  Future<List<LexiconMeaning>> getMeaningsForStrongs(String strongs) async => [];
+  Future<List<LexiconMeaning>> getMeaningsForStrongs(String strongs) async =>
+      [];
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -130,7 +131,9 @@ class FakeBibleService implements BibleService {
   @override
   void addBibleResourceChangeListener(BibleResourceChangeListener listener) {}
   @override
-  void removeBibleResourceChangeListener(BibleResourceChangeListener listener) {}
+  void removeBibleResourceChangeListener(
+    BibleResourceChangeListener listener,
+  ) {}
   @override
   Future<bool> bibleExists(String bibleId) async => true;
   @override
@@ -184,221 +187,248 @@ void main() {
     homeManager.dispose();
   });
 
-  testWidgets('WordStudyOverlayLayer lifecycle: display, navigate, offstage, restore original', (tester) async {
-    homeManager.currentReference.value = const Reference(bookId: 1, chapter: 12, verse: 1);
-    homeManager.startWordStudy(wordId: 'w1', isRtl: true);
+  testWidgets(
+    'WordStudyOverlayLayer lifecycle: display, navigate, offstage, restore original',
+    (tester) async {
+      homeManager.currentReference.value = const Reference(
+        bookId: 1,
+        chapter: 12,
+        verse: 1,
+      );
+      homeManager.startWordStudy(wordId: 'w1', isRtl: true);
 
-    await tester.pumpWidget(
-      MaterialApp(
-        localizationsDelegates: const [
-          AppLocalizations.delegate,
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        supportedLocales: const [Locale('en')],
-        home: Scaffold(
-          body: Stack(
-            children: [
-              const Center(child: Text('Bible Reader at Genesis 12:1')),
-              ListenableBuilder(
-                listenable: homeManager.wordStudySessionNotifier,
-                builder: (context, _) {
-                  final session = homeManager.wordStudySessionNotifier.value;
-                  if (session == null) return const SizedBox.shrink();
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: const [Locale('en')],
+          home: Scaffold(
+            body: Stack(
+              children: [
+                const Center(child: Text('Bible Reader at Genesis 12:1')),
+                ListenableBuilder(
+                  listenable: homeManager.wordStudySessionNotifier,
+                  builder: (context, _) {
+                    final session = homeManager.wordStudySessionNotifier.value;
+                    if (session == null) return const SizedBox.shrink();
 
-                  return Positioned.fill(
-                    child: ListenableBuilder(
-                      listenable: session.isOverlayVisibleNotifier,
-                      builder: (context, _) {
-                        return Offstage(
-                          key: const Key('word_study_offstage'),
-                          offstage: !session.isOverlayVisible,
-                          child: WordStudyOverlayLayer(
-                            session: session,
-                            manager: homeManager,
-                          ),
-                        );
-                      },
-                    ),
-                  );
-                },
-              ),
-              ListenableBuilder(
-                listenable: homeManager.searchContextNotifier,
-                builder: (context, _) {
-                  final ctx = homeManager.searchContextNotifier.value;
-                  if (ctx == null) return const SizedBox.shrink();
-                  return Align(
-                    alignment: Alignment.bottomCenter,
-                    child: FloatingReturnPill(contextData: ctx),
-                  );
-                },
-              ),
-            ],
+                    return Positioned.fill(
+                      child: ListenableBuilder(
+                        listenable: session.isOverlayVisibleNotifier,
+                        builder: (context, _) {
+                          return Offstage(
+                            key: const Key('word_study_offstage'),
+                            offstage: !session.isOverlayVisible,
+                            child: WordStudyOverlayLayer(
+                              session: session,
+                              manager: homeManager,
+                            ),
+                          );
+                        },
+                      ),
+                    );
+                  },
+                ),
+                ListenableBuilder(
+                  listenable: homeManager.searchContextNotifier,
+                  builder: (context, _) {
+                    final ctx = homeManager.searchContextNotifier.value;
+                    if (ctx == null) return const SizedBox.shrink();
+                    return Align(
+                      alignment: Alignment.bottomCenter,
+                      child: FloatingReturnPill(contextData: ctx),
+                    );
+                  },
+                ),
+              ],
+            ),
           ),
         ),
-      ),
-    );
+      );
 
-    await tester.pumpAndSettle();
+      await tester.pumpAndSettle();
 
-    // 1. WordDetailsDialog is visible initially
-    expect(find.byType(WordDetailsDialog), findsOneWidget);
-    expect(find.byType(SimilarVersesPage), findsNothing);
+      // 1. WordDetailsDialog is visible initially
+      expect(find.byType(WordDetailsDialog), findsOneWidget);
+      expect(find.byType(SimilarVersesPage), findsNothing);
 
-    // 2. Tap list icon in WordDetailsDialog to open occurrences
-    await tester.tap(find.byIcon(Icons.list));
-    await tester.pumpAndSettle();
+      // 2. Tap list icon in WordDetailsDialog to open occurrences
+      await tester.tap(find.byIcon(Icons.list));
+      await tester.pumpAndSettle();
 
-    expect(find.byType(SimilarVersesPage), findsOneWidget);
+      expect(find.byType(SimilarVersesPage), findsOneWidget);
 
-    // 3. In SimilarVersesPage, tap a verse reference (Ruth 4:17) to preview context
-    final refFinder = find.text('Ruth 4:17');
-    expect(refFinder, findsOneWidget);
-    await tester.tap(refFinder);
-    await tester.pumpAndSettle();
-    await tester.pump(const Duration(milliseconds: 1600)); // Advance flash timer
+      // 3. In SimilarVersesPage, tap a verse reference (Ruth 4:17) to preview context
+      final refFinder = find.text('Ruth 4:17');
+      expect(refFinder, findsOneWidget);
+      await tester.tap(refFinder);
+      await tester.pumpAndSettle();
+      await tester.pump(
+        const Duration(milliseconds: 1600),
+      ); // Advance flash timer
 
-    // Reader jumped to preview reference
-    expect(homeManager.currentReference.value, const Reference(bookId: 8, chapter: 4, verse: 17));
+      // Reader jumped to preview reference
+      expect(
+        homeManager.currentReference.value,
+        const Reference(bookId: 8, chapter: 4, verse: 17),
+      );
 
-    // Overlay is now OFFSTAGE
-    final session = homeManager.wordStudySessionNotifier.value!;
-    expect(session.isOverlayVisible, isFalse);
+      // Overlay is now OFFSTAGE
+      final session = homeManager.wordStudySessionNotifier.value!;
+      expect(session.isOverlayVisible, isFalse);
 
-    // Return pill is visible
-    expect(find.byType(FloatingReturnPill), findsOneWidget);
+      // Return pill is visible
+      expect(find.byType(FloatingReturnPill), findsOneWidget);
 
-    // SimilarVersesPage is still mounted in element tree but offstage
-    final offstageFinder = find.byKey(const Key('word_study_offstage'));
-    expect(offstageFinder, findsOneWidget);
-    final offstageWidget = tester.widget<Offstage>(offstageFinder);
-    expect(offstageWidget.offstage, isTrue);
+      // SimilarVersesPage is still mounted in element tree but offstage
+      final offstageFinder = find.byKey(const Key('word_study_offstage'));
+      expect(offstageFinder, findsOneWidget);
+      final offstageWidget = tester.widget<Offstage>(offstageFinder);
+      expect(offstageWidget.offstage, isTrue);
 
-    // 4. Tap the return pill body to return to occurrences list
-    await tester.tap(find.text('דָּוִד'));
-    await tester.pumpAndSettle();
+      // 4. Tap the return pill body to return to occurrences list
+      await tester.tap(find.text('דָּוִד'));
+      await tester.pumpAndSettle();
 
-    // Overlay is now ONSTAGE immediately without rebuilding
-    expect(session.isOverlayVisible, isTrue);
-    final offstageWidgetAfter = tester.widget<Offstage>(find.byKey(const Key('word_study_offstage')));
-    expect(offstageWidgetAfter.offstage, isFalse);
-    expect(find.byType(SimilarVersesPage), findsOneWidget);
+      // Overlay is now ONSTAGE immediately without rebuilding
+      expect(session.isOverlayVisible, isTrue);
+      final offstageWidgetAfter = tester.widget<Offstage>(
+        find.byKey(const Key('word_study_offstage')),
+      );
+      expect(offstageWidgetAfter.offstage, isFalse);
+      expect(find.byType(SimilarVersesPage), findsOneWidget);
 
-    // 5. Tap the AppBar back button on SimilarVersesPage
-    await tester.tap(find.byType(BackButton));
-    await tester.pumpAndSettle();
+      // 5. Tap the AppBar back button on SimilarVersesPage
+      await tester.tap(find.byType(BackButton));
+      await tester.pumpAndSettle();
 
-    // SimilarVersesPage popped, revealing WordDetailsDialog
-    expect(find.byType(SimilarVersesPage), findsNothing);
-    expect(find.byType(WordDetailsDialog), findsOneWidget);
+      // SimilarVersesPage popped, revealing WordDetailsDialog
+      expect(find.byType(SimilarVersesPage), findsNothing);
+      expect(find.byType(WordDetailsDialog), findsOneWidget);
 
-    // 6. Dismiss WordDetailsDialog via close icon
-    await tester.tap(
-      find.descendant(
-        of: find.byType(WordDetailsDialog),
-        matching: find.byIcon(Icons.close),
-      ),
-    );
-    await tester.pump();
-    expect(homeManager.flashedWordIdNotifier.value, 'w1');
+      // 6. Dismiss WordDetailsDialog via close icon
+      await tester.tap(
+        find.descendant(
+          of: find.byType(WordDetailsDialog),
+          matching: find.byIcon(Icons.close),
+        ),
+      );
+      await tester.pump();
+      expect(homeManager.flashedWordIdNotifier.value, 'w1');
 
-    await tester.pumpAndSettle();
-    await tester.pump(const Duration(milliseconds: 1600));
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 1600));
 
-    // Dialog dismissed, overlay unmounted
-    expect(homeManager.wordStudySessionNotifier.value, isNull);
-    expect(find.byType(WordDetailsDialog), findsNothing);
-    expect(homeManager.flashedWordIdNotifier.value, isNull);
+      // Dialog dismissed, overlay unmounted
+      expect(homeManager.wordStudySessionNotifier.value, isNull);
+      expect(find.byType(WordDetailsDialog), findsNothing);
+      expect(homeManager.flashedWordIdNotifier.value, isNull);
 
-    // Reader automatically returned to original reading location (Genesis 12:1)!
-    expect(homeManager.currentReference.value, const Reference(bookId: 1, chapter: 12, verse: 1));
-  });
+      // Reader automatically returned to original reading location (Genesis 12:1)!
+      expect(
+        homeManager.currentReference.value,
+        const Reference(bookId: 1, chapter: 12, verse: 1),
+      );
+    },
+  );
 
-  testWidgets('FloatingReturnPill close icon stays at current location and discards session', (tester) async {
-    homeManager.currentReference.value = const Reference(bookId: 1, chapter: 12, verse: 1);
-    homeManager.startWordStudy(wordId: 'w1', isRtl: true);
+  testWidgets(
+    'FloatingReturnPill close icon stays at current location and discards session',
+    (tester) async {
+      homeManager.currentReference.value = const Reference(
+        bookId: 1,
+        chapter: 12,
+        verse: 1,
+      );
+      homeManager.startWordStudy(wordId: 'w1', isRtl: true);
 
-    await tester.pumpWidget(
-      MaterialApp(
-        localizationsDelegates: const [
-          AppLocalizations.delegate,
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        supportedLocales: const [Locale('en')],
-        home: Scaffold(
-          body: Stack(
-            children: [
-              const Center(child: Text('Bible Reader')),
-              ListenableBuilder(
-                listenable: homeManager.wordStudySessionNotifier,
-                builder: (context, _) {
-                  final session = homeManager.wordStudySessionNotifier.value;
-                  if (session == null) return const SizedBox.shrink();
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: const [Locale('en')],
+          home: Scaffold(
+            body: Stack(
+              children: [
+                const Center(child: Text('Bible Reader')),
+                ListenableBuilder(
+                  listenable: homeManager.wordStudySessionNotifier,
+                  builder: (context, _) {
+                    final session = homeManager.wordStudySessionNotifier.value;
+                    if (session == null) return const SizedBox.shrink();
 
-                  return Positioned.fill(
-                    child: ListenableBuilder(
-                      listenable: session.isOverlayVisibleNotifier,
-                      builder: (context, _) {
-                        return Offstage(
-                          key: const Key('word_study_offstage'),
-                          offstage: !session.isOverlayVisible,
-                          child: WordStudyOverlayLayer(
-                            session: session,
-                            manager: homeManager,
-                          ),
-                        );
-                      },
-                    ),
-                  );
-                },
-              ),
-              ListenableBuilder(
-                listenable: homeManager.searchContextNotifier,
-                builder: (context, _) {
-                  final ctx = homeManager.searchContextNotifier.value;
-                  if (ctx == null) return const SizedBox.shrink();
-                  return Align(
-                    alignment: Alignment.bottomCenter,
-                    child: FloatingReturnPill(contextData: ctx),
-                  );
-                },
-              ),
-            ],
+                    return Positioned.fill(
+                      child: ListenableBuilder(
+                        listenable: session.isOverlayVisibleNotifier,
+                        builder: (context, _) {
+                          return Offstage(
+                            key: const Key('word_study_offstage'),
+                            offstage: !session.isOverlayVisible,
+                            child: WordStudyOverlayLayer(
+                              session: session,
+                              manager: homeManager,
+                            ),
+                          );
+                        },
+                      ),
+                    );
+                  },
+                ),
+                ListenableBuilder(
+                  listenable: homeManager.searchContextNotifier,
+                  builder: (context, _) {
+                    final ctx = homeManager.searchContextNotifier.value;
+                    if (ctx == null) return const SizedBox.shrink();
+                    return Align(
+                      alignment: Alignment.bottomCenter,
+                      child: FloatingReturnPill(contextData: ctx),
+                    );
+                  },
+                ),
+              ],
+            ),
           ),
         ),
-      ),
-    );
+      );
 
-    await tester.pumpAndSettle();
+      await tester.pumpAndSettle();
 
-    // Open occurrences
-    await tester.tap(find.byIcon(Icons.list));
-    await tester.pumpAndSettle();
+      // Open occurrences
+      await tester.tap(find.byIcon(Icons.list));
+      await tester.pumpAndSettle();
 
-    // Tap reference to preview context
-    await tester.tap(find.text('Ruth 4:17'));
-    await tester.pumpAndSettle();
-    await tester.pump(const Duration(milliseconds: 1600));
+      // Tap reference to preview context
+      await tester.tap(find.text('Ruth 4:17'));
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 1600));
 
-    // Tap 'x' on return pill
-    await tester.tap(
-      find.descendant(
-        of: find.byType(FloatingReturnPill),
-        matching: find.byIcon(Icons.close),
-      ),
-    );
-    await tester.pumpAndSettle();
+      // Tap 'x' on return pill
+      await tester.tap(
+        find.descendant(
+          of: find.byType(FloatingReturnPill),
+          matching: find.byIcon(Icons.close),
+        ),
+      );
+      await tester.pumpAndSettle();
 
-    // Session is discarded
-    expect(homeManager.wordStudySessionNotifier.value, isNull);
-    expect(homeManager.searchContextNotifier.value, isNull);
-    expect(find.byType(FloatingReturnPill), findsNothing);
+      // Session is discarded
+      expect(homeManager.wordStudySessionNotifier.value, isNull);
+      expect(homeManager.searchContextNotifier.value, isNull);
+      expect(find.byType(FloatingReturnPill), findsNothing);
 
-    // Reader STAYS at previewed location (Ruth 4:17)
-    expect(homeManager.currentReference.value, const Reference(bookId: 8, chapter: 4, verse: 17));
-  });
+      // Reader STAYS at previewed location (Ruth 4:17)
+      expect(
+        homeManager.currentReference.value,
+        const Reference(bookId: 8, chapter: 4, verse: 17),
+      );
+    },
+  );
 }

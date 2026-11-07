@@ -224,19 +224,21 @@ class HomeManager {
 
   Future<void> toggleAudio(BuildContext context) async {
     if (audioPlayerViewModel.isVisible) {
-        await audioPlayerViewModel.close();
-        return;
+      await audioPlayerViewModel.close();
+      return;
     }
 
     try {
-        await audioPlayerViewModel.openAt(Reference(
-            bookId: currentBookId,
-            chapter: currentChapter,
-            verse: currentVerse,
-        ));
+      await audioPlayerViewModel.openAt(
+        Reference(
+          bookId: currentBookId,
+          chapter: currentChapter,
+          verse: currentVerse,
+        ),
+      );
     } catch (e, stack) {
-        debugPrint("Audio Error: $e");
-        debugPrintStack(stackTrace: stack);
+      debugPrint("Audio Error: $e");
+      debugPrintStack(stackTrace: stack);
       if (context.mounted) {
         showDialog(
           context: context,

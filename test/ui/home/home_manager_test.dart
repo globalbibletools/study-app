@@ -43,7 +43,9 @@ class FakeBibleService implements BibleService {
   @override
   void addBibleResourceChangeListener(BibleResourceChangeListener listener) {}
   @override
-  void removeBibleResourceChangeListener(BibleResourceChangeListener listener) {}
+  void removeBibleResourceChangeListener(
+    BibleResourceChangeListener listener,
+  ) {}
   @override
   Future<bool> bibleExists(String bibleId) async => true;
   @override
@@ -84,7 +86,9 @@ void main() {
       getIt.registerSingleton<DownloadService>(FakeDownloadService());
       getIt.registerSingleton<ResourceService>(FakeResourceService());
       getIt.registerSingleton<BibleService>(FakeBibleService());
-      getIt.registerSingleton<ReadingSessionManager>(FakeReadingSessionManager());
+      getIt.registerSingleton<ReadingSessionManager>(
+        FakeReadingSessionManager(),
+      );
       getIt.registerSingleton<AppGuideManager>(FakeAppGuideManager());
 
       homeManager = HomeManager();
@@ -96,56 +100,66 @@ void main() {
       homeManager.dispose();
     });
 
-    test('jumpToContextReference updates searchContextNotifier and currentReference', () {
-      const targetRef = Reference(bookId: 8, chapter: 4, verse: 17);
-      const word = WordDetails(
-        word: 'דָּוִד',
-        gloss: 'David',
-        glossIsAi: false,
-        glossTextDirection: TextDirection.ltr,
-        strongsCode: 'H1732',
-        grammar: 'Np-ms',
-      );
+    test(
+      'jumpToContextReference updates searchContextNotifier and currentReference',
+      () {
+        const targetRef = Reference(bookId: 8, chapter: 4, verse: 17);
+        const word = WordDetails(
+          word: 'דָּוִד',
+          gloss: 'David',
+          glossIsAi: false,
+          glossTextDirection: TextDirection.ltr,
+          strongsCode: 'H1732',
+          grammar: 'Np-ms',
+        );
 
-      final context = OccurrenceSearchContext(
-        word: word,
-        searchType: SearchType.root,
-        anchorReference: targetRef,
-      );
+        final context = OccurrenceSearchContext(
+          word: word,
+          searchType: SearchType.root,
+          anchorReference: targetRef,
+        );
 
-      homeManager.jumpToContextReference(context);
+        homeManager.jumpToContextReference(context);
 
-      expect(homeManager.searchContextNotifier.value, equals(context));
-      expect(homeManager.currentReference.value, equals(targetRef));
-      expect(homeManager.panelAnchorNotifier.value, equals(targetRef));
-    });
+        expect(homeManager.searchContextNotifier.value, equals(context));
+        expect(homeManager.currentReference.value, equals(targetRef));
+        expect(homeManager.panelAnchorNotifier.value, equals(targetRef));
+      },
+    );
 
-    test('jumpToContextReference across different books switches bookId and chapter', () {
-      homeManager.currentReference.value = const Reference(bookId: 1, chapter: 1, verse: 1);
+    test(
+      'jumpToContextReference across different books switches bookId and chapter',
+      () {
+        homeManager.currentReference.value = const Reference(
+          bookId: 1,
+          chapter: 1,
+          verse: 1,
+        );
 
-      const targetRef = Reference(bookId: 19, chapter: 23, verse: 1);
-      const word = WordDetails(
-        word: 'מִזְמוֹר',
-        gloss: 'Psalm',
-        glossIsAi: false,
-        glossTextDirection: TextDirection.ltr,
-        strongsCode: 'H4210',
-        grammar: 'Nc-ms',
-      );
+        const targetRef = Reference(bookId: 19, chapter: 23, verse: 1);
+        const word = WordDetails(
+          word: 'מִזְמוֹר',
+          gloss: 'Psalm',
+          glossIsAi: false,
+          glossTextDirection: TextDirection.ltr,
+          strongsCode: 'H4210',
+          grammar: 'Nc-ms',
+        );
 
-      final context = OccurrenceSearchContext(
-        word: word,
-        searchType: SearchType.exact,
-        anchorReference: targetRef,
-      );
+        final context = OccurrenceSearchContext(
+          word: word,
+          searchType: SearchType.exact,
+          anchorReference: targetRef,
+        );
 
-      homeManager.jumpToContextReference(context);
+        homeManager.jumpToContextReference(context);
 
-      expect(homeManager.currentReference.value.bookId, 19);
-      expect(homeManager.currentReference.value.chapter, 23);
-      expect(homeManager.currentReference.value.verse, 1);
-      expect(homeManager.panelAnchorNotifier.value, equals(targetRef));
-    });
+        expect(homeManager.currentReference.value.bookId, 19);
+        expect(homeManager.currentReference.value.chapter, 23);
+        expect(homeManager.currentReference.value.verse, 1);
+        expect(homeManager.panelAnchorNotifier.value, equals(targetRef));
+      },
+    );
 
     test('clearSearchContext resets searchContextNotifier to null', () {
       const targetRef = Reference(bookId: 8, chapter: 4, verse: 17);
@@ -158,11 +172,13 @@ void main() {
         grammar: 'Np-ms',
       );
 
-      homeManager.jumpToContextReference(OccurrenceSearchContext(
-        word: word,
-        searchType: SearchType.root,
-        anchorReference: targetRef,
-      ));
+      homeManager.jumpToContextReference(
+        OccurrenceSearchContext(
+          word: word,
+          searchType: SearchType.root,
+          anchorReference: targetRef,
+        ),
+      );
 
       expect(homeManager.searchContextNotifier.value, isNotNull);
 
@@ -181,11 +197,13 @@ void main() {
         grammar: 'Np-ms',
       );
 
-      homeManager.jumpToContextReference(OccurrenceSearchContext(
-        word: word,
-        searchType: SearchType.root,
-        anchorReference: targetRef,
-      ));
+      homeManager.jumpToContextReference(
+        OccurrenceSearchContext(
+          word: word,
+          searchType: SearchType.root,
+          anchorReference: targetRef,
+        ),
+      );
 
       expect(homeManager.searchContextNotifier.value, isNotNull);
 
@@ -194,14 +212,22 @@ void main() {
       expect(homeManager.searchContextNotifier.value, isNull);
     });
 
-    testWidgets('flashVerse sets highlight and clears it after 1.5 seconds', (tester) async {
+    testWidgets('flashVerse sets highlight and clears it after 1.5 seconds', (
+      tester,
+    ) async {
       const targetRef = Reference(bookId: 8, chapter: 4, verse: 17);
       homeManager.flashVerse(targetRef);
 
-      expect(homeManager.audioPlayerViewModel.reference.value, equals(targetRef));
+      expect(
+        homeManager.audioPlayerViewModel.reference.value,
+        equals(targetRef),
+      );
 
       await tester.pump(const Duration(milliseconds: 1000));
-      expect(homeManager.audioPlayerViewModel.reference.value, equals(targetRef));
+      expect(
+        homeManager.audioPlayerViewModel.reference.value,
+        equals(targetRef),
+      );
 
       await tester.pump(const Duration(milliseconds: 600));
       expect(homeManager.audioPlayerViewModel.reference.value, isNull);
@@ -233,7 +259,11 @@ void main() {
     });
 
     test('startWordStudy captures originalReference and creates session', () {
-      homeManager.currentReference.value = const Reference(bookId: 1, chapter: 12, verse: 1);
+      homeManager.currentReference.value = const Reference(
+        bookId: 1,
+        chapter: 12,
+        verse: 1,
+      );
 
       homeManager.startWordStudy(wordId: 'w1', isRtl: true);
 
@@ -241,7 +271,10 @@ void main() {
       expect(session, isNotNull);
       expect(session!.wordId, 'w1');
       expect(session.isRtl, isTrue);
-      expect(session.originalReference, const Reference(bookId: 1, chapter: 12, verse: 1));
+      expect(
+        session.originalReference,
+        const Reference(bookId: 1, chapter: 12, verse: 1),
+      );
       expect(session.isOverlayVisible, isTrue);
     });
 
@@ -258,81 +291,108 @@ void main() {
       expect(session.isOverlayVisible, isTrue);
     });
 
-    test('dismissWordStudySession(keepCurrentLocation: false) restores originalReference', () {
-      homeManager.currentReference.value = const Reference(bookId: 1, chapter: 12, verse: 1);
-      homeManager.startWordStudy(wordId: 'w1', isRtl: true);
+    test(
+      'dismissWordStudySession(keepCurrentLocation: false) restores originalReference',
+      () {
+        homeManager.currentReference.value = const Reference(
+          bookId: 1,
+          chapter: 12,
+          verse: 1,
+        );
+        homeManager.startWordStudy(wordId: 'w1', isRtl: true);
 
-      // User jumps to a different reference to preview
-      const previewRef = Reference(bookId: 8, chapter: 4, verse: 17);
-      const word = WordDetails(
-        word: 'דָּוִד',
-        gloss: 'David',
-        glossIsAi: false,
-        glossTextDirection: TextDirection.ltr,
-        strongsCode: 'H1732',
-        grammar: 'Np-ms',
-      );
-      homeManager.jumpToContextReference(const OccurrenceSearchContext(
-        word: word,
-        searchType: SearchType.root,
-        anchorReference: previewRef,
-      ));
+        // User jumps to a different reference to preview
+        const previewRef = Reference(bookId: 8, chapter: 4, verse: 17);
+        const word = WordDetails(
+          word: 'דָּוִד',
+          gloss: 'David',
+          glossIsAi: false,
+          glossTextDirection: TextDirection.ltr,
+          strongsCode: 'H1732',
+          grammar: 'Np-ms',
+        );
+        homeManager.jumpToContextReference(
+          const OccurrenceSearchContext(
+            word: word,
+            searchType: SearchType.root,
+            anchorReference: previewRef,
+          ),
+        );
 
-      expect(homeManager.currentReference.value, equals(previewRef));
+        expect(homeManager.currentReference.value, equals(previewRef));
 
-      // User dismisses dialog (keepCurrentLocation: false)
-      homeManager.dismissWordStudySession(keepCurrentLocation: false);
+        // User dismisses dialog (keepCurrentLocation: false)
+        homeManager.dismissWordStudySession(keepCurrentLocation: false);
 
-      expect(homeManager.wordStudySessionNotifier.value, isNull);
-      expect(homeManager.searchContextNotifier.value, isNull);
-      // Reader restored to original location!
-      expect(homeManager.currentReference.value, const Reference(bookId: 1, chapter: 12, verse: 1));
-      expect(homeManager.panelAnchorNotifier.value, const Reference(bookId: 1, chapter: 12, verse: 1));
-      // Word is flashed upon returning!
-      expect(homeManager.flashedWordIdNotifier.value, 'w1');
-    });
+        expect(homeManager.wordStudySessionNotifier.value, isNull);
+        expect(homeManager.searchContextNotifier.value, isNull);
+        // Reader restored to original location!
+        expect(
+          homeManager.currentReference.value,
+          const Reference(bookId: 1, chapter: 12, verse: 1),
+        );
+        expect(
+          homeManager.panelAnchorNotifier.value,
+          const Reference(bookId: 1, chapter: 12, verse: 1),
+        );
+        // Word is flashed upon returning!
+        expect(homeManager.flashedWordIdNotifier.value, 'w1');
+      },
+    );
 
-    testWidgets('flashWord sets flashedWordId and clears it after 1.5 seconds', (tester) async {
-      homeManager.flashWord('w1');
+    testWidgets(
+      'flashWord sets flashedWordId and clears it after 1.5 seconds',
+      (tester) async {
+        homeManager.flashWord('w1');
 
-      expect(homeManager.flashedWordIdNotifier.value, 'w1');
+        expect(homeManager.flashedWordIdNotifier.value, 'w1');
 
-      await tester.pump(const Duration(milliseconds: 1000));
-      expect(homeManager.flashedWordIdNotifier.value, 'w1');
+        await tester.pump(const Duration(milliseconds: 1000));
+        expect(homeManager.flashedWordIdNotifier.value, 'w1');
 
-      await tester.pump(const Duration(milliseconds: 600));
-      expect(homeManager.flashedWordIdNotifier.value, isNull);
-    });
+        await tester.pump(const Duration(milliseconds: 600));
+        expect(homeManager.flashedWordIdNotifier.value, isNull);
+      },
+    );
 
-    test('dismissWordStudySession(keepCurrentLocation: true) stays at current location', () {
-      homeManager.currentReference.value = const Reference(bookId: 1, chapter: 12, verse: 1);
-      homeManager.startWordStudy(wordId: 'w1', isRtl: true);
+    test(
+      'dismissWordStudySession(keepCurrentLocation: true) stays at current location',
+      () {
+        homeManager.currentReference.value = const Reference(
+          bookId: 1,
+          chapter: 12,
+          verse: 1,
+        );
+        homeManager.startWordStudy(wordId: 'w1', isRtl: true);
 
-      // User jumps to preview
-      const previewRef = Reference(bookId: 8, chapter: 4, verse: 17);
-      const word = WordDetails(
-        word: 'דָּוִד',
-        gloss: 'David',
-        glossIsAi: false,
-        glossTextDirection: TextDirection.ltr,
-        strongsCode: 'H1732',
-        grammar: 'Np-ms',
-      );
-      homeManager.jumpToContextReference(const OccurrenceSearchContext(
-        word: word,
-        searchType: SearchType.root,
-        anchorReference: previewRef,
-      ));
+        // User jumps to preview
+        const previewRef = Reference(bookId: 8, chapter: 4, verse: 17);
+        const word = WordDetails(
+          word: 'דָּוִד',
+          gloss: 'David',
+          glossIsAi: false,
+          glossTextDirection: TextDirection.ltr,
+          strongsCode: 'H1732',
+          grammar: 'Np-ms',
+        );
+        homeManager.jumpToContextReference(
+          const OccurrenceSearchContext(
+            word: word,
+            searchType: SearchType.root,
+            anchorReference: previewRef,
+          ),
+        );
 
-      expect(homeManager.currentReference.value, equals(previewRef));
+        expect(homeManager.currentReference.value, equals(previewRef));
 
-      // User taps 'x' on return pill (keepCurrentLocation: true)
-      homeManager.dismissWordStudySession(keepCurrentLocation: true);
+        // User taps 'x' on return pill (keepCurrentLocation: true)
+        homeManager.dismissWordStudySession(keepCurrentLocation: true);
 
-      expect(homeManager.wordStudySessionNotifier.value, isNull);
-      expect(homeManager.searchContextNotifier.value, isNull);
-      // Reader stays at previewed location!
-      expect(homeManager.currentReference.value, equals(previewRef));
-    });
+        expect(homeManager.wordStudySessionNotifier.value, isNull);
+        expect(homeManager.searchContextNotifier.value, isNull);
+        // Reader stays at previewed location!
+        expect(homeManager.currentReference.value, equals(previewRef));
+      },
+    );
   });
 }

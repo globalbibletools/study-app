@@ -457,9 +457,7 @@ class _AddReadingPlanPanelState extends State<AddReadingPlanPanel> {
           child: Text(
             title,
             style: TextStyle(
-              color: selected
-                  ? colorScheme.onPrimary
-                  : colorScheme.onSurface,
+              color: selected ? colorScheme.onPrimary : colorScheme.onSurface,
               fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
             ),
           ),

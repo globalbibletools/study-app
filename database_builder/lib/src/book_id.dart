@@ -133,7 +133,7 @@ final bookAbbreviationToIdMap = {
   '2JN': 63,
   '3JN': 64,
   'JUD': 65,
-  'REV': 66
+  'REV': 66,
 };
 
 const bookIdToFullNameMap = {
@@ -202,7 +202,7 @@ const bookIdToFullNameMap = {
   63: '2 John',
   64: '3 John',
   65: 'Jude',
-  66: 'Revelation'
+  66: 'Revelation',
 };
 
 const fullNameToBookIdMap = {
@@ -272,7 +272,7 @@ const fullNameToBookIdMap = {
   '2 John': 63,
   '3 John': 64,
   'Jude': 65,
-  'Revelation': 66
+  'Revelation': 66,
 };
 
 final bookIdToChapterIndexMap = {

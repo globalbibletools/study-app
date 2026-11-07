@@ -69,7 +69,8 @@ class FakeGlossService implements GlossService {
 
 class FakeLexiconsDatabase implements LexiconsDatabase {
   @override
-  Future<List<LexiconMeaning>> getMeaningsForStrongs(String strongs) async => [];
+  Future<List<LexiconMeaning>> getMeaningsForStrongs(String strongs) async =>
+      [];
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -120,7 +121,9 @@ class FakeBibleService implements BibleService {
   @override
   void addBibleResourceChangeListener(BibleResourceChangeListener listener) {}
   @override
-  void removeBibleResourceChangeListener(BibleResourceChangeListener listener) {}
+  void removeBibleResourceChangeListener(
+    BibleResourceChangeListener listener,
+  ) {}
   @override
   Future<bool> bibleExists(String bibleId) async => true;
   @override
@@ -189,13 +192,13 @@ void main() {
     anchorReference: Reference(bookId: 8, chapter: 4, verse: 17),
   );
 
-  testWidgets('renders lemma text, back arrow, and close button', (tester) async {
+  testWidgets('renders lemma text, back arrow, and close button', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       const MaterialApp(
         home: Scaffold(
-          body: Center(
-            child: FloatingReturnPill(contextData: testContext),
-          ),
+          body: Center(child: FloatingReturnPill(contextData: testContext)),
         ),
       ),
     );
@@ -205,51 +208,59 @@ void main() {
     expect(find.byIcon(Icons.close), findsOneWidget);
   });
 
-  testWidgets('tapping close icon calls dismissWordStudySession on HomeManager', (tester) async {
-    homeManager.startWordStudy(wordId: 'w1', isRtl: true);
-    homeManager.searchContextNotifier.value = testContext;
+  testWidgets(
+    'tapping close icon calls dismissWordStudySession on HomeManager',
+    (tester) async {
+      homeManager.startWordStudy(wordId: 'w1', isRtl: true);
+      homeManager.searchContextNotifier.value = testContext;
 
-    await tester.pumpWidget(
-      const MaterialApp(
-        home: Scaffold(
-          body: Center(
-            child: FloatingReturnPill(contextData: testContext),
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: Center(child: FloatingReturnPill(contextData: testContext)),
           ),
         ),
-      ),
-    );
+      );
 
-    expect(homeManager.searchContextNotifier.value, isNotNull);
-    expect(homeManager.wordStudySessionNotifier.value, isNotNull);
+      expect(homeManager.searchContextNotifier.value, isNotNull);
+      expect(homeManager.wordStudySessionNotifier.value, isNotNull);
 
-    await tester.tap(find.byIcon(Icons.close));
-    await tester.pump();
+      await tester.tap(find.byIcon(Icons.close));
+      await tester.pump();
 
-    expect(homeManager.searchContextNotifier.value, isNull);
-    expect(homeManager.wordStudySessionNotifier.value, isNull);
-  });
+      expect(homeManager.searchContextNotifier.value, isNull);
+      expect(homeManager.wordStudySessionNotifier.value, isNull);
+    },
+  );
 
-  testWidgets('tapping pill body calls setWordStudyOverlayVisible on HomeManager', (tester) async {
-    homeManager.startWordStudy(wordId: 'w1', isRtl: true);
-    homeManager.setWordStudyOverlayVisible(false);
-    homeManager.searchContextNotifier.value = testContext;
+  testWidgets(
+    'tapping pill body calls setWordStudyOverlayVisible on HomeManager',
+    (tester) async {
+      homeManager.startWordStudy(wordId: 'w1', isRtl: true);
+      homeManager.setWordStudyOverlayVisible(false);
+      homeManager.searchContextNotifier.value = testContext;
 
-    expect(homeManager.wordStudySessionNotifier.value?.isOverlayVisible, isFalse);
+      expect(
+        homeManager.wordStudySessionNotifier.value?.isOverlayVisible,
+        isFalse,
+      );
 
-    await tester.pumpWidget(
-      const MaterialApp(
-        home: Scaffold(
-          body: Center(
-            child: FloatingReturnPill(contextData: testContext),
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: Center(child: FloatingReturnPill(contextData: testContext)),
           ),
         ),
-      ),
-    );
+      );
 
-    // Tap the pill's back/lemma section
-    await tester.tap(find.text('דָּוִד'));
-    await tester.pump();
+      // Tap the pill's back/lemma section
+      await tester.tap(find.text('דָּוִד'));
+      await tester.pump();
 
-    expect(homeManager.wordStudySessionNotifier.value?.isOverlayVisible, isTrue);
-  });
+      expect(
+        homeManager.wordStudySessionNotifier.value?.isOverlayVisible,
+        isTrue,
+      );
+    },
+  );
 }

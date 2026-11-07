@@ -32,7 +32,8 @@ class _DownloadManagerPageState extends State<DownloadManagerPage> {
     if (!mounted) return;
 
     final selected = _selectedLang;
-    final missingSelected = languages.isNotEmpty &&
+    final missingSelected =
+        languages.isNotEmpty &&
         selected != null &&
         !languages.any((l) => l.code == selected);
     if (missingSelected) {
@@ -89,10 +90,7 @@ class _DownloadManagerPageState extends State<DownloadManagerPage> {
                 isExpanded: true,
                 icon: const Icon(Icons.keyboard_arrow_down),
                 decoration: InputDecoration(
-                  prefixIcon: Icon(
-                    Icons.language,
-                    color: colorScheme.primary,
-                  ),
+                  prefixIcon: Icon(Icons.language, color: colorScheme.primary),
                   filled: true,
                   fillColor: colorScheme.surface,
                   contentPadding: const EdgeInsets.symmetric(
@@ -123,22 +121,22 @@ class _DownloadManagerPageState extends State<DownloadManagerPage> {
             child: ListView(
               children: [
                 ResourceSection(
-                    resourceType: ResourceType.gloss,
-                    title: l10n.glosses,
-                    icon: Icons.translate,
-                    langCode: _selectedLang,
+                  resourceType: ResourceType.gloss,
+                  title: l10n.glosses,
+                  icon: Icons.translate,
+                  langCode: _selectedLang,
                 ),
                 ResourceSection(
-                    resourceType: ResourceType.bible,
-                    title: l10n.bibles,
-                    icon: Icons.book,
-                    langCode: _selectedLang,
+                  resourceType: ResourceType.bible,
+                  title: l10n.bibles,
+                  icon: Icons.book,
+                  langCode: _selectedLang,
                 ),
                 ResourceSection(
-                    resourceType: ResourceType.audio,
-                    title: l10n.audio,
-                    icon: Icons.headphones,
-                    langCode: _selectedLang,
+                  resourceType: ResourceType.audio,
+                  title: l10n.audio,
+                  icon: Icons.headphones,
+                  langCode: _selectedLang,
                 ),
               ],
             ),

@@ -19,13 +19,15 @@ class BiblePanelArea extends StatelessWidget {
       onNotification: (notification) {
         final isShowingPlayer = manager.audioPlayerViewModel.isVisible;
         if (isShowingPlayer) {
-          manager.audioPlayerViewModel.jumpTo(
-            Reference(
-                bookId: notification.bookId,
-                chapter: notification.chapter,
-                verse: notification.verse
-            ),
-          ).then((_) => manager.audioPlayerViewModel.play());
+          manager.audioPlayerViewModel
+              .jumpTo(
+                Reference(
+                  bookId: notification.bookId,
+                  chapter: notification.chapter,
+                  verse: notification.verse,
+                ),
+              )
+              .then((_) => manager.audioPlayerViewModel.play());
         }
         return true;
       },
@@ -125,8 +127,9 @@ class BiblePanelArea extends StatelessWidget {
   }
 
   void onNextBook(BuildContext context, int bookId) {
-    final progress =
-        manager.readingSessionManager.getBookProgressForActivePlan(bookId);
+    final progress = manager.readingSessionManager.getBookProgressForActivePlan(
+      bookId,
+    );
     final initialChapter = progress?.chapter ?? 1;
     final initialVerse = progress?.verse ?? 1;
 

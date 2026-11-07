@@ -57,6 +57,7 @@ const Map<String, String> _tenses = {
   'A': 'aorist',
   'E': 'perfect',
   'L': 'pluperfect',
+
   /// `U` is an anomaly in the source data (a single occurrence at Hebrews 8:11,
   /// εἰδήσουσίν, which is future) and is treated as future.
   'U': 'future',
@@ -88,7 +89,4 @@ const Map<String, String> _genders = {
   'N': 'neuter',
 };
 
-const Map<String, String> _numbers = {
-  'S': 'singular',
-  'P': 'plural',
-};
+const Map<String, String> _numbers = {'S': 'singular', 'P': 'plural'};

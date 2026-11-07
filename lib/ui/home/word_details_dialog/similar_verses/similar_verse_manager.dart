@@ -120,8 +120,7 @@ class SimilarVerseManager {
             bibleId: bibleId,
             badge: _getBadge(bibleId),
             text: text,
-            textDirection:
-                _translationDirections[bibleId] ?? TextDirection.ltr,
+            textDirection: _translationDirections[bibleId] ?? TextDirection.ltr,
           ),
         );
       }

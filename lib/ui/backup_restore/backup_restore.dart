@@ -78,9 +78,9 @@ class _BackupRestoreState extends State<BackupRestorePage> {
       }
 
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.backupExported(targetUri.path))));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.backupExported(targetUri.path))),
+      );
     } finally {
       if (mounted) {
         setState(() {

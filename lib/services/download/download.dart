@@ -47,11 +47,11 @@ class DownloadService {
     final response = await request.close();
 
     if (response.statusCode == HttpStatus.ok) {
-        return true;
+      return true;
     } else if (response.statusCode == HttpStatus.notFound) {
-        return false;
+      return false;
     } else {
-        throw HttpException('Failed to check existence: ${response.statusCode}');
+      throw HttpException('Failed to check existence: ${response.statusCode}');
     }
   }
 
@@ -106,8 +106,10 @@ class DownloadService {
       await _fileService.ensureDirectoryExists(localPath);
       final parent = p.dirname(localPath);
       final base = p.basename(localPath);
-      final extractDirPath =
-          p.join(parent, '.$base.extract-${DateTime.now().microsecondsSinceEpoch}');
+      final extractDirPath = p.join(
+        parent,
+        '.$base.extract-${DateTime.now().microsecondsSinceEpoch}',
+      );
       extractDir = await Directory(extractDirPath).create(recursive: true);
       final zipPath = p.join(extractDir.path, 'download.zip');
 
@@ -138,7 +140,7 @@ class DownloadService {
       if (await zipfile.exists()) {
         await zipfile.delete();
       }
-      
+
       final extracted = extractDir.listSync();
       if (extracted.length != 1) {
         throw FormatException(
@@ -173,12 +175,16 @@ class DownloadService {
     final response = await request.close();
 
     if (response.statusCode != HttpStatus.ok) {
-      throw HttpException('Failed to download: url=$url, statusCode=${response.statusCode}');
+      throw HttpException(
+        'Failed to download: url=$url, statusCode=${response.statusCode}',
+      );
     }
 
     final results = <T>[];
 
-    final lines = response.transform(utf8.decoder).transform(const LineSplitter());
+    final lines = response
+        .transform(utf8.decoder)
+        .transform(const LineSplitter());
 
     await for (final line in lines) {
       final trimmed = line.trim();

@@ -93,7 +93,9 @@ void main() {
     );
   });
 
-  testWidgets('renders reference and spans from verseContentFuture', (tester) async {
+  testWidgets('renders reference and spans from verseContentFuture', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
@@ -114,7 +116,9 @@ void main() {
     expect(find.text('Custom verse content'), findsOneWidget);
   });
 
-  testWidgets('tapping reference calls onReferenceTapped callback', (tester) async {
+  testWidgets('tapping reference calls onReferenceTapped callback', (
+    tester,
+  ) async {
     bool tapped = false;
 
     await tester.pumpWidget(
@@ -173,7 +177,9 @@ void main() {
     );
   });
 
-  testWidgets('tapping a word span triggers GlossService and shows WordPopup', (tester) async {
+  testWidgets('tapping a word span triggers GlossService and shows WordPopup', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
@@ -198,11 +204,11 @@ void main() {
     final rootSpan = richText.text as TextSpan;
     final verseSpan =
         (rootSpan.children != null &&
-                rootSpan.children!.isNotEmpty &&
-                rootSpan.children![0] is TextSpan &&
-                (rootSpan.children![0] as TextSpan).children != null)
-            ? rootSpan.children![0] as TextSpan
-            : rootSpan;
+            rootSpan.children!.isNotEmpty &&
+            rootSpan.children![0] is TextSpan &&
+            (rootSpan.children![0] as TextSpan).children != null)
+        ? rootSpan.children![0] as TextSpan
+        : rootSpan;
     expect(verseSpan.children, isNotNull);
     expect(verseSpan.children!.length, 2);
 

@@ -50,8 +50,9 @@ class HebrewGreekDatabase {
     _database.execute(HebrewGreekSchema.createGrammarTable);
     _database.execute(HebrewGreekSchema.createStrongsTable);
 
-    _database
-        .execute('PRAGMA user_version = ${HebrewGreekSchema.databaseVersion};');
+    _database.execute(
+      'PRAGMA user_version = ${HebrewGreekSchema.databaseVersion};',
+    );
   }
 
   void _initPreparedStatements() {
@@ -72,7 +73,9 @@ class HebrewGreekDatabase {
       otWords[fileName] = _extractWords(jsonData);
     }
     final ntWords = await _readSrCsv();
-    print('OT words: ${otWords.values.map((w) => w.length).reduce((a, b) => a + b)}');
+    print(
+      'OT words: ${otWords.values.map((w) => w.length).reduce((a, b) => a + b)}',
+    );
     print('NT words: ${ntWords.length}');
 
     final (text, grammar, lemmas) = await _populateForeignTables(
@@ -243,13 +246,15 @@ class HebrewGreekDatabase {
         final int verseNumber = verseIdInt % 1000;
         final wordList = verse['words'] as List<dynamic>;
         for (var word in wordList) {
-          words.add(_HebrewGreekWord.fromJson(
-            word,
-            bookId: bookId,
-            chapterId: chapterId,
-            verseNumber: verseNumber,
-            verseId: verseId,
-          ));
+          words.add(
+            _HebrewGreekWord.fromJson(
+              word,
+              bookId: bookId,
+              chapterId: chapterId,
+              verseNumber: verseNumber,
+              verseId: verseId,
+            ),
+          );
         }
       }
     }
@@ -434,7 +439,9 @@ class _HebrewGreekWord {
 
     // The numeric prefix before any -NN suffix encodes BBCCCVVVWW.
     final dashIndex = sourceId.indexOf('-');
-    final baseId = dashIndex == -1 ? sourceId : sourceId.substring(0, dashIndex);
+    final baseId = dashIndex == -1
+        ? sourceId
+        : sourceId.substring(0, dashIndex);
     if (baseId.length != 10 || int.tryParse(baseId) == null) {
       throw FormatException(
         'Malformed sr.csv word id: "$sourceId" in row: $row',

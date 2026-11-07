@@ -168,7 +168,4 @@ const Map<String, String> _numbers = {
   'b': 'both',
 };
 
-const Map<String, String> _states = {
-  'c': 'construct',
-  'd': 'determined',
-};
+const Map<String, String> _states = {'c': 'construct', 'd': 'determined'};

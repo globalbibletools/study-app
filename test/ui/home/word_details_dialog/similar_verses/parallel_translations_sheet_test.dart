@@ -87,7 +87,9 @@ void main() {
     );
   });
 
-  testWidgets('renders available translations and toggles selection', (tester) async {
+  testWidgets('renders available translations and toggles selection', (
+    tester,
+  ) async {
     bool changed = false;
 
     await tester.pumpWidget(
@@ -100,9 +102,7 @@ void main() {
         ],
         supportedLocales: const [Locale('en')],
         home: Scaffold(
-          body: ParallelTranslationsSheet(
-            onChanged: () => changed = true,
-          ),
+          body: ParallelTranslationsSheet(onChanged: () => changed = true),
         ),
       ),
     );
@@ -127,7 +127,10 @@ void main() {
     await tester.tap(find.text('Berean Standard Bible'));
     await tester.pumpAndSettle();
 
-    expect(settings.occurrenceParallelBibles, containsAll(['eng_ult', 'eng_bsb']));
+    expect(
+      settings.occurrenceParallelBibles,
+      containsAll(['eng_ult', 'eng_bsb']),
+    );
 
     // Tap first translation again to deselect
     await tester.tap(find.text('Unlocked Literal Translation'));

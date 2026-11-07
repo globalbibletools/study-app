@@ -23,7 +23,10 @@ void main() {
       expect(progress.verse, 3);
       expect(progress.chaptersRead, 4);
       expect(progress.versesRead, 5);
-      expect(progress.updatedAt.millisecondsSinceEpoch, now.millisecondsSinceEpoch);
+      expect(
+        progress.updatedAt.millisecondsSinceEpoch,
+        now.millisecondsSinceEpoch,
+      );
       expect(progress.readingPlanId, 1);
     });
 

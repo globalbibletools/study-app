@@ -161,9 +161,7 @@ class _CalendarViewState<E, T extends List<E>>
           margin: const EdgeInsets.all(2),
           padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 4),
           decoration: BoxDecoration(
-            color: isHighlighted
-                ? color
-                : colorScheme.surfaceContainerLow,
+            color: isHighlighted ? color : colorScheme.surfaceContainerLow,
             borderRadius: BorderRadius.circular(14),
             border: isToday ? Border.all(color: color, width: 2) : null,
           ),

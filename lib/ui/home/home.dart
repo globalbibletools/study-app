@@ -175,8 +175,9 @@ class _HomeScreenState extends State<HomeScreen> {
           builder: (context, _) {
             final searchContext = manager.searchContextNotifier.value;
             if (searchContext == null) return const SizedBox.shrink();
-            final bottomPadding =
-                manager.audioPlayerViewModel.isVisible ? 180.0 : 16.0;
+            final bottomPadding = manager.audioPlayerViewModel.isVisible
+                ? 180.0
+                : 16.0;
             return Positioned(
               bottom: bottomPadding,
               left: 0,

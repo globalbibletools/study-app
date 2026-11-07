@@ -25,7 +25,10 @@ class BibleDatabase {
     if (references.isEmpty) return {};
 
     const excludedFormats = ['s', 's1', 's2', 'ms', 'mr', 'r', 'd', 'rem'];
-    final formatPlaceholders = List.filled(excludedFormats.length, '?').join(',');
+    final formatPlaceholders = List.filled(
+      excludedFormats.length,
+      '?',
+    ).join(',');
     final chunks = _chunkList(references, 500);
     final results = <Reference, String>{};
 

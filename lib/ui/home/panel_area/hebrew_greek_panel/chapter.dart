@@ -350,7 +350,11 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter>
 
   Future<void> _handleMissingGloss(String langCode) async {
     // Use the shared helper logic
-    final success = await ResourceUIHelper.ensureResource(context, ResourceType.gloss, langCode);
+    final success = await ResourceUIHelper.ensureResource(
+      context,
+      ResourceType.gloss,
+      langCode,
+    );
 
     if (!success && mounted) {
       // If they clicked "Cancel" or download failed,
