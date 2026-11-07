@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:gbt/common/bible_navigation.dart';
+import 'package:gbt/services/service_locator.dart';
 
 import 'book_selector.dart';
 import 'number_selector.dart';
@@ -36,6 +37,8 @@ class ReferenceChooser extends StatefulWidget {
 }
 
 class ReferenceChooserState extends State<ReferenceChooser> {
+  late final _bibleNavigation = getIt<BibleNavigation>();
+
   final _bookFocus = FocusNode();
   late FocusNode _chapterFocus;
   late FocusNode _verseFocus;
@@ -192,10 +195,10 @@ class ReferenceChooserState extends State<ReferenceChooser> {
       String currentText;
 
       if (_currentMode == ReferenceInputMode.chapter) {
-        maxValue = BibleNavigation.getChapterCount(widget.currentBookId);
+        maxValue = _bibleNavigation.getChapterCount(widget.currentBookId);
         currentText = _chapterController.text;
       } else {
-        maxValue = BibleNavigation.getVerseCount(
+        maxValue = _bibleNavigation.getVerseCount(
           widget.currentBookId,
           widget.currentChapter,
         );
@@ -243,10 +246,10 @@ class ReferenceChooserState extends State<ReferenceChooser> {
 
     if (_currentMode == ReferenceInputMode.chapter) {
       activeController = _chapterController;
-      maxValue = BibleNavigation.getChapterCount(widget.currentBookId);
+      maxValue = _bibleNavigation.getChapterCount(widget.currentBookId);
     } else if (_currentMode == ReferenceInputMode.verse) {
       activeController = _verseController;
-      maxValue = BibleNavigation.getVerseCount(
+      maxValue = _bibleNavigation.getVerseCount(
         widget.currentBookId,
         widget.currentChapter,
       );
@@ -348,7 +351,7 @@ class ReferenceChooserState extends State<ReferenceChooser> {
             onSubmitted: (id) {
               widget.onBookSelected(id);
 
-              int chapterCount = BibleNavigation.getChapterCount(id);
+              int chapterCount = _bibleNavigation.getChapterCount(id);
               if (chapterCount == 1) {
                 widget.onChapterSelected(1);
                 _activateMode(ReferenceInputMode.verse);
@@ -369,7 +372,7 @@ class ReferenceChooserState extends State<ReferenceChooser> {
           onTap: () => _activateMode(ReferenceInputMode.chapter),
           onKeyEvent: (event) => _handlePhysicalKey(_chapterFocus, event),
           onPeekNext: () {
-            final maxChapters = BibleNavigation.getChapterCount(
+            final maxChapters = _bibleNavigation.getChapterCount(
               widget.currentBookId,
             );
             if (widget.currentChapter < maxChapters) {
@@ -379,7 +382,7 @@ class ReferenceChooserState extends State<ReferenceChooser> {
             return null;
           },
           onNextInvoked: () {
-            final maxChapters = BibleNavigation.getChapterCount(
+            final maxChapters = _bibleNavigation.getChapterCount(
               widget.currentBookId,
             );
             if (widget.currentChapter < maxChapters) {
@@ -395,7 +398,7 @@ class ReferenceChooserState extends State<ReferenceChooser> {
             }
             if (widget.currentBookId > 1) {
               final prev = widget.currentBookId - 1;
-              return BibleNavigation.getChapterCount(prev).toString();
+              return _bibleNavigation.getChapterCount(prev).toString();
             }
             return null;
           },
@@ -405,7 +408,7 @@ class ReferenceChooserState extends State<ReferenceChooser> {
             } else if (widget.currentBookId > 1) {
               final prev = widget.currentBookId - 1;
               widget.onBookSelected(prev);
-              widget.onChapterSelected(BibleNavigation.getChapterCount(prev));
+              widget.onChapterSelected(_bibleNavigation.getChapterCount(prev));
             }
           },
         ),

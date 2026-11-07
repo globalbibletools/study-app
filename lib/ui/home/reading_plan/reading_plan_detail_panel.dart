@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gbt/common/bible_navigation.dart';
+import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/l10n/book_names.dart';
 import 'package:gbt/services/reading_session/rs_manager.dart';
@@ -26,6 +27,7 @@ class ReadingPlanDetailPanel extends StatefulWidget {
 }
 
 class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
+  late final _bibleNavigation = getIt<BibleNavigation>();
   late final ReadingPlanDetailPanelManager manager;
 
   /// Local, reorderable copy of the plan's books. Seeded from the widget and
@@ -492,11 +494,11 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
             },
             itemBuilder: (context, index) {
               final book = _books[index];
-              int bookChap = BibleNavigation.getChapterCount(book.bookId);
+              int bookChap = _bibleNavigation.getChapterCount(book.bookId);
               int bookVerses = 0;
 
               for (int i = 1; i <= bookChap; i++) {
-                bookVerses += BibleNavigation.getVerseCount(book.bookId, i);
+                bookVerses += _bibleNavigation.getVerseCount(book.bookId, i);
               }
 
               return ReorderableDragStartListener(
@@ -515,11 +517,11 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
 
         return Column(
           children: _books.map((book) {
-            int bookChap = BibleNavigation.getChapterCount(book.bookId);
+            int bookChap = _bibleNavigation.getChapterCount(book.bookId);
             int bookVerses = 0;
 
             for (int i = 1; i <= bookChap; i++) {
-              bookVerses += BibleNavigation.getVerseCount(book.bookId, i);
+              bookVerses += _bibleNavigation.getVerseCount(book.bookId, i);
             }
 
             return _BookRow(

@@ -14,6 +14,8 @@ import 'package:gbt/ui/home/reading_plan/reading_plan_detail_panel_manager.dart'
 import 'package:gbt/ui/home/reading_plan/reading_sheet.dart';
 import 'package:gbt/ui/home/home_manager.dart';
 
+import '../../fixtures/bible_navigation_fixture.dart';
+
 class FakeHomeManager extends Fake implements HomeManager {}
 
 void main() {
@@ -34,6 +36,11 @@ void main() {
     if (getIt.isRegistered<ReadingSessionManager>()) {
       getIt.unregister<ReadingSessionManager>();
     }
+    if (getIt.isRegistered<BibleNavigation>()) {
+      getIt.unregister<BibleNavigation>();
+    }
+
+    getIt.registerSingleton<BibleNavigation>(createTestBibleNavigation());
 
     rsDb = ReadingSessionDatabase();
     await rsDb.resetDatabase();
@@ -56,6 +63,9 @@ void main() {
     }
     if (getIt.isRegistered<ReadingSessionManager>()) {
       getIt.unregister<ReadingSessionManager>();
+    }
+    if (getIt.isRegistered<BibleNavigation>()) {
+      getIt.unregister<BibleNavigation>();
     }
   });
 
@@ -85,7 +95,7 @@ void main() {
           lastCompletion = rsManager.bookCompletedNotifier.value;
         });
 
-        expect(BibleNavigation.getVerseCount(19, 1), 6);
+        expect(getIt<BibleNavigation>().getVerseCount(19, 1), 6);
         for (int v = 1; v <= 6; v++) {
           await rsManager.markVerseAsRead(19, 1, v);
         }

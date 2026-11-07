@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:gbt/common/bible_navigation.dart';
+import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/home/common/scroll_sync_controller.dart';
 
 const _topScrollOffset = 16.0;
@@ -45,6 +46,7 @@ class InfiniteScrollView extends StatefulWidget {
 }
 
 class InfiniteScrollViewState extends State<InfiniteScrollView> {
+  late final _bibleNavigation = getIt<BibleNavigation>();
   late final ScrollController _scrollController;
   final List<ChapterIdentifier> _displayedChapters = [];
   late ChapterIdentifier _centerChapter;
@@ -150,7 +152,7 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
       _displayedChapters.clear();
       _chapterKeys.clear();
 
-      final previousChapter = BibleNavigation.getPreviousChapter(
+      final previousChapter = _bibleNavigation.getPreviousChapter(
         _centerChapter,
       );
       if (previousChapter != null) {
@@ -274,7 +276,7 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
     _isLoadingNextChapter = true;
 
     final lastChapter = _displayedChapters.last;
-    final nextChapter = BibleNavigation.getNextChapter(lastChapter);
+    final nextChapter = _bibleNavigation.getNextChapter(lastChapter);
 
     if (nextChapter != null && mounted) {
       setState(() {
@@ -291,7 +293,7 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
     _isLoadingPreviousChapter = true;
 
     final firstChapter = _displayedChapters.first;
-    final previousChapter = BibleNavigation.getPreviousChapter(firstChapter);
+    final previousChapter = _bibleNavigation.getPreviousChapter(firstChapter);
 
     if (previousChapter != null && mounted) {
       setState(() {

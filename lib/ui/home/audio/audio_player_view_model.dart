@@ -10,6 +10,7 @@ import 'package:gbt/services/audio/audio_service.dart';
 import 'package:gbt/services/audio/audio_timing.dart';
 import 'package:gbt/services/logging/log.dart' as log;
 import 'package:gbt/services/resources/resource.dart';
+import 'package:gbt/services/service_locator.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:just_audio_background/just_audio_background.dart';
 
@@ -147,6 +148,7 @@ class AudioPlayerViewModel extends ChangeNotifier {
 
   final player = AudioPlayer();
 
+  late final _bibleNavigation = getIt<BibleNavigation>();
   final _audioService = AudioService();
   Reference? _chapterReference;
   List<AudioTiming> _timings = [];
@@ -616,7 +618,7 @@ class AudioPlayerViewModel extends ChangeNotifier {
   }
 
   Reference? _resolveNextVerse(Reference current) {
-    final verseCount = BibleNavigation.getVerseCount(
+    final verseCount = _bibleNavigation.getVerseCount(
       current.bookId,
       current.chapter,
     );
@@ -628,7 +630,7 @@ class AudioPlayerViewModel extends ChangeNotifier {
       );
     }
 
-    final nextChapter = BibleNavigation.getNextChapter(
+    final nextChapter = _bibleNavigation.getNextChapter(
       ChapterIdentifier(current.bookId, current.chapter),
     );
     if (nextChapter == null) return null;
@@ -649,12 +651,12 @@ class AudioPlayerViewModel extends ChangeNotifier {
       );
     }
 
-    final prevChapter = BibleNavigation.getPreviousChapter(
+    final prevChapter = _bibleNavigation.getPreviousChapter(
       ChapterIdentifier(current.bookId, current.chapter),
     );
     if (prevChapter == null) return null;
 
-    final lastVerse = BibleNavigation.getVerseCount(
+    final lastVerse = _bibleNavigation.getVerseCount(
       prevChapter.bookId,
       prevChapter.chapter,
     );

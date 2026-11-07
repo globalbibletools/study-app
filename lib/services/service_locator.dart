@@ -1,5 +1,6 @@
 import 'package:get_it/get_it.dart';
 import 'package:gbt/app_state.dart';
+import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/services/app_guide/app_guide_manager.dart';
 import 'package:gbt/services/reading_session/rs_database.dart';
 import 'package:gbt/services/reading_session/rs_manager.dart';
@@ -22,7 +23,13 @@ void setupServiceLocator() {
   getIt.registerLazySingleton<HomeManager>(() => HomeManager());
   getIt.registerLazySingleton<FileService>(() => FileService());
   getIt.registerLazySingleton<RemoteAssetService>(() => RemoteAssetService());
-  getIt.registerLazySingleton<HebrewGreekDatabase>(() => HebrewGreekDatabase());
+  getIt.registerLazySingletonAsync<HebrewGreekDatabase>(
+    HebrewGreekDatabase.create,
+  );
+  getIt.registerSingletonAsync<BibleNavigation>(
+    () async =>
+        BibleNavigation.create(await getIt.getAsync<HebrewGreekDatabase>()),
+  );
   getIt.registerLazySingleton<GlossService>(() => GlossService());
   getIt.registerLazySingleton<LexiconsDatabase>(() => LexiconsDatabase());
   getIt.registerLazySingleton<UserSettings>(() => UserSettings());

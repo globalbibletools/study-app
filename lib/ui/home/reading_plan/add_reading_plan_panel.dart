@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:gbt/common/bible_collection.dart';
 import 'package:gbt/common/bible_navigation.dart';
+import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/l10n/book_names.dart';
 import 'package:gbt/services/reading_session/rs_manager.dart';
@@ -18,6 +19,8 @@ class AddReadingPlanPanel extends StatefulWidget {
 }
 
 class _AddReadingPlanPanelState extends State<AddReadingPlanPanel> {
+  late final _bibleNavigation = getIt<BibleNavigation>();
+
   static const _allDigits = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
   static const _firstDigits = {1, 2, 3, 4, 5, 6, 7, 8, 9};
 
@@ -83,7 +86,7 @@ class _AddReadingPlanPanelState extends State<AddReadingPlanPanel> {
   int get _estimatedDays {
     int totalVerses = 0;
     for (int bookId in _selectedBookIds) {
-      totalVerses += BibleNavigation.getTotalVerseCount(bookId);
+      totalVerses += _bibleNavigation.getTotalVerseCount(bookId);
     }
 
     if (_goalType == GoalType.verses) {

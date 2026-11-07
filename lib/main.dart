@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:just_audio_background/just_audio_background.dart';
 import 'package:gbt/l10n/app_localizations.dart';
-import 'package:gbt/services/hebrew_greek/database.dart';
 import 'package:gbt/services/lexicon/database.dart';
 import 'package:gbt/services/logging/log.dart';
 import 'package:gbt/services/reading_session/rs_database.dart';
@@ -19,7 +18,6 @@ Future<void> main() async {
   await getIt.allReady();
   info('App starting');
   await getIt<UserSettings>().init();
-  await getIt<HebrewGreekDatabase>().init();
   // TODO: Maybe we should delay loading the lexicon until it is needed.
   await getIt<LexiconsDatabase>().init();
   await getIt<ReadingSessionDatabase>().init();

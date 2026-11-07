@@ -4,6 +4,9 @@ import 'package:sqlite3/sqlite3.dart';
 import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/services/reading_session/rs_manager.dart';
 import 'package:gbt/services/reading_session/rs_model.dart';
+import 'package:gbt/services/service_locator.dart';
+
+import 'fixtures/bible_navigation_fixture.dart';
 
 void main() {
   group('Reading Session Schema & Data Migration Tests', () {
@@ -67,11 +70,18 @@ CREATE UNIQUE INDEX hash_rs_book_progress ON rs_book_progress(book_id);
     }
 
     setUp(() {
+      if (getIt.isRegistered<BibleNavigation>()) {
+        getIt.unregister<BibleNavigation>();
+      }
+      getIt.registerSingleton<BibleNavigation>(createTestBibleNavigation());
       db = sqlite3.openInMemory();
     });
 
     tearDown(() {
       db.close();
+      if (getIt.isRegistered<BibleNavigation>()) {
+        getIt.unregister<BibleNavigation>();
+      }
     });
 
     test('upgrades seamlessly from Schema 1 -> 2 -> 3 preserving all progress', () {
@@ -422,7 +432,9 @@ VALUES
         int booksRead = 0;
         for (int bookId = 1; bookId <= 66; bookId++) {
           final bp = fullProgressList[bookId - 1];
-          final bookVerses = BibleNavigation.getTotalVerseCount(bookId);
+          final bookVerses = getIt<BibleNavigation>().getTotalVerseCount(
+            bookId,
+          );
           totalVersesRead += bp.versesRead;
           if (bp.versesRead >= bookVerses) {
             booksRead += 1;

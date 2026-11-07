@@ -13,6 +13,12 @@ class HebrewGreekDatabase {
   static const _databaseVersion = HebrewGreekSchema.databaseVersion;
   late Database _database;
 
+  static Future<HebrewGreekDatabase> create() async {
+    final db = HebrewGreekDatabase();
+    await db.init();
+    return db;
+  }
+
   Future<void> init() async {
     var databasesPath = await getDatabasesPath();
     var path = join(databasesPath, _databaseName);
@@ -360,5 +366,21 @@ class HebrewGreekDatabase {
     final maps = await _database.rawQuery(sql, [query]);
 
     return maps.map(_toReference).toList();
+  }
+
+  Future<Map<(int, int), int>> getVersification() async {
+    final rows = await _database.rawQuery(
+      'SELECT ${HebrewGreekSchema.versesColBook} AS book, '
+      '${HebrewGreekSchema.versesColChapter} AS chapter, '
+      'COUNT(*) AS verses '
+      'FROM ${HebrewGreekSchema.versesTable} '
+      'GROUP BY ${HebrewGreekSchema.versesColBook}, '
+      '${HebrewGreekSchema.versesColChapter}',
+    );
+
+    return {
+      for (final row in rows)
+        (row['book'] as int, row['chapter'] as int): row['verses'] as int,
+    };
   }
 }

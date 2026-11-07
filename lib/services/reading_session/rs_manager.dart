@@ -23,6 +23,7 @@ class DailyGoal {
 
 class ReadingSessionManager {
   final _rsdbManager = getIt<ReadingSessionDatabase>();
+  late final _bibleNavigation = getIt<BibleNavigation>();
 
   static int maximumReadCount = 10;
 
@@ -507,7 +508,7 @@ class ReadingSessionManager {
       return val;
     }
 
-    final booksCount = BibleNavigation.getBooksCount();
+    final booksCount = _bibleNavigation.getBooksCount();
     final List<RsBookProgress> list = <RsBookProgress>[];
 
     List<RsBookProgress> storedProgresses = await _rsdbManager
@@ -577,7 +578,7 @@ class ReadingSessionManager {
               updatedAt: DateTime.now(),
               readingPlanId: readingPlanId,
             );
-        final totalVerses = BibleNavigation.getTotalVerseCount(bookId);
+        final totalVerses = _bibleNavigation.getTotalVerseCount(bookId);
         if (progress.versesRead < totalVerses) {
           return progress;
         }
@@ -610,7 +611,7 @@ class ReadingSessionManager {
 
     final incomplete = filtered
         .where(
-          (b) => b.versesRead < BibleNavigation.getTotalVerseCount(b.bookId),
+          (b) => b.versesRead < _bibleNavigation.getTotalVerseCount(b.bookId),
         )
         .toList();
 
@@ -635,8 +636,8 @@ class ReadingSessionManager {
       readingPlanId,
       bookId,
     );
-    final totalBookChapters = BibleNavigation.getChapterCount(bookId);
-    final totalBookVerses = BibleNavigation.getTotalVerseCount(bookId);
+    final totalBookChapters = _bibleNavigation.getChapterCount(bookId);
+    final totalBookVerses = _bibleNavigation.getTotalVerseCount(bookId);
 
     int versesRead = 0;
     for (final count in chapterCounts.values) {
@@ -645,7 +646,8 @@ class ReadingSessionManager {
 
     int chaptersRead = 0;
     for (int c = 1; c <= totalBookChapters; c++) {
-      if ((chapterCounts[c] ?? 0) == BibleNavigation.getVerseCount(bookId, c)) {
+      if ((chapterCounts[c] ?? 0) ==
+          _bibleNavigation.getVerseCount(bookId, c)) {
         chaptersRead++;
       }
     }
@@ -656,7 +658,7 @@ class ReadingSessionManager {
     if (versesRead == totalBookVerses) {
       // Case C: Entire book is 100% read
       cursorChapter = totalBookChapters;
-      cursorVerse = BibleNavigation.getVerseCount(bookId, totalBookChapters);
+      cursorVerse = _bibleNavigation.getVerseCount(bookId, totalBookChapters);
 
       var currentProgress = _booksProgress[readingPlanId]![bookId - 1];
       currentProgress = currentProgress.copyWith(
@@ -686,7 +688,7 @@ class ReadingSessionManager {
           final candidateProgress =
               _booksProgress[readingPlanId]![candidateBookId - 1];
           if (candidateProgress.versesRead <
-              BibleNavigation.getTotalVerseCount(candidateBookId)) {
+              _bibleNavigation.getTotalVerseCount(candidateBookId)) {
             nextBookId = candidateBookId;
             break;
           }
@@ -719,7 +721,7 @@ class ReadingSessionManager {
     } else {
       // Book is not yet complete. Check touched chapter vs other chapters.
       final touchedChapterCount = chapterCounts[touchedChapter] ?? 0;
-      final touchedChapterTotal = BibleNavigation.getVerseCount(
+      final touchedChapterTotal = _bibleNavigation.getVerseCount(
         bookId,
         touchedChapter,
       );
@@ -753,7 +755,7 @@ class ReadingSessionManager {
         int targetChapter = touchedChapter;
         for (final c in scanOrder) {
           final cCount = chapterCounts[c] ?? 0;
-          final cTotal = BibleNavigation.getVerseCount(bookId, c);
+          final cTotal = _bibleNavigation.getVerseCount(bookId, c);
           if (cCount < cTotal) {
             targetChapter = c;
             break;
@@ -761,7 +763,7 @@ class ReadingSessionManager {
         }
 
         cursorChapter = targetChapter;
-        final targetChapterTotal = BibleNavigation.getVerseCount(
+        final targetChapterTotal = _bibleNavigation.getVerseCount(
           bookId,
           targetChapter,
         );
@@ -888,8 +890,8 @@ class ReadingSessionManager {
       final orderedBookIds = p.books.map((b) => b.bookId).toList();
 
       for (final b in p.books) {
-        final bookChap = BibleNavigation.getChapterCount(b.bookId);
-        final bookVerses = BibleNavigation.getTotalVerseCount(b.bookId);
+        final bookChap = _bibleNavigation.getChapterCount(b.bookId);
+        final bookVerses = _bibleNavigation.getTotalVerseCount(b.bookId);
 
         totalChapters += bookChap;
         versesCount += bookVerses;
