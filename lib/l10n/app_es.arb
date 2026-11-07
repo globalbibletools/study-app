@@ -175,7 +175,7 @@
     "doneSelected": "Listo ({count} seleccionados)",
     "bookCompletedTitle": "¡Has completado {book}!",
     "completed": "Completado",
-    "nextBookInPlan": "Siguiente libro del plan",
+    "nextBookInPlan": "Siguiente libro",
     "bookGenesis": "Génesis",
     "bookExodus": "Éxodo",
     "bookLeviticus": "Levítico",

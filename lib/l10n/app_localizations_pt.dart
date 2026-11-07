@@ -639,7 +639,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get completed => 'Concluído';
 
   @override
-  String get nextBookInPlan => 'Próximo livro do plano';
+  String get nextBookInPlan => 'Próximo livro';
 
   @override
   String get bookGenesis => 'Gênesis';

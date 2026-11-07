@@ -12,7 +12,7 @@ class BookCompletedOverlay extends StatefulWidget {
 
   final ReadingSessionManager manager;
 
-  /// Called when "Next Book in Plan" is pressed.
+  /// Called when "Next Book" is pressed.
   final Function(int)? onNextBook;
 
   @override
@@ -147,15 +147,29 @@ class _BookCompletedOverlayState extends State<BookCompletedOverlay> {
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Text(
-                                      l10n.nextBookInPlan,
-                                      style: const TextStyle(
-                                        fontSize: 25,
-                                        fontWeight: FontWeight.w400,
+                                    Flexible(
+                                      child: FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        child: Text(
+                                          l10n.nextBookInPlan,
+                                          maxLines: 1,
+                                          style: const TextStyle(
+                                            fontSize: 25,
+                                            fontWeight: FontWeight.w400,
+                                          ),
+                                        ),
                                       ),
                                     ),
                                     const SizedBox(width: 18),
-                                    const Icon(Icons.chevron_right, size: 34),
+                                    // Nudge the icon up slightly so its center aligns
+                                    // optically with the text's cap height.
+                                    Transform.translate(
+                                      offset: const Offset(0, -1),
+                                      child: const Icon(
+                                        Icons.chevron_right,
+                                        size: 34,
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
@@ -177,11 +191,15 @@ class _BookCompletedOverlayState extends State<BookCompletedOverlay> {
                                     alpha: 0.45,
                                   ),
                                 ),
-                                child: Text(
-                                  l10n.done,
-                                  style: const TextStyle(
-                                    fontSize: 25,
-                                    fontWeight: FontWeight.w400,
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    l10n.done,
+                                    maxLines: 1,
+                                    style: const TextStyle(
+                                      fontSize: 25,
+                                      fontWeight: FontWeight.w400,
+                                    ),
                                   ),
                                 ),
                               ),

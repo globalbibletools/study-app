@@ -638,7 +638,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get completed => 'مكتمل';
 
   @override
-  String get nextBookInPlan => 'الكتاب التالي في الخطة';
+  String get nextBookInPlan => 'الكتاب التالي';
 
   @override
   String get bookGenesis => 'التكوين';

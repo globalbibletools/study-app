@@ -641,7 +641,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get completed => 'Completado';
 
   @override
-  String get nextBookInPlan => 'Siguiente libro del plan';
+  String get nextBookInPlan => 'Siguiente libro';
 
   @override
   String get bookGenesis => 'Génesis';

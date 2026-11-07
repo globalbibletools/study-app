@@ -175,7 +175,7 @@
     "doneSelected": "تم ({count} محدد)",
     "bookCompletedTitle": "لقد أكملت {book}!",
     "completed": "مكتمل",
-    "nextBookInPlan": "الكتاب التالي في الخطة",
+    "nextBookInPlan": "الكتاب التالي",
     "bookGenesis": "التكوين",
     "bookExodus": "الخروج",
     "bookLeviticus": "اللاويين",

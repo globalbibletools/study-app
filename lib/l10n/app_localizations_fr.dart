@@ -640,7 +640,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get completed => 'Terminé';
 
   @override
-  String get nextBookInPlan => 'Livre suivant du plan';
+  String get nextBookInPlan => 'Livre suivant';
 
   @override
   String get bookGenesis => 'Genèse';

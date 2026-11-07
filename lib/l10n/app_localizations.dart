@@ -1157,7 +1157,7 @@ abstract class AppLocalizations {
   /// Button label for continuing to the next book in a reading plan
   ///
   /// In en, this message translates to:
-  /// **'Next Book in Plan'**
+  /// **'Next Book'**
   String get nextBookInPlan;
 
   /// The name of the first book of the Bible

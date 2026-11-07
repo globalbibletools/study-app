@@ -843,7 +843,7 @@
   "@completed": {
     "description": "Completion status label"
   },
-  "nextBookInPlan": "Next Book in Plan",
+  "nextBookInPlan": "Next Book",
   "@nextBookInPlan": {
     "description": "Button label for continuing to the next book in a reading plan"
   },
