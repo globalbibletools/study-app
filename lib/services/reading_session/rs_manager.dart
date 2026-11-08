@@ -5,20 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/services/reading_session/rs_database.dart';
 import 'package:gbt/services/reading_session/rs_model.dart';
+import 'package:gbt/services/reading_session/rs_types.dart';
 import 'package:gbt/services/service_locator.dart';
 
-enum StatsType { weekly, monthly }
-
-enum GoalType { minutes, verses }
-
-enum ProgressType { byBook, bySection }
-
-class DailyGoal {
-  final GoalType type;
-  final int value;
-
-  const DailyGoal(this.type, this.value);
-}
+export 'package:gbt/services/reading_session/rs_types.dart';
 
 class ReadingSessionManager {
   final _rsdbManager = getIt<ReadingSessionDatabase>();
@@ -854,147 +844,6 @@ class ReadingSessionManager {
     _bookVerseReadCount.clear();
     _monthProgress.clear();
     readingModeNotifier.value = _rsDailyLog != null;
-  }
-
-  Future<List<ReadingPlanDetails>> getReadingPlansWithProgress() async {
-    final plans = await _rsdbManager.getReadingPlans();
-
-    for (final p in plans) {
-      int totalChapters = 0;
-      int versesCount = 0;
-      int versesRead = 0;
-      int booksRead = 0;
-
-      final booksProgress = await loadBooksProgress(p.readingPlan.id!);
-      final orderedBookIds = p.books.map((b) => b.bookId).toList();
-
-      for (final b in p.books) {
-        final bookChap = _bibleNavigation.getChapterCount(b.bookId);
-        final bookVerses = _bibleNavigation.getTotalVerseCount(b.bookId);
-
-        totalChapters += bookChap;
-        versesCount += bookVerses;
-
-        final bookVersesRead = booksProgress[b.bookId - 1].versesRead;
-        versesRead += bookVersesRead;
-
-        if (bookVersesRead >= bookVerses) {
-          booksRead += 1;
-        }
-      }
-
-      p.totalChapters = totalChapters;
-      p.totalVerses = versesCount;
-      p.versesRead = versesRead;
-      p.booksRead = booksRead;
-      p.latestBookProgress = getLatestBookProgress(
-        p.readingPlan.id!,
-        orderedBookIds: orderedBookIds,
-      );
-    }
-    return plans;
-  }
-
-  Future<ReadingPlan> saveReadingPlan({
-    ReadingPlanDetails? existingPlanDetails,
-    required String planName,
-    required int collectionId,
-    required GoalType goalType,
-    required int goalValue,
-    required Set<int> selectedBookIds,
-  }) async {
-    final List<int> orderedBookIds = [];
-    if (existingPlanDetails != null) {
-      for (final b in existingPlanDetails.books) {
-        if (selectedBookIds.contains(b.bookId)) {
-          orderedBookIds.add(b.bookId);
-        }
-      }
-    }
-    final existingBookIdsSet = orderedBookIds.toSet();
-    final newlyAddedBooks =
-        selectedBookIds.where((b) => !existingBookIdsSet.contains(b)).toList()
-          ..sort();
-    orderedBookIds.addAll(newlyAddedBooks);
-
-    final savedPlan = await _rsdbManager.saveReadingPlan(
-      existingPlan: existingPlanDetails?.readingPlan,
-      planName: planName,
-      collectionId: collectionId,
-      goalType: goalType.name,
-      goalValue: goalValue,
-      orderedBookIds: orderedBookIds,
-    );
-
-    final planId = savedPlan.id!;
-    _booksProgress.remove(planId);
-    await loadBooksProgress(planId);
-
-    if (_readingPlan?.readingPlan.id == planId) {
-      _readingPlan = await _rsdbManager.getReadingPlanById(planId);
-      if (_readingPlan != null) {
-        _books = _readingPlan!.books.map((b) => b.bookId).toSet();
-        final currentGoal = _readingPlan!.dailyGoal;
-        if (currentGoal.type == GoalType.verses) {
-          if (totalVersesReadPerDay.value < currentGoal.value) {
-            _goalAlreadyReached = false;
-            goalReachedNotifier.value = false;
-          } else {
-            checkGoalReached(false);
-          }
-        } else if (currentGoal.type == GoalType.minutes) {
-          if (totalSecondsReadPerDay.value < currentGoal.value * 60) {
-            _goalAlreadyReached = false;
-            goalReachedNotifier.value = false;
-          } else {
-            checkGoalReached(false);
-          }
-        }
-        readingModeNotifier.value = false;
-        readingModeNotifier.value = true;
-      }
-    }
-
-    return savedPlan;
-  }
-
-  Future<bool> toggleReadingPlanBookmark(ReadingPlanDetails planDetails) async {
-    final updatedPlan = planDetails.readingPlan.copyWith(
-      isBookmarked: !planDetails.readingPlan.isBookmarked,
-    );
-    await _rsdbManager.updateReadingPlan(updatedPlan);
-    planDetails.readingPlan = updatedPlan;
-    if (_readingPlan?.readingPlan.id == updatedPlan.id) {
-      _readingPlan!.readingPlan = updatedPlan;
-    }
-    return updatedPlan.isBookmarked;
-  }
-
-  Future<void> reorderReadingPlanBooks(
-    int readingPlanId,
-    List<ReadingPlanBook> books,
-  ) async {
-    await _rsdbManager.updateReadingPlanBooks(books);
-    if (_readingPlan?.readingPlan.id == readingPlanId) {
-      _readingPlan!.books
-        ..clear()
-        ..addAll(books);
-      final orderedIds = books.map((b) => b.bookId).toList();
-      _readingPlan!.latestBookProgress = getLatestBookProgress(
-        readingPlanId,
-        orderedBookIds: orderedIds,
-      );
-    }
-  }
-
-  Future<void> deleteReadingPlan(int planId) async {
-    if (_readingPlan?.readingPlan.id == planId) {
-      await _resetBeforeRestore();
-    }
-    await _rsdbManager.deleteReadingPlan(planId);
-    _booksProgress.remove(planId);
-    _monthProgress.remove(planId);
-    _bookVerseReadCount.removeWhere((key, _) => key.$1 == planId);
   }
 
   Future<List<Session>> getDetailedProgressFor(

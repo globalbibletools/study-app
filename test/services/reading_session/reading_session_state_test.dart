@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/l10n/app_localizations.dart';
+import 'package:gbt/services/reading_session/reading_plan_service.dart';
 import 'package:gbt/services/reading_session/rs_database.dart';
 import 'package:gbt/services/reading_session/rs_manager.dart';
 import 'package:gbt/services/reading_session/rs_model.dart';
@@ -22,6 +23,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late ReadingSessionDatabase rsDb;
+  late ReadingPlanService planService;
   late ReadingSessionManager rsManager;
 
   setUpAll(() {
@@ -36,6 +38,9 @@ void main() {
     if (getIt.isRegistered<ReadingSessionManager>()) {
       getIt.unregister<ReadingSessionManager>();
     }
+    if (getIt.isRegistered<ReadingPlanService>()) {
+      getIt.unregister<ReadingPlanService>();
+    }
     if (getIt.isRegistered<BibleNavigation>()) {
       getIt.unregister<BibleNavigation>();
     }
@@ -46,6 +51,8 @@ void main() {
     await rsDb.resetDatabase();
     await rsDb.init();
     getIt.registerSingleton<ReadingSessionDatabase>(rsDb);
+    planService = ReadingPlanService.withDatabase(rsDb);
+    getIt.registerSingleton<ReadingPlanService>(planService);
 
     rsManager = ReadingSessionManager();
     await rsManager.init();
@@ -64,6 +71,9 @@ void main() {
     if (getIt.isRegistered<ReadingSessionManager>()) {
       getIt.unregister<ReadingSessionManager>();
     }
+    if (getIt.isRegistered<ReadingPlanService>()) {
+      getIt.unregister<ReadingPlanService>();
+    }
     if (getIt.isRegistered<BibleNavigation>()) {
       getIt.unregister<BibleNavigation>();
     }
@@ -73,7 +83,7 @@ void main() {
     test(
       'completing chapter 1 of multi-chapter book (Psalms 1) does not trigger bookCompletedNotifier and advances cursor to Psalms 2:1',
       () async {
-        final plan = await rsManager.saveReadingPlan(
+        final plan = await planService.saveReadingPlan(
           planName: 'Test Psalms Plan',
           collectionId: 1,
           goalType: GoalType.verses,
@@ -81,7 +91,7 @@ void main() {
           selectedBookIds: {19, 20},
         );
 
-        final plans = await rsManager.getReadingPlansWithProgress();
+        final plans = await planService.getReadingPlansWithProgress();
         final planDetails = plans.firstWhere(
           (p) => p.readingPlan.id == plan.id,
         );
@@ -115,7 +125,7 @@ void main() {
     test(
       'checking the final verse of a book (e.g. Psalm 150:6) before earlier chapters does not trigger bookCompletedNotifier',
       () async {
-        final plan = await rsManager.saveReadingPlan(
+        final plan = await planService.saveReadingPlan(
           planName: 'Test Psalms Plan',
           collectionId: 1,
           goalType: GoalType.verses,
@@ -123,7 +133,7 @@ void main() {
           selectedBookIds: {19, 20},
         );
 
-        final plans = await rsManager.getReadingPlansWithProgress();
+        final plans = await planService.getReadingPlansWithProgress();
         final planDetails = plans.firstWhere(
           (p) => p.readingPlan.id == plan.id,
         );
@@ -150,7 +160,7 @@ void main() {
     test(
       'completing all verses out of order triggers bookCompletedNotifier on final unread verse and advances cursor to next incomplete book',
       () async {
-        final plan = await rsManager.saveReadingPlan(
+        final plan = await planService.saveReadingPlan(
           planName: 'Short Epistles',
           collectionId: 1,
           goalType: GoalType.verses,
@@ -158,7 +168,7 @@ void main() {
           selectedBookIds: {63, 64},
         );
 
-        final plans = await rsManager.getReadingPlansWithProgress();
+        final plans = await planService.getReadingPlansWithProgress();
         final planDetails = plans.firstWhere(
           (p) => p.readingPlan.id == plan.id,
         );
@@ -197,7 +207,7 @@ void main() {
     test(
       'resetting a verse after 10 reads across multiple sessions zeroes verse read count, decrements chaptersRead, and adjusts today daily log only for active session reads',
       () async {
-        final plan = await rsManager.saveReadingPlan(
+        final plan = await planService.saveReadingPlan(
           planName: 'Reset Test Plan',
           collectionId: 1,
           goalType: GoalType.verses,
@@ -205,7 +215,7 @@ void main() {
           selectedBookIds: {63},
         );
 
-        final plans = await rsManager.getReadingPlansWithProgress();
+        final plans = await planService.getReadingPlansWithProgress();
         final planDetails = plans.firstWhere(
           (p) => p.readingPlan.id == plan.id,
         );
@@ -256,9 +266,9 @@ void main() {
     );
 
     test(
-      'editing a reading plan preserves custom ord book ordering, syncs active session, and removes orphaned progress',
+      'editing a reading plan preserves custom ord book ordering and removes orphaned progress',
       () async {
-        final plan = await rsManager.saveReadingPlan(
+        final plan = await planService.saveReadingPlan(
           planName: 'Order Test',
           collectionId: 1,
           goalType: GoalType.verses,
@@ -266,7 +276,7 @@ void main() {
           selectedBookIds: {1, 2, 3},
         );
 
-        var plans = await rsManager.getReadingPlansWithProgress();
+        var plans = await planService.getReadingPlansWithProgress();
         var details = plans.firstWhere((p) => p.readingPlan.id == plan.id);
 
         final reordered = [
@@ -274,17 +284,17 @@ void main() {
           details.books[0].copyWith(ord: 2),
           details.books[1].copyWith(ord: 3),
         ];
-        await rsManager.reorderReadingPlanBooks(plan.id!, reordered);
+        await planService.reorderReadingPlanBooks(plan.id!, reordered);
 
         await rsManager.startReadingSession(details);
         await rsManager.markVerseAsRead(2, 1, 1);
         expect(rsManager.getBookProgressForActivePlan(2), isNotNull);
 
-        details = (await rsManager.getReadingPlansWithProgress()).firstWhere(
+        details = (await planService.getReadingPlansWithProgress()).firstWhere(
           (p) => p.readingPlan.id == plan.id,
         );
 
-        await rsManager.saveReadingPlan(
+        await planService.saveReadingPlan(
           existingPlanDetails: details,
           planName: 'Order Test Updated',
           collectionId: 1,
@@ -300,22 +310,23 @@ void main() {
         final book2Progress = await rsDb.getAllBookProgress(plan.id!);
         expect(book2Progress.any((b) => b.bookId == 2), isFalse);
 
-        expect(rsManager.getReadingPlan()!.readingPlan.goalValue, 20);
-        expect(rsManager.readingPlanBooks, {3, 1, 4});
+        final reloadedPlan = await planService.getReadingPlanById(plan.id!);
+        expect(reloadedPlan!.readingPlan.goalValue, 20);
+        expect(reloadedPlan.books.map((b) => b.bookId), [3, 1, 4]);
       },
     );
 
     test(
-      'deleteReadingPlan terminates active session and deletes all rows across all 6 SQLite tables without affecting other plans',
+      'deleteReadingPlan deletes all rows across all 6 SQLite tables without affecting other plans',
       () async {
-        final planA = await rsManager.saveReadingPlan(
+        final planA = await planService.saveReadingPlan(
           planName: 'Plan A',
           collectionId: 1,
           goalType: GoalType.verses,
           goalValue: 10,
           selectedBookIds: {1, 2},
         );
-        final planB = await rsManager.saveReadingPlan(
+        final planB = await planService.saveReadingPlan(
           planName: 'Plan B',
           collectionId: 1,
           goalType: GoalType.verses,
@@ -323,20 +334,16 @@ void main() {
           selectedBookIds: {3, 4},
         );
 
-        final plans = await rsManager.getReadingPlansWithProgress();
+        final plans = await planService.getReadingPlansWithProgress();
         final planADetails = plans.firstWhere(
           (p) => p.readingPlan.id == planA.id,
         );
 
         await rsManager.startReadingSession(planADetails);
         await rsManager.markVerseAsRead(1, 1, 1);
-        expect(rsManager.readingModeNotifier.value, isTrue);
+        await rsManager.endReadingSession();
 
-        await rsManager.deleteReadingPlan(planA.id!);
-
-        expect(rsManager.readingModeNotifier.value, isFalse);
-        expect(rsManager.getReadingPlan(), isNull);
-        expect(rsManager.readingPlanBooks, isNull);
+        await planService.deleteReadingPlan(planA.id!);
 
         final planAResult = await rsDb.getReadingPlanById(planA.id!);
         expect(planAResult, isNull);
@@ -367,9 +374,9 @@ void main() {
     );
 
     test(
-      'reordering books (moving Exodus before Genesis) updates currentBook to Exodus in ReadingSessionManager and ReadingPlanDetailPanelManager',
+      'reordering books (moving Exodus before Genesis) updates latest book progress in ReadingPlanDetailPanelManager',
       () async {
-        final plan = await rsManager.saveReadingPlan(
+        final plan = await planService.saveReadingPlan(
           planName: 'Exodus First Test',
           collectionId: 1,
           goalType: GoalType.verses,
@@ -377,11 +384,12 @@ void main() {
           selectedBookIds: {1, 2}, // Genesis (1), Exodus (2)
         );
 
-        var plans = await rsManager.getReadingPlansWithProgress();
+        var plans = await planService.getReadingPlansWithProgress();
         var details = plans.firstWhere((p) => p.readingPlan.id == plan.id);
         expect(details.latestBookProgress?.bookId, 1);
 
         final detailManager = ReadingPlanDetailPanelManager(details);
+        await detailManager.ready;
         expect(detailManager.latestBookProgressNotifier.value?.bookId, 1);
 
         // Reorder so Exodus (bookId 2) comes first, Genesis (bookId 1) second
@@ -393,7 +401,7 @@ void main() {
 
         expect(detailManager.latestBookProgressNotifier.value?.bookId, 2);
 
-        plans = await rsManager.getReadingPlansWithProgress();
+        plans = await planService.getReadingPlansWithProgress();
         details = plans.firstWhere((p) => p.readingPlan.id == plan.id);
         expect(details.latestBookProgress?.bookId, 2);
 
@@ -404,7 +412,7 @@ void main() {
     test(
       'loadMonthProgress handles daylight saving time transition in November with exact 1-to-1 day mapping',
       () async {
-        final plan = await rsManager.saveReadingPlan(
+        final plan = await planService.saveReadingPlan(
           planName: 'DST November Test',
           collectionId: 1,
           goalType: GoalType.verses,

@@ -1,4 +1,4 @@
-import 'package:gbt/services/reading_session/rs_manager.dart';
+import 'package:gbt/services/reading_session/rs_types.dart';
 
 class ReadingPlan {
   final int? id;

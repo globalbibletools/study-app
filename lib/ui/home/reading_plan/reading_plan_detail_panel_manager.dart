@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:gbt/services/reading_session/reading_plan_service.dart';
 import 'package:gbt/services/reading_session/rs_manager.dart';
 import 'package:gbt/services/reading_session/rs_model.dart';
 import 'package:gbt/services/service_locator.dart';
 
 class ReadingPlanDetailPanelManager {
   final _rsManager = getIt<ReadingSessionManager>();
+  final _planService = getIt<ReadingPlanService>();
 
   final readingPlansNotifier = ValueNotifier<List<ReadingPlanDetails>>([]);
   final booksProgressNotifier = ValueNotifier<List<RsBookProgress>>([]);
@@ -15,6 +17,8 @@ class ReadingPlanDetailPanelManager {
 
   ReadingPlanDetails readingPlanDetails;
   bool _isDisposed = false;
+  late final Future<void> _initFuture;
+  late final Future<void> _monthLoadFuture;
 
   ReadingPlanDetailPanelManager(this.readingPlanDetails) {
     bookmarkNotifier.value = readingPlanDetails.readingPlan.isBookmarked;
@@ -26,10 +30,12 @@ class ReadingPlanDetailPanelManager {
       orderedBookIds: orderedBookIds,
     );
     latestBookProgressNotifier.value = readingPlanDetails.latestBookProgress;
-    init();
+    _initFuture = init();
     DateTime now = DateTime.now();
-    loadMonthData(DateTime(now.year, now.month, 1));
+    _monthLoadFuture = loadMonthData(DateTime(now.year, now.month, 1));
   }
+
+  Future<void> get ready => Future.wait([_initFuture, _monthLoadFuture]);
 
   Future<void> init() async {
     final planId = readingPlanDetails.readingPlan.id!;
@@ -62,10 +68,12 @@ class ReadingPlanDetailPanelManager {
   }
 
   Future<void> markToggleReadingPlanBookmark() async {
-    final isBookmarked = await _rsManager.toggleReadingPlanBookmark(
-      readingPlanDetails,
+    final updatedPlan = await _planService.setReadingPlanBookmark(
+      readingPlanDetails.readingPlan,
+      !readingPlanDetails.readingPlan.isBookmarked,
     );
-    bookmarkNotifier.value = isBookmarked;
+    readingPlanDetails.readingPlan = updatedPlan;
+    bookmarkNotifier.value = updatedPlan.isBookmarked;
   }
 
   void dispose() {
@@ -86,7 +94,7 @@ class ReadingPlanDetailPanelManager {
     readingPlanDetails.books
       ..clear()
       ..addAll(updatedBooks);
-    await _rsManager.reorderReadingPlanBooks(
+    await _planService.reorderReadingPlanBooks(
       readingPlanDetails.readingPlan.id!,
       updatedBooks,
     );
@@ -98,7 +106,7 @@ class ReadingPlanDetailPanelManager {
     latestBookProgressNotifier.value = readingPlanDetails.latestBookProgress;
   }
 
-  void loadMonthData(DateTime month) async {
+  Future<void> loadMonthData(DateTime month) async {
     final data = await _rsManager.loadMonthProgress(
       readingPlanDetails.readingPlan.id!,
       month,

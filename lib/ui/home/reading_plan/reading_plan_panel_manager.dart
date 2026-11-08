@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:gbt/services/reading_session/reading_plan_service.dart';
 import 'package:gbt/services/reading_session/rs_manager.dart';
 import 'package:gbt/services/reading_session/rs_model.dart';
 import 'package:gbt/services/service_locator.dart';
 
 class ReadingPlanPanelManager {
   final _rsManager = getIt<ReadingSessionManager>();
+  final _planService = getIt<ReadingPlanService>();
 
   final readingPlansNotifier = ValueNotifier<List<ReadingPlanDetails>>([]);
 
@@ -13,12 +15,12 @@ class ReadingPlanPanelManager {
   }
 
   Future<void> init() async {
-    final plans = await _rsManager.getReadingPlansWithProgress();
+    final plans = await _planService.getReadingPlansWithProgress();
     readingPlansNotifier.value = plans;
   }
 
   Future<void> deleteReadingPlan(int planId) async {
-    await _rsManager.deleteReadingPlan(planId);
+    await _planService.deleteReadingPlan(planId);
     await init();
   }
 

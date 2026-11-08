@@ -20,19 +20,24 @@ Coordinates interactive Scripture reading sessions, real-time timer tracking, ve
 - [rs_manager.dart:ReadingSessionManager.loadBooksProgress]: Retrieves or synthesizes progress records for all 66 Bible books for a reading plan.
 - [rs_manager.dart:ReadingSessionManager.getLatestBookProgress]: Returns the first incomplete book progress entry adhering to the plan sequence `orderedBookIds`, or falls back to the most recently updated book progress entry.
 - [rs_manager.dart:ReadingSessionManager.getBookProgressForActivePlan]: Synchronously retrieves cached book progress for a book ID in the currently active plan.
-- [rs_manager.dart:ReadingSessionManager.getReadingPlansWithProgress]: Loads all reading plans with aggregated chapter, verse, and book completion metrics.
-- [rs_manager.dart:ReadingSessionManager.saveReadingPlan]: Atomically creates or updates a reading plan, preserving custom book order for retained books, re-evaluating goals, and refreshing active sessions.
-- [rs_manager.dart:ReadingSessionManager.toggleReadingPlanBookmark]: Updates bookmark status on a reading plan.
-- [rs_manager.dart:ReadingSessionManager.reorderReadingPlanBooks]: Persists updated book sequence `ord` values inside a transaction, synchronizes in-memory book lists, and updates `latestBookProgress`.
-- [rs_manager.dart:ReadingSessionManager.deleteReadingPlan]: Terminates any active session for the plan and deletes all associated records across all six tables in a single transaction.
 - [rs_manager.dart:ReadingSessionManager.loadMonthProgress]: Loads daily reading metrics for calendar grid displays with 1-to-1 day calendar mapping immune to daylight saving time fall-back shifts.
 - [rs_manager.dart:ReadingSessionManager.getDetailedProgressFor]: Reconstructs contiguous verse intervals read across sessions on a date.
 - [rs_manager.dart:ReadingSessionManager.resetForDatabaseRestore]: Clears active session state and caches before a backup restore.
 - [rs_manager.dart:ReadingSessionManager.reloadAfterDatabaseRestore]: Reloads in-memory state after a backup restore.
-- [rs_manager.dart:DailyGoal]: Immutable structure representing goal target `(GoalType type, int value)`.
-- [rs_manager.dart:GoalType]: Enum for daily targets (`minutes`, `verses`).
-- [rs_manager.dart:StatsType]: Enum for statistical aggregation intervals (`weekly`, `monthly`).
-- [rs_manager.dart:ProgressType]: Enum for progress visualization (`byBook`, `bySection`).
+- [rs_types.dart:DailyGoal]: Immutable structure representing goal target `(GoalType type, int value)`.
+- [rs_types.dart:GoalType]: Enum for daily targets (`minutes`, `verses`).
+- [rs_types.dart:StatsType]: Enum for statistical aggregation intervals (`weekly`, `monthly`).
+- [rs_types.dart:ProgressType]: Enum for progress visualization (`byBook`, `bySection`).
+- [reading_plan_service.dart:ReadingPlanService]: Stateless service for reading-plan metadata and book CRUD.
+- [reading_plan_service.dart:ReadingPlanService.ReadingPlanService]: Default constructor; resolves `ReadingSessionDatabase` through `getIt`.
+- [reading_plan_service.dart:ReadingPlanService.withDatabase]: Constructor for supplying an explicit `ReadingSessionDatabase`, useful for tests or alternate databases.
+- [reading_plan_service.dart:ReadingPlanService.getReadingPlans]: Loads all plans and their ordered books.
+- [reading_plan_service.dart:ReadingPlanService.getReadingPlansWithProgress]: Loads all plans and computes chapter, verse, book completion, and latest-book progress from persisted book progress records.
+- [reading_plan_service.dart:ReadingPlanService.getReadingPlanById]: Loads a single plan and its ordered books.
+- [reading_plan_service.dart:ReadingPlanService.saveReadingPlan]: Creates or updates a plan, preserving retained book order and appending newly selected books in sorted order.
+- [reading_plan_service.dart:ReadingPlanService.setReadingPlanBookmark]: Persists a plan bookmark state and returns the updated plan.
+- [reading_plan_service.dart:ReadingPlanService.reorderReadingPlanBooks]: Persists book ordering and normalizes `ord` values.
+- [reading_plan_service.dart:ReadingPlanService.deleteReadingPlan]: Deletes a plan and all dependent reading records.
 - [reading_plan_backup_service.dart:ReadingPlanBackupService]: Stateless service for versioned JSON backup/restore, backup file discovery, and serialization.
 - [reading_plan_backup_service.dart:ReadingPlanBackupService.ReadingPlanBackupService]: Default constructor; resolves `ReadingSessionDatabase` through `getIt`.
 - [reading_plan_backup_service.dart:ReadingPlanBackupService.withDatabase]: Constructor for supplying an explicit `ReadingSessionDatabase`, useful for tests or alternate databases.
