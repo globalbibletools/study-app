@@ -27,21 +27,31 @@ Coordinates interactive Scripture reading sessions, real-time timer tracking, ve
 - [rs_manager.dart:ReadingSessionManager.deleteReadingPlan]: Terminates any active session for the plan and deletes all associated records across all six tables in a single transaction.
 - [rs_manager.dart:ReadingSessionManager.loadMonthProgress]: Loads daily reading metrics for calendar grid displays with 1-to-1 day calendar mapping immune to daylight saving time fall-back shifts.
 - [rs_manager.dart:ReadingSessionManager.getDetailedProgressFor]: Reconstructs contiguous verse intervals read across sessions on a date.
-- [rs_manager.dart:ReadingSessionManager.createBackup]: Creates a versioned JSON backup of reading plans, logs, and statistics.
-- [rs_manager.dart:ReadingSessionManager.restoreBackup]: Restores database tables from a backup file path and purges in-memory caches.
+- [rs_manager.dart:ReadingSessionManager.resetForDatabaseRestore]: Clears active session state and caches before a backup restore.
+- [rs_manager.dart:ReadingSessionManager.reloadAfterDatabaseRestore]: Reloads in-memory state after a backup restore.
 - [rs_manager.dart:DailyGoal]: Immutable structure representing goal target `(GoalType type, int value)`.
 - [rs_manager.dart:GoalType]: Enum for daily targets (`minutes`, `verses`).
 - [rs_manager.dart:StatsType]: Enum for statistical aggregation intervals (`weekly`, `monthly`).
 - [rs_manager.dart:ProgressType]: Enum for progress visualization (`byBook`, `bySection`).
-- [rs_database.dart:ReadingSessionDatabase]: SQLite persistence layer managing schema migrations, queries, and JSON backup/restore.
+- [reading_plan_backup_service.dart:ReadingPlanBackupService]: Stateless service for versioned JSON backup/restore, backup file discovery, and serialization.
+- [reading_plan_backup_service.dart:ReadingPlanBackupService.ReadingPlanBackupService]: Default constructor; resolves `ReadingSessionDatabase` through `getIt`.
+- [reading_plan_backup_service.dart:ReadingPlanBackupService.withDatabase]: Constructor for supplying an explicit `ReadingSessionDatabase`, useful for tests or alternate databases.
+- [reading_plan_backup_service.dart:ReadingPlanBackupService.createBackup]: Creates a timestamped backup file in the application documents backup directory.
+- [reading_plan_backup_service.dart:ReadingPlanBackupService.exportBackup]: Writes a backup payload to an explicit filesystem path.
+- [reading_plan_backup_service.dart:ReadingPlanBackupService.buildBackupBytes]: Serializes the current reading session tables into versioned JSON bytes.
+- [reading_plan_backup_service.dart:ReadingPlanBackupService.listBackups]: Lists saved backup files, newest first.
+- [reading_plan_backup_service.dart:ReadingPlanBackupService.restoreBackup]: Restores the database from a backup file path.
+- [reading_plan_backup_service.dart:ReadingPlanBackupService.restoreBackupBytes]: Restores the database from serialized backup bytes.
+- [reading_plan_backup_service.dart:ReadingPlanBackupService.restoreBackupJson]: Parses versioned backup JSON and delegates table replacement to the database.
+- [reading_plan_backup_service.dart:ReadingSessionBackupInfo]: Backup file metadata (`path`, `name`, `modifiedAt`, `sizeBytes`).
+- [rs_database.dart:ReadingSessionDatabase]: SQLite persistence layer managing schema migrations, queries, and table-level backup snapshots.
 - [rs_database.dart:ReadingSessionDatabase.init]: Opens database with migrations loaded from `assets/schemas/`.
 - [rs_database.dart:ReadingSessionDatabase.getDistinctVersesReadPerChapter]: Queries SQLite for distinct verse counts per chapter in a book.
 - [rs_database.dart:ReadingSessionDatabase.deleteRsLogsForVerse]: Deletes all `rs_log` rows for a specific verse in a reading plan.
 - [rs_database.dart:ReadingSessionDatabase.saveReadingPlan]: Transactional plan creation or update with book sequence batching.
 - [rs_database.dart:ReadingSessionDatabase.deleteReadingPlan]: Transactional cascade delete across `rs_log`, `rs_daily_log`, `rs_stats`, `rs_book_progress`, `reading_plan_book`, and `reading_plan`.
-- [rs_database.dart:ReadingSessionDatabase.createBackup]: Serializes tables into JSON backup files.
-- [rs_database.dart:ReadingSessionDatabase.restoreBackup]: Ingests JSON backup payloads (versions 1 and 2) inside a transaction.
-- [rs_database.dart:ReadingSessionBackupInfo]: Backup file metadata (`path`, `name`, `modifiedAt`, `sizeBytes`).
+- [rs_database.dart:ReadingSessionDatabase.exportBackupTables]: Reads all backup-relevant tables into an in-memory snapshot.
+- [rs_database.dart:ReadingSessionDatabase.restoreBackupTables]: Replaces all backup-relevant tables from a parsed payload inside a transaction, including v1 compatibility.
 - [rs_model.dart:ReadingPlan]: Entity defining a reading plan schedule and target goals.
 - [rs_model.dart:ReadingPlanBook]: Join entity binding books to a reading plan in ordered sequence.
 - [rs_model.dart:ReadingPlanDetails]: Aggregate container joining reading plan metadata, book lists, and calculated progress counters.

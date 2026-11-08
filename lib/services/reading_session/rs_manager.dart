@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:math' as math;
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:gbt/common/bible_navigation.dart';
@@ -329,31 +328,11 @@ class ReadingSessionManager {
     );
   }
 
-  Future<String> createBackup() async {
-    return _rsdbManager.createBackup();
-  }
-
-  Future<String> exportBackup(String backupPath) async {
-    return _rsdbManager.writeBackupToPath(backupPath);
-  }
-
-  Future<Uint8List> buildBackupBytes() async {
-    return _rsdbManager.buildBackupBytes();
-  }
-
-  Future<List<ReadingSessionBackupInfo>> listBackups() async {
-    return _rsdbManager.listBackups();
-  }
-
-  Future<void> restoreBackup(String backupPath) async {
+  Future<void> resetForDatabaseRestore() async {
     await _resetBeforeRestore();
-    await _rsdbManager.restoreBackup(backupPath);
-    await _reloadFromDatabase();
   }
 
-  Future<void> restoreBackupBytes(Uint8List bytes) async {
-    await _resetBeforeRestore();
-    await _rsdbManager.restoreBackupBytes(bytes);
+  Future<void> reloadAfterDatabaseRestore() async {
     await _reloadFromDatabase();
   }
 

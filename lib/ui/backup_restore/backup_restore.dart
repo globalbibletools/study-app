@@ -2,7 +2,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:gbt/l10n/app_localizations.dart';
-import 'package:gbt/services/reading_session/rs_database.dart';
+import 'package:gbt/services/reading_session/reading_plan_backup_service.dart';
 import 'package:gbt/services/reading_session/rs_manager.dart';
 import 'package:gbt/services/service_locator.dart';
 
@@ -15,6 +15,7 @@ class BackupRestorePage extends StatefulWidget {
 
 class _BackupRestoreState extends State<BackupRestorePage> {
   final _readingSessionManager = getIt<ReadingSessionManager>();
+  final _backupService = getIt<ReadingPlanBackupService>();
   PackageInfo? _packageInfo;
   List<ReadingSessionBackupInfo> _backups = [];
   bool _busy = false;
@@ -27,7 +28,7 @@ class _BackupRestoreState extends State<BackupRestorePage> {
 
   Future<void> _loadPageData() async {
     final packageInfo = await PackageInfo.fromPlatform();
-    final backups = await _readingSessionManager.listBackups();
+    final backups = await _backupService.listBackups();
     if (!mounted) return;
     setState(() {
       _packageInfo = packageInfo;
@@ -42,7 +43,7 @@ class _BackupRestoreState extends State<BackupRestorePage> {
     });
 
     try {
-      final path = await _readingSessionManager.createBackup();
+      final path = await _backupService.createBackup();
       await _loadPageData();
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -65,7 +66,7 @@ class _BackupRestoreState extends State<BackupRestorePage> {
 
     try {
       final timestamp = DateTime.now().toIso8601String().replaceAll(':', '-');
-      final bytes = await _readingSessionManager.buildBackupBytes();
+      final bytes = await _backupService.buildBackupBytes();
       final targetUri = await FilePicker.saveFile(
         dialogTitle: l10n.chooseBackupLocation,
         fileName: 'reading_session_$timestamp.json',
@@ -111,10 +112,10 @@ class _BackupRestoreState extends State<BackupRestorePage> {
       final label = file.name;
 
       if (file.path != null) {
-        await _readingSessionManager.restoreBackup(file.path!);
+        await _restoreDatabase(() => _backupService.restoreBackup(file.path!));
       } else {
         final bytes = await file.readAsBytes();
-        await _readingSessionManager.restoreBackupBytes(bytes);
+        await _restoreDatabase(() => _backupService.restoreBackupBytes(bytes));
       }
 
       await _loadPageData();
@@ -128,6 +129,15 @@ class _BackupRestoreState extends State<BackupRestorePage> {
           _busy = false;
         });
       }
+    }
+  }
+
+  Future<void> _restoreDatabase(Future<void> Function() restore) async {
+    await _readingSessionManager.resetForDatabaseRestore();
+    try {
+      await restore();
+    } finally {
+      await _readingSessionManager.reloadAfterDatabaseRestore();
     }
   }
 
@@ -160,7 +170,7 @@ class _BackupRestoreState extends State<BackupRestorePage> {
     });
 
     try {
-      await _readingSessionManager.restoreBackup(backup.path);
+      await _restoreDatabase(() => _backupService.restoreBackup(backup.path));
       await _loadPageData();
       if (!mounted) return;
       ScaffoldMessenger.of(

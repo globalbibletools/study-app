@@ -1,33 +1,16 @@
-import 'dart:convert';
-import 'package:gbt/services/logging/log.dart';
-import 'dart:io';
-
 import 'package:flutter/services.dart';
-import 'package:path/path.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:sqflite/sqflite.dart';
+import 'package:gbt/services/logging/log.dart';
 import 'package:gbt/services/reading_session/rs_model.dart';
-
-class ReadingSessionBackupInfo {
-  const ReadingSessionBackupInfo({
-    required this.path,
-    required this.name,
-    required this.modifiedAt,
-    required this.sizeBytes,
-  });
-
-  final String path;
-  final String name;
-  final DateTime modifiedAt;
-  final int sizeBytes;
-}
+import 'package:sqflite/sqflite.dart';
 
 class ReadingSessionDatabase {
-  static const _databaseName = 'reading_session.db';
+  ReadingSessionDatabase({String databaseName = _defaultDatabaseName})
+    : _databaseName = databaseName;
+
+  static const _defaultDatabaseName = 'reading_session.db';
   static const _databaseVersion = 3;
-  static const _backupFormatVersion = 2;
-  static const _backupDirectoryName = 'backups';
-  static const _backupFilePrefix = 'reading_session_';
+
+  final String _databaseName;
 
   late Database _database;
   Future<void>? _initFuture;
@@ -103,122 +86,37 @@ class ReadingSessionDatabase {
     }
   }
 
-  Future<String> createBackup() async {
+  Future<Map<String, List<Map<String, Object?>>>> exportBackupTables() async {
     await init();
-    final backupDir = await _getBackupDirectory();
-    await backupDir.create(recursive: true);
-
-    final timestamp = DateTime.now().toIso8601String().replaceAll(':', '-');
-    final backupPath = join(
-      backupDir.path,
-      '$_backupFilePrefix$timestamp.json',
-    );
-
-    return writeBackupToPath(backupPath);
-  }
-
-  Future<String> writeBackupToPath(String backupPath) async {
-    await init();
-    final file = File(backupPath);
-    await file.parent.create(recursive: true);
-    await file.writeAsBytes(await buildBackupBytes(), flush: true);
-    return file.path;
-  }
-
-  Future<Uint8List> buildBackupBytes() async {
-    await init();
-    final payload = await _buildBackupPayload();
-    final encoded = utf8.encode(jsonEncode(payload));
-    return Uint8List.fromList(encoded);
-  }
-
-  Future<Map<String, Object?>> _buildBackupPayload() async {
     return {
-      'format_version': _backupFormatVersion,
-      'created_at': DateTime.now().toIso8601String(),
-      'tables': {
-        'reading_plan': await _database.query('reading_plan', orderBy: 'id'),
-        'reading_plan_book': await _database.query(
-          'reading_plan_book',
-          orderBy: 'id',
-        ),
-        'rs_daily_log': await _database.query('rs_daily_log', orderBy: 'id'),
-        'rs_log': await _database.query('rs_log', orderBy: 'id'),
-        'rs_stats': await _database.query('rs_stats', orderBy: 'id'),
-        'rs_book_progress': await _database.query(
-          'rs_book_progress',
-          orderBy: 'id',
-        ),
-      },
+      'reading_plan': await _database.query('reading_plan', orderBy: 'id'),
+      'reading_plan_book': await _database.query(
+        'reading_plan_book',
+        orderBy: 'id',
+      ),
+      'rs_daily_log': await _database.query('rs_daily_log', orderBy: 'id'),
+      'rs_log': await _database.query('rs_log', orderBy: 'id'),
+      'rs_stats': await _database.query('rs_stats', orderBy: 'id'),
+      'rs_book_progress': await _database.query(
+        'rs_book_progress',
+        orderBy: 'id',
+      ),
     };
   }
 
-  Future<List<ReadingSessionBackupInfo>> listBackups() async {
+  Future<void> restoreBackupTables(
+    Map<String, dynamic> tables, {
+    required int formatVersion,
+  }) async {
     await init();
-    final backupDir = await _getBackupDirectory();
-    if (!await backupDir.exists()) {
-      return [];
-    }
-
-    final files = await backupDir
-        .list()
-        .where((entity) => entity is File && entity.path.endsWith('.json'))
-        .cast<File>()
-        .toList();
-
-    final backups = <ReadingSessionBackupInfo>[];
-    for (final file in files) {
-      final stat = await file.stat();
-      backups.add(
-        ReadingSessionBackupInfo(
-          path: file.path,
-          name: basename(file.path),
-          modifiedAt: stat.modified,
-          sizeBytes: stat.size,
-        ),
-      );
-    }
-
-    backups.sort((a, b) => b.modifiedAt.compareTo(a.modifiedAt));
-    return backups;
-  }
-
-  Future<void> restoreBackup(String backupPath) async {
-    await init();
-    final file = File(backupPath);
-    await restoreBackupJson(await file.readAsString());
-  }
-
-  Future<void> restoreBackupBytes(Uint8List bytes) async {
-    await init();
-    await restoreBackupJson(utf8.decode(bytes));
-  }
-
-  Future<void> restoreBackupJson(String content) async {
-    await init();
-    final raw = jsonDecode(content);
-    if (raw is! Map<String, dynamic>) {
-      throw const FormatException('Invalid backup file.');
-    }
-
-    final tables = raw['tables'];
-    if (tables is! Map<String, dynamic>) {
-      throw const FormatException('Backup is missing table data.');
-    }
-
-    final version = raw['format_version'];
-    if (version is! int) {
-      throw const FormatException('Backup is missing version data.');
-    }
-
-    if (version == 1) {
-      await restoreBackupJson1(tables);
+    if (formatVersion == 1) {
+      await _restoreBackupTablesV1(tables);
     } else {
-      await restoreBackupJson2(tables);
+      await _restoreBackupTablesV2(tables);
     }
   }
 
-  Future<void> restoreBackupJson1(Map<String, dynamic> tables) async {
+  Future<void> _restoreBackupTablesV1(Map<String, dynamic> tables) async {
     final dailyLogRows = _parseBackupRows(tables['rs_daily_log']);
     final logRows = _parseBackupRows(tables['rs_log']);
     final statsRows = _parseBackupRows(tables['rs_stats']);
@@ -261,7 +159,7 @@ class ReadingSessionDatabase {
     });
   }
 
-  Future<void> restoreBackupJson2(Map<String, dynamic> tables) async {
+  Future<void> _restoreBackupTablesV2(Map<String, dynamic> tables) async {
     final readingPlanRows = _parseBackupRows(tables['reading_plan']);
     final readingPlanBookRows = _parseBackupRows(tables['reading_plan_book']);
     final dailyLogRows = _parseBackupRows(tables['rs_daily_log']);
@@ -314,11 +212,6 @@ class ReadingSessionDatabase {
       }
       return Map<String, Object?>.from(row);
     }).toList();
-  }
-
-  Future<Directory> _getBackupDirectory() async {
-    final docDir = await getApplicationDocumentsDirectory();
-    return Directory(join(docDir.path, _backupDirectoryName));
   }
 
   /* READING PLAN */
