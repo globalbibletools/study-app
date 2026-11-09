@@ -1,7 +1,6 @@
 import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/services/reading_session/rs_database.dart';
 import 'package:gbt/services/reading_session/rs_model.dart';
-import 'package:gbt/services/reading_session/rs_types.dart';
 import 'package:gbt/services/service_locator.dart';
 
 class ReadingPlanService {

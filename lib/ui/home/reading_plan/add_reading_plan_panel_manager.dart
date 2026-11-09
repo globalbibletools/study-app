@@ -1,6 +1,5 @@
 import 'package:gbt/services/reading_session/reading_plan_service.dart';
 import 'package:gbt/services/reading_session/rs_model.dart';
-import 'package:gbt/services/reading_session/rs_types.dart';
 import 'package:gbt/services/service_locator.dart';
 
 class AddReadingPlanPanelManager {

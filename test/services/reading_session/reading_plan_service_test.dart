@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gbt/services/reading_session/reading_plan_service.dart';
 import 'package:gbt/services/reading_session/rs_database.dart';
-import 'package:gbt/services/reading_session/rs_types.dart';
+import 'package:gbt/services/reading_session/rs_model.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {

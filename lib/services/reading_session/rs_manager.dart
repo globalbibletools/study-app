@@ -5,10 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/services/reading_session/rs_database.dart';
 import 'package:gbt/services/reading_session/rs_model.dart';
-import 'package:gbt/services/reading_session/rs_types.dart';
 import 'package:gbt/services/service_locator.dart';
 
-export 'package:gbt/services/reading_session/rs_types.dart';
+export 'package:gbt/services/reading_session/rs_model.dart'
+    show DailyGoal, GoalType, ProgressType, StatsType;
 
 class ReadingSessionManager {
   final _rsdbManager = getIt<ReadingSessionDatabase>();

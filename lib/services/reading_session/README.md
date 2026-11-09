@@ -24,10 +24,10 @@ Coordinates interactive Scripture reading sessions, real-time timer tracking, ve
 - [rs_manager.dart:ReadingSessionManager.getDetailedProgressFor]: Reconstructs contiguous verse intervals read across sessions on a date.
 - [rs_manager.dart:ReadingSessionManager.resetForDatabaseRestore]: Clears active session state and caches before a backup restore.
 - [rs_manager.dart:ReadingSessionManager.reloadAfterDatabaseRestore]: Reloads in-memory state after a backup restore.
-- [rs_types.dart:DailyGoal]: Immutable structure representing goal target `(GoalType type, int value)`.
-- [rs_types.dart:GoalType]: Enum for daily targets (`minutes`, `verses`).
-- [rs_types.dart:StatsType]: Enum for statistical aggregation intervals (`weekly`, `monthly`).
-- [rs_types.dart:ProgressType]: Enum for progress visualization (`byBook`, `bySection`).
+- [rs_model.dart:DailyGoal]: Immutable structure representing goal target `(GoalType type, int value)`.
+- [rs_model.dart:GoalType]: Enum for daily targets (`minutes`, `verses`).
+- [rs_model.dart:StatsType]: Enum for statistical aggregation intervals (`weekly`, `monthly`).
+- [rs_model.dart:ProgressType]: Enum for progress visualization (`byBook`, `bySection`).
 - [reading_plan_service.dart:ReadingPlanService]: Stateless service for reading-plan metadata and book CRUD.
 - [reading_plan_service.dart:ReadingPlanService.ReadingPlanService]: Default constructor; resolves `ReadingSessionDatabase` through `getIt`.
 - [reading_plan_service.dart:ReadingPlanService.withDatabase]: Constructor for supplying an explicit `ReadingSessionDatabase`, useful for tests or alternate databases.

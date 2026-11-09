@@ -1,4 +1,15 @@
-import 'package:gbt/services/reading_session/rs_types.dart';
+enum StatsType { weekly, monthly }
+
+enum GoalType { minutes, verses }
+
+enum ProgressType { byBook, bySection }
+
+class DailyGoal {
+  final GoalType type;
+  final int value;
+
+  const DailyGoal(this.type, this.value);
+}
 
 class ReadingPlan {
   final int? id;
