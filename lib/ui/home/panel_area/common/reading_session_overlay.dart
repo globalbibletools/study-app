@@ -2,12 +2,12 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:gbt/l10n/app_localizations.dart';
-import 'package:gbt/services/reading_session/rs_manager.dart';
+import 'package:gbt/services/reading_session/reading_session_service.dart';
 
 class ReadingSessionOverlay extends StatelessWidget {
   const ReadingSessionOverlay({super.key, required this.manager});
 
-  final ReadingSessionManager manager;
+  final ReadingSessionService manager;
 
   @override
   Widget build(BuildContext context) {
@@ -84,7 +84,7 @@ class ReadingSessionOverlay extends StatelessWidget {
 class _CollapsedGoalProgress extends StatelessWidget {
   const _CollapsedGoalProgress({super.key, required this.manager});
 
-  final ReadingSessionManager manager;
+  final ReadingSessionService manager;
 
   @override
   Widget build(BuildContext context) {
@@ -114,7 +114,7 @@ class _VersesGoalProgressBar extends StatelessWidget {
   });
 
   final DailyGoal dailyGoal;
-  final ReadingSessionManager manager;
+  final ReadingSessionService manager;
 
   @override
   Widget build(BuildContext context) {
@@ -145,7 +145,7 @@ class _MinutesGoalProgressBar extends StatelessWidget {
   });
 
   final DailyGoal dailyGoal;
-  final ReadingSessionManager manager;
+  final ReadingSessionService manager;
 
   @override
   Widget build(BuildContext context) {
@@ -181,7 +181,7 @@ class _ProgressContainer extends StatelessWidget {
     required this.progress,
   });
 
-  final ReadingSessionManager manager;
+  final ReadingSessionService manager;
   final String progressText;
   final String goalText;
   final double progress;

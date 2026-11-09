@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:gbt/services/reading_session/rs_manager.dart';
+import 'package:gbt/services/reading_session/reading_session_service.dart';
 import 'package:gbt/services/service_locator.dart';
 
 class ReadingSessionTimerView extends StatefulWidget {
@@ -11,7 +11,7 @@ class ReadingSessionTimerView extends StatefulWidget {
 }
 
 class _ReadingSessionTimerViewState extends State<ReadingSessionTimerView> {
-  final _readingSessionManager = getIt<ReadingSessionManager>();
+  final _readingSessionManager = getIt<ReadingSessionService>();
 
   @override
   void initState() {

@@ -6,7 +6,7 @@ import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/services/reading_session/reading_plan_service.dart';
 import 'package:gbt/services/reading_session/rs_database.dart';
-import 'package:gbt/services/reading_session/rs_manager.dart';
+import 'package:gbt/services/reading_session/reading_session_service.dart';
 import 'package:gbt/services/reading_session/rs_model.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/home/panel_area/common/book_completed_overlay.dart';
@@ -24,7 +24,7 @@ void main() {
 
   late ReadingSessionDatabase rsDb;
   late ReadingPlanService planService;
-  late ReadingSessionManager rsManager;
+  late ReadingSessionService rsManager;
 
   setUpAll(() {
     sqfliteFfiInit();
@@ -35,8 +35,8 @@ void main() {
     if (getIt.isRegistered<ReadingSessionDatabase>()) {
       getIt.unregister<ReadingSessionDatabase>();
     }
-    if (getIt.isRegistered<ReadingSessionManager>()) {
-      getIt.unregister<ReadingSessionManager>();
+    if (getIt.isRegistered<ReadingSessionService>()) {
+      getIt.unregister<ReadingSessionService>();
     }
     if (getIt.isRegistered<ReadingPlanService>()) {
       getIt.unregister<ReadingPlanService>();
@@ -54,9 +54,9 @@ void main() {
     planService = ReadingPlanService.withDatabase(rsDb);
     getIt.registerSingleton<ReadingPlanService>(planService);
 
-    rsManager = ReadingSessionManager();
+    rsManager = ReadingSessionService();
     await rsManager.init();
-    getIt.registerSingleton<ReadingSessionManager>(rsManager);
+    getIt.registerSingleton<ReadingSessionService>(rsManager);
   });
 
   tearDown(() async {
@@ -68,8 +68,8 @@ void main() {
     if (getIt.isRegistered<ReadingSessionDatabase>()) {
       getIt.unregister<ReadingSessionDatabase>();
     }
-    if (getIt.isRegistered<ReadingSessionManager>()) {
-      getIt.unregister<ReadingSessionManager>();
+    if (getIt.isRegistered<ReadingSessionService>()) {
+      getIt.unregister<ReadingSessionService>();
     }
     if (getIt.isRegistered<ReadingPlanService>()) {
       getIt.unregister<ReadingPlanService>();

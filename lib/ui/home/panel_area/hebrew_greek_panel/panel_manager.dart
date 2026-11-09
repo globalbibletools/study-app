@@ -1,11 +1,11 @@
 import 'package:flutter/foundation.dart';
-import 'package:gbt/services/reading_session/rs_manager.dart';
+import 'package:gbt/services/reading_session/reading_session_service.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/services/settings/user_settings.dart';
 
 class HebrewGreekPanelManager {
   final _settings = getIt<UserSettings>();
-  final _rsmanager = getIt<ReadingSessionManager>();
+  final _rsmanager = getIt<ReadingSessionService>();
 
   // Notifiers for both languages
   late final hebrewScaleNotifier = ValueNotifier<double>(

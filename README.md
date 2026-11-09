@@ -25,7 +25,7 @@ graph TD
         GlossService["GlossService"]
         LexService["LexiconsDatabase"]
         AudioService["AudioService & AudioTimingDatabase"]
-        RSManager["ReadingSessionManager & RSDB"]
+        RSManager["ReadingSessionService & RSDB"]
         ResService["ResourceService & ResourceDatabase"]
         DownloadService["DownloadService"]
     end

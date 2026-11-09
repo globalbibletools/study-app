@@ -2,13 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:gbt/l10n/app_localizations.dart';
-import 'package:gbt/services/reading_session/rs_manager.dart';
+import 'package:gbt/services/reading_session/reading_session_service.dart';
 import 'package:gbt/ui/home/panel_area/common/confetti_view.dart';
 
 class GoalReachedOverlay extends StatefulWidget {
   const GoalReachedOverlay({super.key, required this.manager});
 
-  final ReadingSessionManager manager;
+  final ReadingSessionService manager;
 
   @override
   State<GoalReachedOverlay> createState() => _GoalReachedOverlayState();

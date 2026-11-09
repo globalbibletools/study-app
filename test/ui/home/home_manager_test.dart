@@ -4,7 +4,7 @@ import 'package:gbt/common/reference.dart';
 import 'package:gbt/services/app_guide/app_guide_manager.dart';
 import 'package:gbt/services/bible/bible_service.dart';
 import 'package:gbt/services/download/download.dart';
-import 'package:gbt/services/reading_session/rs_manager.dart';
+import 'package:gbt/services/reading_session/reading_session_service.dart';
 import 'package:gbt/services/resources/resource_service.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/services/settings/user_settings.dart';
@@ -58,7 +58,7 @@ class FakeBibleService implements BibleService {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
-class FakeReadingSessionManager implements ReadingSessionManager {
+class FakeReadingSessionService implements ReadingSessionService {
   @override
   void dispose() {}
   @override
@@ -86,8 +86,8 @@ void main() {
       getIt.registerSingleton<DownloadService>(FakeDownloadService());
       getIt.registerSingleton<ResourceService>(FakeResourceService());
       getIt.registerSingleton<BibleService>(FakeBibleService());
-      getIt.registerSingleton<ReadingSessionManager>(
-        FakeReadingSessionManager(),
+      getIt.registerSingleton<ReadingSessionService>(
+        FakeReadingSessionService(),
       );
       getIt.registerSingleton<AppGuideManager>(FakeAppGuideManager());
 

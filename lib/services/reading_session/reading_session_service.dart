@@ -10,13 +10,13 @@ import 'package:gbt/services/service_locator.dart';
 export 'package:gbt/services/reading_session/rs_model.dart'
     show DailyGoal, GoalType, ProgressType, StatsType;
 
-class ReadingSessionManager {
+class ReadingSessionService {
   final _rsdbManager = getIt<ReadingSessionDatabase>();
   late final _bibleNavigation = getIt<BibleNavigation>();
 
   static int maximumReadCount = 10;
 
-  ReadingSessionManager();
+  ReadingSessionService();
 
   DateTime? get currentSessionStartTime => _rsDailyLog?.startTime;
 

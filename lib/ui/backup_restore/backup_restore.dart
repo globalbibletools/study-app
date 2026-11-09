@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/services/reading_session/reading_plan_backup_service.dart';
-import 'package:gbt/services/reading_session/rs_manager.dart';
+import 'package:gbt/services/reading_session/reading_session_service.dart';
 import 'package:gbt/services/service_locator.dart';
 
 class BackupRestorePage extends StatefulWidget {
@@ -14,7 +14,7 @@ class BackupRestorePage extends StatefulWidget {
 }
 
 class _BackupRestoreState extends State<BackupRestorePage> {
-  final _readingSessionManager = getIt<ReadingSessionManager>();
+  final _readingSessionManager = getIt<ReadingSessionService>();
   final _backupService = getIt<ReadingPlanBackupService>();
   PackageInfo? _packageInfo;
   List<ReadingSessionBackupInfo> _backups = [];

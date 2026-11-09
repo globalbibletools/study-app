@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:gbt/common/word.dart';
 import 'package:gbt/services/gloss/gloss_service.dart';
 import 'package:gbt/services/hebrew_greek/database.dart';
-import 'package:gbt/services/reading_session/rs_manager.dart';
+import 'package:gbt/services/reading_session/reading_session_service.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/services/settings/user_settings.dart';
 import 'package:gbt/ui/common/resource_language_text_direction.dart';
@@ -12,7 +12,7 @@ class HebrewGreekChapterManager {
   final _hebrewGreekDb = getIt<HebrewGreekDatabase>();
   final _glossService = getIt<GlossService>();
   final _settings = getIt<UserSettings>();
-  final _rsmanager = getIt<ReadingSessionManager>();
+  final _rsmanager = getIt<ReadingSessionService>();
 
   final textNotifier = _SafeValueNotifier<List<HebrewGreekWord>>([]);
   final verseCheckboxNotifier = VerseCheckboxNotifier();

@@ -27,12 +27,12 @@ Renders primary original language Scripture (Biblical Hebrew and Koine Greek) wi
 - Old Testament books (IDs 1–39) format as RTL Hebrew with `hebrewFontScale`, while New Testament books (IDs 40–66) format as LTR Greek with `greekFontScale`.
 - Zoom gestures resolve the targeted book under the touch focal point and update only the corresponding language's scale.
 - Words joined with Hebrew maqaph (`־`) omit inter-word whitespace.
-- Reading count checkboxes cycle from 0 to `ReadingSessionManager.maximumReadCount` before resetting.
+- Reading count checkboxes cycle from 0 to `ReadingSessionService.maximumReadCount` before resetting.
 
 ## Side Effects
 - Loads Scripture words from `HebrewGreekDatabase.getChapter`.
 - Retrieves localized word glosses via `GlossService.glossForId` and triggers downloads via `ResourceUIHelper.ensureResource`.
-- Records verse reading completion and resets in `ReadingSessionManager`.
+- Records verse reading completion and resets in `ReadingSessionService`.
 - Mutates font scale settings in `UserSettings`.
 - Dispatches `VerseNumberTapNotification` to trigger audio player jumps.
 - Copies verses to system clipboard via `Clipboard.setData`.

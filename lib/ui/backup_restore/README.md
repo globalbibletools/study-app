@@ -12,7 +12,7 @@ Provides the UI page for backing up, exporting, importing, and restoring reading
 
 ## Side Effects
 - Invokes `ReadingPlanBackupService` to query, create, serialize, and restore reading session database snapshots.
-- Invokes `ReadingSessionManager` to reset active session state before restore and reload caches afterward.
+- Invokes `ReadingSessionService` to reset active session state before restore and reload caches afterward.
 - Invokes `PackageInfo.fromPlatform` to retrieve app version metadata.
 - Opens system file picker dialogs to save or pick JSON backup files via `FilePicker`.
 - Displays `SnackBar` feedback messages and shows alert dialogs.

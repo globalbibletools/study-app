@@ -21,7 +21,7 @@ Provides common components and overlays used across reading panels, including in
 
 ## Side Effects
 - Reads and updates scroll position and verse jump streams via `ScrollSyncController`.
-- Invokes session completion and reading mode mutations on `ReadingSessionManager`.
+- Invokes session completion and reading mode mutations on `ReadingSessionService`.
 - Executes continuous particle canvas rendering and timer-based prompt delays.
 
 ## Verification

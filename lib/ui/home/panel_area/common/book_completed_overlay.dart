@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:gbt/common/book_name.dart';
 import 'package:gbt/l10n/app_localizations.dart';
-import 'package:gbt/services/reading_session/rs_manager.dart';
+import 'package:gbt/services/reading_session/reading_session_service.dart';
 
 class BookCompletedOverlay extends StatefulWidget {
   const BookCompletedOverlay({
@@ -10,7 +10,7 @@ class BookCompletedOverlay extends StatefulWidget {
     this.onNextBook,
   });
 
-  final ReadingSessionManager manager;
+  final ReadingSessionService manager;
 
   /// Called when "Next Book" is pressed.
   final Function(int)? onNextBook;
