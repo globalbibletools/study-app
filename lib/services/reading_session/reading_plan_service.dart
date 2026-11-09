@@ -19,6 +19,138 @@ class ReadingPlanService {
     return _database.getReadingPlanById(planId);
   }
 
+  Future<List<RsBookProgress>> getBooksProgress(int readingPlanId) async {
+    final storedProgress = await _database.getAllBookProgress(readingPlanId);
+    final progressByBook = {
+      for (final progress in storedProgress) progress.bookId: progress,
+    };
+
+    return [
+      for (int bookId = 1; bookId <= _bibleNavigation.getBooksCount(); bookId++)
+        progressByBook[bookId] ?? _emptyProgress(readingPlanId, bookId),
+    ];
+  }
+
+  Future<RsBookProgress?> getLatestBookProgress(
+    int readingPlanId, {
+    List<int>? orderedBookIds,
+    Set<int>? planBookIds,
+  }) async {
+    final storedProgress = await _database.getAllBookProgress(readingPlanId);
+    final progressByBook = {
+      for (final progress in storedProgress) progress.bookId: progress,
+    };
+
+    if (orderedBookIds != null && orderedBookIds.isNotEmpty) {
+      return _latestBookProgress(readingPlanId, orderedBookIds, progressByBook);
+    }
+
+    final filtered = storedProgress
+        .where(
+          (progress) =>
+              planBookIds == null || planBookIds.contains(progress.bookId),
+        )
+        .toList();
+
+    if (filtered.isEmpty) return null;
+
+    final incomplete = filtered
+        .where(
+          (progress) =>
+              progress.versesRead <
+              _bibleNavigation.getTotalVerseCount(progress.bookId),
+        )
+        .toList();
+    final candidates = incomplete.isNotEmpty ? incomplete : filtered;
+
+    return candidates.reduce(
+      (a, b) => a.updatedAt.isAfter(b.updatedAt) ? a : b,
+    );
+  }
+
+  Future<List<DayProgress>> getMonthProgress(
+    int readingPlanId,
+    DateTime month,
+  ) async {
+    final int daysInMonth = DateTime(month.year, month.month + 1, 0).day;
+    final DateTime startOfMonth = DateTime(month.year, month.month, 1);
+    final DateTime endOfMonth = DateTime(month.year, month.month + 1, 0);
+
+    final List<RsStats> dailyStatsForCurrentMonth = await _database
+        .getRsStatsForType(
+          RsStatsType.daily,
+          startOfMonth,
+          endOfMonth,
+          readingPlanId,
+        );
+
+    final statsByDay = <int, RsStats>{};
+    for (final stats in dailyStatsForCurrentMonth) {
+      statsByDay[stats.statsDate.day] = stats;
+    }
+
+    final monthData = <DayProgress>[];
+    for (int day = 1; day <= daysInMonth; day++) {
+      final date = DateTime(month.year, month.month, day);
+      final stats = statsByDay[day];
+
+      if (stats == null) {
+        monthData.add(DayProgress.empty(date));
+      } else {
+        monthData.add(
+          DayProgress(
+            date,
+            stats.rsSeconds ~/ 60,
+            stats.rsVerses,
+            stats.goalReached,
+          ),
+        );
+      }
+    }
+
+    return monthData;
+  }
+
+  Future<List<Session>> getDetailedProgressFor(
+    DateTime date,
+    int readingPlanId,
+  ) async {
+    final List<RsDailyLog> sessions = await _database.getSessionsForDate(
+      date,
+      readingPlanId,
+    );
+
+    final result = <Session>[];
+
+    for (final session in sessions) {
+      final List<RsLog> logs = await _database.getRsLogForDailyLog(session.id!);
+
+      final progress = <DetailedProgess>[];
+      DetailedProgess? current;
+
+      for (final entry in logs) {
+        if (current == null ||
+            current.bookId != entry.bookId ||
+            current.chapter != entry.chapter ||
+            entry.verse - current.toVerse > 1) {
+          current = DetailedProgess(
+            entry.bookId,
+            entry.chapter,
+            entry.verse,
+            entry.verse,
+          );
+          progress.add(current);
+        } else {
+          current.toVerse = entry.verse;
+        }
+      }
+
+      result.add(Session(session, progress));
+    }
+
+    return result;
+  }
+
   Future<List<ReadingPlanDetails>> getReadingPlansWithProgress() async {
     final plans = await getReadingPlans();
 

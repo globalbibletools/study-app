@@ -1,7 +1,7 @@
 # Reading Session Service
 
 ## Overview
-Coordinates interactive Scripture reading sessions, real-time timer tracking, verse read auditing, daily goal calculations (minutes or verses), and aggregated reading analytics. Manages local persistence and versioned JSON backup/restore using SQLite (`reading_session.db`). Serves as the single facade and source of truth for reading plan mutations, deterministic book progress derivations, and resume positions.
+Coordinates interactive Scripture reading sessions, real-time timer tracking, verse read auditing, daily goal calculations (minutes or verses), and book completion transitions. Manages local persistence and versioned JSON backup/restore using SQLite (`reading_session.db`). Reading plan views obtain progress and statistics through on-demand queries in `ReadingPlanService`; `ReadingSessionManager` keeps only active-session state and verse-read caching.
 
 ## Interface
 - [rs_manager.dart:ReadingSessionManager]: Central facade and manager coordinating timer lifecycle, verse read actions, goal fulfillment, and progress state.
@@ -17,22 +17,22 @@ Coordinates interactive Scripture reading sessions, real-time timer tracking, ve
 - [rs_manager.dart:ReadingSessionManager.endReadingSession]: Stops the active timer and persists or cleans up daily session logs.
 - [rs_manager.dart:ReadingSessionManager.markVerseAsRead]: Records verse completion in `rs_log`, updates daily log totals, and triggers deterministic progress recomputation from SQLite when read for the first time.
 - [rs_manager.dart:ReadingSessionManager.resetReadingCountForVerse]: Clears all `rs_log` entries for a verse in the active plan across sessions, adjusts the active daily log for current session reads, and recomputes book progress from SQLite.
-- [rs_manager.dart:ReadingSessionManager.loadBooksProgress]: Retrieves or synthesizes progress records for all 66 Bible books for a reading plan.
-- [rs_manager.dart:ReadingSessionManager.getLatestBookProgress]: Returns the first incomplete book progress entry adhering to the plan sequence `orderedBookIds`, or falls back to the most recently updated book progress entry.
-- [rs_manager.dart:ReadingSessionManager.getBookProgressForActivePlan]: Synchronously retrieves cached book progress for a book ID in the currently active plan.
-- [rs_manager.dart:ReadingSessionManager.loadMonthProgress]: Loads daily reading metrics for calendar grid displays with 1-to-1 day calendar mapping immune to daylight saving time fall-back shifts.
-- [rs_manager.dart:ReadingSessionManager.getDetailedProgressFor]: Reconstructs contiguous verse intervals read across sessions on a date.
+- [rs_manager.dart:ReadingSessionManager.getBookProgressForActivePlan]: Asynchronously queries persisted book progress for a book ID in the currently active plan.
 - [rs_manager.dart:ReadingSessionManager.resetForDatabaseRestore]: Clears active session state and caches before a backup restore.
 - [rs_manager.dart:ReadingSessionManager.reloadAfterDatabaseRestore]: Reloads in-memory state after a backup restore.
 - [rs_model.dart:DailyGoal]: Immutable structure representing goal target `(GoalType type, int value)`.
 - [rs_model.dart:GoalType]: Enum for daily targets (`minutes`, `verses`).
 - [rs_model.dart:StatsType]: Enum for statistical aggregation intervals (`weekly`, `monthly`).
 - [rs_model.dart:ProgressType]: Enum for progress visualization (`byBook`, `bySection`).
-- [reading_plan_service.dart:ReadingPlanService]: Stateless service for reading-plan metadata and book CRUD.
+- [reading_plan_service.dart:ReadingPlanService]: Stateless service for reading-plan metadata, book CRUD, and on-demand progress/statistics queries used by reading plan views.
 - [reading_plan_service.dart:ReadingPlanService.ReadingPlanService]: Default constructor; resolves `ReadingSessionDatabase` through `getIt`.
 - [reading_plan_service.dart:ReadingPlanService.withDatabase]: Constructor for supplying an explicit `ReadingSessionDatabase`, useful for tests or alternate databases.
 - [reading_plan_service.dart:ReadingPlanService.getReadingPlans]: Loads all plans and their ordered books.
 - [reading_plan_service.dart:ReadingPlanService.getReadingPlansWithProgress]: Loads all plans and computes chapter, verse, book completion, and latest-book progress from persisted book progress records.
+- [reading_plan_service.dart:ReadingPlanService.getBooksProgress]: Queries and synthesizes progress records for all 66 Bible books for a plan.
+- [reading_plan_service.dart:ReadingPlanService.getLatestBookProgress]: Queries the first incomplete book progress entry in plan order, or falls back to the most recently updated incomplete/completed book.
+- [reading_plan_service.dart:ReadingPlanService.getMonthProgress]: Queries daily reading metrics for a calendar month with a 1-to-1 day mapping immune to daylight saving time fall-back shifts.
+- [reading_plan_service.dart:ReadingPlanService.getDetailedProgressFor]: Reconstructs contiguous verse intervals read across sessions on a date.
 - [reading_plan_service.dart:ReadingPlanService.getReadingPlanById]: Loads a single plan and its ordered books.
 - [reading_plan_service.dart:ReadingPlanService.saveReadingPlan]: Creates or updates a plan, preserving retained book order and appending newly selected books in sorted order.
 - [reading_plan_service.dart:ReadingPlanService.setReadingPlanBookmark]: Persists a plan bookmark state and returns the updated plan.
@@ -71,7 +71,8 @@ Coordinates interactive Scripture reading sessions, real-time timer tracking, ve
 ## Invariants
 - Database is version 3 with automated sequential schema upgrades executed from `assets/schemas/reading_session_<version>.sql`.
 - Verse read cache in `ReadingSessionManager` is scoped by `(readingPlanId, bookId, chapter)` tuples to prevent cross-plan collisions.
-- A book is marked complete if and only if `versesRead == BibleNavigation.getTotalVerseCount(bookId)`. Out-of-order reading is fully supported.
+- `ReadingSessionManager` keeps no book-progress or month-progress cache. Reading plan views fetch fresh progress and statistics through `ReadingPlanService` queries when needed.
+- A book is marked complete if and only if `versesRead == BibleNavigation.getTotalVerseCount(bookId)`. Out-of-order reading is fully supported; completion reads current progress rows from SQLite, recomputes the cursor, and persists the result.
 - Resume cursor always deterministically points to the lowest unread verse in the current chapter, or the lowest unread verse in the next incomplete chapter of that book, or the final verse upon 100% book completion.
 - Plan deletion cascades across all dependent tables in a single SQLite transaction and resets any active session running on that plan.
 - Sessions that record 0 verses read are deleted upon `endReadingSession()`, subtracting elapsed session seconds from daily statistics.

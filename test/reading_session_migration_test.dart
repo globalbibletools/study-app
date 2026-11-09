@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqlite3/sqlite3.dart';
 import 'package:gbt/common/bible_navigation.dart';
-import 'package:gbt/services/reading_session/rs_manager.dart';
 import 'package:gbt/services/reading_session/rs_model.dart';
 import 'package:gbt/services/service_locator.dart';
 

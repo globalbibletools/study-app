@@ -18,19 +18,6 @@ class ReadingSessionManager {
 
   ReadingSessionManager();
 
-  final List<VoidCallback> _statsListeners = [];
-
-  void subscribeForStats(VoidCallback cb) {
-    _statsListeners.add(cb);
-  }
-
-  void unsubscribeForStats(VoidCallback cb) {
-    _statsListeners.remove(cb);
-  }
-
-  final Map<int, List<RsBookProgress>> _booksProgress = {};
-  final Map<int, List<DayProgress>> _monthProgress = {};
-
   DateTime? get currentSessionStartTime => _rsDailyLog?.startTime;
 
   ReadingPlanDetails? _readingPlan;
@@ -56,13 +43,15 @@ class ReadingSessionManager {
   ReadingPlanDetails? getReadingPlan() => _readingPlan;
   Set<int>? get readingPlanBooks => _books;
 
-  RsBookProgress? getBookProgressForActivePlan(int bookId) {
+  Future<RsBookProgress?> getBookProgressForActivePlan(int bookId) async {
     final planId = _readingPlan?.readingPlan.id;
     if (planId == null) return null;
-    final list = _booksProgress[planId];
-    if (list == null || bookId < 1 || bookId > list.length) return null;
-    final progress = list[bookId - 1];
-    return progress.id != null ? progress : null;
+
+    final progresses = await _rsdbManager.getAllBookProgress(planId);
+    for (final progress in progresses) {
+      if (progress.bookId == bookId) return progress;
+    }
+    return null;
   }
 
   void toggleDisplayGoalProgress() {
@@ -378,49 +367,13 @@ class ReadingSessionManager {
   }
 
   Future<void> _updateStatistics(RsDailyLog dailyLog) async {
-    await _updateDailyStatistics(dailyLog);
-    await _updateMonthlyStatistics(dailyLog);
+    await _updateStatisticsBy(dailyLog, RsStatsType.daily, dailyLog.rsDate);
 
-    for (VoidCallback x in _statsListeners) {
-      x.call();
-    }
-  }
-
-  Future<void> _updateDailyStatistics(RsDailyLog dailyLog) async {
-    RsStats? stats = await _updateStatisticsBy(
-      dailyLog,
-      RsStatsType.daily,
-      dailyLog.rsDate,
-    );
-
-    if (stats == null) return;
-
-    List<DayProgress>? progress = _monthProgress[dailyLog.readingPlanId];
-
-    progress ??= await _loadMonthProgress(dailyLog.readingPlanId);
-
-    for (int i = 0; i < progress.length; i++) {
-      if (progress[i].day.year == dailyLog.rsDate.year &&
-          progress[i].day.month == dailyLog.rsDate.month &&
-          progress[i].day.day == dailyLog.rsDate.day) {
-        progress[i] = DayProgress(
-          stats.statsDate,
-          stats.rsSeconds ~/ 60,
-          stats.rsVerses,
-          stats.goalReached,
-        );
-        break;
-      }
-    }
-  }
-
-  Future<void> _updateMonthlyStatistics(RsDailyLog dailyLog) async {
     final lastDay = DateTime(
       dailyLog.rsDate.year,
       dailyLog.rsDate.month + 1,
       0,
     );
-
     await _updateStatisticsBy(dailyLog, RsStatsType.monthly, lastDay);
   }
 
@@ -471,136 +424,12 @@ class ReadingSessionManager {
     return stats;
   }
 
-  Future<List<RsBookProgress>> loadBooksProgress(int readingPlanId) async {
-    final val = _booksProgress[readingPlanId];
-    if (val != null) {
-      return val;
-    }
-
-    final booksCount = _bibleNavigation.getBooksCount();
-    final List<RsBookProgress> list = <RsBookProgress>[];
-
-    List<RsBookProgress> storedProgresses = await _rsdbManager
-        .getAllBookProgress(readingPlanId);
-
-    int nextBookId = 1;
-    for (RsBookProgress progress in storedProgresses) {
-      for (int i = nextBookId; i < progress.bookId; i++) {
-        list.add(
-          RsBookProgress(
-            bookId: i,
-            chapter: 1,
-            verse: 1,
-            chaptersRead: 0,
-            versesRead: 0,
-            updatedAt: DateTime.now(),
-            readingPlanId: readingPlanId,
-          ),
-        );
-      }
-
-      list.add(progress);
-      nextBookId = progress.bookId + 1;
-    }
-
-    for (int i = nextBookId; i <= booksCount; i++) {
-      list.add(
-        RsBookProgress(
-          bookId: i,
-          chapter: 1,
-          verse: 1,
-          chaptersRead: 0,
-          versesRead: 0,
-          updatedAt: DateTime.now(),
-          readingPlanId: readingPlanId,
-        ),
-      );
-    }
-
-    _booksProgress[readingPlanId] = list;
-    return list;
-  }
-
-  RsBookProgress? getLatestBookProgress(
-    int readingPlanId, {
-    List<int>? orderedBookIds,
-    Set<int>? planBookIds,
-  }) {
-    final readingProgress = _booksProgress[readingPlanId];
-    if (readingProgress == null) return null;
-
-    if (orderedBookIds != null && orderedBookIds.isNotEmpty) {
-      final progressMap = <int, RsBookProgress>{};
-      for (final p in readingProgress) {
-        progressMap[p.bookId] = p;
-      }
-
-      for (final bookId in orderedBookIds) {
-        final progress =
-            progressMap[bookId] ??
-            RsBookProgress(
-              bookId: bookId,
-              chapter: 1,
-              verse: 1,
-              chaptersRead: 0,
-              versesRead: 0,
-              updatedAt: DateTime.now(),
-              readingPlanId: readingPlanId,
-            );
-        final totalVerses = _bibleNavigation.getTotalVerseCount(bookId);
-        if (progress.versesRead < totalVerses) {
-          return progress;
-        }
-      }
-
-      final firstBookId = orderedBookIds.first;
-      return progressMap[firstBookId] ??
-          RsBookProgress(
-            bookId: firstBookId,
-            chapter: 1,
-            verse: 1,
-            chaptersRead: 0,
-            versesRead: 0,
-            updatedAt: DateTime.now(),
-            readingPlanId: readingPlanId,
-          );
-    }
-
-    final filtered = readingProgress
-        .where(
-          (b) =>
-              b.id != null &&
-              (planBookIds == null || planBookIds.contains(b.bookId)),
-        )
-        .toList();
-
-    if (filtered.isEmpty) {
-      return null;
-    }
-
-    final incomplete = filtered
-        .where(
-          (b) => b.versesRead < _bibleNavigation.getTotalVerseCount(b.bookId),
-        )
-        .toList();
-
-    final candidates = incomplete.isNotEmpty ? incomplete : filtered;
-
-    final latest = candidates.reduce(
-      (a, b) => a.updatedAt.isAfter(b.updatedAt) ? a : b,
-    );
-
-    return latest;
-  }
-
   Future<void> _recomputeBookProgress(
     int readingPlanId,
     int bookId,
     int touchedChapter, {
     required bool isNewUniqueVerseRead,
   }) async {
-    await loadBooksProgress(readingPlanId);
-
     final chapterCounts = await _rsdbManager.getDistinctVersesReadPerChapter(
       readingPlanId,
       bookId,
@@ -621,6 +450,33 @@ class ReadingSessionManager {
       }
     }
 
+    final storedProgress = await _rsdbManager.getAllBookProgress(readingPlanId);
+    final progressByBook = <int, RsBookProgress>{
+      for (final progress in storedProgress) progress.bookId: progress,
+    };
+
+    RsBookProgress progressFor(int id) =>
+        progressByBook[id] ??
+        RsBookProgress(
+          readingPlanId: readingPlanId,
+          bookId: id,
+          chapter: 1,
+          verse: 1,
+          chaptersRead: 0,
+          versesRead: 0,
+          updatedAt: DateTime.now(),
+        );
+
+    Future<void> saveProgress(RsBookProgress progress) async {
+      if (progress.id == null) {
+        progressByBook[progress.bookId] = await _rsdbManager
+            .insertBookProgresss(progress);
+      } else {
+        await _rsdbManager.updateBookProgress(progress);
+        progressByBook[progress.bookId] = progress;
+      }
+    }
+
     int cursorChapter;
     int cursorVerse;
 
@@ -629,22 +485,15 @@ class ReadingSessionManager {
       cursorChapter = totalBookChapters;
       cursorVerse = _bibleNavigation.getVerseCount(bookId, totalBookChapters);
 
-      var currentProgress = _booksProgress[readingPlanId]![bookId - 1];
-      currentProgress = currentProgress.copyWith(
-        chapter: cursorChapter,
-        verse: cursorVerse,
-        chaptersRead: chaptersRead,
-        versesRead: versesRead,
-        updatedAt: DateTime.now(),
+      await saveProgress(
+        progressFor(bookId).copyWith(
+          chapter: cursorChapter,
+          verse: cursorVerse,
+          chaptersRead: chaptersRead,
+          versesRead: versesRead,
+          updatedAt: DateTime.now(),
+        ),
       );
-      if (currentProgress.id == null) {
-        currentProgress = await _rsdbManager.insertBookProgresss(
-          currentProgress,
-        );
-      } else {
-        await _rsdbManager.updateBookProgress(currentProgress);
-      }
-      _booksProgress[readingPlanId]![bookId - 1] = currentProgress;
 
       int? nextBookId;
       if (_readingPlan != null && _readingPlan!.books.isNotEmpty) {
@@ -654,8 +503,7 @@ class ReadingSessionManager {
         for (int i = 1; i <= books.length; i++) {
           final candidateIdx = (startIdx + i) % books.length;
           final candidateBookId = books[candidateIdx].bookId;
-          final candidateProgress =
-              _booksProgress[readingPlanId]![candidateBookId - 1];
+          final candidateProgress = progressFor(candidateBookId);
           if (candidateProgress.versesRead <
               _bibleNavigation.getTotalVerseCount(candidateBookId)) {
             nextBookId = candidateBookId;
@@ -665,23 +513,12 @@ class ReadingSessionManager {
       }
 
       if (nextBookId != null) {
-        var nextProgress = _booksProgress[readingPlanId]![nextBookId - 1];
-        if (nextProgress.id == null) {
-          nextProgress = RsBookProgress(
-            readingPlanId: readingPlanId,
-            bookId: nextBookId,
-            chapter: 1,
-            verse: 1,
-            chaptersRead: 0,
-            versesRead: 0,
-            updatedAt: DateTime.now(),
-          );
-          nextProgress = await _rsdbManager.insertBookProgresss(nextProgress);
-        } else {
-          nextProgress = nextProgress.copyWith(updatedAt: DateTime.now());
-          await _rsdbManager.updateBookProgress(nextProgress);
-        }
-        _booksProgress[readingPlanId]![nextBookId - 1] = nextProgress;
+        final nextProgress = progressFor(nextBookId);
+        await saveProgress(
+          nextProgress.id == null
+              ? nextProgress
+              : nextProgress.copyWith(updatedAt: DateTime.now()),
+        );
       }
 
       if (isNewUniqueVerseRead) {
@@ -750,139 +587,21 @@ class ReadingSessionManager {
         }
       }
 
-      var currentProgress = _booksProgress[readingPlanId]![bookId - 1];
-      currentProgress = currentProgress.copyWith(
-        chapter: cursorChapter,
-        verse: cursorVerse,
-        chaptersRead: chaptersRead,
-        versesRead: versesRead,
-        updatedAt: DateTime.now(),
+      await saveProgress(
+        progressFor(bookId).copyWith(
+          chapter: cursorChapter,
+          verse: cursorVerse,
+          chaptersRead: chaptersRead,
+          versesRead: versesRead,
+          updatedAt: DateTime.now(),
+        ),
       );
-      if (currentProgress.id == null) {
-        currentProgress = await _rsdbManager.insertBookProgresss(
-          currentProgress,
-        );
-      } else {
-        await _rsdbManager.updateBookProgress(currentProgress);
-      }
-      _booksProgress[readingPlanId]![bookId - 1] = currentProgress;
     }
-
-    await _loadMonthProgress(readingPlanId);
-  }
-
-  Future<List<DayProgress>?> getMonthProgress(int readingPlanId) async {
-    final res = _monthProgress[readingPlanId];
-
-    if (res != null) {
-      return res;
-    }
-
-    await _loadMonthProgress(readingPlanId);
-    return _monthProgress[readingPlanId];
-  }
-
-  Future<List<DayProgress>> _loadMonthProgress(int readingPlanId) async {
-    DateTime now = DateTime.now();
-
-    List<DayProgress> monthData = await loadMonthProgress(readingPlanId, now);
-
-    _monthProgress[readingPlanId] = monthData;
-
-    for (VoidCallback x in _statsListeners) {
-      x.call();
-    }
-    return monthData;
-  }
-
-  Future<List<DayProgress>> loadMonthProgress(
-    int readingPlanId,
-    DateTime month,
-  ) async {
-    final int daysInMonth = DateTime(month.year, month.month + 1, 0).day;
-    final DateTime startOfMonth = DateTime(month.year, month.month, 1);
-    final DateTime endOfMonth = DateTime(month.year, month.month + 1, 0);
-
-    final List<RsStats> dailyStatsForCurrentMonth = await _rsdbManager
-        .getRsStatsForType(
-          RsStatsType.daily,
-          startOfMonth,
-          endOfMonth,
-          readingPlanId,
-        );
-
-    final statsByDay = <int, RsStats>{};
-    for (final s in dailyStatsForCurrentMonth) {
-      statsByDay[s.statsDate.day] = s;
-    }
-
-    final List<DayProgress> monthData = [];
-
-    for (int day = 1; day <= daysInMonth; day++) {
-      final d = DateTime(month.year, month.month, day);
-      final stats = statsByDay[day];
-
-      final DayProgress entry;
-      if (stats != null) {
-        entry = DayProgress(
-          d,
-          stats.rsSeconds ~/ 60,
-          stats.rsVerses,
-          stats.goalReached,
-        );
-      } else {
-        entry = DayProgress.empty(d);
-      }
-
-      monthData.add(entry);
-    }
-    return monthData;
   }
 
   Future<void> _reloadFromDatabase() async {
-    _booksProgress.clear();
     _bookVerseReadCount.clear();
-    _monthProgress.clear();
     readingModeNotifier.value = _rsDailyLog != null;
-  }
-
-  Future<List<Session>> getDetailedProgressFor(
-    DateTime date,
-    int readingPlanId,
-  ) async {
-    List<RsDailyLog> rsDailyLogs = await _rsdbManager.getSessionsForDate(
-      date,
-      readingPlanId,
-    );
-
-    List<Session> sessions = [];
-
-    for (RsDailyLog session in rsDailyLogs) {
-      List<RsLog> logs = await _rsdbManager.getRsLogForDailyLog(session.id!);
-
-      List<DetailedProgess> progress = [];
-
-      DetailedProgess? current;
-
-      for (RsLog entry in logs) {
-        if (current == null ||
-            current.bookId != entry.bookId ||
-            current.chapter != entry.chapter ||
-            entry.verse - current.toVerse > 1) {
-          current = DetailedProgess(
-            entry.bookId,
-            entry.chapter,
-            entry.verse,
-            entry.verse,
-          );
-          progress.add(current);
-        } else {
-          current.toVerse = entry.verse;
-        }
-      }
-      sessions.add(Session(session, progress));
-    }
-    return sessions;
   }
 
   void dispose() {

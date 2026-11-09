@@ -3,7 +3,6 @@ import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/l10n/book_names.dart';
-import 'package:gbt/services/reading_session/rs_manager.dart';
 import 'package:gbt/services/reading_session/rs_model.dart';
 import 'package:gbt/ui/home/home_manager.dart';
 import 'package:gbt/ui/home/panel_area/common/calendar_view.dart';

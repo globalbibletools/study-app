@@ -113,7 +113,7 @@ void main() {
         expect(bookCompletedCount, 0);
         expect(lastCompletion, (0, 0));
 
-        final progress = rsManager.getBookProgressForActivePlan(19);
+        final progress = await rsManager.getBookProgressForActivePlan(19);
         expect(progress, isNotNull);
         expect(progress!.chaptersRead, 1);
         expect(progress.versesRead, 6);
@@ -150,7 +150,7 @@ void main() {
         expect(bookCompletedCount, 0);
         expect(rsManager.bookCompletedNotifier.value, (0, 0));
 
-        final progress = rsManager.getBookProgressForActivePlan(19);
+        final progress = await rsManager.getBookProgressForActivePlan(19);
         expect(progress, isNotNull);
         expect(progress!.versesRead, 1);
         expect(progress.chaptersRead, 0);
@@ -185,7 +185,7 @@ void main() {
         }
         expect(completionReceived, (0, 0));
 
-        var progress = rsManager.getBookProgressForActivePlan(63);
+        var progress = await rsManager.getBookProgressForActivePlan(63);
         expect(progress!.chapter, 1);
         expect(progress.verse, 1);
         expect(progress.versesRead, 12);
@@ -193,11 +193,13 @@ void main() {
         await rsManager.markVerseAsRead(63, 1, 1);
 
         expect(completionReceived, (63, 64));
-        progress = rsManager.getBookProgressForActivePlan(63);
+        progress = await rsManager.getBookProgressForActivePlan(63);
         expect(progress!.versesRead, 13);
         expect(progress.chaptersRead, 1);
 
-        final nextBookProgress = rsManager.getBookProgressForActivePlan(64);
+        final nextBookProgress = await rsManager.getBookProgressForActivePlan(
+          64,
+        );
         expect(nextBookProgress, isNotNull);
         expect(nextBookProgress!.chapter, 1);
         expect(nextBookProgress.verse, 1);
@@ -236,7 +238,7 @@ void main() {
           await rsManager.markVerseAsRead(63, 1, 1);
         }
 
-        var progress = rsManager.getBookProgressForActivePlan(63);
+        var progress = await rsManager.getBookProgressForActivePlan(63);
         expect(progress!.chaptersRead, 1);
         expect(progress.versesRead, 13);
 
@@ -252,7 +254,7 @@ void main() {
         );
         expect(chapterCounts[1], 12);
 
-        progress = rsManager.getBookProgressForActivePlan(63);
+        progress = await rsManager.getBookProgressForActivePlan(63);
         expect(progress!.chaptersRead, 0);
         expect(progress.versesRead, 12);
         expect(progress.chapter, 1);
@@ -288,7 +290,7 @@ void main() {
 
         await rsManager.startReadingSession(details);
         await rsManager.markVerseAsRead(2, 1, 1);
-        expect(rsManager.getBookProgressForActivePlan(2), isNotNull);
+        expect(await rsManager.getBookProgressForActivePlan(2), isNotNull);
 
         details = (await planService.getReadingPlansWithProgress()).firstWhere(
           (p) => p.readingPlan.id == plan.id,
@@ -410,7 +412,7 @@ void main() {
     );
 
     test(
-      'loadMonthProgress handles daylight saving time transition in November with exact 1-to-1 day mapping',
+      'getMonthProgress handles daylight saving time transition in November with exact 1-to-1 day mapping',
       () async {
         final plan = await planService.saveReadingPlan(
           planName: 'DST November Test',
@@ -421,7 +423,7 @@ void main() {
         );
 
         // November 2026 has 30 days
-        final monthData = await rsManager.loadMonthProgress(
+        final monthData = await planService.getMonthProgress(
           plan.id!,
           DateTime(2026, 11, 1),
         );
