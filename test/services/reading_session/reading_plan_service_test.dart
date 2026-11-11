@@ -4,6 +4,8 @@ import 'package:gbt/services/reading_session/rs_database.dart';
 import 'package:gbt/services/reading_session/rs_model.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
+import '../../fixtures/bible_navigation_fixture.dart';
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -18,6 +20,8 @@ void main() {
   setUp(() async {
     database = ReadingSessionDatabase(
       databaseName: 'reading_plan_service_test.db',
+      verseInventoryProvider: (bookIds) async =>
+          createTestVerseInventory(bookIds: bookIds),
     );
     await database.resetDatabase();
     await database.init();

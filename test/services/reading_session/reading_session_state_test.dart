@@ -47,7 +47,10 @@ void main() {
 
     getIt.registerSingleton<BibleNavigation>(createTestBibleNavigation());
 
-    rsDb = ReadingSessionDatabase();
+    rsDb = ReadingSessionDatabase(
+      verseInventoryProvider: (bookIds) async =>
+          createTestVerseInventory(bookIds: bookIds),
+    );
     await rsDb.resetDatabase();
     await rsDb.init();
     getIt.registerSingleton<ReadingSessionDatabase>(rsDb);
@@ -113,12 +116,13 @@ void main() {
         expect(bookCompletedCount, 0);
         expect(lastCompletion, (0, 0));
 
-        final progress = await rsManager.getBookProgressForActivePlan(19);
-        expect(progress, isNotNull);
-        expect(progress!.chaptersRead, 1);
-        expect(progress.versesRead, 6);
-        expect(progress.chapter, 2);
-        expect(progress.verse, 1);
+        final stats = await rsDb.getBookStats(plan.id!);
+        expect(stats[19]!.versesRead, 6);
+        final resume = await planService.getResumeReference(plan.id!);
+        expect(resume, isNotNull);
+        expect(resume!.bookId, 19);
+        expect(resume.chapter, 2);
+        expect(resume.verse, 1);
       },
     );
 
@@ -150,10 +154,8 @@ void main() {
         expect(bookCompletedCount, 0);
         expect(rsManager.bookCompletedNotifier.value, (0, 0));
 
-        final progress = await rsManager.getBookProgressForActivePlan(19);
-        expect(progress, isNotNull);
-        expect(progress!.versesRead, 1);
-        expect(progress.chaptersRead, 0);
+        final stats = await rsDb.getBookStats(plan.id!);
+        expect(stats[19]!.versesRead, 1);
       },
     );
 
@@ -185,29 +187,23 @@ void main() {
         }
         expect(completionReceived, (0, 0));
 
-        var progress = await rsManager.getBookProgressForActivePlan(63);
-        expect(progress!.chapter, 1);
-        expect(progress.verse, 1);
-        expect(progress.versesRead, 12);
+        var stats = await rsDb.getBookStats(plan.id!);
+        expect(stats[63]!.versesRead, 12);
 
         await rsManager.markVerseAsRead(63, 1, 1);
 
         expect(completionReceived, (63, 64));
-        progress = await rsManager.getBookProgressForActivePlan(63);
-        expect(progress!.versesRead, 13);
-        expect(progress.chaptersRead, 1);
-
-        final nextBookProgress = await rsManager.getBookProgressForActivePlan(
-          64,
-        );
-        expect(nextBookProgress, isNotNull);
-        expect(nextBookProgress!.chapter, 1);
-        expect(nextBookProgress.verse, 1);
+        expect(rsManager.nextResumePosition, isNotNull);
+        expect(rsManager.nextResumePosition!.bookId, 64);
+        expect(rsManager.nextResumePosition!.chapter, 1);
+        expect(rsManager.nextResumePosition!.verse, 1);
+        stats = await rsDb.getBookStats(plan.id!);
+        expect(stats[63]!.versesRead, 13);
       },
     );
 
     test(
-      'resetting a verse after 10 reads across multiple sessions zeroes verse read count, decrements chaptersRead, and adjusts today daily log only for active session reads',
+      'resetting a verse after 10 reads across multiple sessions zeroes verse read count, decrements verses read, and adjusts today daily log only for active session reads',
       () async {
         final plan = await planService.saveReadingPlan(
           planName: 'Reset Test Plan',
@@ -238,9 +234,8 @@ void main() {
           await rsManager.markVerseAsRead(63, 1, 1);
         }
 
-        var progress = await rsManager.getBookProgressForActivePlan(63);
-        expect(progress!.chaptersRead, 1);
-        expect(progress.versesRead, 13);
+        var stats = await rsDb.getBookStats(plan.id!);
+        expect(stats[63]!.versesRead, 13);
 
         final versesReadTodayBeforeReset =
             rsManager.totalVersesReadPerDay.value;
@@ -248,17 +243,16 @@ void main() {
         // Reset verse 1
         await rsManager.resetReadingCountForVerse(63, 1, 1);
 
-        final chapterCounts = await rsDb.getDistinctVersesReadPerChapter(
+        final chapterCounts = await rsDb.getVerseReadCountsForChapter(
           plan.id!,
           63,
+          1,
         );
-        expect(chapterCounts[1], 12);
+        expect(chapterCounts[1], 0);
+        expect(chapterCounts.values.where((count) => count > 0).length, 12);
 
-        progress = await rsManager.getBookProgressForActivePlan(63);
-        expect(progress!.chaptersRead, 0);
-        expect(progress.versesRead, 12);
-        expect(progress.chapter, 1);
-        expect(progress.verse, 1);
+        stats = await rsDb.getBookStats(plan.id!);
+        expect(stats[63]!.versesRead, 12);
 
         expect(
           rsManager.totalVersesReadPerDay.value,
@@ -268,7 +262,7 @@ void main() {
     );
 
     test(
-      'editing a reading plan preserves custom ord book ordering and removes orphaned progress',
+      'editing a reading plan preserves custom ord book ordering and hides removed books from projections',
       () async {
         final plan = await planService.saveReadingPlan(
           planName: 'Order Test',
@@ -290,7 +284,7 @@ void main() {
 
         await rsManager.startReadingSession(details);
         await rsManager.markVerseAsRead(2, 1, 1);
-        expect(await rsManager.getBookProgressForActivePlan(2), isNotNull);
+        expect((await rsDb.getBookStats(plan.id!))[2]!.versesRead, 1);
 
         details = (await planService.getReadingPlansWithProgress()).firstWhere(
           (p) => p.readingPlan.id == plan.id,
@@ -309,8 +303,8 @@ void main() {
         expect(updatedBooks.map((b) => b.bookId).toList(), [3, 1, 4]);
         expect(updatedBooks.map((b) => b.ord).toList(), [1, 2, 3]);
 
-        final book2Progress = await rsDb.getAllBookProgress(plan.id!);
-        expect(book2Progress.any((b) => b.bookId == 2), isFalse);
+        final book2Aggregates = await rsDb.getBookStats(plan.id!);
+        expect(book2Aggregates.containsKey(2), isFalse);
 
         final reloadedPlan = await planService.getReadingPlanById(plan.id!);
         expect(reloadedPlan!.readingPlan.goalValue, 20);
@@ -350,9 +344,9 @@ void main() {
         final planAResult = await rsDb.getReadingPlanById(planA.id!);
         expect(planAResult, isNull);
         expect(await rsDb.getReadingPlanBooks(planA.id!), isEmpty);
-        expect(await rsDb.getAllBookProgress(planA.id!), isEmpty);
+        expect(await rsDb.getBookStats(planA.id!), isEmpty);
         expect(
-          await rsDb.getDistinctVersesReadPerChapter(planA.id!, 1),
+          await rsDb.getVerseReadCountsForChapter(planA.id!, 1, 1),
           isEmpty,
         );
         expect(
@@ -388,11 +382,11 @@ void main() {
 
         var plans = await planService.getReadingPlansWithProgress();
         var details = plans.firstWhere((p) => p.readingPlan.id == plan.id);
-        expect(details.latestBookProgress?.bookId, 1);
+        expect(details.resumePosition?.bookId, 1);
 
         final detailManager = ReadingPlanDetailPanelManager(details);
         await detailManager.ready;
-        expect(detailManager.latestBookProgressNotifier.value?.bookId, 1);
+        expect(detailManager.resumePositionNotifier.value?.bookId, 1);
 
         // Reorder so Exodus (bookId 2) comes first, Genesis (bookId 1) second
         final reordered = [
@@ -401,11 +395,11 @@ void main() {
         ];
         await detailManager.reorderBooks(reordered);
 
-        expect(detailManager.latestBookProgressNotifier.value?.bookId, 2);
+        expect(detailManager.resumePositionNotifier.value?.bookId, 2);
 
         plans = await planService.getReadingPlansWithProgress();
         details = plans.firstWhere((p) => p.readingPlan.id == plan.id);
-        expect(details.latestBookProgress?.bookId, 2);
+        expect(details.resumePosition?.bookId, 2);
 
         detailManager.dispose();
       },

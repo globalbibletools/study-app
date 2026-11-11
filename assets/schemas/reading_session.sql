@@ -80,24 +80,19 @@ CREATE UNIQUE INDEX hash_type_date
 ON rs_stats(type, stats_date, reading_plan_id);
 
 
----------------------------------
---READING SESSION BOOK PROGRESS--
----------------------------------
---track each book progress by chapter and verse
-create table rs_book_progress (
-    id integer primary key autoincrement,
+create table rs_verse_state (
+    reading_plan_id int not null,
     book_id int not null,
     chapter int not null,
     verse int not null,
-    chapters_read int not null,
-    verses_read int not null,
-    updated_at datetime not null,
-    reading_plan_id int not null,
-    foreign key (reading_plan_id) references reading_plan(id)
+    read_count int not null default 0,
+    last_read text,
+    foreign key (reading_plan_id) references reading_plan(id),
+    primary key (reading_plan_id, book_id, chapter, verse)
 );
 
-CREATE UNIQUE INDEX hash_rs_book_progress
-ON rs_book_progress(book_id, reading_plan_id);
+create index idx_rs_verse_state_plan_book
+on rs_verse_state(reading_plan_id, book_id);
 
 insert into reading_plan (id, plan_name, created_at, last_read, collection_id, goal_type, goal_value, is_bookmarked)
 values (1, 'Whole Bible', CURRENT_TIMESTAMP, null, 1, 'M', 10, 0);

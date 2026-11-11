@@ -30,6 +30,8 @@ void main() {
 
     database = ReadingSessionDatabase(
       databaseName: 'reading_session_service_v2_test.db',
+      verseInventoryProvider: (bookIds) async =>
+          createTestVerseInventory(bookIds: bookIds),
     );
     await database.resetDatabase();
     await database.init();

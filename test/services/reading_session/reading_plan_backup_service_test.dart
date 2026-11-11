@@ -3,8 +3,11 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gbt/services/reading_session/reading_plan_backup_service.dart';
 import 'package:gbt/services/reading_session/rs_database.dart';
+import 'package:gbt/services/reading_session/rs_model.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+
+import '../../fixtures/bible_navigation_fixture.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -20,6 +23,8 @@ void main() {
   setUp(() async {
     database = ReadingSessionDatabase(
       databaseName: 'reading_plan_backup_service_test.db',
+      verseInventoryProvider: (bookIds) async =>
+          createTestVerseInventory(bookIds: bookIds),
     );
     await database.resetDatabase();
     await database.init();
@@ -58,13 +63,35 @@ void main() {
       orderedBookIds: [1, 2],
     );
 
+    await database.markVerseRead(plan.id!, 1, 1, 1);
+    final now = DateTime.now();
+    final dailyLog = await database.insertDailyLog(
+      RsDailyLog(
+        rsDate: DateTime(now.year, now.month, now.day),
+        startTime: now,
+        verses: 1,
+        readingPlanId: plan.id!,
+      ),
+    );
+    await database.insertLog(
+      RsLog(
+        rsDailyLogId: dailyLog.id!,
+        bookId: 1,
+        chapter: 1,
+        verse: 1,
+        dateTime: now,
+        readingPlanId: plan.id!,
+      ),
+    );
+
     final bytes = await backupService.buildBackupBytes();
     final payload = jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>;
     expect(payload['format_version'], 2);
-    expect(
-      (payload['tables'] as Map)['reading_plan'],
-      hasLength(initialPlanCount + 1),
-    );
+
+    final tables = payload['tables'] as Map<String, dynamic>;
+    expect(tables['reading_plan'], hasLength(initialPlanCount + 1));
+    expect(tables.containsKey('rs_book_progress'), isFalse);
+    expect(tables.containsKey('rs_verse_state'), isFalse);
 
     await database.deleteReadingPlan(plan.id!);
     expect(
@@ -82,5 +109,102 @@ void main() {
     expect(restoredPlans, hasLength(1));
     expect(restoredPlans.single.readingPlan.goalValue, 12);
     expect(restoredPlans.single.books.map((b) => b.bookId), [1, 2]);
+
+    final chapterCounts = await database.getVerseReadCountsForChapter(
+      plan.id!,
+      1,
+      1,
+    );
+    expect(chapterCounts[1], 1);
+    expect(chapterCounts[2], 0);
+
+    final aggregates = await database.getBookStats(plan.id!);
+    expect(aggregates[1]!.versesRead, 1);
+    expect(aggregates[1]!.isComplete, isFalse);
   });
+
+  test(
+    'v1 restore rebuilds verse state from rs_log and materializes zeros',
+    () async {
+      await database.restoreBackupTables({
+        'rs_daily_log': [
+          {
+            'id': 1,
+            'rs_date': '2026-04-30',
+            'start_time': '2026-04-30T09:00:00.000',
+            'end_time': '2026-04-30T09:20:00.000',
+            'verses': 3,
+          },
+        ],
+        'rs_log': [
+          {
+            'id': 1,
+            'rs_daily_log_id': 1,
+            'book_id': 1,
+            'chapter': 1,
+            'verse': 1,
+            'date_time': '2026-04-30T09:05:00.000',
+          },
+          {
+            'id': 2,
+            'rs_daily_log_id': 1,
+            'book_id': 1,
+            'chapter': 1,
+            'verse': 1,
+            'date_time': '2026-04-30T09:10:00.000',
+          },
+          {
+            'id': 3,
+            'rs_daily_log_id': 1,
+            'book_id': 1,
+            'chapter': 1,
+            'verse': 2,
+            'date_time': '2026-04-30T09:15:00.000',
+          },
+        ],
+        'rs_stats': [
+          {
+            'id': 1,
+            'type': 'D',
+            'stats_date': '2026-04-30',
+            'rs_seconds': 1200,
+            'rs_verses': 3,
+            'goal_reached': 1,
+          },
+        ],
+        'rs_book_progress': [
+          {
+            'id': 1,
+            'book_id': 1,
+            'chapter': 1,
+            'verse': 15,
+            'chapters_read': 0,
+            'verses_read': 99,
+            'updated_at': '2026-04-30T09:20:00.000',
+          },
+        ],
+      }, formatVersion: 1);
+
+      final plan = await database.getReadingPlanById(1);
+      expect(plan, isNotNull);
+      expect(plan!.books, hasLength(66));
+
+      final chapterCounts = await database.getVerseReadCountsForChapter(
+        1,
+        1,
+        1,
+      );
+      expect(chapterCounts, hasLength(31));
+      expect(chapterCounts[1], 2);
+      expect(chapterCounts[2], 1);
+      expect(chapterCounts[31], 0);
+
+      final aggregates = await database.getBookStats(1);
+      expect(aggregates[1]!.versesRead, 2);
+      expect(
+        aggregates[1]!.lastRead,
+        DateTime.parse('2026-04-30T09:15:00.000'),
+      );
+    },
+  );
 }

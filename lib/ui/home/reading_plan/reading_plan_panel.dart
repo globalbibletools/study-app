@@ -368,7 +368,7 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
                       text: TextSpan(
                         style: theme.textTheme.bodyMedium,
                         children: [
-                          if (planDet.latestBookProgress != null) ...[
+                          if (planDet.resumePosition != null) ...[
                             TextSpan(
                               text:
                                   "${AppLocalizations.of(context)!.current}: ",
@@ -380,7 +380,7 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
                             TextSpan(
                               text: bookNameFromId(
                                 context,
-                                planDet.latestBookProgress!.bookId,
+                                planDet.resumePosition!.bookId,
                               ), // Placeholder, replace as needed
                               style: TextStyle(
                                 color: theme.textTheme.bodyMedium?.color,
@@ -404,10 +404,10 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
 
                           int bookId, chapter, verse;
 
-                          if (planDet.latestBookProgress != null) {
-                            bookId = planDet.latestBookProgress!.bookId;
-                            chapter = planDet.latestBookProgress!.chapter;
-                            verse = planDet.latestBookProgress!.verse;
+                          if (planDet.resumePosition != null) {
+                            bookId = planDet.resumePosition!.bookId;
+                            chapter = planDet.resumePosition!.chapter;
+                            verse = planDet.resumePosition!.verse;
                           } else {
                             bookId = planDet.books[0].bookId;
                             chapter = 1;

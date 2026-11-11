@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gbt/common/reference.dart';
 import 'package:gbt/services/reading_session/reading_plan_service.dart';
 import 'package:gbt/services/reading_session/reading_session_service.dart';
 import 'package:gbt/services/reading_session/rs_model.dart';
@@ -9,11 +10,11 @@ class ReadingPlanDetailPanelManager {
   final _planService = getIt<ReadingPlanService>();
 
   final readingPlansNotifier = ValueNotifier<List<ReadingPlanDetails>>([]);
-  final booksProgressNotifier = ValueNotifier<List<RsBookProgress>>([]);
+  final booksProgressNotifier = ValueNotifier<List<RsBookStats>>([]);
   final todaysProgressNotifier = ValueNotifier<DayProgress?>(null);
   final bookmarkNotifier = ValueNotifier<bool>(false);
   final monthProgress = ValueNotifier<List<DayProgress>>([]);
-  final latestBookProgressNotifier = ValueNotifier<RsBookProgress?>(null);
+  final resumePositionNotifier = ValueNotifier<Reference?>(null);
 
   ReadingPlanDetails readingPlanDetails;
   bool _isDisposed = false;
@@ -21,7 +22,7 @@ class ReadingPlanDetailPanelManager {
 
   ReadingPlanDetailPanelManager(this.readingPlanDetails) {
     bookmarkNotifier.value = readingPlanDetails.readingPlan.isBookmarked;
-    latestBookProgressNotifier.value = readingPlanDetails.latestBookProgress;
+    resumePositionNotifier.value = readingPlanDetails.resumePosition;
     _initFuture = init();
   }
 
@@ -29,16 +30,22 @@ class ReadingPlanDetailPanelManager {
 
   Future<void> init() async {
     final planId = readingPlanDetails.readingPlan.id!;
-    final orderedBookIds = readingPlanDetails.books
-        .map((b) => b.bookId)
-        .toList();
     final now = DateTime.now();
 
-    final loaded = await _planService.getBooksProgress(planId);
-    final latest = await _planService.getLatestBookProgress(
-      planId,
-      orderedBookIds: orderedBookIds,
-    );
+    final loaded = await _planService.getBooksStats(planId);
+    final statsByBook = {for (final stat in loaded) stat.bookId: stat};
+    var totalVerses = 0;
+    var versesRead = 0;
+    var booksRead = 0;
+    for (final book in readingPlanDetails.books) {
+      final stat = statsByBook[book.bookId];
+      totalVerses += stat?.totalVerses ?? 0;
+      versesRead += stat?.versesRead ?? 0;
+      if (stat != null && stat.isComplete) {
+        booksRead += 1;
+      }
+    }
+    final resumePosition = await _planService.getResumeReference(planId);
     final month = await _planService.getMonthProgress(
       planId,
       DateTime(now.year, now.month, 1),
@@ -46,9 +53,12 @@ class ReadingPlanDetailPanelManager {
 
     if (_isDisposed) return;
 
+    readingPlanDetails.totalVerses = totalVerses;
+    readingPlanDetails.versesRead = versesRead;
+    readingPlanDetails.booksRead = booksRead;
     booksProgressNotifier.value = loaded;
-    readingPlanDetails.latestBookProgress = latest;
-    latestBookProgressNotifier.value = latest;
+    readingPlanDetails.resumePosition = resumePosition;
+    resumePositionNotifier.value = resumePosition;
     monthProgress.value = month;
     todaysProgressNotifier.value = now.day <= month.length
         ? month[now.day - 1]
@@ -66,7 +76,7 @@ class ReadingPlanDetailPanelManager {
 
   void dispose() {
     _isDisposed = true;
-    latestBookProgressNotifier.dispose();
+    resumePositionNotifier.dispose();
   }
 
   Future<void> startReadingSession() async {
@@ -85,14 +95,12 @@ class ReadingPlanDetailPanelManager {
       readingPlanDetails.readingPlan.id!,
       updatedBooks,
     );
-    final orderedBookIds = updatedBooks.map((b) => b.bookId).toList();
-    final latest = await _planService.getLatestBookProgress(
+    final resumePosition = await _planService.getResumeReference(
       readingPlanDetails.readingPlan.id!,
-      orderedBookIds: orderedBookIds,
     );
     if (_isDisposed) return;
-    readingPlanDetails.latestBookProgress = latest;
-    latestBookProgressNotifier.value = latest;
+    readingPlanDetails.resumePosition = resumePosition;
+    resumePositionNotifier.value = resumePosition;
   }
 
   Future<void> loadMonthData(DateTime month) async {

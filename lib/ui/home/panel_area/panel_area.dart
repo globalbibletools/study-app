@@ -126,18 +126,18 @@ class BiblePanelArea extends StatelessWidget {
     );
   }
 
-  Future<void> onNextBook(BuildContext context, int bookId) async {
-    final progress = await manager.readingSessionManager
-        .getBookProgressForActivePlan(bookId);
-    if (!context.mounted) return;
+  void onNextBook(BuildContext context, int _) {
+    final resume = manager.readingSessionManager.nextResumePosition;
+    if (resume == null) return;
 
-    final initialChapter = progress?.chapter ?? 1;
-    final initialVerse = progress?.verse ?? 1;
+    manager.onBookSelected(context, resume.bookId);
 
-    manager.onBookSelected(context, bookId);
+    manager.onChapterSelected(resume.chapter);
 
-    manager.onChapterSelected(initialChapter);
-
-    manager.syncController.jumpToVerse(bookId, initialChapter, initialVerse);
+    manager.syncController.jumpToVerse(
+      resume.bookId,
+      resume.chapter,
+      resume.verse,
+    );
   }
 }

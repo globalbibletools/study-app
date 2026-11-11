@@ -1,4 +1,5 @@
 import 'package:gbt/common/bible_navigation.dart';
+import 'package:gbt/common/reference.dart';
 import 'package:gbt/services/reading_session/rs_database.dart';
 import 'package:gbt/services/reading_session/rs_model.dart';
 import 'package:gbt/services/service_locator.dart';
@@ -19,53 +20,18 @@ class ReadingPlanService {
     return _database.getReadingPlanById(planId);
   }
 
-  Future<List<RsBookProgress>> getBooksProgress(int readingPlanId) async {
-    final storedProgress = await _database.getAllBookProgress(readingPlanId);
-    final progressByBook = {
-      for (final progress in storedProgress) progress.bookId: progress,
-    };
+  Future<List<RsBookStats>> getBooksStats(int readingPlanId) async {
+    final stats = await _database.getBookStats(readingPlanId);
 
     return [
       for (int bookId = 1; bookId <= _bibleNavigation.getBooksCount(); bookId++)
-        progressByBook[bookId] ?? _emptyProgress(readingPlanId, bookId),
+        stats[bookId] ?? _emptyStats(bookId),
     ];
   }
 
-  Future<RsBookProgress?> getLatestBookProgress(
-    int readingPlanId, {
-    List<int>? orderedBookIds,
-    Set<int>? planBookIds,
-  }) async {
-    final storedProgress = await _database.getAllBookProgress(readingPlanId);
-    final progressByBook = {
-      for (final progress in storedProgress) progress.bookId: progress,
-    };
-
-    if (orderedBookIds != null && orderedBookIds.isNotEmpty) {
-      return _latestBookProgress(readingPlanId, orderedBookIds, progressByBook);
-    }
-
-    final filtered = storedProgress
-        .where(
-          (progress) =>
-              planBookIds == null || planBookIds.contains(progress.bookId),
-        )
-        .toList();
-
-    if (filtered.isEmpty) return null;
-
-    final incomplete = filtered
-        .where(
-          (progress) =>
-              progress.versesRead <
-              _bibleNavigation.getTotalVerseCount(progress.bookId),
-        )
-        .toList();
-    final candidates = incomplete.isNotEmpty ? incomplete : filtered;
-
-    return candidates.reduce(
-      (a, b) => a.updatedAt.isAfter(b.updatedAt) ? a : b,
-    );
+  Future<Reference?> getResumeReference(int planId, {Reference? after}) async {
+    final resume = await _database.getResumeReference(planId, after: after);
+    return resume ?? after;
   }
 
   Future<List<DayProgress>> getMonthProgress(
@@ -153,78 +119,27 @@ class ReadingPlanService {
 
   Future<List<ReadingPlanDetails>> getReadingPlansWithProgress() async {
     final plans = await getReadingPlans();
+    final progress = await _database.getReadingPlanProgress();
 
     for (final plan in plans) {
       final planId = plan.readingPlan.id!;
-      final orderedBookIds = plan.books.map((b) => b.bookId).toList();
-      final storedProgress = await _database.getAllBookProgress(planId);
-      final progressByBook = {
-        for (final progress in storedProgress) progress.bookId: progress,
-      };
+      final planProgress = progress[planId];
 
-      int totalChapters = 0;
-      int totalVerses = 0;
-      int versesRead = 0;
-      int booksRead = 0;
+      plan.totalVerses = planProgress?.totalVerses ?? 0;
+      plan.versesRead = planProgress?.versesRead ?? 0;
 
-      for (final bookId in orderedBookIds) {
-        final progress =
-            progressByBook[bookId] ?? _emptyProgress(planId, bookId);
-        progressByBook[bookId] = progress;
-
-        final bookChapterCount = _bibleNavigation.getChapterCount(bookId);
-        final bookVerseCount = _bibleNavigation.getTotalVerseCount(bookId);
-
-        totalChapters += bookChapterCount;
-        totalVerses += bookVerseCount;
-        versesRead += progress.versesRead;
-
-        if (progress.versesRead >= bookVerseCount) {
-          booksRead += 1;
-        }
-      }
-
-      plan.totalChapters = totalChapters;
-      plan.totalVerses = totalVerses;
-      plan.versesRead = versesRead;
-      plan.booksRead = booksRead;
-      plan.latestBookProgress = _latestBookProgress(
-        planId,
-        orderedBookIds,
-        progressByBook,
-      );
+      plan.resumePosition = await getResumeReference(planId);
     }
 
     return plans;
   }
 
-  RsBookProgress? _latestBookProgress(
-    int planId,
-    List<int> orderedBookIds,
-    Map<int, RsBookProgress> progressByBook,
-  ) {
-    if (orderedBookIds.isEmpty) return null;
-
-    for (final bookId in orderedBookIds) {
-      final progress = progressByBook[bookId] ?? _emptyProgress(planId, bookId);
-      if (progress.versesRead < _bibleNavigation.getTotalVerseCount(bookId)) {
-        return progress;
-      }
-    }
-
-    final firstBookId = orderedBookIds.first;
-    return progressByBook[firstBookId] ?? _emptyProgress(planId, firstBookId);
-  }
-
-  RsBookProgress _emptyProgress(int planId, int bookId) {
-    return RsBookProgress(
-      readingPlanId: planId,
+  RsBookStats _emptyStats(int bookId) {
+    return RsBookStats(
       bookId: bookId,
-      chapter: 1,
-      verse: 1,
-      chaptersRead: 0,
+      totalVerses: 0,
       versesRead: 0,
-      updatedAt: DateTime.now(),
+      lastRead: null,
     );
   }
 

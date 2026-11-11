@@ -1341,3 +1341,17 @@ const Map<(int, int), int> _testVerseCounts = {
 /// the same synchronous API that production uses.
 BibleNavigation createTestBibleNavigation() =>
     BibleNavigation.withCounts(_testVerseCounts);
+
+Map<(int, int), List<int>> createTestVerseInventory({
+  Set<int>? bookIds,
+  Set<int> omitBookIds = const {},
+}) {
+  final inventory = <(int, int), List<int>>{};
+  _testVerseCounts.forEach((key, count) {
+    final (bookId, _) = key;
+    if (bookIds != null && !bookIds.contains(bookId)) return;
+    if (omitBookIds.contains(bookId)) return;
+    inventory[key] = [for (int verse = 1; verse <= count; verse++) verse];
+  });
+  return inventory;
+}

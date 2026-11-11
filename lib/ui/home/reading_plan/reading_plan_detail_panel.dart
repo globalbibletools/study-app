@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gbt/common/bible_navigation.dart';
+import 'package:gbt/common/reference.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/l10n/book_names.dart';
@@ -164,9 +165,9 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
       },
     );
 
-    return ValueListenableBuilder<RsBookProgress?>(
-      valueListenable: manager.latestBookProgressNotifier,
-      builder: (context, latestBookProgress, _) {
+    return ValueListenableBuilder<Reference?>(
+      valueListenable: manager.resumePositionNotifier,
+      builder: (context, resumePosition, _) {
         final Widget progressWidget = Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -177,14 +178,14 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
               ),
             ),
             const SizedBox(height: 4),
-            if (latestBookProgress != null) ...[
+            if (resumePosition != null) ...[
               Text(
                 l10n.current,
                 style: TextStyle(color: Theme.of(context).colorScheme.primary),
               ),
               const SizedBox(height: 2),
               Text(
-                '${bookNameFromId(context, latestBookProgress.bookId)} ${latestBookProgress.chapter}',
+                '${bookNameFromId(context, resumePosition.bookId)} ${resumePosition.chapter}',
               ),
             ],
           ],
@@ -231,9 +232,9 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
         ? l10n.startReading
         : l10n.resumeReading;
 
-    return ValueListenableBuilder<RsBookProgress?>(
-      valueListenable: manager.latestBookProgressNotifier,
-      builder: (_, latestBookProgress, child) {
+    return ValueListenableBuilder<Reference?>(
+      valueListenable: manager.resumePositionNotifier,
+      builder: (_, resumePosition, child) {
         return SizedBox(
           width: double.infinity,
           child: ElevatedButton.icon(
@@ -253,10 +254,10 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
 
               int bookId, chapter, verse;
 
-              if (latestBookProgress != null) {
-                bookId = latestBookProgress.bookId;
-                chapter = latestBookProgress.chapter;
-                verse = latestBookProgress.verse;
+              if (resumePosition != null) {
+                bookId = resumePosition.bookId;
+                chapter = resumePosition.chapter;
+                verse = resumePosition.verse;
               } else if (_books.isNotEmpty) {
                 bookId = _books[0].bookId;
                 chapter = 1;
@@ -472,7 +473,7 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
   }
 
   Widget _booksList() {
-    return ValueListenableBuilder<List<RsBookProgress>>(
+    return ValueListenableBuilder<List<RsBookStats>>(
       valueListenable: manager.booksProgressNotifier,
       builder: (_, booksProgress, child) {
         if (booksProgress.isEmpty) {
