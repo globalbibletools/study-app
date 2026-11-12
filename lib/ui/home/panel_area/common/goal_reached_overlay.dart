@@ -2,13 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:gbt/l10n/app_localizations.dart';
-import 'package:gbt/services/reading_session/reading_session_service.dart';
+import 'package:gbt/ui/home/reading_plan/reading_session_view_model.dart';
 import 'package:gbt/ui/home/panel_area/common/confetti_view.dart';
 
 class GoalReachedOverlay extends StatefulWidget {
-  const GoalReachedOverlay({super.key, required this.manager});
+  const GoalReachedOverlay({super.key, required this.viewModel});
 
-  final ReadingSessionService manager;
+  final ReadingSessionViewModel viewModel;
 
   @override
   State<GoalReachedOverlay> createState() => _GoalReachedOverlayState();
@@ -57,18 +57,18 @@ class _GoalReachedOverlayState extends State<GoalReachedOverlay> {
   }
 
   void _dismissOverlay() {
-    widget.manager.goalReachedNotifier.value = false;
+    widget.viewModel.goalReachedNotifier.value = false;
   }
 
   Future<void> _endSession() async {
     _dismissOverlay();
-    await widget.manager.endReadingSession();
+    await widget.viewModel.endSession();
   }
 
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<bool>(
-      valueListenable: widget.manager.goalReachedNotifier,
+      valueListenable: widget.viewModel.goalReachedNotifier,
       builder: (context, goalReached, _) {
         _handleGoalReachedChanged(goalReached);
 

@@ -8,6 +8,7 @@ import 'package:gbt/services/reading_session/reading_plan_service.dart';
 import 'package:gbt/services/reading_session/rs_database.dart';
 import 'package:gbt/services/reading_session/reading_session_service.dart';
 import 'package:gbt/services/reading_session/rs_model.dart';
+import 'package:gbt/ui/home/reading_plan/reading_session_view_model.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/home/panel_area/common/book_completed_overlay.dart';
 import 'package:gbt/ui/home/panel_area/common/calendar_view.dart';
@@ -24,7 +25,8 @@ void main() {
 
   late ReadingSessionDatabase rsDb;
   late ReadingPlanService planService;
-  late ReadingSessionService rsManager;
+  late ReadingSessionService sessionService;
+  late ReadingSessionViewModel viewModel;
 
   setUpAll(() {
     sqfliteFfiInit();
@@ -35,11 +37,11 @@ void main() {
     if (getIt.isRegistered<ReadingSessionDatabase>()) {
       getIt.unregister<ReadingSessionDatabase>();
     }
-    if (getIt.isRegistered<ReadingSessionService>()) {
-      getIt.unregister<ReadingSessionService>();
-    }
     if (getIt.isRegistered<ReadingPlanService>()) {
       getIt.unregister<ReadingPlanService>();
+    }
+    if (getIt.isRegistered<ReadingSessionViewModel>()) {
+      getIt.unregister<ReadingSessionViewModel>();
     }
     if (getIt.isRegistered<BibleNavigation>()) {
       getIt.unregister<BibleNavigation>();
@@ -57,13 +59,14 @@ void main() {
     planService = ReadingPlanService.withDatabase(rsDb);
     getIt.registerSingleton<ReadingPlanService>(planService);
 
-    rsManager = ReadingSessionService();
-    await rsManager.init();
-    getIt.registerSingleton<ReadingSessionService>(rsManager);
+    sessionService = ReadingSessionService.withDatabase(rsDb);
+    viewModel = ReadingSessionViewModel.withService(sessionService);
+    getIt.registerSingleton<ReadingSessionViewModel>(viewModel);
   });
 
   tearDown(() async {
-    await rsManager.endReadingSession();
+    await viewModel.endSession();
+    viewModel.dispose();
     rsDb.dispose();
   });
 
@@ -71,8 +74,8 @@ void main() {
     if (getIt.isRegistered<ReadingSessionDatabase>()) {
       getIt.unregister<ReadingSessionDatabase>();
     }
-    if (getIt.isRegistered<ReadingSessionService>()) {
-      getIt.unregister<ReadingSessionService>();
+    if (getIt.isRegistered<ReadingSessionViewModel>()) {
+      getIt.unregister<ReadingSessionViewModel>();
     }
     if (getIt.isRegistered<ReadingPlanService>()) {
       getIt.unregister<ReadingPlanService>();
@@ -99,22 +102,22 @@ void main() {
           (p) => p.readingPlan.id == plan.id,
         );
 
-        await rsManager.startReadingSession(planDetails);
+        await viewModel.startSession(planDetails.readingPlan.id!);
 
         int bookCompletedCount = 0;
-        (int, int) lastCompletion = (0, 0);
-        rsManager.bookCompletedNotifier.addListener(() {
+        BookCompletedEvent? lastCompletion;
+        viewModel.bookCompletedNotifier.addListener(() {
           bookCompletedCount++;
-          lastCompletion = rsManager.bookCompletedNotifier.value;
+          lastCompletion = viewModel.bookCompletedNotifier.value;
         });
 
         expect(getIt<BibleNavigation>().getVerseCount(19, 1), 6);
         for (int v = 1; v <= 6; v++) {
-          await rsManager.markVerseAsRead(19, 1, v);
+          await viewModel.markVerseAsRead(19, 1, v);
         }
 
         expect(bookCompletedCount, 0);
-        expect(lastCompletion, (0, 0));
+        expect(lastCompletion, isNull);
 
         final stats = await rsDb.getBookStats(plan.id!);
         expect(stats[19]!.versesRead, 6);
@@ -142,17 +145,17 @@ void main() {
           (p) => p.readingPlan.id == plan.id,
         );
 
-        await rsManager.startReadingSession(planDetails);
+        await viewModel.startSession(planDetails.readingPlan.id!);
 
         int bookCompletedCount = 0;
-        rsManager.bookCompletedNotifier.addListener(() {
+        viewModel.bookCompletedNotifier.addListener(() {
           bookCompletedCount++;
         });
 
-        await rsManager.markVerseAsRead(19, 150, 6);
+        await viewModel.markVerseAsRead(19, 150, 6);
 
         expect(bookCompletedCount, 0);
-        expect(rsManager.bookCompletedNotifier.value, (0, 0));
+        expect(viewModel.bookCompletedNotifier.value, isNull);
 
         final stats = await rsDb.getBookStats(plan.id!);
         expect(stats[19]!.versesRead, 1);
@@ -175,28 +178,29 @@ void main() {
           (p) => p.readingPlan.id == plan.id,
         );
 
-        await rsManager.startReadingSession(planDetails);
+        await viewModel.startSession(planDetails.readingPlan.id!);
 
-        (int, int) completionReceived = (0, 0);
-        rsManager.bookCompletedNotifier.addListener(() {
-          completionReceived = rsManager.bookCompletedNotifier.value;
+        BookCompletedEvent? completionReceived;
+        viewModel.bookCompletedNotifier.addListener(() {
+          completionReceived = viewModel.bookCompletedNotifier.value;
         });
 
         for (int v = 2; v <= 13; v++) {
-          await rsManager.markVerseAsRead(63, 1, v);
+          await viewModel.markVerseAsRead(63, 1, v);
         }
-        expect(completionReceived, (0, 0));
+        expect(completionReceived, isNull);
 
         var stats = await rsDb.getBookStats(plan.id!);
         expect(stats[63]!.versesRead, 12);
 
-        await rsManager.markVerseAsRead(63, 1, 1);
+        await viewModel.markVerseAsRead(63, 1, 1);
 
-        expect(completionReceived, (63, 64));
-        expect(rsManager.nextResumePosition, isNotNull);
-        expect(rsManager.nextResumePosition!.bookId, 64);
-        expect(rsManager.nextResumePosition!.chapter, 1);
-        expect(rsManager.nextResumePosition!.verse, 1);
+        expect(completionReceived?.completedBookId, 63);
+        expect(completionReceived?.nextBookId, 64);
+        expect(viewModel.nextResumePosition, isNotNull);
+        expect(viewModel.nextResumePosition!.bookId, 64);
+        expect(viewModel.nextResumePosition!.chapter, 1);
+        expect(viewModel.nextResumePosition!.verse, 1);
         stats = await rsDb.getBookStats(plan.id!);
         expect(stats[63]!.versesRead, 13);
       },
@@ -219,29 +223,28 @@ void main() {
         );
 
         // Session 1: Mark verse 1 read 3 times, then close session
-        await rsManager.startReadingSession(planDetails);
+        await viewModel.startSession(planDetails.readingPlan.id!);
         for (int i = 0; i < 3; i++) {
-          await rsManager.markVerseAsRead(63, 1, 1);
+          await viewModel.markVerseAsRead(63, 1, 1);
         }
-        await rsManager.endReadingSession();
+        await viewModel.endSession();
 
         // Session 2: Mark verses 2..13 read once, and verse 1 read 7 more times (reaching 10 total reads)
-        await rsManager.startReadingSession(planDetails);
+        await viewModel.startSession(planDetails.readingPlan.id!);
         for (int v = 2; v <= 13; v++) {
-          await rsManager.markVerseAsRead(63, 1, v);
+          await viewModel.markVerseAsRead(63, 1, v);
         }
         for (int i = 0; i < 7; i++) {
-          await rsManager.markVerseAsRead(63, 1, 1);
+          await viewModel.markVerseAsRead(63, 1, 1);
         }
 
         var stats = await rsDb.getBookStats(plan.id!);
         expect(stats[63]!.versesRead, 13);
 
-        final versesReadTodayBeforeReset =
-            rsManager.totalVersesReadPerDay.value;
+        final versesReadTodayBeforeReset = viewModel.session!.versesToday;
 
         // Reset verse 1
-        await rsManager.resetReadingCountForVerse(63, 1, 1);
+        await viewModel.resetVerseProgress(63, 1, 1);
 
         final chapterCounts = await rsDb.getVerseReadCountsForChapter(
           plan.id!,
@@ -254,10 +257,7 @@ void main() {
         stats = await rsDb.getBookStats(plan.id!);
         expect(stats[63]!.versesRead, 12);
 
-        expect(
-          rsManager.totalVersesReadPerDay.value,
-          versesReadTodayBeforeReset - 7,
-        );
+        expect(viewModel.session!.versesToday, versesReadTodayBeforeReset - 7);
       },
     );
 
@@ -282,8 +282,8 @@ void main() {
         ];
         await planService.reorderReadingPlanBooks(plan.id!, reordered);
 
-        await rsManager.startReadingSession(details);
-        await rsManager.markVerseAsRead(2, 1, 1);
+        await viewModel.startSession(details.readingPlan.id!);
+        await viewModel.markVerseAsRead(2, 1, 1);
         expect((await rsDb.getBookStats(plan.id!))[2]!.versesRead, 1);
 
         details = (await planService.getReadingPlansWithProgress()).firstWhere(
@@ -335,9 +335,9 @@ void main() {
           (p) => p.readingPlan.id == planA.id,
         );
 
-        await rsManager.startReadingSession(planADetails);
-        await rsManager.markVerseAsRead(1, 1, 1);
-        await rsManager.endReadingSession();
+        await viewModel.startSession(planADetails.readingPlan.id!);
+        await viewModel.markVerseAsRead(1, 1, 1);
+        await viewModel.endSession();
 
         await planService.deleteReadingPlan(planA.id!);
 
@@ -509,7 +509,7 @@ void main() {
     );
 
     testWidgets(
-      'BookCompletedOverlay renders Done button when newBookId == 0',
+      'BookCompletedOverlay renders Done button when there is no next book',
       (tester) async {
         await tester.pumpWidget(
           MaterialApp(
@@ -522,7 +522,10 @@ void main() {
             home: Scaffold(
               body: Stack(
                 children: [
-                  BookCompletedOverlay(manager: rsManager, onNextBook: (_) {}),
+                  BookCompletedOverlay(
+                    viewModel: viewModel,
+                    onNextBook: (_) {},
+                  ),
                 ],
               ),
             ),
@@ -532,7 +535,11 @@ void main() {
 
         expect(find.text('Done'), findsNothing);
 
-        rsManager.bookCompletedNotifier.value = (66, 0);
+        viewModel.bookCompletedNotifier.value = const BookCompletedEvent(
+          completedBookId: 66,
+          nextBookId: null,
+          resumePosition: null,
+        );
         await tester.pumpAndSettle();
 
         expect(find.text('Done'), findsOneWidget);

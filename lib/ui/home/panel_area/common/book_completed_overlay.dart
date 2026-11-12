@@ -2,15 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:gbt/common/book_name.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/services/reading_session/reading_session_service.dart';
+import 'package:gbt/ui/home/reading_plan/reading_session_view_model.dart';
 
 class BookCompletedOverlay extends StatefulWidget {
   const BookCompletedOverlay({
     super.key,
-    required this.manager,
+    required this.viewModel,
     this.onNextBook,
   });
 
-  final ReadingSessionService manager;
+  final ReadingSessionViewModel viewModel;
 
   /// Called when "Next Book" is pressed.
   final Function(int)? onNextBook;
@@ -21,7 +22,7 @@ class BookCompletedOverlay extends StatefulWidget {
 
 class _BookCompletedOverlayState extends State<BookCompletedOverlay> {
   void _dismissOverlay() {
-    widget.manager.bookCompletedNotifier.value = (0, 0);
+    widget.viewModel.bookCompletedNotifier.value = null;
   }
 
   void _nextBook(int bookId) {
@@ -33,15 +34,15 @@ class _BookCompletedOverlayState extends State<BookCompletedOverlay> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
-    return ValueListenableBuilder<(int, int)>(
-      valueListenable: widget.manager.bookCompletedNotifier,
-      builder: (context, books, _) {
-        final oldBookId = books.$1;
-        final newBookId = books.$2;
-
-        if (oldBookId == 0) {
+    return ValueListenableBuilder<BookCompletedEvent?>(
+      valueListenable: widget.viewModel.bookCompletedNotifier,
+      builder: (context, event, _) {
+        if (event == null) {
           return const SizedBox.shrink();
         }
+
+        final oldBookId = event.completedBookId;
+        final newBookId = event.nextBookId;
 
         final cyan = Theme.of(context).primaryColor;
 
@@ -127,7 +128,7 @@ class _BookCompletedOverlayState extends State<BookCompletedOverlay> {
 
                           const SizedBox(height: 35),
 
-                          if (newBookId != 0)
+                          if (newBookId != null)
                             // Next book button
                             SizedBox(
                               width: double.infinity,

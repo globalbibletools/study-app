@@ -1,431 +1,425 @@
-import 'dart:async';
 import 'dart:math' as math;
 
-import 'package:flutter/material.dart';
+import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/common/reference.dart';
+import 'package:gbt/services/reading_session/reading_plan_config.dart';
 import 'package:gbt/services/reading_session/rs_database.dart';
 import 'package:gbt/services/reading_session/rs_model.dart';
 import 'package:gbt/services/service_locator.dart';
 
-export 'package:gbt/services/reading_session/rs_model.dart'
-    show DailyGoal, GoalType, ProgressType;
+class SessionProgress {
+  const SessionProgress({
+    required this.sessionId,
+    required this.sessionDay,
+    required this.sessionStartTime,
+    required this.versesToday,
+    required this.secondsToday,
+    required this.goalAlreadyReachedToday,
+    required this.asOf,
+  });
+
+  final int sessionId;
+  final DateTime sessionDay;
+  final DateTime sessionStartTime;
+  final int versesToday;
+  final int secondsToday;
+  final bool goalAlreadyReachedToday;
+  final DateTime asOf;
+}
+
+class ActiveSessionSnapshot {
+  const ActiveSessionSnapshot({required this.config, required this.progress});
+
+  final ReadingPlanConfig config;
+  final SessionProgress progress;
+}
+
+class BookCompletedEvent {
+  const BookCompletedEvent({
+    required this.completedBookId,
+    required this.nextBookId,
+    required this.resumePosition,
+  });
+
+  final int completedBookId;
+  final int? nextBookId;
+  final Reference? resumePosition;
+}
+
+class VerseReadResult {
+  const VerseReadResult({
+    required this.progress,
+    required this.verseReadCounts,
+    this.bookCompleted,
+  });
+
+  final SessionProgress progress;
+  final Map<int, int> verseReadCounts;
+  final BookCompletedEvent? bookCompleted;
+}
 
 class ReadingSessionService {
-  final _rsdbManager = getIt<ReadingSessionDatabase>();
+  ReadingSessionService() : this.withDatabase(getIt<ReadingSessionDatabase>());
 
-  static int maximumReadCount = 10;
-  // Heartbeat time to flush the current timestamp to the session record
-  // Prevents sessions from being ended without recording an end time if the app is killed.
-  static int idleFlushTickCount = 60;
+  ReadingSessionService.withDatabase(this._database);
 
-  ReadingSessionService();
+  static const int maximumReadCount = 10;
 
-  DateTime? get currentSessionStartTime => _rsSession?.startTime;
+  final ReadingSessionDatabase _database;
+  late final _bibleNavigation = getIt<BibleNavigation>();
 
-  ReadingPlanDetails? _readingPlan;
-  RsSession? _rsSession;
-  Reference? _nextResumePosition;
-  Timer? _timer;
-  bool _goalAlreadyReached = false;
-  int _idleTicks = 0;
-  final Map<(int, int, int), Map<int, int>> _bookVerseReadCount = {};
-  Set<int>? _books;
+  Future<ActiveSessionSnapshot?> startSession(int planId) async {
+    final details = await _database.getReadingPlanById(planId);
+    if (details == null) return null;
 
-  final readingModeNotifier = ValueNotifier<bool>(false);
-  final displayGoalProgresNotifier = ValueNotifier<bool>(false);
-  final totalVersesReadPerDay = ValueNotifier<int>(0);
-  final totalSecondsReadPerDay = ValueNotifier<int>(0);
-  final totalSecondsReadPerSession = ValueNotifier<int>(0);
-  final goalReachedNotifier = ValueNotifier<bool>(false);
-  final bookCompletedNotifier = ValueNotifier<(int, int)>((0, 0));
-
-  Future<void> init() async {
-    await _rsdbManager.init();
-    await _reloadFromDatabase();
-  }
-
-  ReadingPlanDetails? getReadingPlan() => _readingPlan;
-  Set<int>? get readingPlanBooks => _books;
-  Reference? get nextResumePosition => _nextResumePosition;
-
-  void toggleDisplayGoalProgress() {
-    displayGoalProgresNotifier.value = !displayGoalProgresNotifier.value;
-  }
-
-  Future<void> startReadingSession(ReadingPlanDetails readingPlan) async {
-    _nextResumePosition = null;
-    if (_readingPlan != null) {
-      if (_readingPlan!.readingPlan.id == readingPlan.readingPlan.id) {
-        _readingPlan = readingPlan;
-        _books = readingPlan.books.map((x) => x.bookId).toSet();
-        readingModeNotifier.value = false;
-        readingModeNotifier.value = true;
-        return;
-      }
-      await endReadingSession();
-    }
-
-    _readingPlan = readingPlan;
-
-    _books = _readingPlan!.books.map((x) => x.bookId).toSet();
+    final config = ReadingPlanConfig.fromPlanDetails(details, _bibleNavigation);
 
     final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    var rsSession = RsSession(
-      rsDate: today,
-      startTime: now,
-      verses: 0,
-      readingPlanId: readingPlan.readingPlan.id!,
+    final today = _day(now);
+    final session = await _database.insertSession(
+      RsSession(
+        rsDate: today,
+        startTime: now,
+        endTime: now,
+        verses: 0,
+        readingPlanId: planId,
+      ),
     );
 
-    rsSession = await _rsdbManager.insertSession(rsSession);
-
-    _rsSession = rsSession;
-
-    readingModeNotifier.value = true;
-    goalReachedNotifier.value = false;
-    _goalAlreadyReached = false;
-
-    totalVersesReadPerDay.value = await _rsdbManager.getVersesReadToday(
-      readingPlan.readingPlan.id!,
-      today,
-    );
-    totalSecondsReadPerDay.value = await _rsdbManager.getTotalSecondsReadToday(
-      readingPlan.readingPlan.id!,
-      today,
-    );
-
-    totalSecondsReadPerSession.value = 0;
-    displayGoalProgresNotifier.value = false;
-
-    checkGoalReached(true);
-
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      totalSecondsReadPerDay.value += 1;
-      totalSecondsReadPerSession.value += 1;
-      checkGoalReached(false);
-      _idleTicks++;
-      if (_idleTicks >= idleFlushTickCount) {
-        _idleTicks = 0;
-        _heartbeatSession();
-      }
-    });
-
-    displayGoalProgresNotifier.value = true;
+    final progress = await _readProgress(session, now);
+    return ActiveSessionSnapshot(config: config, progress: progress);
   }
 
-  Future<void> endReadingSession() async {
-    if (_readingPlan == null) {
-      readingModeNotifier.value = false;
-      return;
-    }
-
-    _timer?.cancel();
+  Future<void> endSession(int sessionId) async {
+    var session = await _database.getSessionById(sessionId);
+    if (session == null) return;
 
     final now = DateTime.now();
+    session = await _rolloverTo(session, now);
 
-    var currentSession = await _getTodaysSession();
+    final current = session;
 
-    currentSession = currentSession.copyWith(endTime: now);
-
-    await _rsdbManager.updateSession(currentSession);
-    await _rsdbManager.upsertDaySummary(
-      currentSession.readingPlanId,
-      currentSession.rsDate,
-    );
-
-    _rsSession = null;
-    _readingPlan = null;
-    _books = null;
-    _nextResumePosition = null;
-    readingModeNotifier.value = false;
-    _bookVerseReadCount.clear();
-  }
-
-  Future<Map<int, int>> getVersesReadForChapter(
-    int readingPlanId,
-    int bookId,
-    int chapter,
-  ) async {
-    final key = (readingPlanId, bookId, chapter);
-    Map<int, int>? versesRead = _bookVerseReadCount[key];
-    if (versesRead != null) {
-      return versesRead;
-    }
-    versesRead = await _rsdbManager.getVerseReadCountsForChapter(
-      readingPlanId,
-      bookId,
-      chapter,
-    );
-
-    _bookVerseReadCount[key] = versesRead;
-
-    return versesRead;
-  }
-
-  ///this function helps setting if the goal is reached within this running session.
-  ///if the goal was previously reached, no need to reset this value to true
-  void checkGoalReached(bool initialLoad) async {
-    if (_readingPlan == null) return;
-
-    DailyGoal dailyGoal = _readingPlan!.dailyGoal;
-
-    bool goalReached = false;
-
-    if (dailyGoal.type == GoalType.verses &&
-        totalVersesReadPerDay.value >= dailyGoal.value) {
-      goalReached = true;
-    } else if (dailyGoal.type == GoalType.minutes &&
-        totalSecondsReadPerDay.value >= 60 * dailyGoal.value) {
-      goalReached = true;
-    }
-
-    if (goalReached && initialLoad) {
-      _goalAlreadyReached = true;
-    }
-
-    goalReached = goalReached && !_goalAlreadyReached;
-
-    if (_goalAlreadyReached || !goalReached) {
-      return;
-    }
-    _goalAlreadyReached = true;
-    goalReachedNotifier.value = true;
-  }
-
-  Future<void> markVerseAsRead(int bookId, int chapter, int verse) async {
-    if (_readingPlan == null ||
-        _books == null ||
-        !_books!.contains(bookId) ||
-        _rsSession == null) {
-      return;
-    }
-
-    final readingPlanId = _readingPlan!.readingPlan.id!;
-    final key = (readingPlanId, bookId, chapter);
-
-    Map<int, int>? current = _bookVerseReadCount[key];
-    if (current == null) {
-      current = await getVersesReadForChapter(readingPlanId, bookId, chapter);
-
-      _bookVerseReadCount[key] = current;
-    }
-    final existingCount = current[verse] ?? 0;
-    current[verse] = existingCount + 1;
-
-    var rsSession = await _getTodaysSession();
-
-    final now = DateTime.now();
-
-    final rsLog = RsLog(
-      sessionId: rsSession.id!,
-      bookId: bookId,
-      chapter: chapter,
-      verse: verse,
-      dateTime: now,
-      readingPlanId: rsSession.readingPlanId,
-    );
-
-    rsSession = rsSession.copyWith(verses: rsSession.verses + 1, endTime: now);
-
-    await _rsdbManager.insertLog(rsLog);
-
-    await _rsdbManager.updateSession(rsSession);
-
-    await _rsdbManager.markVerseRead(
-      rsSession.readingPlanId,
-      bookId,
-      chapter,
-      verse,
-    );
-
-    //book progress is only increased when we read the verse for the first time
-    if (existingCount == 0) {
-      await _recomputeBookProgress(
-        rsSession.readingPlanId,
-        Reference(bookId: bookId, chapter: chapter, verse: verse),
+    await _database.transaction((txn) async {
+      await _database.updateSession(
+        current.copyWith(endTime: now),
+        executor: txn,
       );
-    }
-
-    _rsSession = rsSession;
-
-    // Actively marking resets the idle flush counter.
-    _idleTicks = 0;
-
-    await _rsdbManager.upsertDaySummary(
-      rsSession.readingPlanId,
-      rsSession.rsDate,
-    );
-
-    totalVersesReadPerDay.value = totalVersesReadPerDay.value + 1;
-    checkGoalReached(false);
+      await _database.upsertDaySummary(
+        current.readingPlanId,
+        current.rsDate,
+        executor: txn,
+      );
+    });
   }
 
-  Future<void> resetReadingCountForVerse(
+  Future<VerseReadResult?> markVerseAsRead(
+    int sessionId,
     int bookId,
     int chapter,
     int verse,
   ) async {
-    if (_readingPlan == null ||
-        _rsSession == null ||
-        _books == null ||
-        !_books!.contains(bookId)) {
-      return;
-    }
-
-    final readingPlanId = _readingPlan!.readingPlan.id!;
-    final key = (readingPlanId, bookId, chapter);
-
-    Map<int, int>? verseReadCount = _bookVerseReadCount[key];
-
-    //load cache if not already loaded
-    verseReadCount ??= await getVersesReadForChapter(
-      readingPlanId,
-      bookId,
-      chapter,
-    );
-
-    final List<RsLog> todayVerseLogs = await _rsdbManager
-        .getRsLogForSessionAndVerse(_rsSession!.id!, bookId, chapter, verse);
-    final todaySessionCount = todayVerseLogs.length;
-
-    await _rsdbManager.deleteRsLogsForVerse(
-      readingPlanId,
-      bookId,
-      chapter,
-      verse,
-    );
-
-    await _rsdbManager.resetVerseState(readingPlanId, bookId, chapter, verse);
-
-    verseReadCount[verse] = 0;
-
-    if (todaySessionCount > 0) {
-      _rsSession = _rsSession!.copyWith(
-        verses: math.max(0, _rsSession!.verses - todaySessionCount),
-        endTime: DateTime.now(),
-      );
-      totalVersesReadPerDay.value = math.max(
-        0,
-        totalVersesReadPerDay.value - todaySessionCount,
-      );
-      await _rsdbManager.updateSession(_rsSession!);
-      await _rsdbManager.upsertDaySummary(
-        _rsSession!.readingPlanId,
-        _rsSession!.rsDate,
-      );
-    }
-  }
-
-  Future<void> resetForDatabaseRestore() async {
-    await _resetBeforeRestore();
-  }
-
-  Future<void> reloadAfterDatabaseRestore() async {
-    await _reloadFromDatabase();
-  }
-
-  Future<void> _resetBeforeRestore() async {
-    _timer?.cancel();
-    _timer = null;
-    _rsSession = null;
-    _readingPlan = null;
-    _books = null;
-    _nextResumePosition = null;
-    readingModeNotifier.value = false;
-    displayGoalProgresNotifier.value = false;
-    totalVersesReadPerDay.value = 0;
-    totalSecondsReadPerDay.value = 0;
-    totalSecondsReadPerSession.value = 0;
-    goalReachedNotifier.value = false;
-    bookCompletedNotifier.value = (0, 0);
-    _goalAlreadyReached = false;
-    _idleTicks = 0;
-  }
-
-  ///if the session started in a older day than today, then log it as a distinct entry
-  ///this is mainly for sessions that starts before 12AM and ends after 12AM
-  Future<RsSession> _getTodaysSession() async {
     final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
+    var session = await _database.getSessionById(sessionId);
+    if (session == null) return null;
 
-    var currentSession = _rsSession!;
+    final details = await _database.getReadingPlanById(session.readingPlanId);
+    if (details == null) return null;
 
-    while (today != currentSession.rsDate) {
-      final nextDay = DateTime(
-        currentSession.rsDate.year,
-        currentSession.rsDate.month,
-        currentSession.rsDate.day + 1,
+    final config = ReadingPlanConfig.fromPlanDetails(details, _bibleNavigation);
+    final planId = session.readingPlanId;
+
+    if (!config.bookIds.contains(bookId)) {
+      return VerseReadResult(
+        progress: await _readProgress(session, now),
+        verseReadCounts: await _database.getVerseReadCountsForChapter(
+          planId,
+          bookId,
+          chapter,
+        ),
       );
-      final endTime = nextDay.add(const Duration(seconds: -1));
-
-      final rsSession = currentSession.copyWith(endTime: endTime);
-
-      await _rsdbManager.updateSession(rsSession);
-
-      await _rsdbManager.upsertDaySummary(
-        rsSession.readingPlanId,
-        rsSession.rsDate,
-        preserveStoredGoalSnapshot: true,
-      );
-
-      currentSession = RsSession(
-        rsDate: nextDay,
-        startTime: nextDay,
-        verses: 0,
-        readingPlanId: _rsSession!.readingPlanId,
-      );
-
-      currentSession = await _rsdbManager.insertSession(currentSession);
     }
 
-    return currentSession;
+    session = await _rolloverTo(session, now);
+    final current = session;
+
+    final outcome = await _database.transaction((txn) async {
+      final existingCount =
+          await _database.getVerseReadCount(
+            planId,
+            bookId,
+            chapter,
+            verse,
+            executor: txn,
+          ) ??
+          0;
+
+      if (existingCount >= maximumReadCount) {
+        return (
+          mutated: false,
+          session: current,
+          counts: await _database.getVerseReadCountsForChapter(
+            planId,
+            bookId,
+            chapter,
+            executor: txn,
+          ),
+          event: null,
+        );
+      }
+
+      await _database.insertLog(
+        RsLog(
+          sessionId: current.id!,
+          bookId: bookId,
+          chapter: chapter,
+          verse: verse,
+          dateTime: now,
+          readingPlanId: planId,
+        ),
+        executor: txn,
+      );
+
+      final updatedSession = current.copyWith(
+        verses: current.verses + 1,
+        endTime: now,
+      );
+
+      await _database.updateSession(updatedSession, executor: txn);
+      await _database.markVerseRead(
+        planId,
+        bookId,
+        chapter,
+        verse,
+        timestamp: now,
+        executor: txn,
+      );
+      await _database.upsertDaySummary(planId, current.rsDate, executor: txn);
+
+      BookCompletedEvent? event;
+      if (existingCount == 0 &&
+          await _database.isBookComplete(planId, bookId, executor: txn)) {
+        final reference = Reference(
+          bookId: bookId,
+          chapter: chapter,
+          verse: verse,
+        );
+        final resumePosition = await _database.getResumeReference(
+          planId,
+          after: reference,
+          executor: txn,
+        );
+        event = BookCompletedEvent(
+          completedBookId: bookId,
+          nextBookId: resumePosition?.bookId,
+          resumePosition: resumePosition,
+        );
+      }
+
+      return (
+        mutated: true,
+        session: updatedSession,
+        counts: await _database.getVerseReadCountsForChapter(
+          planId,
+          bookId,
+          chapter,
+          executor: txn,
+        ),
+        event: event,
+      );
+    });
+
+    return VerseReadResult(
+      progress: await _readProgress(outcome.session, now),
+      verseReadCounts: outcome.counts,
+      bookCompleted: outcome.event,
+    );
   }
 
-  Future<void> _heartbeatSession() async {
-    if (_readingPlan == null || _rsSession == null) return;
-
-    final now = DateTime.now();
-    var session = await _getTodaysSession();
-    session = session.copyWith(endTime: now);
-
-    await _rsdbManager.updateSession(session);
-    _rsSession = session;
-
-    await _rsdbManager.upsertDaySummary(session.readingPlanId, session.rsDate);
-  }
-
-  Future<void> _recomputeBookProgress(
-    int readingPlanId,
-    Reference currentReference,
+  Future<VerseReadResult?> resetVerseProgress(
+    int sessionId,
+    int bookId,
+    int chapter,
+    int verse,
   ) async {
-    if (!await _rsdbManager.isBookComplete(
-      readingPlanId,
-      currentReference.bookId,
-    )) {
-      return;
+    final now = DateTime.now();
+    var session = await _database.getSessionById(sessionId);
+    if (session == null) return null;
+
+    final details = await _database.getReadingPlanById(session.readingPlanId);
+    if (details == null) return null;
+
+    final config = ReadingPlanConfig.fromPlanDetails(details, _bibleNavigation);
+    final planId = session.readingPlanId;
+
+    if (!config.bookIds.contains(bookId)) {
+      return VerseReadResult(
+        progress: await _readProgress(session, now),
+        verseReadCounts: await _database.getVerseReadCountsForChapter(
+          planId,
+          bookId,
+          chapter,
+        ),
+      );
     }
 
-    final nextResumePosition = await _rsdbManager.getResumeReference(
-      readingPlanId,
-      after: currentReference,
-    );
-    _nextResumePosition = nextResumePosition;
+    session = await _rolloverTo(session, now);
+    final current = session;
 
-    bookCompletedNotifier.value = (
-      currentReference.bookId,
-      nextResumePosition?.bookId ?? 0,
+    final outcome = await _database.transaction((txn) async {
+      final logs = await _database.getRsLogForSessionAndVerse(
+        current.id!,
+        bookId,
+        chapter,
+        verse,
+        executor: txn,
+      );
+      final currentSessionCount = logs.length;
+
+      await _database.deleteRsLogsForVerse(
+        planId,
+        bookId,
+        chapter,
+        verse,
+        executor: txn,
+      );
+      await _database.resetVerseState(
+        planId,
+        bookId,
+        chapter,
+        verse,
+        executor: txn,
+      );
+
+      var updatedSession = current;
+      if (currentSessionCount > 0) {
+        updatedSession = current.copyWith(
+          verses: math.max(0, current.verses - currentSessionCount),
+          endTime: now,
+        );
+        await _database.updateSession(updatedSession, executor: txn);
+        await _database.upsertDaySummary(planId, current.rsDate, executor: txn);
+      }
+
+      return (
+        session: updatedSession,
+        counts: await _database.getVerseReadCountsForChapter(
+          planId,
+          bookId,
+          chapter,
+          executor: txn,
+        ),
+      );
+    });
+
+    return VerseReadResult(
+      progress: await _readProgress(outcome.session, now),
+      verseReadCounts: outcome.counts,
     );
   }
 
-  Future<void> _reloadFromDatabase() async {
-    _bookVerseReadCount.clear();
-    readingModeNotifier.value = _rsSession != null;
+  Future<SessionProgress?> heartbeat(int sessionId) async {
+    final now = DateTime.now();
+    var session = await _database.getSessionById(sessionId);
+    if (session == null) return null;
+
+    session = await _rolloverTo(session, now);
+    final current = session;
+
+    await _database.transaction((txn) async {
+      await _database.updateSession(
+        current.copyWith(endTime: now),
+        executor: txn,
+      );
+      await _database.upsertDaySummary(
+        current.readingPlanId,
+        current.rsDate,
+        executor: txn,
+      );
+    });
+
+    return _readProgress(current, now);
   }
 
-  void dispose() {
-    endReadingSession();
-    _rsdbManager.dispose();
-    _timer?.cancel();
+  Future<Map<int, int>> getVerseReadCounts(
+    int sessionId,
+    int bookId,
+    int chapter,
+  ) async {
+    final session = await _database.getSessionById(sessionId);
+    if (session == null) return const {};
+
+    return _database.getVerseReadCountsForChapter(
+      session.readingPlanId,
+      bookId,
+      chapter,
+    );
+  }
+
+  Future<RsSession> _rolloverTo(RsSession session, DateTime now) async {
+    var current = session;
+    final today = _day(now);
+
+    while (!_sameDay(current.rsDate, today)) {
+      final nextDay = DateTime(
+        current.rsDate.year,
+        current.rsDate.month,
+        current.rsDate.day + 1,
+      );
+      final endTime = nextDay.subtract(const Duration(seconds: 1));
+
+      final closed = current.copyWith(endTime: endTime);
+      final planId = closed.readingPlanId;
+
+      current = await _database.transaction((txn) async {
+        await _database.updateSession(closed, executor: txn);
+        await _database.upsertDaySummary(
+          planId,
+          closed.rsDate,
+          preserveStoredGoalSnapshot: true,
+          executor: txn,
+        );
+        return _database.insertSession(
+          RsSession(
+            rsDate: nextDay,
+            startTime: nextDay,
+            endTime: nextDay,
+            verses: 0,
+            readingPlanId: planId,
+          ),
+          executor: txn,
+        );
+      });
+    }
+
+    return current;
+  }
+
+  Future<SessionProgress> _readProgress(
+    RsSession session,
+    DateTime asOf,
+  ) async {
+    final planId = session.readingPlanId;
+    final summary = await _database.getDaySummary(planId, session.rsDate);
+
+    return SessionProgress(
+      sessionId: session.id!,
+      sessionDay: _day(session.rsDate),
+      sessionStartTime: session.startTime,
+      versesToday: await _database.getVersesReadToday(planId, session.rsDate),
+      secondsToday: await _database.getTotalSecondsReadToday(
+        planId,
+        session.rsDate,
+      ),
+      goalAlreadyReachedToday: summary?.goalReached ?? false,
+      asOf: asOf,
+    );
+  }
+
+  static DateTime _day(DateTime date) {
+    return DateTime(date.year, date.month, date.day);
+  }
+
+  static bool _sameDay(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 }

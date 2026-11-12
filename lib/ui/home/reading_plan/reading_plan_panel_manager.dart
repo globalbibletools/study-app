@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:gbt/services/reading_session/reading_plan_service.dart';
-import 'package:gbt/services/reading_session/reading_session_service.dart';
+import 'package:gbt/ui/home/reading_plan/reading_session_view_model.dart';
 import 'package:gbt/services/reading_session/rs_model.dart';
 import 'package:gbt/services/service_locator.dart';
 
 class ReadingPlanPanelManager {
-  final _rsManager = getIt<ReadingSessionService>();
+  final _sessionViewModel = getIt<ReadingSessionViewModel>();
   final _planService = getIt<ReadingPlanService>();
 
   final readingPlansNotifier = ValueNotifier<List<ReadingPlanDetails>>([]);
@@ -27,6 +27,6 @@ class ReadingPlanPanelManager {
   void dispose() {}
 
   Future<void> startReadingSession(ReadingPlanDetails readingPlan) async {
-    await _rsManager.startReadingSession(readingPlan);
+    await _sessionViewModel.startSession(readingPlan.readingPlan.id!);
   }
 }

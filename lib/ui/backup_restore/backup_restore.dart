@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/services/reading_session/reading_plan_backup_service.dart';
-import 'package:gbt/services/reading_session/reading_session_service.dart';
+import 'package:gbt/ui/home/reading_plan/reading_session_view_model.dart';
 import 'package:gbt/services/service_locator.dart';
 
 class BackupRestorePage extends StatefulWidget {
@@ -14,7 +14,7 @@ class BackupRestorePage extends StatefulWidget {
 }
 
 class _BackupRestoreState extends State<BackupRestorePage> {
-  final _readingSessionManager = getIt<ReadingSessionService>();
+  final _sessionViewModel = getIt<ReadingSessionViewModel>();
   final _backupService = getIt<ReadingPlanBackupService>();
   PackageInfo? _packageInfo;
   List<ReadingSessionBackupInfo> _backups = [];
@@ -133,12 +133,8 @@ class _BackupRestoreState extends State<BackupRestorePage> {
   }
 
   Future<void> _restoreDatabase(Future<void> Function() restore) async {
-    await _readingSessionManager.resetForDatabaseRestore();
-    try {
-      await restore();
-    } finally {
-      await _readingSessionManager.reloadAfterDatabaseRestore();
-    }
+    await _sessionViewModel.resetForDatabaseRestore();
+    await restore();
   }
 
   Future<void> _restoreBackup(ReadingSessionBackupInfo backup) async {

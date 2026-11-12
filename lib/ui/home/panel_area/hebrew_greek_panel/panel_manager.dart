@@ -1,11 +1,11 @@
 import 'package:flutter/foundation.dart';
-import 'package:gbt/services/reading_session/reading_session_service.dart';
+import 'package:gbt/ui/home/reading_plan/reading_session_view_model.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/services/settings/user_settings.dart';
 
 class HebrewGreekPanelManager {
   final _settings = getIt<UserSettings>();
-  final _rsmanager = getIt<ReadingSessionService>();
+  final _sessionViewModel = getIt<ReadingSessionViewModel>();
 
   // Notifiers for both languages
   late final hebrewScaleNotifier = ValueNotifier<double>(
@@ -18,10 +18,10 @@ class HebrewGreekPanelManager {
     _settings.verseLayout,
   );
 
-  ValueNotifier<bool> get readingModeEnabledNotifier =>
-      _rsmanager.readingModeNotifier;
+  ValueNotifier<ReadingSessionUiState?> get sessionNotifier =>
+      _sessionViewModel.sessionNotifier;
 
-  Set<int>? get readingPlanBooks => _rsmanager.readingPlanBooks;
+  Set<int>? get readingPlanBooks => _sessionViewModel.readingPlanBooks;
 
   // Track the book currently in view
   int currentBookId = 1;

@@ -191,9 +191,12 @@ class ReadingSessionDatabase {
   Future<void> _restoreBackupTablesV1(Map<String, dynamic> tables) async {
     // v1 payloads predate the rs_session rename: sessions were exported
     // under the 'rs_daily_log' key and rs_log rows carry 'rs_daily_log_id'.
-    final sessionRows = _parseBackupRows(tables['rs_daily_log']);
-    final logRows = _parseBackupRows(tables['rs_log']);
-    final statsRows = _parseBackupRows(tables['rs_stats']);
+    final sessionRows = _parseBackupRows(
+      tables['rs_daily_log'],
+      'rs_daily_log',
+    );
+    final logRows = _parseBackupRows(tables['rs_log'], 'rs_log');
+    final statsRows = _parseBackupRows(tables['rs_stats'], 'rs_stats');
 
     final file = 'assets/schemas/reading_session_data.sql';
     final sql = await rootBundle.loadString(file);
@@ -291,11 +294,26 @@ class ReadingSessionDatabase {
   }
 
   Future<void> _restoreBackupTablesV2(Map<String, dynamic> tables) async {
-    final readingPlanRows = _parseBackupRows(tables['reading_plan']);
-    final readingPlanBookRows = _parseBackupRows(tables['reading_plan_book']);
-    final sessionRows = _parseBackupRows(tables['rs_session']);
-    final logRows = _parseBackupRows(tables['rs_log']);
-    final daySummaryRows = _parseBackupRows(tables['rs_day_summary']);
+    if (tables.containsKey('rs_daily_log') || tables.containsKey('rs_stats')) {
+      throw const FormatException(
+        'Backup contains the unsupported rs_daily_log or rs_stats table.',
+      );
+    }
+
+    final readingPlanRows = _parseBackupRows(
+      tables['reading_plan'],
+      'reading_plan',
+    );
+    final readingPlanBookRows = _parseBackupRows(
+      tables['reading_plan_book'],
+      'reading_plan_book',
+    );
+    final sessionRows = _parseBackupRows(tables['rs_session'], 'rs_session');
+    final logRows = _parseBackupRows(tables['rs_log'], 'rs_log');
+    final daySummaryRows = _parseBackupRows(
+      tables['rs_day_summary'],
+      'rs_day_summary',
+    );
 
     await _database.transaction((txn) async {
       final batch = txn.batch();
@@ -330,14 +348,14 @@ class ReadingSessionDatabase {
     await _materializeAllVerseState(_database);
   }
 
-  List<Map<String, Object?>> _parseBackupRows(Object? rows) {
+  List<Map<String, Object?>> _parseBackupRows(Object? rows, String table) {
     if (rows is! List) {
-      throw const FormatException('Backup table payload is invalid.');
+      throw FormatException('Backup table payload for $table is invalid.');
     }
 
     return rows.map((row) {
       if (row is! Map) {
-        throw const FormatException('Backup row payload is invalid.');
+        throw FormatException('Backup row payload for $table is invalid.');
       }
       return Map<String, Object?>.from(row);
     }).toList();
@@ -524,13 +542,33 @@ class ReadingSessionDatabase {
     });
   }
 
-  Future<RsSession> insertSession(RsSession log) async {
-    final id = await _database.insert('rs_session', log.toMap()..remove('id'));
+  Future<T> transaction<T>(Future<T> Function(DatabaseExecutor txn) action) {
+    return _database.transaction(action);
+  }
+
+  Future<RsSession?> getSessionById(int id) async {
+    final rows = await _database.query(
+      'rs_session',
+      where: 'id = ?',
+      whereArgs: [id],
+      limit: 1,
+    );
+
+    return rows.isEmpty ? null : RsSession.fromMap(rows.first);
+  }
+
+  Future<RsSession> insertSession(
+    RsSession log, {
+    DatabaseExecutor? executor,
+  }) async {
+    final db = executor ?? _database;
+    final id = await db.insert('rs_session', log.toMap()..remove('id'));
     return log.copyWith(id: id);
   }
 
-  Future<int> updateSession(RsSession log) async {
-    return await _database.update(
+  Future<int> updateSession(RsSession log, {DatabaseExecutor? executor}) async {
+    final db = executor ?? _database;
+    return await db.update(
       'rs_session',
       log.toMap(),
       where: 'id = ?',
@@ -547,19 +585,22 @@ class ReadingSessionDatabase {
   }
 
   /* RS LOG */
-  Future<RsLog> insertLog(RsLog log) async {
-    final id = await _database.insert('rs_log', log.toMap()..remove('id'));
+  Future<RsLog> insertLog(RsLog log, {DatabaseExecutor? executor}) async {
+    final db = executor ?? _database;
+    final id = await db.insert('rs_log', log.toMap()..remove('id'));
     return log.copyWith(id: id);
   }
 
   Future<Reference?> getResumeReference(
     int readingPlanId, {
     Reference? after,
+    DatabaseExecutor? executor,
   }) async {
+    final db = executor ?? _database;
     final List<Map<String, Object?>> rows;
 
     if (after == null) {
-      rows = await _database.rawQuery(
+      rows = await db.rawQuery(
         'WITH last_read AS ('
         '  SELECT l.book_id AS book_id, '
         '         l.chapter AS chapter, '
@@ -613,7 +654,7 @@ class ReadingSessionDatabase {
         [readingPlanId, readingPlanId, readingPlanId],
       );
     } else {
-      rows = await _database.rawQuery(
+      rows = await db.rawQuery(
         'WITH current_book AS ('
         '  SELECT b.ord AS ord '
         '  FROM reading_plan_book b '
@@ -662,8 +703,9 @@ class ReadingSessionDatabase {
     int readingPlanId,
     DateTime date, {
     bool preserveStoredGoalSnapshot = false,
+    DatabaseExecutor? executor,
   }) async {
-    await _database.transaction((txn) async {
+    Future<void> upsert(DatabaseExecutor txn) async {
       final totals = await txn.rawQuery(
         "SELECT coalesce(sum(strftime('%s', end_time) - strftime('%s', start_time)), 0) AS rs_seconds, "
         'coalesce(sum(verses), 0) AS rs_verses '
@@ -719,7 +761,29 @@ class ReadingSessionDatabase {
         ).toMap(),
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
-    });
+    }
+
+    if (executor != null) {
+      await upsert(executor);
+    } else {
+      await _database.transaction(upsert);
+    }
+  }
+
+  Future<RsDaySummary?> getDaySummary(
+    int readingPlanId,
+    DateTime date, {
+    DatabaseExecutor? executor,
+  }) async {
+    final db = executor ?? _database;
+    final rows = await db.query(
+      'rs_day_summary',
+      where: 'reading_plan_id = ? AND rs_date = ?',
+      whereArgs: [readingPlanId, RsDaySummary.dayString(date)],
+      limit: 1,
+    );
+
+    return rows.isEmpty ? null : RsDaySummary.fromMap(rows.first);
   }
 
   Future<List<RsDaySummary>> getDaySummariesBetween(
@@ -749,13 +813,22 @@ class ReadingSessionDatabase {
     int readingPlanId,
     int bookId,
     int chapter,
-    int verse,
-  ) async {
-    await _database.rawUpdate(
+    int verse, {
+    DateTime? timestamp,
+    DatabaseExecutor? executor,
+  }) async {
+    final db = executor ?? _database;
+    await db.rawUpdate(
       'UPDATE rs_verse_state '
       'SET read_count = read_count + 1, last_read = ? '
       'WHERE reading_plan_id = ? AND book_id = ? AND chapter = ? AND verse = ?',
-      [DateTime.now().toIso8601String(), readingPlanId, bookId, chapter, verse],
+      [
+        (timestamp ?? DateTime.now()).toIso8601String(),
+        readingPlanId,
+        bookId,
+        chapter,
+        verse,
+      ],
     );
   }
 
@@ -763,9 +836,11 @@ class ReadingSessionDatabase {
     int readingPlanId,
     int bookId,
     int chapter,
-    int verse,
-  ) async {
-    await _database.update(
+    int verse, {
+    DatabaseExecutor? executor,
+  }) async {
+    final db = executor ?? _database;
+    await db.update(
       'rs_verse_state',
       {'read_count': 0, 'last_read': null},
       where:
@@ -774,12 +849,34 @@ class ReadingSessionDatabase {
     );
   }
 
-  Future<Map<int, int>> getVerseReadCountsForChapter(
+  Future<int?> getVerseReadCount(
     int readingPlanId,
     int bookId,
     int chapter,
-  ) async {
-    final rows = await _database.rawQuery(
+    int verse, {
+    DatabaseExecutor? executor,
+  }) async {
+    final db = executor ?? _database;
+    final rows = await db.query(
+      'rs_verse_state',
+      columns: ['read_count'],
+      where:
+          'reading_plan_id = ? AND book_id = ? AND chapter = ? AND verse = ?',
+      whereArgs: [readingPlanId, bookId, chapter, verse],
+      limit: 1,
+    );
+
+    return rows.isEmpty ? null : rows.first['read_count'] as int;
+  }
+
+  Future<Map<int, int>> getVerseReadCountsForChapter(
+    int readingPlanId,
+    int bookId,
+    int chapter, {
+    DatabaseExecutor? executor,
+  }) async {
+    final db = executor ?? _database;
+    final rows = await db.rawQuery(
       'SELECT verse, read_count FROM rs_verse_state '
       'WHERE reading_plan_id = ? AND book_id = ? AND chapter = ?',
       [readingPlanId, bookId, chapter],
@@ -841,8 +938,13 @@ class ReadingSessionDatabase {
     };
   }
 
-  Future<bool> isBookComplete(int readingPlanId, int bookId) async {
-    final rows = await _database.rawQuery(
+  Future<bool> isBookComplete(
+    int readingPlanId,
+    int bookId, {
+    DatabaseExecutor? executor,
+  }) async {
+    final db = executor ?? _database;
+    final rows = await db.rawQuery(
       'SELECT COUNT(*) AS total_verses, '
       '       SUM(CASE WHEN read_count > 0 THEN 1 ELSE 0 END) AS read_verses '
       'FROM rs_verse_state v '
@@ -859,9 +961,11 @@ class ReadingSessionDatabase {
     int readingPlanId,
     int bookId,
     int chapter,
-    int verse,
-  ) async {
-    return await _database.delete(
+    int verse, {
+    DatabaseExecutor? executor,
+  }) async {
+    final db = executor ?? _database;
+    return await db.delete(
       'rs_log',
       where:
           'reading_plan_id = ? AND book_id = ? AND chapter = ? AND verse = ?',
@@ -903,9 +1007,11 @@ class ReadingSessionDatabase {
     int sessionId,
     int bookId,
     int chapter,
-    int verse,
-  ) async {
-    final result = await _database.query(
+    int verse, {
+    DatabaseExecutor? executor,
+  }) async {
+    final db = executor ?? _database;
+    final result = await db.query(
       'rs_log',
       where: 'rs_session_id = ? and book_id = ? and chapter = ? and verse = ?',
       whereArgs: [sessionId, bookId, chapter, verse],
@@ -915,8 +1021,13 @@ class ReadingSessionDatabase {
     return result.map((e) => RsLog.fromMap(e)).toList();
   }
 
-  Future<int> getVersesReadToday(int readingPlanId, DateTime date) async {
-    final result = await _database.rawQuery(
+  Future<int> getVersesReadToday(
+    int readingPlanId,
+    DateTime date, {
+    DatabaseExecutor? executor,
+  }) async {
+    final db = executor ?? _database;
+    final result = await db.rawQuery(
       'SELECT SUM(verses) FROM rs_session where date(rs_date) = date(?) and reading_plan_id = ?',
       [date.toIso8601String(), readingPlanId],
     );
@@ -926,8 +1037,13 @@ class ReadingSessionDatabase {
     return count;
   }
 
-  Future<int> getTotalSecondsReadToday(int readingPlanId, DateTime date) async {
-    final result = await _database.rawQuery(
+  Future<int> getTotalSecondsReadToday(
+    int readingPlanId,
+    DateTime date, {
+    DatabaseExecutor? executor,
+  }) async {
+    final db = executor ?? _database;
+    final result = await db.rawQuery(
       "SELECT SUM(strftime('%s', end_time) - strftime('%s', start_time)) AS count "
       'FROM rs_session '
       'WHERE date(rs_date) = date(?) and reading_plan_id = ?',

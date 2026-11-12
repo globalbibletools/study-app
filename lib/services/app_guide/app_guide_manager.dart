@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:gbt/services/reading_session/reading_session_service.dart';
+import 'package:gbt/ui/home/reading_plan/reading_session_view_model.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/services/settings/user_settings.dart';
 
 class AppGuideManager {
   final _settings = getIt<UserSettings>();
-  final _rsmanager = getIt<ReadingSessionService>();
+  final _sessionViewModel = getIt<ReadingSessionViewModel>();
 
   final checkBoxSpotlightRect = ValueNotifier<Rect?>(null);
   final readingSessionButtonSpotlightRect = ValueNotifier<Rect?>(null);
@@ -13,13 +13,13 @@ class AppGuideManager {
   final readingSessionGuideDismissedNotifier = ValueNotifier<bool>(false);
 
   bool get shouldShowReadingSessionGuide {
-    return !_rsmanager.readingModeNotifier.value &&
+    return !_sessionViewModel.hasActiveSession &&
         !_settings.hasSeenReadingSessionGuide &&
         !readingSessionGuideDismissedNotifier.value;
   }
 
   bool get shouldShowReadingCheckboxGuide {
-    return _rsmanager.readingModeNotifier.value &&
+    return _sessionViewModel.hasActiveSession &&
         _settings.hasSeenReadingSessionGuide &&
         !_settings.hasSeenReadingCheckboxGuide &&
         !readingCheckboxGuideDismissedNotifier.value;

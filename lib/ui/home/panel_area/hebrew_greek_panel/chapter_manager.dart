@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:gbt/common/word.dart';
 import 'package:gbt/services/gloss/gloss_service.dart';
 import 'package:gbt/services/hebrew_greek/database.dart';
-import 'package:gbt/services/reading_session/reading_session_service.dart';
+import 'package:gbt/ui/home/reading_plan/reading_session_view_model.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/services/settings/user_settings.dart';
 import 'package:gbt/ui/common/resource_language_text_direction.dart';
@@ -12,7 +12,7 @@ class HebrewGreekChapterManager {
   final _hebrewGreekDb = getIt<HebrewGreekDatabase>();
   final _glossService = getIt<GlossService>();
   final _settings = getIt<UserSettings>();
-  final _rsmanager = getIt<ReadingSessionService>();
+  final _sessionViewModel = getIt<ReadingSessionViewModel>();
 
   final textNotifier = _SafeValueNotifier<List<HebrewGreekWord>>([]);
   final verseCheckboxNotifier = VerseCheckboxNotifier();
@@ -30,15 +30,12 @@ class HebrewGreekChapterManager {
   }
 
   Future<void> loadReadVerses(int bookId, int chapter) async {
-    final readingPlan = _rsmanager.getReadingPlan();
-
-    if (readingPlan == null) return;
+    if (!_sessionViewModel.hasActiveSession) return;
 
     final token = ++_readVersesLoadToken;
     if (_disposed) return;
     verseCheckboxNotifier.clear();
-    final versesRead = await _rsmanager.getVersesReadForChapter(
-      readingPlan.readingPlan.id!,
+    final versesRead = await _sessionViewModel.getVerseReadCounts(
       bookId,
       chapter,
     );
@@ -47,36 +44,28 @@ class HebrewGreekChapterManager {
   }
 
   Future<void> markVerseAsRead(int bookId, int chapter, int verse) async {
-    final readingPlan = _rsmanager.getReadingPlan();
-
-    if (readingPlan == null) return;
+    if (!_sessionViewModel.hasActiveSession) return;
 
     if (_disposed) return;
-    await _rsmanager.markVerseAsRead(bookId, chapter, verse);
-    if (_disposed) return;
-    final versesRead = await _rsmanager.getVersesReadForChapter(
-      readingPlan.readingPlan.id!,
+    final versesRead = await _sessionViewModel.markVerseAsRead(
       bookId,
       chapter,
+      verse,
     );
-    if (_disposed) return;
+    if (_disposed || versesRead == null) return;
     verseCheckboxNotifier.setVersesRead(versesRead, changedVerse: verse);
   }
 
   Future<void> resetVerseProgress(int bookId, int chapter, int verse) async {
-    final readingPlan = _rsmanager.getReadingPlan();
-
-    if (readingPlan == null) return;
+    if (!_sessionViewModel.hasActiveSession) return;
 
     if (_disposed) return;
-    await _rsmanager.resetReadingCountForVerse(bookId, chapter, verse);
-    if (_disposed) return;
-    final versesRead = await _rsmanager.getVersesReadForChapter(
-      readingPlan.readingPlan.id!,
+    final versesRead = await _sessionViewModel.resetVerseProgress(
       bookId,
       chapter,
+      verse,
     );
-    if (_disposed) return;
+    if (_disposed || versesRead == null) return;
     verseCheckboxNotifier.setVersesRead(versesRead, changedVerse: verse);
   }
 
