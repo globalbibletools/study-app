@@ -42,33 +42,25 @@ class ReadingPlanService {
     final DateTime startOfMonth = DateTime(month.year, month.month, 1);
     final DateTime endOfMonth = DateTime(month.year, month.month + 1, 0);
 
-    final List<RsStats> dailyStatsForCurrentMonth = await _database
-        .getRsStatsForType(
-          RsStatsType.daily,
-          startOfMonth,
-          endOfMonth,
-          readingPlanId,
-        );
-
-    final statsByDay = <int, RsStats>{};
-    for (final stats in dailyStatsForCurrentMonth) {
-      statsByDay[stats.statsDate.day] = stats;
-    }
+    final List<RsDaySummary> daySummariesForCurrentMonth = await _database
+        .getDaySummariesBetween(readingPlanId, startOfMonth, endOfMonth);
 
     final monthData = <DayProgress>[];
     for (int day = 1; day <= daysInMonth; day++) {
       final date = DateTime(month.year, month.month, day);
-      final stats = statsByDay[day];
+      final summary = daySummariesForCurrentMonth
+          .where((summary) => summary.rsDate.day == day)
+          .firstOrNull;
 
-      if (stats == null) {
+      if (summary == null) {
         monthData.add(DayProgress.empty(date));
       } else {
         monthData.add(
           DayProgress(
             date,
-            stats.rsSeconds ~/ 60,
-            stats.rsVerses,
-            stats.goalReached,
+            summary.rsSeconds ~/ 60,
+            summary.rsVerses,
+            summary.goalReached,
           ),
         );
       }
@@ -77,19 +69,19 @@ class ReadingPlanService {
     return monthData;
   }
 
-  Future<List<Session>> getDetailedProgressFor(
+  Future<List<SessionDetails>> getDetailedProgressFor(
     DateTime date,
     int readingPlanId,
   ) async {
-    final List<RsDailyLog> sessions = await _database.getSessionsForDate(
+    final List<RsSession> sessions = await _database.getSessionsForDate(
       date,
       readingPlanId,
     );
 
-    final result = <Session>[];
+    final result = <SessionDetails>[];
 
     for (final session in sessions) {
-      final List<RsLog> logs = await _database.getRsLogForDailyLog(session.id!);
+      final List<RsLog> logs = await _database.getRsLogForSession(session.id!);
 
       final progress = <DetailedProgess>[];
       DetailedProgess? current;
@@ -111,7 +103,7 @@ class ReadingPlanService {
         }
       }
 
-      result.add(Session(session, progress));
+      result.add(SessionDetails(session, progress));
     }
 
     return result;

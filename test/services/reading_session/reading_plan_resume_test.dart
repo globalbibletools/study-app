@@ -50,8 +50,8 @@ void main() {
     int verse,
     DateTime dateTime,
   ) async {
-    final dailyLog = await database.insertDailyLog(
-      RsDailyLog(
+    final dailyLog = await database.insertSession(
+      RsSession(
         rsDate: DateTime(dateTime.year, dateTime.month, dateTime.day),
         startTime: dateTime,
         verses: 1,
@@ -60,7 +60,7 @@ void main() {
     );
     await database.insertLog(
       RsLog(
-        rsDailyLogId: dailyLog.id!,
+        sessionId: dailyLog.id!,
         bookId: bookId,
         chapter: chapter,
         verse: verse,

@@ -65,17 +65,19 @@ void main() {
 
     await database.markVerseRead(plan.id!, 1, 1, 1);
     final now = DateTime.now();
-    final dailyLog = await database.insertDailyLog(
-      RsDailyLog(
-        rsDate: DateTime(now.year, now.month, now.day),
-        startTime: now,
+    final today = DateTime(now.year, now.month, now.day);
+    final dailyLog = await database.insertSession(
+      RsSession(
+        rsDate: today,
+        startTime: now.subtract(const Duration(minutes: 5)),
+        endTime: now,
         verses: 1,
         readingPlanId: plan.id!,
       ),
     );
     await database.insertLog(
       RsLog(
-        rsDailyLogId: dailyLog.id!,
+        sessionId: dailyLog.id!,
         bookId: 1,
         chapter: 1,
         verse: 1,
@@ -83,6 +85,7 @@ void main() {
         readingPlanId: plan.id!,
       ),
     );
+    await database.upsertDaySummary(plan.id!, today);
 
     final bytes = await backupService.buildBackupBytes();
     final payload = jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>;
@@ -90,8 +93,12 @@ void main() {
 
     final tables = payload['tables'] as Map<String, dynamic>;
     expect(tables['reading_plan'], hasLength(initialPlanCount + 1));
+    expect(tables['rs_session'], hasLength(1));
+    expect(tables['rs_day_summary'], hasLength(1));
     expect(tables.containsKey('rs_book_progress'), isFalse);
     expect(tables.containsKey('rs_verse_state'), isFalse);
+    expect(tables.containsKey('rs_stats'), isFalse);
+    expect(tables.containsKey('rs_daily_log'), isFalse);
 
     await database.deleteReadingPlan(plan.id!);
     expect(
@@ -109,6 +116,20 @@ void main() {
     expect(restoredPlans, hasLength(1));
     expect(restoredPlans.single.readingPlan.goalValue, 12);
     expect(restoredPlans.single.books.map((b) => b.bookId), [1, 2]);
+
+    final restoredSessions = await database.getSessionsForDate(today, plan.id!);
+    expect(restoredSessions, hasLength(1));
+    expect(restoredSessions.single.verses, 1);
+
+    final restoredSummaries = await database.getDaySummariesBetween(
+      plan.id!,
+      today,
+      today,
+    );
+    expect(restoredSummaries, hasLength(1));
+    expect(restoredSummaries.single.rsVerses, 1);
+    expect(restoredSummaries.single.rsSeconds, greaterThanOrEqualTo(290));
+    expect(restoredSummaries.single.goalValue, 12);
 
     final chapterCounts = await database.getVerseReadCountsForChapter(
       plan.id!,
@@ -189,6 +210,37 @@ void main() {
       expect(plan, isNotNull);
       expect(plan!.books, hasLength(66));
 
+      // The v1 session rows land in rs_session with the plan remapped to 1.
+      final restoredSessions = await database.getSessionsForDate(
+        DateTime(2026, 4, 30),
+        1,
+      );
+      expect(restoredSessions, hasLength(1));
+      expect(restoredSessions.single.verses, 3);
+      expect(
+        restoredSessions.single.endTime,
+        DateTime.parse('2026-04-30T09:20:00.000'),
+      );
+
+      // rs_log rows are remapped to rs_session_id and still back the
+      // verse-state epilogue.
+      final sessionLogs = await database.getRsLogForSession(
+        restoredSessions.single.id!,
+      );
+      expect(sessionLogs, hasLength(3));
+
+      // The day summary is rebuilt: totals recomputed from the imported
+      // session, flag preserved from the payload's daily rs_stats row.
+      final summaries = await database.getDaySummariesBetween(
+        1,
+        DateTime(2026, 4, 30),
+        DateTime(2026, 4, 30),
+      );
+      expect(summaries, hasLength(1));
+      expect(summaries.single.rsSeconds, 1200);
+      expect(summaries.single.rsVerses, 3);
+      expect(summaries.single.goalReached, isTrue);
+
       final chapterCounts = await database.getVerseReadCountsForChapter(
         1,
         1,
@@ -207,4 +259,44 @@ void main() {
       );
     },
   );
+
+  test('rejects old-shape v2 backups that carry rs_daily_log', () async {
+    // Format v2 is unreleased; dev devices may hold old-shape v2 files saved
+    // before the format was finalized. They must fail loudly, not silently
+    // restore partial data.
+    await expectLater(
+      database.restoreBackupTables({
+        'reading_plan': [],
+        'reading_plan_book': [],
+        'rs_daily_log': [],
+        'rs_log': [],
+        'rs_stats': [],
+      }, formatVersion: 2),
+      throwsA(
+        isA<FormatException>().having(
+          (e) => e.message,
+          'message',
+          contains('rs_daily_log'),
+        ),
+      ),
+    );
+  });
+
+  test('rejects v2 backups that are missing rs_day_summary', () async {
+    await expectLater(
+      database.restoreBackupTables({
+        'reading_plan': [],
+        'reading_plan_book': [],
+        'rs_session': [],
+        'rs_log': [],
+      }, formatVersion: 2),
+      throwsA(
+        isA<FormatException>().having(
+          (e) => e.message,
+          'message',
+          contains('rs_day_summary'),
+        ),
+      ),
+    );
+  });
 }

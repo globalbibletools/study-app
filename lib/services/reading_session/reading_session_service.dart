@@ -8,22 +8,26 @@ import 'package:gbt/services/reading_session/rs_model.dart';
 import 'package:gbt/services/service_locator.dart';
 
 export 'package:gbt/services/reading_session/rs_model.dart'
-    show DailyGoal, GoalType, ProgressType, StatsType;
+    show DailyGoal, GoalType, ProgressType;
 
 class ReadingSessionService {
   final _rsdbManager = getIt<ReadingSessionDatabase>();
 
   static int maximumReadCount = 10;
+  // Heartbeat time to flush the current timestamp to the session record
+  // Prevents sessions from being ended without recording an end time if the app is killed.
+  static int idleFlushTickCount = 60;
 
   ReadingSessionService();
 
-  DateTime? get currentSessionStartTime => _rsDailyLog?.startTime;
+  DateTime? get currentSessionStartTime => _rsSession?.startTime;
 
   ReadingPlanDetails? _readingPlan;
-  RsDailyLog? _rsDailyLog;
+  RsSession? _rsSession;
   Reference? _nextResumePosition;
   Timer? _timer;
   bool _goalAlreadyReached = false;
+  int _idleTicks = 0;
   final Map<(int, int, int), Map<int, int>> _bookVerseReadCount = {};
   Set<int>? _books;
 
@@ -67,16 +71,16 @@ class ReadingSessionService {
 
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    var rsDailyLog = RsDailyLog(
+    var rsSession = RsSession(
       rsDate: today,
       startTime: now,
       verses: 0,
       readingPlanId: readingPlan.readingPlan.id!,
     );
 
-    rsDailyLog = await _rsdbManager.insertDailyLog(rsDailyLog);
+    rsSession = await _rsdbManager.insertSession(rsSession);
 
-    _rsDailyLog = rsDailyLog;
+    _rsSession = rsSession;
 
     readingModeNotifier.value = true;
     goalReachedNotifier.value = false;
@@ -100,6 +104,11 @@ class ReadingSessionService {
       totalSecondsReadPerDay.value += 1;
       totalSecondsReadPerSession.value += 1;
       checkGoalReached(false);
+      _idleTicks++;
+      if (_idleTicks >= idleFlushTickCount) {
+        _idleTicks = 0;
+        _heartbeatSession();
+      }
     });
 
     displayGoalProgresNotifier.value = true;
@@ -115,21 +124,17 @@ class ReadingSessionService {
 
     final now = DateTime.now();
 
-    var currentDailyLog = await _getTodaysReadingSession();
+    var currentSession = await _getTodaysSession();
 
-    currentDailyLog = currentDailyLog.copyWith(endTime: now);
+    currentSession = currentSession.copyWith(endTime: now);
 
-    if (currentDailyLog.verses == 0) {
-      totalSecondsReadPerDay.value -= totalSecondsReadPerSession.value;
-      totalSecondsReadPerSession.value = 0;
-      //empty session, removing it
-      await _rsdbManager.deleteDailyLog(currentDailyLog.id!);
-    } else {
-      await _rsdbManager.updateDailyLog(currentDailyLog);
-      await _updateStatistics(currentDailyLog);
-    }
+    await _rsdbManager.updateSession(currentSession);
+    await _rsdbManager.upsertDaySummary(
+      currentSession.readingPlanId,
+      currentSession.rsDate,
+    );
 
-    _rsDailyLog = null;
+    _rsSession = null;
     _readingPlan = null;
     _books = null;
     _nextResumePosition = null;
@@ -192,7 +197,7 @@ class ReadingSessionService {
     if (_readingPlan == null ||
         _books == null ||
         !_books!.contains(bookId) ||
-        _rsDailyLog == null) {
+        _rsSession == null) {
       return;
     }
 
@@ -208,27 +213,27 @@ class ReadingSessionService {
     final existingCount = current[verse] ?? 0;
     current[verse] = existingCount + 1;
 
-    var rsDailyLog = await _getTodaysReadingSession();
+    var rsSession = await _getTodaysSession();
 
     final now = DateTime.now();
 
     final rsLog = RsLog(
-      rsDailyLogId: rsDailyLog.id!,
+      sessionId: rsSession.id!,
       bookId: bookId,
       chapter: chapter,
       verse: verse,
       dateTime: now,
-      readingPlanId: rsDailyLog.readingPlanId,
+      readingPlanId: rsSession.readingPlanId,
     );
 
-    rsDailyLog = rsDailyLog.copyWith(verses: rsDailyLog.verses + 1);
+    rsSession = rsSession.copyWith(verses: rsSession.verses + 1, endTime: now);
 
     await _rsdbManager.insertLog(rsLog);
 
-    await _rsdbManager.updateDailyLog(rsDailyLog);
+    await _rsdbManager.updateSession(rsSession);
 
     await _rsdbManager.markVerseRead(
-      rsDailyLog.readingPlanId,
+      rsSession.readingPlanId,
       bookId,
       chapter,
       verse,
@@ -237,12 +242,20 @@ class ReadingSessionService {
     //book progress is only increased when we read the verse for the first time
     if (existingCount == 0) {
       await _recomputeBookProgress(
-        rsDailyLog.readingPlanId,
+        rsSession.readingPlanId,
         Reference(bookId: bookId, chapter: chapter, verse: verse),
       );
     }
 
-    _rsDailyLog = rsDailyLog;
+    _rsSession = rsSession;
+
+    // Actively marking resets the idle flush counter.
+    _idleTicks = 0;
+
+    await _rsdbManager.upsertDaySummary(
+      rsSession.readingPlanId,
+      rsSession.rsDate,
+    );
 
     totalVersesReadPerDay.value = totalVersesReadPerDay.value + 1;
     checkGoalReached(false);
@@ -254,7 +267,7 @@ class ReadingSessionService {
     int verse,
   ) async {
     if (_readingPlan == null ||
-        _rsDailyLog == null ||
+        _rsSession == null ||
         _books == null ||
         !_books!.contains(bookId)) {
       return;
@@ -273,7 +286,7 @@ class ReadingSessionService {
     );
 
     final List<RsLog> todayVerseLogs = await _rsdbManager
-        .getRsLogForDailyLogAndVerse(_rsDailyLog!.id!, bookId, chapter, verse);
+        .getRsLogForSessionAndVerse(_rsSession!.id!, bookId, chapter, verse);
     final todaySessionCount = todayVerseLogs.length;
 
     await _rsdbManager.deleteRsLogsForVerse(
@@ -288,14 +301,19 @@ class ReadingSessionService {
     verseReadCount[verse] = 0;
 
     if (todaySessionCount > 0) {
-      _rsDailyLog = _rsDailyLog!.copyWith(
-        verses: math.max(0, _rsDailyLog!.verses - todaySessionCount),
+      _rsSession = _rsSession!.copyWith(
+        verses: math.max(0, _rsSession!.verses - todaySessionCount),
+        endTime: DateTime.now(),
       );
       totalVersesReadPerDay.value = math.max(
         0,
         totalVersesReadPerDay.value - todaySessionCount,
       );
-      await _rsdbManager.updateDailyLog(_rsDailyLog!);
+      await _rsdbManager.updateSession(_rsSession!);
+      await _rsdbManager.upsertDaySummary(
+        _rsSession!.readingPlanId,
+        _rsSession!.rsDate,
+      );
     }
   }
 
@@ -310,7 +328,7 @@ class ReadingSessionService {
   Future<void> _resetBeforeRestore() async {
     _timer?.cancel();
     _timer = null;
-    _rsDailyLog = null;
+    _rsSession = null;
     _readingPlan = null;
     _books = null;
     _nextResumePosition = null;
@@ -322,99 +340,59 @@ class ReadingSessionService {
     goalReachedNotifier.value = false;
     bookCompletedNotifier.value = (0, 0);
     _goalAlreadyReached = false;
+    _idleTicks = 0;
   }
 
   ///if the session started in a older day than today, then log it as a distinct entry
   ///this is mainly for sessions that starts before 12AM and ends after 12AM
-  Future<RsDailyLog> _getTodaysReadingSession() async {
+  Future<RsSession> _getTodaysSession() async {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
-    var currentDailyLog = _rsDailyLog!;
+    var currentSession = _rsSession!;
 
-    while (today != currentDailyLog.rsDate) {
+    while (today != currentSession.rsDate) {
       final nextDay = DateTime(
-        currentDailyLog.rsDate.year,
-        currentDailyLog.rsDate.month,
-        currentDailyLog.rsDate.day + 1,
+        currentSession.rsDate.year,
+        currentSession.rsDate.month,
+        currentSession.rsDate.day + 1,
       );
       final endTime = nextDay.add(const Duration(seconds: -1));
 
-      final rsDailyLog = currentDailyLog.copyWith(endTime: endTime);
+      final rsSession = currentSession.copyWith(endTime: endTime);
 
-      await _rsdbManager.updateDailyLog(rsDailyLog);
+      await _rsdbManager.updateSession(rsSession);
 
-      await _updateStatistics(rsDailyLog);
+      await _rsdbManager.upsertDaySummary(
+        rsSession.readingPlanId,
+        rsSession.rsDate,
+        preserveStoredGoalSnapshot: true,
+      );
 
-      currentDailyLog = RsDailyLog(
+      currentSession = RsSession(
         rsDate: nextDay,
         startTime: nextDay,
         verses: 0,
-        readingPlanId: _rsDailyLog!.readingPlanId,
+        readingPlanId: _rsSession!.readingPlanId,
       );
 
-      currentDailyLog = await _rsdbManager.insertDailyLog(currentDailyLog);
+      currentSession = await _rsdbManager.insertSession(currentSession);
     }
 
-    return currentDailyLog;
+    return currentSession;
   }
 
-  Future<void> _updateStatistics(RsDailyLog dailyLog) async {
-    await _updateStatisticsBy(dailyLog, RsStatsType.daily, dailyLog.rsDate);
+  Future<void> _heartbeatSession() async {
+    if (_readingPlan == null || _rsSession == null) return;
 
-    final lastDay = DateTime(
-      dailyLog.rsDate.year,
-      dailyLog.rsDate.month + 1,
-      0,
-    );
-    await _updateStatisticsBy(dailyLog, RsStatsType.monthly, lastDay);
-  }
+    final now = DateTime.now();
+    var session = await _getTodaysSession();
+    session = session.copyWith(endTime: now);
 
-  Future<RsStats?> _updateStatisticsBy(
-    RsDailyLog dailyLog,
-    RsStatsType type,
-    DateTime rsDate,
-  ) async {
-    if (_readingPlan == null) return null;
+    await _rsdbManager.updateSession(session);
+    _rsSession = session;
 
-    final dailyGoal = _readingPlan!.dailyGoal;
-
-    RsStats? stats = await _rsdbManager.findStatsByTypeAndDateForPlan(
-      type,
-      rsDate,
-      dailyLog.readingPlanId,
-    );
-
-    final seconds = dailyLog.endTime!.difference(dailyLog.startTime).inSeconds;
-
-    final totalVerses = dailyLog.verses + (stats?.rsVerses ?? 0);
-    final totalSeconds = seconds + (stats?.rsSeconds ?? 0);
-    final goalReached =
-        (dailyGoal.type == GoalType.minutes &&
-            totalSeconds >= dailyGoal.value * 60) ||
-        (dailyGoal.type == GoalType.verses && totalVerses >= dailyGoal.value);
-
-    if (stats == null) {
-      stats = RsStats(
-        type: type,
-        statsDate: rsDate,
-        rsSeconds: totalSeconds,
-        rsVerses: totalVerses,
-        goalReached: goalReached,
-        readingPlanId: dailyLog.readingPlanId,
-      );
-
-      await _rsdbManager.insertStats(stats);
-    } else {
-      stats = stats.copyWith(
-        rsSeconds: totalSeconds,
-        rsVerses: totalVerses,
-        goalReached: goalReached,
-      );
-      await _rsdbManager.updateStats(stats);
-    }
-
-    return stats;
+    await _rsdbManager.upsertDaySummary(session.readingPlanId, session.rsDate);
   }
 
   Future<void> _recomputeBookProgress(
@@ -442,7 +420,7 @@ class ReadingSessionService {
 
   Future<void> _reloadFromDatabase() async {
     _bookVerseReadCount.clear();
-    readingModeNotifier.value = _rsDailyLog != null;
+    readingModeNotifier.value = _rsSession != null;
   }
 
   void dispose() {

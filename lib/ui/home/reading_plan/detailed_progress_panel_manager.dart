@@ -6,7 +6,7 @@ import 'package:gbt/services/service_locator.dart';
 class DetailedProgressPanelManager {
   final _planService = getIt<ReadingPlanService>();
 
-  final details = ValueNotifier<List<Session>>([]);
+  final details = ValueNotifier<List<SessionDetails>>([]);
 
   final int readingPlanId;
   final DateTime date;

@@ -354,11 +354,10 @@ void main() {
           isEmpty,
         );
         expect(
-          await rsDb.getRsStatsForType(
-            RsStatsType.daily,
+          await rsDb.getDaySummariesBetween(
+            planA.id!,
             DateTime(2020),
             DateTime(2030),
-            planA.id!,
           ),
           isEmpty,
         );
@@ -416,6 +415,19 @@ void main() {
           selectedBookIds: {1},
         );
 
+        // Seed a closed session on November 5th and its day summary.
+        final sessionDate = DateTime(2026, 11, 5);
+        await rsDb.insertSession(
+          RsSession(
+            rsDate: sessionDate,
+            startTime: DateTime(2026, 11, 5, 10, 0),
+            endTime: DateTime(2026, 11, 5, 10, 12, 30),
+            verses: 7,
+            readingPlanId: plan.id!,
+          ),
+        );
+        await rsDb.upsertDaySummary(plan.id!, sessionDate);
+
         // November 2026 has 30 days
         final monthData = await planService.getMonthProgress(
           plan.id!,
@@ -427,6 +439,19 @@ void main() {
           expect(monthData[i].day.year, 2026);
           expect(monthData[i].day.month, 11);
           expect(monthData[i].day.day, i + 1);
+        }
+
+        // The seeded summary maps to exactly one calendar cell.
+        final day5 = monthData[4];
+        expect(day5.empty, isFalse);
+        expect(day5.verses, 7);
+        expect(day5.minutes, 12);
+        expect(day5.goalReached, isTrue);
+
+        for (int i = 0; i < 30; i++) {
+          if (i == 4) continue;
+          expect(monthData[i].empty, isTrue);
+          expect(monthData[i].goalReached, isFalse);
         }
       },
     );

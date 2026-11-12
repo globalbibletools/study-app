@@ -22,7 +22,7 @@ class ReadingSessionDatabase {
            });
 
   static const _defaultDatabaseName = 'reading_session.db';
-  static const _databaseVersion = 4;
+  static const _databaseVersion = 5;
 
   final String _databaseName;
   final VerseInventoryProvider _verseInventoryProvider;
@@ -167,9 +167,12 @@ class ReadingSessionDatabase {
         'reading_plan_book',
         orderBy: 'id',
       ),
-      'rs_daily_log': await _database.query('rs_daily_log', orderBy: 'id'),
+      'rs_session': await _database.query('rs_session', orderBy: 'id'),
       'rs_log': await _database.query('rs_log', orderBy: 'id'),
-      'rs_stats': await _database.query('rs_stats', orderBy: 'id'),
+      'rs_day_summary': await _database.query(
+        'rs_day_summary',
+        orderBy: 'reading_plan_id, rs_date',
+      ),
     };
   }
 
@@ -186,7 +189,9 @@ class ReadingSessionDatabase {
   }
 
   Future<void> _restoreBackupTablesV1(Map<String, dynamic> tables) async {
-    final dailyLogRows = _parseBackupRows(tables['rs_daily_log']);
+    // v1 payloads predate the rs_session rename: sessions were exported
+    // under the 'rs_daily_log' key and rs_log rows carry 'rs_daily_log_id'.
+    final sessionRows = _parseBackupRows(tables['rs_daily_log']);
     final logRows = _parseBackupRows(tables['rs_log']);
     final statsRows = _parseBackupRows(tables['rs_stats']);
 
@@ -197,47 +202,107 @@ class ReadingSessionDatabase {
       final batch = txn.batch();
 
       batch.delete('rs_log');
-      batch.delete('rs_daily_log');
-      batch.delete('rs_stats');
+      batch.delete('rs_session');
+      batch.delete('rs_day_summary');
       batch.delete('rs_verse_state');
       batch.delete('reading_plan_book');
       batch.delete('reading_plan');
 
       await __executeSqlBatch(batch, sql);
 
-      for (final row in dailyLogRows) {
+      for (final row in sessionRows) {
         row['reading_plan_id'] = 1;
-        batch.insert('rs_daily_log', row);
+        batch.insert('rs_session', row);
       }
       for (final row in logRows) {
         row['reading_plan_id'] = 1;
+        row['rs_session_id'] = row.remove('rs_daily_log_id');
         batch.insert('rs_log', row);
-      }
-      for (final row in statsRows) {
-        row['reading_plan_id'] = 1;
-        batch.insert('rs_stats', row);
       }
 
       await batch.commit(noResult: true);
+
+      await _rebuildDaySummariesFromV1Stats(txn, statsRows);
     });
 
     await _backfillVerseStateFromLog(_database);
     await _materializeAllVerseState(_database);
   }
 
+  Future<void> _rebuildDaySummariesFromV1Stats(
+    DatabaseExecutor txn,
+    List<Map<String, Object?>> statsRows,
+  ) async {
+    final dailyGoalReached = <String, int>{};
+    for (final row in statsRows) {
+      if (row['type'] != 'D') continue;
+      final statsDate = row['stats_date'];
+      if (statsDate is! String || statsDate.length < 10) continue;
+      dailyGoalReached[statsDate.substring(0, 10)] = row['goal_reached'] == 1
+          ? 1
+          : 0;
+    }
+
+    final plan = await txn.query(
+      'reading_plan',
+      columns: ['goal_type', 'goal_value'],
+      where: 'id = ?',
+      whereArgs: [1],
+      limit: 1,
+    );
+    final goalType = plan.isEmpty ? null : plan.first['goal_type'] as String?;
+    final goalValue = plan.isEmpty ? null : plan.first['goal_value'] as int?;
+
+    final dayTotals = await txn.rawQuery(
+      "SELECT date(rs_date) AS rs_date, "
+      "coalesce(sum(strftime('%s', end_time) - strftime('%s', start_time)), 0) AS rs_seconds, "
+      'coalesce(sum(verses), 0) AS rs_verses '
+      'FROM rs_session '
+      'WHERE reading_plan_id = 1 AND end_time IS NOT NULL '
+      'GROUP BY date(rs_date)',
+    );
+
+    for (final totals in dayTotals) {
+      final day = totals['rs_date'] as String;
+      final rsSeconds = totals['rs_seconds'] as int? ?? 0;
+      final rsVerses = totals['rs_verses'] as int? ?? 0;
+
+      final storedFlag = dailyGoalReached[day];
+      final int goalReached;
+      if (storedFlag != null) {
+        goalReached = storedFlag;
+      } else {
+        final reached = _isMinutesGoal(goalType)
+            ? rsSeconds >= (goalValue ?? 0) * 60
+            : rsVerses >= (goalValue ?? 0);
+        goalReached = reached ? 1 : 0;
+      }
+
+      await txn.insert('rs_day_summary', {
+        'reading_plan_id': 1,
+        'rs_date': day,
+        'rs_seconds': rsSeconds,
+        'rs_verses': rsVerses,
+        'goal_type': goalType,
+        'goal_value': goalValue,
+        'goal_reached': goalReached,
+      }, conflictAlgorithm: ConflictAlgorithm.replace);
+    }
+  }
+
   Future<void> _restoreBackupTablesV2(Map<String, dynamic> tables) async {
     final readingPlanRows = _parseBackupRows(tables['reading_plan']);
     final readingPlanBookRows = _parseBackupRows(tables['reading_plan_book']);
-    final dailyLogRows = _parseBackupRows(tables['rs_daily_log']);
+    final sessionRows = _parseBackupRows(tables['rs_session']);
     final logRows = _parseBackupRows(tables['rs_log']);
-    final statsRows = _parseBackupRows(tables['rs_stats']);
+    final daySummaryRows = _parseBackupRows(tables['rs_day_summary']);
 
     await _database.transaction((txn) async {
       final batch = txn.batch();
 
       batch.delete('rs_log');
-      batch.delete('rs_daily_log');
-      batch.delete('rs_stats');
+      batch.delete('rs_session');
+      batch.delete('rs_day_summary');
       batch.delete('rs_verse_state');
       batch.delete('reading_plan_book');
       batch.delete('reading_plan');
@@ -248,14 +313,14 @@ class ReadingSessionDatabase {
       for (final row in readingPlanBookRows) {
         batch.insert('reading_plan_book', row);
       }
-      for (final row in dailyLogRows) {
-        batch.insert('rs_daily_log', row);
+      for (final row in sessionRows) {
+        batch.insert('rs_session', row);
       }
       for (final row in logRows) {
         batch.insert('rs_log', row);
       }
-      for (final row in statsRows) {
-        batch.insert('rs_stats', row);
+      for (final row in daySummaryRows) {
+        batch.insert('rs_day_summary', row);
       }
 
       await batch.commit(noResult: true);
@@ -435,12 +500,12 @@ class ReadingSessionDatabase {
       final batch = txn.batch();
       batch.delete('rs_log', where: 'reading_plan_id = ?', whereArgs: [planId]);
       batch.delete(
-        'rs_daily_log',
+        'rs_session',
         where: 'reading_plan_id = ?',
         whereArgs: [planId],
       );
       batch.delete(
-        'rs_stats',
+        'rs_day_summary',
         where: 'reading_plan_id = ?',
         whereArgs: [planId],
       );
@@ -459,27 +524,23 @@ class ReadingSessionDatabase {
     });
   }
 
-  /* RS DAILY LOG */
-  Future<RsDailyLog> insertDailyLog(RsDailyLog log) async {
-    final id = await _database.insert(
-      'rs_daily_log',
-      log.toMap()..remove('id'),
-    );
+  Future<RsSession> insertSession(RsSession log) async {
+    final id = await _database.insert('rs_session', log.toMap()..remove('id'));
     return log.copyWith(id: id);
   }
 
-  Future<int> updateDailyLog(RsDailyLog log) async {
+  Future<int> updateSession(RsSession log) async {
     return await _database.update(
-      'rs_daily_log',
+      'rs_session',
       log.toMap(),
       where: 'id = ?',
       whereArgs: [log.id],
     );
   }
 
-  Future<int> deleteDailyLog(int id) async {
+  Future<int> deleteSession(int id) async {
     return await _database.delete(
-      'rs_daily_log',
+      'rs_session',
       where: 'id = ?',
       whereArgs: [id],
     );
@@ -597,35 +658,91 @@ class ReadingSessionDatabase {
     );
   }
 
-  /* RS STATS */
-  Future<RsStats> insertStats(RsStats stats) async {
-    final id = await _database.insert('rs_stats', stats.toMap()..remove('id'));
-    return stats.copyWith(id: id);
-  }
-
-  Future<int> updateStats(RsStats stats) async {
-    return await _database.update(
-      'rs_stats',
-      stats.toMap(),
-      where: 'id = ?',
-      whereArgs: [stats.id],
-    );
-  }
-
-  Future<RsStats?> findStatsByTypeAndDateForPlan(
-    RsStatsType type,
-    DateTime date,
+  Future<void> upsertDaySummary(
     int readingPlanId,
+    DateTime date, {
+    bool preserveStoredGoalSnapshot = false,
+  }) async {
+    await _database.transaction((txn) async {
+      final totals = await txn.rawQuery(
+        "SELECT coalesce(sum(strftime('%s', end_time) - strftime('%s', start_time)), 0) AS rs_seconds, "
+        'coalesce(sum(verses), 0) AS rs_verses '
+        'FROM rs_session '
+        'WHERE reading_plan_id = ? AND date(rs_date) = date(?)',
+        [readingPlanId, date.toIso8601String()],
+      );
+
+      final rsSeconds = totals.first['rs_seconds'] as int? ?? 0;
+      final rsVerses = totals.first['rs_verses'] as int? ?? 0;
+
+      String? goalType;
+      int? goalValue;
+      if (preserveStoredGoalSnapshot) {
+        final stored = await txn.query(
+          'rs_day_summary',
+          columns: ['goal_type', 'goal_value'],
+          where: 'reading_plan_id = ? AND rs_date = ?',
+          whereArgs: [readingPlanId, RsDaySummary.dayString(date)],
+          limit: 1,
+        );
+        if (stored.isNotEmpty) {
+          goalType = stored.first['goal_type'] as String?;
+          goalValue = stored.first['goal_value'] as int?;
+        }
+      }
+      if (goalType == null || goalValue == null) {
+        final plan = await txn.query(
+          'reading_plan',
+          columns: ['goal_type', 'goal_value'],
+          where: 'id = ?',
+          whereArgs: [readingPlanId],
+          limit: 1,
+        );
+        goalType = plan.isEmpty ? null : plan.first['goal_type'] as String?;
+        goalValue = plan.isEmpty ? null : plan.first['goal_value'] as int?;
+      }
+
+      final goalReached = _isMinutesGoal(goalType)
+          ? rsSeconds >= (goalValue ?? 0) * 60
+          : rsVerses >= (goalValue ?? 0);
+
+      await txn.insert(
+        'rs_day_summary',
+        RsDaySummary(
+          readingPlanId: readingPlanId,
+          rsDate: DateTime(date.year, date.month, date.day),
+          rsSeconds: rsSeconds,
+          rsVerses: rsVerses,
+          goalType: goalType,
+          goalValue: goalValue,
+          goalReached: goalReached,
+        ).toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    });
+  }
+
+  Future<List<RsDaySummary>> getDaySummariesBetween(
+    int readingPlanId,
+    DateTime start,
+    DateTime end,
   ) async {
     final result = await _database.query(
-      'rs_stats',
-      where: 'type = ? AND date(stats_date) = date(?) AND reading_plan_id = ?',
-      whereArgs: [type.value, date.toIso8601String(), readingPlanId],
+      'rs_day_summary',
+      where: 'reading_plan_id = ? AND rs_date BETWEEN ? AND ?',
+      whereArgs: [
+        readingPlanId,
+        RsDaySummary.dayString(start),
+        RsDaySummary.dayString(end),
+      ],
+      orderBy: 'rs_date asc',
     );
 
-    if (result.isEmpty) return null;
+    return result.map((e) => RsDaySummary.fromMap(e)).toList();
+  }
 
-    return RsStats.fromMap(result.first);
+  static bool _isMinutesGoal(String? goalType) {
+    return goalType != null && goalType.toLowerCase().startsWith('m');
   }
 
   Future<void> markVerseRead(
@@ -757,64 +874,41 @@ class ReadingSessionDatabase {
     _initFuture = null;
   }
 
-  Future<List<RsStats>> getRsStatsForType(
-    RsStatsType type,
-    DateTime startDate,
-    DateTime endDate,
-    int readingPlanId,
-  ) async {
-    final result = await _database.query(
-      'rs_stats',
-      where:
-          'type = ? AND date(stats_date) between date(?) and date(?) AND reading_plan_id = ?',
-      whereArgs: [
-        type.value,
-        startDate.toIso8601String(),
-        endDate.toIso8601String(),
-        readingPlanId,
-      ],
-      orderBy: "stats_date asc",
-    );
-
-    return result.map((e) => RsStats.fromMap(e)).toList();
-  }
-
-  Future<List<RsDailyLog>> getSessionsForDate(
+  Future<List<RsSession>> getSessionsForDate(
     DateTime date,
     int readingPlanId,
   ) async {
     final result = await _database.query(
-      'rs_daily_log',
+      'rs_session',
       where: 'date(rs_date) = date(?) AND reading_plan_id = ?',
       whereArgs: [date.toIso8601String(), readingPlanId],
       orderBy: "start_time",
     );
 
-    return result.map((e) => RsDailyLog.fromMap(e)).toList();
+    return result.map((e) => RsSession.fromMap(e)).toList();
   }
 
-  Future<List<RsLog>> getRsLogForDailyLog(int rsDailyLogId) async {
+  Future<List<RsLog>> getRsLogForSession(int sessionId) async {
     final result = await _database.query(
       'rs_log',
-      where: 'rs_daily_log_id = ?',
-      whereArgs: [rsDailyLogId],
+      where: 'rs_session_id = ?',
+      whereArgs: [sessionId],
       orderBy: "book_id, chapter, verse",
     );
 
     return result.map((e) => RsLog.fromMap(e)).toList();
   }
 
-  Future<List<RsLog>> getRsLogForDailyLogAndVerse(
-    int rsDailyLogId,
+  Future<List<RsLog>> getRsLogForSessionAndVerse(
+    int sessionId,
     int bookId,
     int chapter,
     int verse,
   ) async {
     final result = await _database.query(
       'rs_log',
-      where:
-          'rs_daily_log_id = ? and book_id = ? and chapter = ? and verse = ?',
-      whereArgs: [rsDailyLogId, bookId, chapter, verse],
+      where: 'rs_session_id = ? and book_id = ? and chapter = ? and verse = ?',
+      whereArgs: [sessionId, bookId, chapter, verse],
       orderBy: "book_id, chapter, verse",
     );
 
@@ -823,7 +917,7 @@ class ReadingSessionDatabase {
 
   Future<int> getVersesReadToday(int readingPlanId, DateTime date) async {
     final result = await _database.rawQuery(
-      'SELECT SUM(verses) FROM rs_daily_log where date(rs_date) = date(?) and end_time is not null and reading_plan_id = ?',
+      'SELECT SUM(verses) FROM rs_session where date(rs_date) = date(?) and reading_plan_id = ?',
       [date.toIso8601String(), readingPlanId],
     );
 
@@ -835,8 +929,8 @@ class ReadingSessionDatabase {
   Future<int> getTotalSecondsReadToday(int readingPlanId, DateTime date) async {
     final result = await _database.rawQuery(
       "SELECT SUM(strftime('%s', end_time) - strftime('%s', start_time)) AS count "
-      'FROM rs_daily_log '
-      'WHERE date(rs_date) = date(?) AND end_time IS NOT NULL and reading_plan_id = ?',
+      'FROM rs_session '
+      'WHERE date(rs_date) = date(?) and reading_plan_id = ?',
       [date.toIso8601String(), readingPlanId],
     );
 

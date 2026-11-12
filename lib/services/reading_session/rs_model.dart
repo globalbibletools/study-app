@@ -1,7 +1,5 @@
 import 'package:gbt/common/reference.dart';
 
-enum StatsType { weekly, monthly }
-
 enum GoalType { minutes, verses }
 
 enum ProgressType { byBook, bySection }
@@ -159,7 +157,7 @@ class ReadingPlanDetails {
       );
 }
 
-class RsDailyLog {
+class RsSession {
   final int? id;
   final DateTime rsDate;
   final DateTime startTime;
@@ -167,7 +165,7 @@ class RsDailyLog {
   final int verses;
   final int readingPlanId;
 
-  RsDailyLog({
+  RsSession({
     this.id,
     required this.rsDate,
     required this.startTime,
@@ -178,7 +176,7 @@ class RsDailyLog {
 
   static const _undefined = Object();
 
-  RsDailyLog copyWith({
+  RsSession copyWith({
     Object? id = _undefined,
     DateTime? rsDate,
     DateTime? startTime,
@@ -186,7 +184,7 @@ class RsDailyLog {
     int? verses,
     int? readingPlanId,
   }) {
-    return RsDailyLog(
+    return RsSession(
       id: id == _undefined ? this.id : id as int?,
       rsDate: rsDate ?? this.rsDate,
       startTime: startTime ?? this.startTime,
@@ -196,8 +194,8 @@ class RsDailyLog {
     );
   }
 
-  factory RsDailyLog.fromMap(Map<String, dynamic> map) {
-    return RsDailyLog(
+  factory RsSession.fromMap(Map<String, dynamic> map) {
+    return RsSession(
       id: map['id'],
       rsDate: DateTime.parse(map['rs_date']),
       startTime: DateTime.parse(map['start_time']),
@@ -221,7 +219,7 @@ class RsDailyLog {
 
 class RsLog {
   final int? id;
-  final int rsDailyLogId;
+  final int sessionId;
   final int bookId;
   final int chapter;
   final int verse;
@@ -230,7 +228,7 @@ class RsLog {
 
   RsLog({
     this.id,
-    required this.rsDailyLogId,
+    required this.sessionId,
     required this.bookId,
     required this.chapter,
     required this.verse,
@@ -242,7 +240,7 @@ class RsLog {
 
   RsLog copyWith({
     Object? id = _undefined,
-    int? rsDailyLogId,
+    int? sessionId,
     int? bookId,
     int? chapter,
     int? verse,
@@ -251,7 +249,7 @@ class RsLog {
   }) {
     return RsLog(
       id: id == _undefined ? this.id : id as int?,
-      rsDailyLogId: rsDailyLogId ?? this.rsDailyLogId,
+      sessionId: sessionId ?? this.sessionId,
       bookId: bookId ?? this.bookId,
       chapter: chapter ?? this.chapter,
       verse: verse ?? this.verse,
@@ -263,7 +261,7 @@ class RsLog {
   factory RsLog.fromMap(Map<String, dynamic> map) {
     return RsLog(
       id: map['id'],
-      rsDailyLogId: map['rs_daily_log_id'],
+      sessionId: map['rs_session_id'],
       bookId: map['book_id'],
       chapter: map['chapter'],
       verse: map['verse'],
@@ -275,7 +273,7 @@ class RsLog {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
-      'rs_daily_log_id': rsDailyLogId,
+      'rs_session_id': sessionId,
       'book_id': bookId,
       'chapter': chapter,
       'verse': verse,
@@ -285,80 +283,73 @@ class RsLog {
   }
 }
 
-enum RsStatsType {
-  daily('D'),
-  monthly('M');
-
-  final String value;
-  const RsStatsType(this.value);
-  static RsStatsType fromString(String value) {
-    return RsStatsType.values.firstWhere((e) => e.value == value);
-  }
-}
-
-class RsStats {
-  final int? id;
-  final RsStatsType type;
-  final DateTime statsDate;
+class RsDaySummary {
+  final int readingPlanId;
+  final DateTime rsDate;
   final int rsSeconds;
   final int rsVerses;
+  final String? goalType;
+  final int? goalValue;
   final bool goalReached;
-  final int readingPlanId;
 
-  RsStats({
-    this.id,
-    required this.type,
-    required this.statsDate,
+  RsDaySummary({
+    required this.readingPlanId,
+    required this.rsDate,
     required this.rsSeconds,
     required this.rsVerses,
+    this.goalType,
+    this.goalValue,
     required this.goalReached,
-    required this.readingPlanId,
   });
 
   static const _undefined = Object();
 
-  RsStats copyWith({
-    Object? id = _undefined,
-    RsStatsType? type,
-    DateTime? statsDate,
+  RsDaySummary copyWith({
+    Object? goalType = _undefined,
+    Object? goalValue = _undefined,
     int? rsSeconds,
     int? rsVerses,
     bool? goalReached,
-    int? readingPlanId,
   }) {
-    return RsStats(
-      id: id == _undefined ? this.id : id as int?,
-      type: type ?? this.type,
-      statsDate: statsDate ?? this.statsDate,
+    return RsDaySummary(
+      readingPlanId: readingPlanId,
+      rsDate: rsDate,
       rsSeconds: rsSeconds ?? this.rsSeconds,
       rsVerses: rsVerses ?? this.rsVerses,
+      goalType: goalType == _undefined ? this.goalType : goalType as String?,
+      goalValue: goalValue == _undefined ? this.goalValue : goalValue as int?,
       goalReached: goalReached ?? this.goalReached,
-      readingPlanId: readingPlanId ?? this.readingPlanId,
     );
   }
 
-  factory RsStats.fromMap(Map<String, dynamic> map) {
-    return RsStats(
-      id: map['id'],
-      type: RsStatsType.fromString(map['type']),
-      statsDate: DateTime.parse(map['stats_date']),
+  factory RsDaySummary.fromMap(Map<String, dynamic> map) {
+    return RsDaySummary(
+      readingPlanId: map['reading_plan_id'],
+      rsDate: DateTime.parse(map['rs_date']),
       rsSeconds: map['rs_seconds'],
       rsVerses: map['rs_verses'],
+      goalType: map['goal_type'],
+      goalValue: map['goal_value'],
       goalReached: map['goal_reached'] == 1,
-      readingPlanId: map['reading_plan_id'],
     );
   }
 
   Map<String, dynamic> toMap() {
     return {
-      'id': id,
-      'type': type.value,
-      'stats_date': statsDate.toIso8601String(),
+      'reading_plan_id': readingPlanId,
+      'rs_date': dayString(rsDate),
       'rs_seconds': rsSeconds,
       'rs_verses': rsVerses,
+      'goal_type': goalType,
+      'goal_value': goalValue,
       'goal_reached': goalReached ? 1 : 0,
-      'reading_plan_id': readingPlanId,
     };
+  }
+
+  /// Formats a local date as the `YYYY-MM-DD` string stored in `rs_date`.
+  static String dayString(DateTime date) {
+    String pad2(int value) => value.toString().padLeft(2, '0');
+    return '${date.year.toString().padLeft(4, '0')}-${pad2(date.month)}-${pad2(date.day)}';
   }
 }
 
@@ -446,9 +437,9 @@ class DetailedProgess {
   DetailedProgess(this.bookId, this.chapter, this.fromVerse, this.toVerse);
 }
 
-class Session {
-  final RsDailyLog rsDailyLog;
+class SessionDetails {
+  final RsSession rsSession;
   final List<DetailedProgess> progress;
 
-  Session(this.rsDailyLog, this.progress);
+  SessionDetails(this.rsSession, this.progress);
 }
