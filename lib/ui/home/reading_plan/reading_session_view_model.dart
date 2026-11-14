@@ -158,12 +158,13 @@ class ReadingSessionViewModel {
     }
   }
 
-  Future<Map<int, int>?> markVerseAsRead(
-    int bookId,
-    int chapter,
-    int verse,
+  Future<Map<int, VerseReadState>?> setVerseRead(
+    VerseReadOptions options,
   ) async {
-    if (!_tryLockRequest('mark verse $bookId:$chapter:$verse as read')) {
+    if (!_tryLockRequest(
+      'set verse ${options.bookId}:${options.chapter}:${options.verse} '
+      'read state to ${options.read}',
+    )) {
       return null;
     }
 
@@ -171,12 +172,7 @@ class ReadingSessionViewModel {
       final sessionId = session?.sessionId;
       if (sessionId == null) return null;
 
-      final result = await _service.markVerseAsRead(
-        sessionId,
-        bookId,
-        chapter,
-        verse,
-      );
+      final result = await _service.setVerseRead(sessionId, options);
       if (_disposed || result == null) return null;
 
       _applyProgress(result.progress);
@@ -193,45 +189,19 @@ class ReadingSessionViewModel {
       }
 
       _checkGoalReached();
-      return result.verseReadCounts;
+      return result.verseReadStates;
     } finally {
       _unlockRequest();
     }
   }
 
-  Future<Map<int, int>?> resetVerseProgress(
+  Future<Map<int, VerseReadState>> getVerseReadStates(
     int bookId,
     int chapter,
-    int verse,
   ) async {
-    if (!_tryLockRequest('reset verse $bookId:$chapter:$verse progress')) {
-      return null;
-    }
-
-    try {
-      final sessionId = session?.sessionId;
-      if (sessionId == null) return null;
-
-      final result = await _service.resetVerseProgress(
-        sessionId,
-        bookId,
-        chapter,
-        verse,
-      );
-      if (_disposed || result == null) return null;
-
-      _applyProgress(result.progress);
-      _checkGoalReached();
-      return result.verseReadCounts;
-    } finally {
-      _unlockRequest();
-    }
-  }
-
-  Future<Map<int, int>> getVerseReadCounts(int bookId, int chapter) async {
     final sessionId = session?.sessionId;
     if (sessionId == null) return const {};
-    return _service.getVerseReadCounts(sessionId, bookId, chapter);
+    return _service.getVerseReadStates(sessionId, bookId, chapter);
   }
 
   void toggleDisplayGoalProgress() {

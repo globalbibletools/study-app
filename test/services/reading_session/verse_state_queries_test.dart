@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gbt/services/reading_session/rs_database.dart';
+import 'package:gbt/services/reading_session/rs_model.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import '../../fixtures/bible_navigation_fixture.dart';
@@ -39,28 +40,38 @@ void main() {
     return plan.id!;
   }
 
-  test('increments and resets read counts and last-read timestamps', () async {
-    final planId = await createPlan([63]);
+  test(
+    'increments and decrements read counts and last-read timestamps',
+    () async {
+      final planId = await createPlan([63]);
 
-    await database.markVerseRead(planId, 63, 1, 1);
-    await database.markVerseRead(planId, 63, 1, 1);
-    await database.markVerseRead(planId, 63, 1, 2);
+      await database.markVerseRead(planId, 63, 1, 1);
+      await database.markVerseRead(planId, 63, 1, 1);
+      await database.markVerseRead(planId, 63, 1, 2);
 
-    var counts = await database.getVerseReadCountsForChapter(planId, 63, 1);
-    expect(counts[1], 2);
-    expect(counts[2], 1);
-    expect(counts[3], 0);
+      var counts = await database.getVerseReadCountsForChapter(planId, 63, 1);
+      expect(counts[1], 2);
+      expect(counts[2], 1);
+      expect(counts[3], 0);
 
-    var aggregate = (await database.getBookStats(planId))[63]!;
-    expect(aggregate.versesRead, 2);
-    expect(aggregate.lastRead, isNotNull);
+      var aggregate = (await database.getBookStats(planId))[63]!;
+      expect(aggregate.versesRead, 2);
+      expect(aggregate.lastRead, isNotNull);
 
-    await database.resetVerseState(planId, 63, 1, 1);
-    counts = await database.getVerseReadCountsForChapter(planId, 63, 1);
-    expect(counts[1], 0);
-    aggregate = (await database.getBookStats(planId))[63]!;
-    expect(aggregate.versesRead, 1);
-  });
+      await database.unmarkVerseRead(planId, 63, 1, 1);
+      counts = await database.getVerseReadCountsForChapter(planId, 63, 1);
+      expect(counts[1], 1);
+      aggregate = (await database.getBookStats(planId))[63]!;
+      expect(aggregate.versesRead, 2);
+
+      await database.unmarkVerseRead(planId, 63, 1, 1);
+      await database.unmarkVerseRead(planId, 63, 1, 1);
+      counts = await database.getVerseReadCountsForChapter(planId, 63, 1);
+      expect(counts[1], 0);
+      aggregate = (await database.getBookStats(planId))[63]!;
+      expect(aggregate.versesRead, 1);
+    },
+  );
 
   test('materializes provider inventory including numbering gaps', () async {
     database.dispose();
@@ -92,7 +103,7 @@ void main() {
     final aggregate = (await database.getBookStats(planId))[40]!;
     expect(aggregate.totalVerses, 1067);
   });
-  test('book completion and verse reset update completion state', () async {
+  test('book completion and verse unmark update completion state', () async {
     final planId = await createPlan([63, 64]);
 
     for (int verse = 1; verse <= 13; verse++) {
@@ -101,10 +112,95 @@ void main() {
 
     expect(await database.isBookComplete(planId, 63), isTrue);
     expect((await database.getBookStats(planId))[63]!.isComplete, isTrue);
-    await database.resetVerseState(planId, 63, 1, 7);
+    await database.unmarkVerseRead(planId, 63, 1, 7);
     expect(await database.isBookComplete(planId, 63), isFalse);
     expect((await database.getBookStats(planId))[63]!.versesRead, 12);
   });
+
+  test(
+    'getVerseReadStatesForChapter flags only the given session and deletes only that session log',
+    () async {
+      final planId = await createPlan([63]);
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+
+      final firstSession = await database.insertSession(
+        RsSession(
+          rsDate: today,
+          startTime: now,
+          endTime: now,
+          verses: 2,
+          readingPlanId: planId,
+        ),
+      );
+      final secondSession = await database.insertSession(
+        RsSession(
+          rsDate: today,
+          startTime: now,
+          endTime: now,
+          verses: 0,
+          readingPlanId: planId,
+        ),
+      );
+
+      await database.markVerseRead(planId, 63, 1, 1);
+      await database.markVerseRead(planId, 63, 1, 2);
+      await database.insertLog(
+        RsLog(
+          sessionId: firstSession.id!,
+          bookId: 63,
+          chapter: 1,
+          verse: 1,
+          dateTime: now,
+          readingPlanId: planId,
+        ),
+      );
+      await database.insertLog(
+        RsLog(
+          sessionId: firstSession.id!,
+          bookId: 63,
+          chapter: 1,
+          verse: 2,
+          dateTime: now,
+          readingPlanId: planId,
+        ),
+      );
+
+      var states = await database.getVerseReadStatesForChapter(
+        planId,
+        firstSession.id!,
+        63,
+        1,
+      );
+      expect(states[1]!.readCount, 1);
+      expect(states[1]!.readThisSession, isTrue);
+      expect(states[2]!.readThisSession, isTrue);
+      expect(states[3]!.readCount, 0);
+      expect(states[3]!.readThisSession, isFalse);
+
+      states = await database.getVerseReadStatesForChapter(
+        planId,
+        secondSession.id!,
+        63,
+        1,
+      );
+      expect(states[1]!.readCount, 1);
+      expect(states[1]!.readThisSession, isFalse);
+      expect(states[2]!.readThisSession, isFalse);
+
+      await database.deleteRsLogForSessionAndVerse(firstSession.id!, 63, 1, 1);
+
+      expect(
+        await database.getRsLogForSessionAndVerse(firstSession.id!, 63, 1, 1),
+        isEmpty,
+      );
+      expect(
+        await database.getRsLogForSessionAndVerse(firstSession.id!, 63, 1, 2),
+        hasLength(1),
+      );
+      expect(await database.getRsLogForSession(secondSession.id!), isEmpty);
+    },
+  );
 
   test(
     'removed books disappear from projections but keep their state',

@@ -10,6 +10,20 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import '../../fixtures/bible_navigation_fixture.dart';
 
+VerseReadOptions _readOptions(
+  int bookId,
+  int chapter,
+  int verse, {
+  bool read = true,
+}) {
+  return VerseReadOptions(
+    bookId: bookId,
+    chapter: chapter,
+    verse: verse,
+    read: read,
+  );
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -161,7 +175,7 @@ void main() {
   );
 
   test(
-    'marks a verse and returns fresh chapter counts with progress',
+    'marks a verse and returns fresh chapter states with progress',
     () async {
       final plan = await planService.saveReadingPlan(
         planName: 'Mark Test',
@@ -172,50 +186,183 @@ void main() {
       );
 
       final sessionId = await startPlan(plan.id!);
-      final result = (await sessionService.markVerseAsRead(
+      final result = (await sessionService.setVerseRead(
         sessionId,
-        63,
-        1,
-        1,
+        _readOptions(63, 1, 1, read: true),
       ))!;
 
-      expect(result.verseReadCounts[1], 1);
+      expect(result.verseReadStates[1]?.readCount, 1);
+      expect(result.verseReadStates[1]?.readThisSession, isTrue);
       expect(result.progress.versesToday, 1);
       expect(result.bookCompleted, isNull);
       expect(result.progress.asOf, isNotNull);
 
-      final counts = await sessionService.getVerseReadCounts(sessionId, 63, 1);
-      expect(counts[1], 1);
+      final states = await sessionService.getVerseReadStates(sessionId, 63, 1);
+      expect(states[1]?.readCount, 1);
+      expect(states[1]?.readThisSession, isTrue);
     },
   );
 
-  test('enforces maximumReadCount and reset clears session logs', () async {
+  test(
+    'reading a verse twice in one session is a no-op the second time',
+    () async {
+      final plan = await planService.saveReadingPlan(
+        planName: 'Idempotent Read Test',
+        collectionId: 1,
+        goalType: GoalType.verses,
+        goalValue: 5,
+        selectedBookIds: {63},
+      );
+
+      final sessionId = await startPlan(plan.id!);
+      final first = (await sessionService.setVerseRead(
+        sessionId,
+        _readOptions(63, 1, 1, read: true),
+      ))!;
+      final second = (await sessionService.setVerseRead(
+        sessionId,
+        _readOptions(63, 1, 1, read: true),
+      ))!;
+
+      expect(first.verseReadStates[1]?.readCount, 1);
+      expect(second.verseReadStates[1]?.readCount, 1);
+      expect(second.verseReadStates[1]?.readThisSession, isTrue);
+      expect(second.progress.versesToday, 1);
+    },
+  );
+
+  test(
+    'unchecking removes only the current session log and decrements counts',
+    () async {
+      final plan = await planService.saveReadingPlan(
+        planName: 'Uncheck Test',
+        collectionId: 1,
+        goalType: GoalType.verses,
+        goalValue: 5,
+        selectedBookIds: {63},
+      );
+
+      final firstSessionId = await startPlan(plan.id!);
+      await sessionService.setVerseRead(
+        firstSessionId,
+        _readOptions(63, 1, 1, read: true),
+      );
+      await sessionService.endSession(firstSessionId);
+
+      final secondSessionId = await startPlan(plan.id!);
+      final checked = (await sessionService.setVerseRead(
+        secondSessionId,
+        _readOptions(63, 1, 1, read: true),
+      ))!;
+      expect(checked.verseReadStates[1]?.readCount, 2);
+      expect(checked.progress.versesToday, 2);
+
+      final unchecked = (await sessionService.setVerseRead(
+        secondSessionId,
+        _readOptions(63, 1, 1, read: false),
+      ))!;
+
+      expect(unchecked.verseReadStates[1]?.readCount, 1);
+      expect(unchecked.verseReadStates[1]?.readThisSession, isFalse);
+      expect(unchecked.progress.versesToday, 1);
+      expect(unchecked.bookCompleted, isNull);
+
+      expect(await database.getRsLogForSession(firstSessionId), hasLength(1));
+      expect(await database.getRsLogForSession(secondSessionId), isEmpty);
+    },
+  );
+
+  test('unchecking a verse not read in this session is a no-op', () async {
     final plan = await planService.saveReadingPlan(
-      planName: 'Reset Test',
+      planName: 'No-op Uncheck Test',
       collectionId: 1,
       goalType: GoalType.verses,
-      goalValue: 15,
+      goalValue: 5,
       selectedBookIds: {63},
     );
 
-    final sessionId = await startPlan(plan.id!);
-    for (int i = 0; i < ReadingSessionService.maximumReadCount; i++) {
-      await sessionService.markVerseAsRead(sessionId, 63, 1, 1);
-    }
+    final firstSessionId = await startPlan(plan.id!);
+    await sessionService.setVerseRead(
+      firstSessionId,
+      _readOptions(63, 1, 1, read: true),
+    );
+    await sessionService.endSession(firstSessionId);
 
-    final capped = (await sessionService.markVerseAsRead(sessionId, 63, 1, 1))!;
-    expect(capped.verseReadCounts[1], ReadingSessionService.maximumReadCount);
-    expect(capped.progress.versesToday, ReadingSessionService.maximumReadCount);
+    final secondSessionId = await startPlan(plan.id!);
+    final before = (await database.getSessionById(secondSessionId))!;
 
-    final reset = (await sessionService.resetVerseProgress(
-      sessionId,
-      63,
-      1,
-      1,
+    final result = (await sessionService.setVerseRead(
+      secondSessionId,
+      _readOptions(63, 1, 1, read: false),
     ))!;
-    expect(reset.verseReadCounts[1], 0);
-    expect(reset.progress.versesToday, 0);
+
+    expect(result.verseReadStates[1]?.readCount, 1);
+    expect(result.verseReadStates[1]?.readThisSession, isFalse);
+    expect(result.progress.versesToday, 1);
+
+    final after = (await database.getSessionById(secondSessionId))!;
+    expect(after.endTime, before.endTime);
   });
+
+  test(
+    'a verse read before midnight is unchecked in the new day session',
+    () async {
+      final plan = await planService.saveReadingPlan(
+        planName: 'Rollover Test',
+        collectionId: 1,
+        goalType: GoalType.verses,
+        goalValue: 5,
+        selectedBookIds: {63},
+      );
+
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final yesterday = today.subtract(const Duration(days: 1));
+      final oldSession = await database.insertSession(
+        RsSession(
+          rsDate: yesterday,
+          startTime: yesterday.add(const Duration(hours: 9)),
+          endTime: yesterday.add(const Duration(hours: 9, minutes: 5)),
+          verses: 1,
+          readingPlanId: plan.id!,
+        ),
+      );
+      await database.markVerseRead(plan.id!, 63, 1, 1);
+      await database.insertLog(
+        RsLog(
+          sessionId: oldSession.id!,
+          bookId: 63,
+          chapter: 1,
+          verse: 1,
+          dateTime: yesterday.add(const Duration(hours: 9)),
+          readingPlanId: plan.id!,
+        ),
+      );
+
+      final unchecked = (await sessionService.setVerseRead(
+        oldSession.id!,
+        _readOptions(63, 1, 1, read: false),
+      ))!;
+
+      final newSessionId = unchecked.progress.sessionId;
+      expect(newSessionId, isNot(oldSession.id));
+      expect(unchecked.verseReadStates[1]?.readCount, 1);
+      expect(unchecked.verseReadStates[1]?.readThisSession, isFalse);
+      expect(unchecked.progress.versesToday, 0);
+      expect(unchecked.bookCompleted, isNull);
+      expect(await database.getRsLogForSession(oldSession.id!), hasLength(1));
+
+      final checked = (await sessionService.setVerseRead(
+        newSessionId,
+        _readOptions(63, 1, 1, read: true),
+      ))!;
+      expect(checked.verseReadStates[1]?.readCount, 2);
+      expect(checked.verseReadStates[1]?.readThisSession, isTrue);
+      expect(checked.progress.versesToday, 1);
+      expect(await database.getRsLogForSession(oldSession.id!), hasLength(1));
+      expect(await database.getRsLogForSession(newSessionId), hasLength(1));
+    },
+  );
 
   test('reports book completion with the next resume position', () async {
     final plan = await planService.saveReadingPlan(
@@ -230,7 +377,10 @@ void main() {
 
     VerseReadResult? result;
     for (int verse = 1; verse <= 13; verse++) {
-      result = await sessionService.markVerseAsRead(sessionId, 63, 1, verse);
+      result = await sessionService.setVerseRead(
+        sessionId,
+        _readOptions(63, 1, verse),
+      );
     }
 
     final event = result!.bookCompleted;
@@ -256,10 +406,10 @@ void main() {
       final viewModel = ReadingSessionViewModel.withService(sessionService);
       await viewModel.startSession(plan.id!);
 
-      await viewModel.markVerseAsRead(63, 1, 1);
+      await viewModel.setVerseRead(_readOptions(63, 1, 1, read: true));
       expect(viewModel.goalReachedNotifier.value, isFalse);
 
-      await viewModel.markVerseAsRead(63, 1, 2);
+      await viewModel.setVerseRead(_readOptions(63, 1, 2, read: true));
       expect(viewModel.goalReachedNotifier.value, isTrue);
 
       await viewModel.endSession();
@@ -268,7 +418,7 @@ void main() {
       await viewModel.startSession(plan.id!);
       expect(viewModel.session?.goalAlreadyReachedToday, isTrue);
 
-      await viewModel.markVerseAsRead(63, 1, 3);
+      await viewModel.setVerseRead(_readOptions(63, 1, 3, read: true));
       expect(viewModel.goalReachedNotifier.value, isFalse);
 
       viewModel.dispose();
@@ -326,8 +476,17 @@ void main() {
     await sessionService.endSession(sessionId);
 
     expect(await sessionService.heartbeat(-1), isNull);
-    expect(await sessionService.markVerseAsRead(-1, 63, 1, 1), isNull);
-    expect(await sessionService.resetVerseProgress(-1, 63, 1, 1), isNull);
-    expect(await sessionService.getVerseReadCounts(-1, 63, 1), isEmpty);
+    expect(
+      await sessionService.setVerseRead(-1, _readOptions(63, 1, 1, read: true)),
+      isNull,
+    );
+    expect(
+      await sessionService.setVerseRead(
+        -1,
+        _readOptions(63, 1, 1, read: false),
+      ),
+      isNull,
+    );
+    expect(await sessionService.getVerseReadStates(-1, 63, 1), isEmpty);
   });
 }

@@ -49,12 +49,12 @@ class BookCompletedEvent {
 class VerseReadResult {
   const VerseReadResult({
     required this.progress,
-    required this.verseReadCounts,
+    required this.verseReadStates,
     this.bookCompleted,
   });
 
   final SessionProgress progress;
-  final Map<int, int> verseReadCounts;
+  final Map<int, VerseReadState> verseReadStates;
   final BookCompletedEvent? bookCompleted;
 }
 
@@ -62,8 +62,6 @@ class ReadingSessionService {
   ReadingSessionService() : this.withDatabase(getIt<ReadingSessionDatabase>());
 
   ReadingSessionService.withDatabase(this._database);
-
-  static const int maximumReadCount = 10;
 
   final ReadingSessionDatabase _database;
   late final _bibleNavigation = getIt<BibleNavigation>();
@@ -112,12 +110,15 @@ class ReadingSessionService {
     });
   }
 
-  Future<VerseReadResult?> markVerseAsRead(
+  Future<VerseReadResult?> setVerseRead(
     int sessionId,
-    int bookId,
-    int chapter,
-    int verse,
+    VerseReadOptions options,
   ) async {
+    final bookId = options.bookId;
+    final chapter = options.chapter;
+    final verse = options.verse;
+    final read = options.read;
+
     final now = DateTime.now();
     var session = await _database.getSessionById(sessionId);
     if (session == null) return null;
@@ -131,131 +132,9 @@ class ReadingSessionService {
     if (!config.bookIds.contains(bookId)) {
       return VerseReadResult(
         progress: await _readProgress(session, now),
-        verseReadCounts: await _database.getVerseReadCountsForChapter(
+        verseReadStates: await _database.getVerseReadStatesForChapter(
           planId,
-          bookId,
-          chapter,
-        ),
-      );
-    }
-
-    session = await _rolloverTo(session, now);
-    final current = session;
-
-    final outcome = await _database.transaction((txn) async {
-      final existingCount =
-          await _database.getVerseReadCount(
-            planId,
-            bookId,
-            chapter,
-            verse,
-            executor: txn,
-          ) ??
-          0;
-
-      if (existingCount >= maximumReadCount) {
-        return (
-          mutated: false,
-          session: current,
-          counts: await _database.getVerseReadCountsForChapter(
-            planId,
-            bookId,
-            chapter,
-            executor: txn,
-          ),
-          event: null,
-        );
-      }
-
-      await _database.insertLog(
-        RsLog(
-          sessionId: current.id!,
-          bookId: bookId,
-          chapter: chapter,
-          verse: verse,
-          dateTime: now,
-          readingPlanId: planId,
-        ),
-        executor: txn,
-      );
-
-      final updatedSession = current.copyWith(
-        verses: current.verses + 1,
-        endTime: now,
-      );
-
-      await _database.updateSession(updatedSession, executor: txn);
-      await _database.markVerseRead(
-        planId,
-        bookId,
-        chapter,
-        verse,
-        timestamp: now,
-        executor: txn,
-      );
-      await _database.upsertDaySummary(planId, current.rsDate, executor: txn);
-
-      BookCompletedEvent? event;
-      if (existingCount == 0 &&
-          await _database.isBookComplete(planId, bookId, executor: txn)) {
-        final reference = Reference(
-          bookId: bookId,
-          chapter: chapter,
-          verse: verse,
-        );
-        final resumePosition = await _database.getResumeReference(
-          planId,
-          after: reference,
-          executor: txn,
-        );
-        event = BookCompletedEvent(
-          completedBookId: bookId,
-          nextBookId: resumePosition?.bookId,
-          resumePosition: resumePosition,
-        );
-      }
-
-      return (
-        mutated: true,
-        session: updatedSession,
-        counts: await _database.getVerseReadCountsForChapter(
-          planId,
-          bookId,
-          chapter,
-          executor: txn,
-        ),
-        event: event,
-      );
-    });
-
-    return VerseReadResult(
-      progress: await _readProgress(outcome.session, now),
-      verseReadCounts: outcome.counts,
-      bookCompleted: outcome.event,
-    );
-  }
-
-  Future<VerseReadResult?> resetVerseProgress(
-    int sessionId,
-    int bookId,
-    int chapter,
-    int verse,
-  ) async {
-    final now = DateTime.now();
-    var session = await _database.getSessionById(sessionId);
-    if (session == null) return null;
-
-    final details = await _database.getReadingPlanById(session.readingPlanId);
-    if (details == null) return null;
-
-    final config = ReadingPlanConfig.fromPlanDetails(details, _bibleNavigation);
-    final planId = session.readingPlanId;
-
-    if (!config.bookIds.contains(bookId)) {
-      return VerseReadResult(
-        progress: await _readProgress(session, now),
-        verseReadCounts: await _database.getVerseReadCountsForChapter(
-          planId,
+          session.id!,
           bookId,
           chapter,
         ),
@@ -273,47 +152,111 @@ class ReadingSessionService {
         verse,
         executor: txn,
       );
-      final currentSessionCount = logs.length;
-
-      await _database.deleteRsLogsForVerse(
-        planId,
-        bookId,
-        chapter,
-        verse,
-        executor: txn,
-      );
-      await _database.resetVerseState(
-        planId,
-        bookId,
-        chapter,
-        verse,
-        executor: txn,
-      );
+      final readThisSession = logs.isNotEmpty;
 
       var updatedSession = current;
-      if (currentSessionCount > 0) {
+      BookCompletedEvent? event;
+
+      if (read && !readThisSession) {
+        final existingCount =
+            await _database.getVerseReadCount(
+              planId,
+              bookId,
+              chapter,
+              verse,
+              executor: txn,
+            ) ??
+            0;
+
+        await _database.insertLog(
+          RsLog(
+            sessionId: current.id!,
+            bookId: bookId,
+            chapter: chapter,
+            verse: verse,
+            dateTime: now,
+            readingPlanId: planId,
+          ),
+          executor: txn,
+        );
+
         updatedSession = current.copyWith(
-          verses: math.max(0, current.verses - currentSessionCount),
+          verses: current.verses + 1,
+          endTime: now,
+        );
+
+        await _database.updateSession(updatedSession, executor: txn);
+        await _database.markVerseRead(
+          planId,
+          bookId,
+          chapter,
+          verse,
+          timestamp: now,
+          executor: txn,
+        );
+
+        if (existingCount == 0 &&
+            await _database.isBookComplete(planId, bookId, executor: txn)) {
+          final reference = Reference(
+            bookId: bookId,
+            chapter: chapter,
+            verse: verse,
+          );
+          final resumePosition = await _database.getResumeReference(
+            planId,
+            after: reference,
+            executor: txn,
+          );
+          event = BookCompletedEvent(
+            completedBookId: bookId,
+            nextBookId: resumePosition?.bookId,
+            resumePosition: resumePosition,
+          );
+        }
+      } else if (!read && readThisSession) {
+        await _database.deleteRsLogForSessionAndVerse(
+          current.id!,
+          bookId,
+          chapter,
+          verse,
+          executor: txn,
+        );
+        await _database.unmarkVerseRead(
+          planId,
+          bookId,
+          chapter,
+          verse,
+          executor: txn,
+        );
+
+        updatedSession = current.copyWith(
+          verses: math.max(0, current.verses - 1),
           endTime: now,
         );
         await _database.updateSession(updatedSession, executor: txn);
+      }
+
+      if (read != readThisSession) {
         await _database.upsertDaySummary(planId, current.rsDate, executor: txn);
       }
 
       return (
         session: updatedSession,
-        counts: await _database.getVerseReadCountsForChapter(
+        states: await _database.getVerseReadStatesForChapter(
           planId,
+          updatedSession.id!,
           bookId,
           chapter,
           executor: txn,
         ),
+        event: event,
       );
     });
 
     return VerseReadResult(
       progress: await _readProgress(outcome.session, now),
-      verseReadCounts: outcome.counts,
+      verseReadStates: outcome.states,
+      bookCompleted: outcome.event,
     );
   }
 
@@ -340,7 +283,7 @@ class ReadingSessionService {
     return _readProgress(current, now);
   }
 
-  Future<Map<int, int>> getVerseReadCounts(
+  Future<Map<int, VerseReadState>> getVerseReadStates(
     int sessionId,
     int bookId,
     int chapter,
@@ -348,8 +291,9 @@ class ReadingSessionService {
     final session = await _database.getSessionById(sessionId);
     if (session == null) return const {};
 
-    return _database.getVerseReadCountsForChapter(
+    return _database.getVerseReadStatesForChapter(
       session.readingPlanId,
+      session.id!,
       bookId,
       chapter,
     );

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:gbt/common/word.dart';
 import 'package:gbt/services/gloss/gloss_service.dart';
 import 'package:gbt/services/hebrew_greek/database.dart';
+import 'package:gbt/services/reading_session/rs_model.dart';
 import 'package:gbt/ui/home/reading_plan/reading_session_view_model.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/services/settings/user_settings.dart';
@@ -35,38 +36,25 @@ class HebrewGreekChapterManager {
     final token = ++_readVersesLoadToken;
     if (_disposed) return;
     verseCheckboxNotifier.clear();
-    final versesRead = await _sessionViewModel.getVerseReadCounts(
+    final versesRead = await _sessionViewModel.getVerseReadStates(
       bookId,
       chapter,
     );
     if (_disposed || token != _readVersesLoadToken) return;
-    verseCheckboxNotifier.setVersesRead(versesRead);
+    verseCheckboxNotifier.setVerseReadStates(versesRead);
   }
 
-  Future<void> markVerseAsRead(int bookId, int chapter, int verse) async {
+  Future<void> setVerseRead(VerseReadOptions options) async {
     if (!_sessionViewModel.hasActiveSession) return;
-
     if (_disposed) return;
-    final versesRead = await _sessionViewModel.markVerseAsRead(
-      bookId,
-      chapter,
-      verse,
-    );
-    if (_disposed || versesRead == null) return;
-    verseCheckboxNotifier.setVersesRead(versesRead, changedVerse: verse);
-  }
 
-  Future<void> resetVerseProgress(int bookId, int chapter, int verse) async {
-    if (!_sessionViewModel.hasActiveSession) return;
-
-    if (_disposed) return;
-    final versesRead = await _sessionViewModel.resetVerseProgress(
-      bookId,
-      chapter,
-      verse,
-    );
+    final versesRead = await _sessionViewModel.setVerseRead(options);
     if (_disposed || versesRead == null) return;
-    verseCheckboxNotifier.setVersesRead(versesRead, changedVerse: verse);
+
+    verseCheckboxNotifier.setVerseReadStates(
+      versesRead,
+      changedVerse: options.verse,
+    );
   }
 
   bool isRtl(int bookId) {
@@ -127,20 +115,23 @@ class HebrewGreekChapterManager {
 }
 
 class VerseCheckboxNotifier extends ChangeNotifier {
-  Map<int, int> _value = const {};
+  Map<int, VerseReadState> _value = const {};
   int? _changedVerse;
   bool _resetAll = true;
   int _revision = 0;
   bool _disposed = false;
 
-  Map<int, int> get value => _value;
+  Map<int, VerseReadState> get value => _value;
   int? get changedVerse => _changedVerse;
   bool get resetAll => _resetAll;
   int get revision => _revision;
 
-  void setVersesRead(Map<int, int> versesRead, {int? changedVerse}) {
+  void setVerseReadStates(
+    Map<int, VerseReadState> verseReadStates, {
+    int? changedVerse,
+  }) {
     if (_disposed) return;
-    _value = Map<int, int>.unmodifiable(versesRead);
+    _value = Map<int, VerseReadState>.unmodifiable(verseReadStates);
     _changedVerse = changedVerse;
     _resetAll = changedVerse == null;
     _revision++;

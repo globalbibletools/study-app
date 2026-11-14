@@ -10,6 +10,20 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import '../../fixtures/bible_navigation_fixture.dart';
 
+VerseReadOptions _readOptions(
+  int bookId,
+  int chapter,
+  int verse, {
+  bool read = true,
+}) {
+  return VerseReadOptions(
+    bookId: bookId,
+    chapter: chapter,
+    verse: verse,
+    read: read,
+  );
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -96,11 +110,11 @@ void main() {
         );
 
         await viewModel.startSession(plan.id!);
-        await viewModel.markVerseAsRead(63, 1, 1);
+        await viewModel.setVerseRead(_readOptions(63, 1, 1, read: true));
 
         await Future<void>.delayed(const Duration(seconds: 2));
-        await viewModel.markVerseAsRead(63, 1, 2);
-        await viewModel.markVerseAsRead(63, 1, 3);
+        await viewModel.setVerseRead(_readOptions(63, 1, 2, read: true));
+        await viewModel.setVerseRead(_readOptions(63, 1, 3, read: true));
 
         final now = DateTime.now();
         final today = DateTime(now.year, now.month, now.day);
@@ -155,7 +169,7 @@ void main() {
 
         await viewModel.startSession(plan.id!);
         for (int v = 1; v <= 3; v++) {
-          await viewModel.markVerseAsRead(63, 1, v);
+          await viewModel.setVerseRead(_readOptions(63, 1, v, read: true));
         }
         expect((await summaryFor(plan.id!, today)).goalReached, isTrue);
 
@@ -168,7 +182,7 @@ void main() {
           selectedBookIds: {63},
         );
 
-        await viewModel.markVerseAsRead(63, 1, 4);
+        await viewModel.setVerseRead(_readOptions(63, 1, 4, read: true));
 
         final todaysSummary = await summaryFor(plan.id!, today);
         expect(todaysSummary.goalReached, isFalse);
@@ -200,7 +214,7 @@ void main() {
         );
 
         await viewModel.startSession(plan.id!);
-        await viewModel.markVerseAsRead(63, 1, 1);
+        await viewModel.setVerseRead(_readOptions(63, 1, 1, read: true));
 
         final now = DateTime.now();
         final today = DateTime(now.year, now.month, now.day);
@@ -239,7 +253,7 @@ void main() {
       expect(before[now.day - 1].empty, isTrue);
 
       await viewModel.startSession(plan.id!);
-      await viewModel.markVerseAsRead(63, 1, 1);
+      await viewModel.setVerseRead(_readOptions(63, 1, 1, read: true));
 
       final after = await planService.getMonthProgress(plan.id!, month);
       final todayCell = after[now.day - 1];

@@ -411,6 +411,35 @@ class RsBookStats {
   bool get isComplete => totalVerses > 0 && versesRead == totalVerses;
 }
 
+/// The read state of a single verse as it relates to the active session.
+class VerseReadState {
+  const VerseReadState({
+    required this.readCount,
+    required this.readThisSession,
+  });
+
+  /// Total number of times this verse has ever been read.
+  final int readCount;
+
+  /// Whether this verse has been read in the current session.
+  final bool readThisSession;
+}
+
+/// Options for setting a verse's read state in the active session.
+class VerseReadOptions {
+  const VerseReadOptions({
+    required this.bookId,
+    required this.chapter,
+    required this.verse,
+    required this.read,
+  });
+
+  final int bookId;
+  final int chapter;
+  final int verse;
+  final bool read;
+}
+
 class DayProgress {
   final DateTime day;
   final int minutes;

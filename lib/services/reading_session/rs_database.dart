@@ -832,7 +832,7 @@ class ReadingSessionDatabase {
     );
   }
 
-  Future<void> resetVerseState(
+  Future<void> unmarkVerseRead(
     int readingPlanId,
     int bookId,
     int chapter,
@@ -840,12 +840,12 @@ class ReadingSessionDatabase {
     DatabaseExecutor? executor,
   }) async {
     final db = executor ?? _database;
-    await db.update(
-      'rs_verse_state',
-      {'read_count': 0, 'last_read': null},
-      where:
-          'reading_plan_id = ? AND book_id = ? AND chapter = ? AND verse = ?',
-      whereArgs: [readingPlanId, bookId, chapter, verse],
+    await db.rawUpdate(
+      'UPDATE rs_verse_state '
+      'SET read_count = MAX(read_count - 1, 0), '
+      '    last_read = CASE WHEN read_count <= 1 THEN NULL ELSE last_read END '
+      'WHERE reading_plan_id = ? AND book_id = ? AND chapter = ? AND verse = ?',
+      [readingPlanId, bookId, chapter, verse],
     );
   }
 
@@ -884,6 +884,37 @@ class ReadingSessionDatabase {
 
     return {
       for (final row in rows) row['verse'] as int: row['read_count'] as int,
+    };
+  }
+
+  Future<Map<int, VerseReadState>> getVerseReadStatesForChapter(
+    int readingPlanId,
+    int sessionId,
+    int bookId,
+    int chapter, {
+    DatabaseExecutor? executor,
+  }) async {
+    final db = executor ?? _database;
+    final rows = await db.rawQuery(
+      'SELECT v.verse AS verse, MAX(0, v.read_count) AS read_count, '
+      '       CASE WHEN l.id IS NULL THEN 0 ELSE 1 END AS read_this_session '
+      'FROM rs_verse_state v '
+      'LEFT JOIN rs_log l '
+      '  ON l.reading_plan_id = v.reading_plan_id '
+      ' AND l.book_id = v.book_id '
+      ' AND l.chapter = v.chapter '
+      ' AND l.verse = v.verse '
+      ' AND l.rs_session_id = ? '
+      'WHERE v.reading_plan_id = ? AND v.book_id = ? AND v.chapter = ?',
+      [sessionId, readingPlanId, bookId, chapter],
+    );
+
+    return {
+      for (final row in rows)
+        row['verse'] as int: VerseReadState(
+          readCount: row['read_count'] as int,
+          readThisSession: (row['read_this_session'] as int) == 1,
+        ),
     };
   }
 
@@ -957,8 +988,8 @@ class ReadingSessionDatabase {
     return total > 0 && read == total;
   }
 
-  Future<int> deleteRsLogsForVerse(
-    int readingPlanId,
+  Future<int> deleteRsLogForSessionAndVerse(
+    int sessionId,
     int bookId,
     int chapter,
     int verse, {
@@ -967,9 +998,8 @@ class ReadingSessionDatabase {
     final db = executor ?? _database;
     return await db.delete(
       'rs_log',
-      where:
-          'reading_plan_id = ? AND book_id = ? AND chapter = ? AND verse = ?',
-      whereArgs: [readingPlanId, bookId, chapter, verse],
+      where: 'rs_session_id = ? AND book_id = ? AND chapter = ? AND verse = ?',
+      whereArgs: [sessionId, bookId, chapter, verse],
     );
   }
 

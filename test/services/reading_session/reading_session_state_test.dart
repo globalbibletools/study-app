@@ -20,6 +20,20 @@ import '../../fixtures/bible_navigation_fixture.dart';
 
 class FakeHomeManager extends Fake implements HomeManager {}
 
+VerseReadOptions _readOptions(
+  int bookId,
+  int chapter,
+  int verse, {
+  bool read = true,
+}) {
+  return VerseReadOptions(
+    bookId: bookId,
+    chapter: chapter,
+    verse: verse,
+    read: read,
+  );
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -113,7 +127,7 @@ void main() {
 
         expect(getIt<BibleNavigation>().getVerseCount(19, 1), 6);
         for (int v = 1; v <= 6; v++) {
-          await viewModel.markVerseAsRead(19, 1, v);
+          await viewModel.setVerseRead(_readOptions(19, 1, v, read: true));
         }
 
         expect(bookCompletedCount, 0);
@@ -152,7 +166,7 @@ void main() {
           bookCompletedCount++;
         });
 
-        await viewModel.markVerseAsRead(19, 150, 6);
+        await viewModel.setVerseRead(_readOptions(19, 150, 6, read: true));
 
         expect(bookCompletedCount, 0);
         expect(viewModel.bookCompletedNotifier.value, isNull);
@@ -186,14 +200,14 @@ void main() {
         });
 
         for (int v = 2; v <= 13; v++) {
-          await viewModel.markVerseAsRead(63, 1, v);
+          await viewModel.setVerseRead(_readOptions(63, 1, v, read: true));
         }
         expect(completionReceived, isNull);
 
         var stats = await rsDb.getBookStats(plan.id!);
         expect(stats[63]!.versesRead, 12);
 
-        await viewModel.markVerseAsRead(63, 1, 1);
+        await viewModel.setVerseRead(_readOptions(63, 1, 1, read: true));
 
         expect(completionReceived?.completedBookId, 63);
         expect(completionReceived?.nextBookId, 64);
@@ -207,10 +221,10 @@ void main() {
     );
 
     test(
-      'resetting a verse after 10 reads across multiple sessions zeroes verse read count, decrements verses read, and adjusts today daily log only for active session reads',
+      'unchecking a verse read in this session decrements verse count, verses read, and today total',
       () async {
         final plan = await planService.saveReadingPlan(
-          planName: 'Reset Test Plan',
+          planName: 'Uncheck Test Plan',
           collectionId: 1,
           goalType: GoalType.verses,
           goalValue: 15,
@@ -222,29 +236,16 @@ void main() {
           (p) => p.readingPlan.id == plan.id,
         );
 
-        // Session 1: Mark verse 1 read 3 times, then close session
         await viewModel.startSession(planDetails.readingPlan.id!);
-        for (int i = 0; i < 3; i++) {
-          await viewModel.markVerseAsRead(63, 1, 1);
-        }
-        await viewModel.endSession();
-
-        // Session 2: Mark verses 2..13 read once, and verse 1 read 7 more times (reaching 10 total reads)
-        await viewModel.startSession(planDetails.readingPlan.id!);
-        for (int v = 2; v <= 13; v++) {
-          await viewModel.markVerseAsRead(63, 1, v);
-        }
-        for (int i = 0; i < 7; i++) {
-          await viewModel.markVerseAsRead(63, 1, 1);
+        for (int v = 1; v <= 13; v++) {
+          await viewModel.setVerseRead(_readOptions(63, 1, v, read: true));
         }
 
         var stats = await rsDb.getBookStats(plan.id!);
         expect(stats[63]!.versesRead, 13);
+        expect(viewModel.session!.versesToday, 13);
 
-        final versesReadTodayBeforeReset = viewModel.session!.versesToday;
-
-        // Reset verse 1
-        await viewModel.resetVerseProgress(63, 1, 1);
+        await viewModel.setVerseRead(_readOptions(63, 1, 1, read: false));
 
         final chapterCounts = await rsDb.getVerseReadCountsForChapter(
           plan.id!,
@@ -254,10 +255,51 @@ void main() {
         expect(chapterCounts[1], 0);
         expect(chapterCounts.values.where((count) => count > 0).length, 12);
 
+        final states = await viewModel.getVerseReadStates(63, 1);
+        expect(states[1]!.readCount, 0);
+        expect(states[1]!.readThisSession, isFalse);
+
         stats = await rsDb.getBookStats(plan.id!);
         expect(stats[63]!.versesRead, 12);
+        expect(viewModel.session!.versesToday, 12);
+      },
+    );
 
-        expect(viewModel.session!.versesToday, versesReadTodayBeforeReset - 7);
+    test(
+      'unchecking in a later same-day session keeps the earlier session log and read count',
+      () async {
+        final plan = await planService.saveReadingPlan(
+          planName: 'Multi Session Uncheck Test Plan',
+          collectionId: 1,
+          goalType: GoalType.verses,
+          goalValue: 15,
+          selectedBookIds: {63},
+        );
+
+        final plans = await planService.getReadingPlansWithProgress();
+        final planDetails = plans.firstWhere(
+          (p) => p.readingPlan.id == plan.id,
+        );
+
+        await viewModel.startSession(planDetails.readingPlan.id!);
+        final firstSessionId = viewModel.sessionId!;
+        await viewModel.setVerseRead(_readOptions(63, 1, 1, read: true));
+        await viewModel.endSession();
+
+        await viewModel.startSession(planDetails.readingPlan.id!);
+        final statesBefore = await viewModel.getVerseReadStates(63, 1);
+        expect(statesBefore[1]!.readCount, 1);
+        expect(statesBefore[1]!.readThisSession, isFalse);
+
+        await viewModel.setVerseRead(_readOptions(63, 1, 1, read: false));
+
+        final statesAfter = await viewModel.getVerseReadStates(63, 1);
+        expect(statesAfter[1]!.readCount, 1);
+        expect(statesAfter[1]!.readThisSession, isFalse);
+        expect(await rsDb.getRsLogForSession(firstSessionId), hasLength(1));
+
+        final stats = await rsDb.getBookStats(plan.id!);
+        expect(stats[63]!.versesRead, 1);
       },
     );
 
@@ -283,7 +325,7 @@ void main() {
         await planService.reorderReadingPlanBooks(plan.id!, reordered);
 
         await viewModel.startSession(details.readingPlan.id!);
-        await viewModel.markVerseAsRead(2, 1, 1);
+        await viewModel.setVerseRead(_readOptions(2, 1, 1, read: true));
         expect((await rsDb.getBookStats(plan.id!))[2]!.versesRead, 1);
 
         details = (await planService.getReadingPlansWithProgress()).firstWhere(
@@ -336,7 +378,7 @@ void main() {
         );
 
         await viewModel.startSession(planADetails.readingPlan.id!);
-        await viewModel.markVerseAsRead(1, 1, 1);
+        await viewModel.setVerseRead(_readOptions(1, 1, 1, read: true));
         await viewModel.endSession();
 
         await planService.deleteReadingPlan(planA.id!);
