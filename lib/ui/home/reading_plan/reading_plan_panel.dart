@@ -5,7 +5,7 @@ import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/l10n/book_names.dart';
 import 'package:gbt/services/reading_session/rs_model.dart';
 import 'package:gbt/ui/home/home_manager.dart';
-import 'package:gbt/ui/home/reading_plan/add_reading_plan_panel.dart';
+import 'package:gbt/ui/home/reading_plan/edit_reading_plan_panel.dart';
 import 'package:gbt/ui/home/reading_plan/reading_plan_detail_panel.dart';
 import 'package:gbt/ui/home/reading_plan/reading_plan_panel_manager.dart';
 
@@ -197,6 +197,7 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
 
   Widget _createNewPlanButton() {
     final colorScheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
@@ -215,7 +216,12 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
           borderRadius: BorderRadius.circular(16),
           onTap: () async {
             await Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const AddReadingPlanPanel()),
+              MaterialPageRoute(
+                builder:
+                    (_) => EditReadingPlanPanel.newPlan(
+                      l10n.defaultReadingPlanName,
+                    ),
+              ),
             );
 
             manager.init();
@@ -292,7 +298,8 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
             if (_editMode) {
               await Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (_) => AddReadingPlanPanel(planDetails: planDet),
+                  builder:
+                      (_) => EditReadingPlanPanel.existing(planDet),
                 ),
               );
               _editMode = false;

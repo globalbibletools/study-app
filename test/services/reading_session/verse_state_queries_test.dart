@@ -16,7 +16,7 @@ void main() {
   });
 
   setUp(() async {
-    database = ReadingSessionDatabase(
+    database = ReadingSessionDatabase.withDependencies(
       databaseName: 'verse_state_queries_test.db',
       verseInventoryProvider: (bookIds) async =>
           createTestVerseInventory(bookIds: bookIds),
@@ -75,7 +75,7 @@ void main() {
 
   test('materializes provider inventory including numbering gaps', () async {
     database.dispose();
-    database = ReadingSessionDatabase(
+    database = ReadingSessionDatabase.withDependencies(
       databaseName: 'verse_state_gap_test.db',
       verseInventoryProvider: (bookIds) async {
         final inventory = createTestVerseInventory(bookIds: bookIds);

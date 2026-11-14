@@ -63,14 +63,17 @@ void main() {
 
     getIt.registerSingleton<BibleNavigation>(createTestBibleNavigation());
 
-    rsDb = ReadingSessionDatabase(
+    rsDb = ReadingSessionDatabase.withDependencies(
       verseInventoryProvider: (bookIds) async =>
           createTestVerseInventory(bookIds: bookIds),
     );
     await rsDb.resetDatabase();
     await rsDb.init();
     getIt.registerSingleton<ReadingSessionDatabase>(rsDb);
-    planService = ReadingPlanService.withDatabase(rsDb);
+    planService = ReadingPlanService.withDependencies(
+      database: rsDb,
+      bibleNavigation: createTestBibleNavigation(),
+    );
     getIt.registerSingleton<ReadingPlanService>(planService);
 
     sessionService = ReadingSessionService.withDatabase(rsDb);
