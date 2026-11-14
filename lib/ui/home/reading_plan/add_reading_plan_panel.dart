@@ -1,155 +1,107 @@
 import 'package:flutter/material.dart';
 import 'package:gbt/common/bible_collection.dart';
-import 'package:gbt/common/bible_navigation.dart';
-import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/l10n/book_names.dart';
 import 'package:gbt/services/reading_session/rs_model.dart';
 import 'package:gbt/ui/home/keypad/numeric_keypad.dart';
-import 'package:gbt/ui/home/reading_plan/add_reading_plan_panel_manager.dart';
+import 'package:gbt/ui/home/reading_plan/add_reading_plan_view_model.dart';
 import 'package:gbt/ui/home/reading_plan/reading_plan_panel.dart';
 
 class AddReadingPlanPanel extends StatefulWidget {
-  final ReadingPlanDetails? planDetails;
-  const AddReadingPlanPanel({super.key, this.planDetails});
+  final ReadingPlanDetails planDetails;
+
+  const AddReadingPlanPanel.existing(this.planDetails, {super.key});
+
+  AddReadingPlanPanel.newPlan(String name, {super.key})
+    : planDetails = AddReadingPlanViewModel.defaultPlan(name);
 
   @override
   State<AddReadingPlanPanel> createState() => _AddReadingPlanPanelState();
 }
 
 class _AddReadingPlanPanelState extends State<AddReadingPlanPanel> {
-  late final _bibleNavigation = getIt<BibleNavigation>();
-
   static const _allDigits = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
   static const _firstDigits = {1, 2, 3, 4, 5, 6, 7, 8, 9};
 
-  late final TextEditingController _planNameController;
-  late final AddReadingPlanPanelManager manager;
-  late BibleCollection _selectedCollection;
-  late Set<int> _selectedBookIds;
-  late GoalType _goalType;
-  late int _goalValue;
+  late final AddReadingPlanViewModel viewModel;
 
   bool _isEditingValue = false;
   String _valueInput = '';
 
-  bool _isSubmitting = false;
-  bool _defaultPlanNameApplied = false;
-
   @override
   void initState() {
     super.initState();
-    final existing = widget.planDetails;
-    manager = AddReadingPlanPanelManager(existing);
-
-    if (existing != null) {
-      _selectedCollection = BibleCollections.fromId(
-        existing.readingPlan.collectionId,
-      );
-      _selectedBookIds = existing.books.map((x) => x.bookId).toSet();
-
-      _goalType = existing.dailyGoal.type;
-      _goalValue = existing.dailyGoal.value;
-      _planNameController = TextEditingController(
-        text: existing.readingPlan.planName,
-      );
-    } else {
-      _selectedCollection = BibleCollections.collections[0];
-      _selectedBookIds = _selectedCollection.books.toSet();
-      _goalType = GoalType.verses;
-      _goalValue = 10;
-      _planNameController = TextEditingController();
-    }
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (widget.planDetails == null && !_defaultPlanNameApplied) {
-      _planNameController.text = AppLocalizations.of(
-        context,
-      )!.defaultReadingPlanName;
-      _defaultPlanNameApplied = true;
-    }
+    viewModel = AddReadingPlanViewModel(widget.planDetails);
   }
 
   String _booksSummary(AppLocalizations l10n) {
-    final total = _selectedCollection.books.length;
-    final selected = _selectedBookIds.length;
+    final total = viewModel.collectionBookCount;
+    final selected = viewModel.selectedBookCount;
     if (selected == total) {
       return l10n.allBooksSelected(total);
     }
     return l10n.booksSelected(selected, total);
   }
 
-  int get _estimatedDays {
-    int totalVerses = 0;
-    for (int bookId in _selectedBookIds) {
-      totalVerses += _bibleNavigation.getTotalVerseCount(bookId);
-    }
-
-    if (_goalType == GoalType.verses) {
-      return (totalVerses / _goalValue).ceil().clamp(1, 100000);
-    }
-    final totalMinutes = (totalVerses / 5).ceil();
-    return (totalMinutes / _goalValue).ceil().clamp(1, 100000);
-  }
-
   String _estimatedMonthsLabel(AppLocalizations l10n) {
-    final months = _estimatedDays / 30.44;
-    return l10n.monthsCount(months.toStringAsFixed(1));
+    return l10n.monthsCount(viewModel.estimatedMonths.toStringAsFixed(1));
   }
 
   @override
   void dispose() {
-    _planNameController.dispose();
+    viewModel.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final panel = Container(
-      padding: const EdgeInsets.all(16),
-      decoration: const BoxDecoration(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      child: Column(
-        children: [
-          _handle(),
-          const SizedBox(height: 16),
-          _topTitle(),
-          const SizedBox(height: 12),
-          Expanded(child: _content()),
-        ],
-      ),
-    );
-
-    return SizedBox.expand(
-      child: SafeArea(
-        top: false,
-        child: Material(
-          color: Theme.of(context).colorScheme.surface,
+    return ListenableBuilder(
+      listenable: viewModel,
+      builder: (context, _) {
+        final panel = Container(
+          padding: const EdgeInsets.all(16),
+          decoration: const BoxDecoration(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
           child: Column(
             children: [
-              Expanded(child: panel),
-              if (_isEditingValue)
-                Material(
-                  elevation: 16,
-                  color: Theme.of(context).scaffoldBackgroundColor,
-                  child: NumericKeypad(
-                    isLastInput: true,
-                    enabledDigits: _valueInput.isEmpty
-                        ? _firstDigits
-                        : _allDigits,
-                    onDigit: _handleDigit,
-                    onBackspace: _handleBackspace,
-                    onSubmit: _finishEditingValue,
-                  ),
-                ),
+              _handle(),
+              const SizedBox(height: 16),
+              _topTitle(),
+              const SizedBox(height: 12),
+              Expanded(child: _content()),
             ],
           ),
-        ),
-      ),
+        );
+
+        return SizedBox.expand(
+          child: SafeArea(
+            top: false,
+            child: Material(
+              color: Theme.of(context).colorScheme.surface,
+              child: Column(
+                children: [
+                  Expanded(child: panel),
+                  if (_isEditingValue)
+                    Material(
+                      elevation: 16,
+                      color: Theme.of(context).scaffoldBackgroundColor,
+                      child: NumericKeypad(
+                        isLastInput: true,
+                        enabledDigits: _valueInput.isEmpty
+                            ? _firstDigits
+                            : _allDigits,
+                        onDigit: _handleDigit,
+                        onBackspace: _handleBackspace,
+                        onSubmit: _finishEditingValue,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -180,7 +132,7 @@ class _AddReadingPlanPanelState extends State<AddReadingPlanPanel> {
           l10n.readingPlans,
           style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
         ),
-        if (widget.planDetails != null)
+        if (viewModel.isExisting)
           Align(
             alignment: Alignment.centerRight,
             child: IconButton(
@@ -192,12 +144,10 @@ class _AddReadingPlanPanelState extends State<AddReadingPlanPanel> {
               onPressed: () async {
                 final confirmed = await confirmDeleteReadingPlan(
                   context,
-                  widget.planDetails!.readingPlan.planName,
+                  widget.planDetails.readingPlan.planName,
                 );
                 if (confirmed) {
-                  await manager.deleteReadingPlan(
-                    widget.planDetails!.readingPlan.id!,
-                  );
+                  await viewModel.delete();
                   if (!mounted) return;
                   Navigator.of(context).pop();
                 }
@@ -234,7 +184,7 @@ class _AddReadingPlanPanelState extends State<AddReadingPlanPanel> {
           const SizedBox(height: 10),
           Center(
             child: Text(
-              _goalType == GoalType.minutes
+              viewModel.goalType == GoalType.minutes
                   ? l10n.minutesPerDay.toUpperCase()
                   : l10n.versesPerDay.toUpperCase(),
               style: TextStyle(
@@ -259,8 +209,9 @@ class _AddReadingPlanPanelState extends State<AddReadingPlanPanel> {
 
   Widget _planHeader() {
     final colorScheme = Theme.of(context).colorScheme;
-    return TextField(
-      controller: _planNameController,
+    return TextFormField(
+      initialValue: viewModel.name,
+      onChanged: viewModel.setPlanName,
       style: TextStyle(
         color: colorScheme.primary,
         fontWeight: FontWeight.w600,
@@ -302,7 +253,7 @@ class _AddReadingPlanPanelState extends State<AddReadingPlanPanel> {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<BibleCollection>(
-          value: _selectedCollection,
+          value: viewModel.selectedCollection,
           isExpanded: true,
           icon: Icon(Icons.keyboard_arrow_down, color: colorScheme.onSurface),
           borderRadius: BorderRadius.circular(14),
@@ -338,11 +289,7 @@ class _AddReadingPlanPanelState extends State<AddReadingPlanPanel> {
           }).toList(),
           onChanged: (collection) {
             if (collection == null) return;
-            setState(() {
-              _selectedCollection = collection;
-              // Default to all books in the newly chosen collection.
-              _selectedBookIds = collection.books.toSet();
-            });
+            viewModel.selectCollection(collection);
           },
         ),
       ),
@@ -392,14 +339,14 @@ class _AddReadingPlanPanelState extends State<AddReadingPlanPanel> {
       ),
       builder: (context) {
         return _BookPickerSheet(
-          collection: _selectedCollection,
-          initiallySelected: _selectedBookIds,
+          collection: viewModel.selectedCollection,
+          initiallySelected: viewModel.selectedBookIds,
         );
       },
     );
 
     if (result != null) {
-      setState(() => _selectedBookIds = result);
+      viewModel.setSelectedBooks(result);
     }
   }
 
@@ -411,13 +358,10 @@ class _AddReadingPlanPanelState extends State<AddReadingPlanPanel> {
         Expanded(
           child: _buildToggleButton(
             title: l10n.verses,
-            selected: _goalType == GoalType.verses,
+            selected: viewModel.goalType == GoalType.verses,
             onTap: () {
-              setState(() {
-                _goalType = GoalType.verses;
-                _isEditingValue = false;
-                _valueInput = '';
-              });
+              _clearValueInput();
+              viewModel.setGoalType(GoalType.verses);
             },
           ),
         ),
@@ -425,13 +369,10 @@ class _AddReadingPlanPanelState extends State<AddReadingPlanPanel> {
         Expanded(
           child: _buildToggleButton(
             title: l10n.minutes,
-            selected: _goalType == GoalType.minutes,
+            selected: viewModel.goalType == GoalType.minutes,
             onTap: () {
-              setState(() {
-                _goalType = GoalType.minutes;
-                _isEditingValue = false;
-                _valueInput = '';
-              });
+              _clearValueInput();
+              viewModel.setGoalType(GoalType.minutes);
             },
           ),
         ),
@@ -476,13 +417,9 @@ class _AddReadingPlanPanelState extends State<AddReadingPlanPanel> {
         _circleButton(
           icon: Icons.remove,
           onTap: () {
-            if (_goalValue > 1) {
-              setState(() {
-                _isEditingValue = false;
-                _valueInput = '';
-                _goalValue--;
-              });
-            }
+            if (viewModel.goalValue <= 1) return;
+            _clearValueInput();
+            viewModel.decrementGoalValue();
           },
         ),
         const SizedBox(width: 30),
@@ -491,11 +428,8 @@ class _AddReadingPlanPanelState extends State<AddReadingPlanPanel> {
         _circleButton(
           icon: Icons.add,
           onTap: () {
-            setState(() {
-              _isEditingValue = false;
-              _valueInput = '';
-              _goalValue++;
-            });
+            _clearValueInput();
+            viewModel.incrementGoalValue();
           },
         ),
       ],
@@ -505,7 +439,7 @@ class _AddReadingPlanPanelState extends State<AddReadingPlanPanel> {
   Widget _editableValueField() {
     final colorScheme = Theme.of(context).colorScheme;
     final displayValue = _valueInput.isEmpty
-        ? _goalValue.toString()
+        ? viewModel.goalValue.toString()
         : _valueInput;
 
     return GestureDetector(
@@ -553,6 +487,13 @@ class _AddReadingPlanPanelState extends State<AddReadingPlanPanel> {
     );
   }
 
+  void _clearValueInput() {
+    setState(() {
+      _isEditingValue = false;
+      _valueInput = '';
+    });
+  }
+
   void _startEditingValue() {
     if (_isEditingValue) return;
 
@@ -578,8 +519,8 @@ class _AddReadingPlanPanelState extends State<AddReadingPlanPanel> {
 
     setState(() {
       _valueInput = nextInput;
-      _goalValue = nextValue;
     });
+    viewModel.setGoalValue(nextValue);
   }
 
   void _handleBackspace() {
@@ -593,10 +534,10 @@ class _AddReadingPlanPanelState extends State<AddReadingPlanPanel> {
 
     setState(() {
       _valueInput = nextInput;
-      if (nextValue != null && nextValue > 0) {
-        _goalValue = nextValue;
-      }
     });
+    if (nextValue != null && nextValue > 0) {
+      viewModel.setGoalValue(nextValue);
+    }
   }
 
   Widget _estimatedCompletion() {
@@ -611,7 +552,7 @@ class _AddReadingPlanPanelState extends State<AddReadingPlanPanel> {
         ),
         const SizedBox(width: 10),
         Text(
-          '${l10n.daysCount(_estimatedDays)} ',
+          '${l10n.daysCount(viewModel.estimatedDays)} ',
           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
         ),
         Text(
@@ -624,91 +565,69 @@ class _AddReadingPlanPanelState extends State<AddReadingPlanPanel> {
 
   Widget _addPlanButton() {
     final colorScheme = Theme.of(context).colorScheme;
-    return ValueListenableBuilder<TextEditingValue>(
-      valueListenable: _planNameController,
-      builder: (context, nameValue, _) {
-        final canSubmit =
-            !_isSubmitting &&
-            _selectedBookIds.isNotEmpty &&
-            nameValue.text.trim().isNotEmpty;
+    final canSubmit = viewModel.canSubmit;
+    final isSubmitting = viewModel.isSubmitting;
 
-        return SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              backgroundColor: canSubmit
-                  ? colorScheme.primary
-                  : colorScheme.surfaceContainerHighest,
-              foregroundColor: canSubmit
-                  ? colorScheme.onPrimary
-                  : colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
-              elevation: canSubmit ? 2 : 0,
-              side: BorderSide.none,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          backgroundColor: canSubmit
+              ? colorScheme.primary
+              : colorScheme.surfaceContainerHighest,
+          foregroundColor: canSubmit
+              ? colorScheme.onPrimary
+              : colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+          elevation: canSubmit ? 2 : 0,
+          side: BorderSide.none,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+        onPressed: canSubmit ? _handleAddPlan : null,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (isSubmitting)
+              SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: colorScheme.onPrimary,
+                ),
+              )
+            else
+              Icon(
+                Icons.check_rounded,
+                color: canSubmit
+                    ? colorScheme.onPrimary
+                    : colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+              ),
+            const SizedBox(width: 8),
+            Text(
+              viewModel.isExisting
+                  ? AppLocalizations.of(context)!.updateReadingPlan
+                  : AppLocalizations.of(context)!.addReadingPlan,
+              style: TextStyle(
+                color: canSubmit
+                    ? colorScheme.onPrimary
+                    : colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+                fontWeight: FontWeight.w600,
+                fontSize: 16,
               ),
             ),
-            onPressed: canSubmit ? _handleAddPlan : null,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (_isSubmitting)
-                  SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: colorScheme.onPrimary,
-                    ),
-                  )
-                else
-                  Icon(
-                    Icons.check_rounded,
-                    color: canSubmit
-                        ? colorScheme.onPrimary
-                        : colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
-                  ),
-                const SizedBox(width: 8),
-                Text(
-                  widget.planDetails != null
-                      ? AppLocalizations.of(context)!.updateReadingPlan
-                      : AppLocalizations.of(context)!.addReadingPlan,
-                  style: TextStyle(
-                    color: canSubmit
-                        ? colorScheme.onPrimary
-                        : colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
-                    fontWeight: FontWeight.w600,
-                    fontSize: 16,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
+          ],
+        ),
+      ),
     );
   }
 
   Future<void> _handleAddPlan() async {
-    setState(() => _isSubmitting = true);
-
-    try {
-      await manager.addReadingPlan(
-        _planNameController.text,
-        _selectedCollection.id,
-        _goalType,
-        _goalValue,
-        _selectedBookIds,
-      );
-
-      if (!mounted) return;
-      Navigator.of(context).pop();
-    } finally {
-      if (mounted) {
-        setState(() => _isSubmitting = false);
-      }
-    }
+    final success = await viewModel.submit();
+    if (!success || !mounted) return;
+    Navigator.of(context).pop();
   }
 }
 

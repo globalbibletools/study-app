@@ -197,6 +197,7 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
 
   Widget _createNewPlanButton() {
     final colorScheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
@@ -215,7 +216,12 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
           borderRadius: BorderRadius.circular(16),
           onTap: () async {
             await Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const AddReadingPlanPanel()),
+              MaterialPageRoute(
+                builder:
+                    (_) => AddReadingPlanPanel.newPlan(
+                      l10n.defaultReadingPlanName,
+                    ),
+              ),
             );
 
             manager.init();
@@ -292,7 +298,8 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
             if (_editMode) {
               await Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (_) => AddReadingPlanPanel(planDetails: planDet),
+                  builder:
+                      (_) => AddReadingPlanPanel.existing(planDet),
                 ),
               );
               _editMode = false;
