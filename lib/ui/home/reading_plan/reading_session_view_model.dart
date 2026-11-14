@@ -83,9 +83,12 @@ class ReadingSessionViewModel with WidgetsBindingObserver {
   bool _timerPaused = false;
 
   DateTime? _sessionDay;
-  int _sessionReadSeconds = 0;
+  int _sessionReadMilliseconds = 0;
+  int _dayReadMilliseconds = 0;
   DateTime _lastTickAt = DateTime.now();
   DateTime _lastFlushAt = DateTime.now();
+
+  int get _sessionReadSeconds => _sessionReadMilliseconds ~/ 1000;
 
   Timer? _tickTimer;
 
@@ -109,7 +112,8 @@ class ReadingSessionViewModel with WidgetsBindingObserver {
       final config = snapshot.config;
 
       _sessionDay = progress.sessionDay;
-      _sessionReadSeconds = progress.sessionReadSeconds;
+      _sessionReadMilliseconds = progress.sessionReadSeconds * 1000;
+      _dayReadMilliseconds = progress.secondsToday * 1000;
       _lastTickAt = progress.asOf;
       _lastFlushAt = progress.asOf;
       _goalLatch = progress.goalAlreadyReachedToday;
@@ -124,7 +128,7 @@ class ReadingSessionViewModel with WidgetsBindingObserver {
         sessionStartTime: progress.sessionStartTime,
       );
       secondsTodayNotifier.value = progress.secondsToday;
-      sessionSecondsNotifier.value = progress.sessionReadSeconds;
+      sessionSecondsNotifier.value = _sessionReadSeconds;
       goalReachedNotifier.value = false;
       bookCompletedNotifier.value = null;
       hudVisible.value = true;
@@ -338,16 +342,18 @@ class ReadingSessionViewModel with WidgetsBindingObserver {
 
     if (sessionChanged || dayChanged) {
       // A day/session rollover starts a fresh accumulated duration.
-      _sessionReadSeconds = progress.sessionReadSeconds;
+      _sessionReadMilliseconds = progress.sessionReadSeconds * 1000;
+      _dayReadMilliseconds = progress.secondsToday * 1000;
       _lastTickAt = progress.asOf;
-      secondsTodayNotifier.value = progress.secondsToday;
     } else {
-      if (progress.sessionReadSeconds > _sessionReadSeconds) {
-        _sessionReadSeconds = progress.sessionReadSeconds;
-      }
-      if (progress.secondsToday > secondsTodayNotifier.value) {
-        secondsTodayNotifier.value = progress.secondsToday;
-      }
+      _sessionReadMilliseconds = math.max(
+        _sessionReadMilliseconds,
+        progress.sessionReadSeconds * 1000,
+      );
+      _dayReadMilliseconds = math.max(
+        _dayReadMilliseconds,
+        progress.secondsToday * 1000,
+      );
     }
     _lastFlushAt = progress.asOf;
 
@@ -368,6 +374,7 @@ class ReadingSessionViewModel with WidgetsBindingObserver {
     }
 
     sessionSecondsNotifier.value = _sessionReadSeconds;
+    secondsTodayNotifier.value = _dayReadMilliseconds ~/ 1000;
   }
 
   void _checkGoalReached() {
@@ -460,11 +467,7 @@ class ReadingSessionViewModel with WidgetsBindingObserver {
     _tickTimer?.cancel();
     if (_disposed || _timerPaused || !hasActiveSession) return;
 
-    final now = DateTime.now();
-    final delay = Duration(
-      milliseconds: now.millisecond == 0 ? 1000 : 1000 - now.millisecond,
-    );
-    _tickTimer = Timer(delay, _onTick);
+    _tickTimer = Timer(const Duration(seconds: 1), _onTick);
   }
 
   void _clearPresentation() {
@@ -473,7 +476,8 @@ class ReadingSessionViewModel with WidgetsBindingObserver {
 
     _sessionDay = null;
     _goalLatch = false;
-    _sessionReadSeconds = 0;
+    _sessionReadMilliseconds = 0;
+    _dayReadMilliseconds = 0;
     _lastTickAt = DateTime.now();
     _lastFlushAt = DateTime.now();
 
@@ -486,13 +490,14 @@ class ReadingSessionViewModel with WidgetsBindingObserver {
   }
 
   void _accumulateElapsed(DateTime now) {
-    final elapsed = now.difference(_lastTickAt).inSeconds;
-    if (elapsed <= 0) return;
+    final elapsedMilliseconds = now.difference(_lastTickAt).inMilliseconds;
+    if (elapsedMilliseconds <= 0) return;
 
-    _sessionReadSeconds += elapsed;
-    secondsTodayNotifier.value += elapsed;
-    sessionSecondsNotifier.value = _sessionReadSeconds;
     _lastTickAt = now;
+    _sessionReadMilliseconds += elapsedMilliseconds;
+    _dayReadMilliseconds += elapsedMilliseconds;
+    sessionSecondsNotifier.value = _sessionReadSeconds;
+    secondsTodayNotifier.value = _dayReadMilliseconds ~/ 1000;
   }
 
   Future<void> _rolloverIfNeeded(

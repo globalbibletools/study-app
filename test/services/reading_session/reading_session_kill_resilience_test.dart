@@ -56,7 +56,8 @@ void main() {
     viewModel = ReadingSessionViewModel.withService(sessionService);
   });
 
-  tearDown(() {
+  tearDown(() async {
+    await viewModel.endSession();
     viewModel.dispose();
     rsDb.dispose();
   });
@@ -225,7 +226,7 @@ void main() {
         )).single.endTime;
         final secondsBefore = (await summaryFor(plan.id!, today)).rsSeconds;
 
-        await Future<void>.delayed(const Duration(milliseconds: 3000));
+        await Future<void>.delayed(const Duration(milliseconds: 2500));
 
         final endAfter = (await rsDb.getSessionsForDate(
           today,
