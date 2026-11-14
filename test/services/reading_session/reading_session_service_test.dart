@@ -42,14 +42,17 @@ void main() {
     }
     getIt.registerSingleton<BibleNavigation>(createTestBibleNavigation());
 
-    database = ReadingSessionDatabase(
+    database = ReadingSessionDatabase.withDependencies(
       databaseName: 'reading_session_service_test.db',
       verseInventoryProvider: (bookIds) async =>
           createTestVerseInventory(bookIds: bookIds),
     );
     await database.resetDatabase();
     await database.init();
-    planService = ReadingPlanService.withDatabase(database);
+    planService = ReadingPlanService.withDependencies(
+      database: database,
+      bibleNavigation: createTestBibleNavigation(),
+    );
     sessionService = ReadingSessionService.withDatabase(database);
   });
 

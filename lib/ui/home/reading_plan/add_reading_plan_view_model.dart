@@ -8,8 +8,8 @@ import 'package:gbt/services/service_locator.dart';
 class AddReadingPlanViewModel extends ChangeNotifier {
   final ReadingPlanDetails readingPlan;
 
-  final _planService = getIt<ReadingPlanService>();
-  final _bibleNavigation = getIt<BibleNavigation>();
+  final ReadingPlanService _planService;
+  final BibleNavigation _bibleNavigation;
 
   bool _disposed = false;
 
@@ -34,7 +34,19 @@ class AddReadingPlanViewModel extends ChangeNotifier {
     ]);
   }
 
-  AddReadingPlanViewModel(this.readingPlan) {
+  AddReadingPlanViewModel(ReadingPlanDetails readingPlan)
+    : this.withDependencies(
+        readingPlan,
+        planService: getIt<ReadingPlanService>(),
+        bibleNavigation: getIt<BibleNavigation>(),
+      );
+
+  AddReadingPlanViewModel.withDependencies(
+    this.readingPlan, {
+    required ReadingPlanService planService,
+    required BibleNavigation bibleNavigation,
+  }) : _planService = planService,
+       _bibleNavigation = bibleNavigation {
     final plan = readingPlan.readingPlan;
     _selectedCollection = BibleCollections.fromId(plan.collectionId);
     _selectedBookIds = readingPlan.books.map((x) => x.bookId).toSet();
