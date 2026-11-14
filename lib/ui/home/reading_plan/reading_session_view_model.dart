@@ -1,6 +1,7 @@
 import 'dart:async';
+import 'dart:math' as math;
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:gbt/common/reference.dart';
 import 'package:gbt/services/reading_session/reading_plan_config.dart';
 import 'package:gbt/services/reading_session/reading_session_service.dart';
@@ -51,10 +52,12 @@ class ReadingSessionUiState {
   }
 }
 
-class ReadingSessionViewModel {
+class ReadingSessionViewModel with WidgetsBindingObserver {
   ReadingSessionViewModel() : this.withService(getIt<ReadingSessionService>());
 
-  ReadingSessionViewModel.withService(this._service);
+  ReadingSessionViewModel.withService(this._service) {
+    WidgetsBinding.instance.addObserver(this);
+  }
 
   static Duration heartbeatInterval = const Duration(seconds: 60);
 
@@ -77,13 +80,12 @@ class ReadingSessionViewModel {
   bool _requestLocked = false;
   bool _disposed = false;
   bool _goalLatch = false;
+  bool _timerPaused = false;
 
   DateTime? _sessionDay;
-  DateTime _sessionStart = DateTime.now();
-  DateTime _anchorAt = DateTime.now();
+  int _sessionReadSeconds = 0;
+  DateTime _lastTickAt = DateTime.now();
   DateTime _lastFlushAt = DateTime.now();
-  DateTime? _lastTickSessionStart;
-  int _daySecondsAtAnchor = 0;
 
   Timer? _tickTimer;
 
@@ -91,11 +93,9 @@ class ReadingSessionViewModel {
     if (!_tryLockRequest('start session for plan $planId')) return;
 
     try {
-      final previousSessionId = session?.sessionId;
-      if (previousSessionId != null) {
-        await _service.endSession(previousSessionId);
+      if (hasActiveSession) {
+        await _endActiveSession();
         if (_disposed) return;
-        _clearPresentation();
       }
 
       final snapshot = await _service.startSession(planId);
@@ -109,11 +109,9 @@ class ReadingSessionViewModel {
       final config = snapshot.config;
 
       _sessionDay = progress.sessionDay;
-      _sessionStart = progress.sessionStartTime;
-      _daySecondsAtAnchor = progress.secondsToday;
-      _anchorAt = progress.asOf;
+      _sessionReadSeconds = progress.sessionReadSeconds;
+      _lastTickAt = progress.asOf;
       _lastFlushAt = progress.asOf;
-      _lastTickSessionStart = progress.sessionStartTime;
       _goalLatch = progress.goalAlreadyReachedToday;
 
       sessionNotifier.value = ReadingSessionUiState(
@@ -126,9 +124,7 @@ class ReadingSessionViewModel {
         sessionStartTime: progress.sessionStartTime,
       );
       secondsTodayNotifier.value = progress.secondsToday;
-      sessionSecondsNotifier.value = progress.asOf
-          .difference(progress.sessionStartTime)
-          .inSeconds;
+      sessionSecondsNotifier.value = progress.sessionReadSeconds;
       goalReachedNotifier.value = false;
       bookCompletedNotifier.value = null;
       hudVisible.value = true;
@@ -143,19 +139,34 @@ class ReadingSessionViewModel {
     if (!_tryLockRequest('end session')) return;
 
     try {
-      _tickTimer?.cancel();
-      _tickTimer = null;
-
-      final sessionId = session?.sessionId;
-      if (sessionId != null) {
-        await _service.endSession(sessionId);
-        if (_disposed) return;
-      }
-
-      _clearPresentation();
+      await _endActiveSession();
     } finally {
       _unlockRequest();
     }
+  }
+
+  /// Finalizes the active session. The caller must hold the request lock.
+  Future<void> _endActiveSession() async {
+    _tickTimer?.cancel();
+    _tickTimer = null;
+
+    final now = DateTime.now();
+    await _rolloverIfNeeded(now, timerActive: !_timerPaused);
+    if (!_timerPaused) {
+      _accumulateElapsed(now);
+    }
+
+    final sessionId = session?.sessionId;
+    if (sessionId != null) {
+      await _service.endSession(
+        sessionId,
+        readSeconds: _sessionReadSeconds,
+        at: now,
+      );
+      if (_disposed) return;
+    }
+
+    _clearPresentation();
   }
 
   Future<Map<int, VerseReadState>?> setVerseRead(
@@ -169,10 +180,21 @@ class ReadingSessionViewModel {
     }
 
     try {
+      final now = DateTime.now();
+      await _rolloverIfNeeded(now, timerActive: !_timerPaused);
+      if (!_timerPaused) {
+        _accumulateElapsed(now);
+      }
+
       final sessionId = session?.sessionId;
       if (sessionId == null) return null;
 
-      final result = await _service.setVerseRead(sessionId, options);
+      final result = await _service.setVerseRead(
+        sessionId,
+        options,
+        readSeconds: _sessionReadSeconds,
+        at: now,
+      );
       if (_disposed || result == null) return null;
 
       _applyProgress(result.progress);
@@ -206,6 +228,69 @@ class ReadingSessionViewModel {
 
   void toggleDisplayGoalProgress() {
     hudVisible.value = !hudVisible.value;
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    switch (state) {
+      case AppLifecycleState.resumed:
+        unawaited(resumeTimer());
+        break;
+      case AppLifecycleState.paused:
+      case AppLifecycleState.hidden:
+      case AppLifecycleState.detached:
+        unawaited(pauseTimer());
+        break;
+      case AppLifecycleState.inactive:
+        break;
+    }
+  }
+
+  /// Stops accumulating read time while the app is backgrounded. The current
+  /// elapsed time is flushed to the database so a kill cannot lose it.
+  Future<void> pauseTimer() async {
+    if (_disposed || _timerPaused) return;
+
+    final now = DateTime.now();
+    _timerPaused = true;
+    _tickTimer?.cancel();
+    _tickTimer = null;
+
+    if (!hasActiveSession) return;
+
+    try {
+      await _flush(at: now, timerActive: true);
+    } catch (error, stackTrace) {
+      log.error(
+        'Failed to flush reading session while pausing',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
+  /// Resumes accumulating read time without counting the time spent
+  /// backgrounded. Rolls the session forward if the day changed while the
+  /// timer was paused.
+  Future<void> resumeTimer() async {
+    if (_disposed || !_timerPaused) return;
+
+    final now = DateTime.now();
+    try {
+      await _rolloverIfNeeded(now, timerActive: false);
+    } catch (error, stackTrace) {
+      log.error(
+        'Failed to roll reading session over on resume',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+    if (_disposed) return;
+
+    _timerPaused = false;
+    _lastTickAt = DateTime.now();
+    _lastFlushAt = DateTime.now();
+    _scheduleNextTick();
   }
 
   Future<void> resetForDatabaseRestore() async {
@@ -242,15 +327,28 @@ class ReadingSessionViewModel {
     final previousDay = _sessionDay;
     final dayChanged =
         previousDay != null && !_sameDay(previousDay, progress.sessionDay);
+    final currentSessionId = session?.sessionId;
+    final sessionChanged =
+        currentSessionId != null && currentSessionId != progress.sessionId;
 
     _sessionDay = progress.sessionDay;
     if (dayChanged) {
       _goalLatch = progress.goalAlreadyReachedToday;
     }
 
-    _sessionStart = progress.sessionStartTime;
-    _daySecondsAtAnchor = progress.secondsToday;
-    _anchorAt = progress.asOf;
+    if (sessionChanged || dayChanged) {
+      // A day/session rollover starts a fresh accumulated duration.
+      _sessionReadSeconds = progress.sessionReadSeconds;
+      _lastTickAt = progress.asOf;
+      secondsTodayNotifier.value = progress.secondsToday;
+    } else {
+      if (progress.sessionReadSeconds > _sessionReadSeconds) {
+        _sessionReadSeconds = progress.sessionReadSeconds;
+      }
+      if (progress.secondsToday > secondsTodayNotifier.value) {
+        secondsTodayNotifier.value = progress.secondsToday;
+      }
+    }
     _lastFlushAt = progress.asOf;
 
     final current = session;
@@ -269,10 +367,7 @@ class ReadingSessionViewModel {
       }
     }
 
-    secondsTodayNotifier.value = progress.secondsToday;
-    sessionSecondsNotifier.value = progress.asOf
-        .difference(progress.sessionStartTime)
-        .inSeconds;
+    sessionSecondsNotifier.value = _sessionReadSeconds;
   }
 
   void _checkGoalReached() {
@@ -291,40 +386,67 @@ class ReadingSessionViewModel {
   }
 
   void _onTick() {
-    if (_disposed || !hasActiveSession) return;
+    if (_disposed || _timerPaused || !hasActiveSession) return;
 
     final now = DateTime.now();
+    final dayChanged = _sessionDay != null && !_sameDay(_sessionDay!, now);
 
-    final daySeconds =
-        _daySecondsAtAnchor + now.difference(_anchorAt).inSeconds;
-    if (daySeconds >= secondsTodayNotifier.value) {
-      secondsTodayNotifier.value = daySeconds;
+    if (dayChanged) {
+      if (!_tryLockRequest('day rollover')) {
+        _scheduleNextTick();
+        return;
+      }
+
+      unawaited(_rolloverAtMidnight(now));
+      return;
     }
 
-    final sessionSeconds = now.difference(_sessionStart).inSeconds;
-    if (_lastTickSessionStart != _sessionStart ||
-        sessionSeconds >= sessionSecondsNotifier.value) {
-      sessionSecondsNotifier.value = sessionSeconds;
-    }
-    _lastTickSessionStart = _sessionStart;
-
+    _accumulateElapsed(now);
     _checkGoalReached();
 
     if (now.difference(_lastFlushAt) >= heartbeatInterval) {
-      _flush();
+      unawaited(_flush(at: now));
     }
 
     _scheduleNextTick();
   }
 
-  Future<void> _flush() async {
+  Future<void> _rolloverAtMidnight(DateTime now) async {
+    try {
+      await _rolloverIfNeeded(now, timerActive: true);
+      if (_disposed) return;
+
+      _checkGoalReached();
+    } catch (error, stackTrace) {
+      log.error(
+        'Failed to roll reading session over at midnight',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    } finally {
+      _unlockRequest();
+      _scheduleNextTick();
+    }
+  }
+
+  Future<void> _flush({DateTime? at, bool timerActive = true}) async {
     if (!_tryLockRequest('heartbeat')) return;
 
     try {
+      final now = at ?? DateTime.now();
+      await _rolloverIfNeeded(now, timerActive: timerActive);
+      if (timerActive) {
+        _accumulateElapsed(now);
+      }
+
       final sessionId = session?.sessionId;
       if (sessionId == null) return;
 
-      final progress = await _service.heartbeat(sessionId);
+      final progress = await _service.heartbeat(
+        sessionId,
+        readSeconds: _sessionReadSeconds,
+        at: now,
+      );
       if (_disposed || progress == null) return;
 
       _applyProgress(progress);
@@ -336,7 +458,7 @@ class ReadingSessionViewModel {
 
   void _scheduleNextTick() {
     _tickTimer?.cancel();
-    if (_disposed || !hasActiveSession) return;
+    if (_disposed || _timerPaused || !hasActiveSession) return;
 
     final now = DateTime.now();
     final delay = Duration(
@@ -351,10 +473,8 @@ class ReadingSessionViewModel {
 
     _sessionDay = null;
     _goalLatch = false;
-    _daySecondsAtAnchor = 0;
-    _lastTickSessionStart = null;
-    _sessionStart = DateTime.now();
-    _anchorAt = DateTime.now();
+    _sessionReadSeconds = 0;
+    _lastTickAt = DateTime.now();
     _lastFlushAt = DateTime.now();
 
     sessionNotifier.value = null;
@@ -365,8 +485,56 @@ class ReadingSessionViewModel {
     hudVisible.value = false;
   }
 
+  void _accumulateElapsed(DateTime now) {
+    final elapsed = now.difference(_lastTickAt).inSeconds;
+    if (elapsed <= 0) return;
+
+    _sessionReadSeconds += elapsed;
+    secondsTodayNotifier.value += elapsed;
+    sessionSecondsNotifier.value = _sessionReadSeconds;
+    _lastTickAt = now;
+  }
+
+  Future<void> _rolloverIfNeeded(
+    DateTime now, {
+    required bool timerActive,
+  }) async {
+    final sessionId = session?.sessionId;
+    final sessionDay = _sessionDay;
+    if (sessionId == null || sessionDay == null || _sameDay(sessionDay, now)) {
+      return;
+    }
+
+    var oldDayExtra = 0;
+    var newDayExtra = 0;
+    if (timerActive) {
+      final elapsed = math.max(0, now.difference(_lastTickAt).inSeconds);
+      final startOfToday = _day(now);
+      oldDayExtra = math.min(
+        math.max(0, startOfToday.difference(_lastTickAt).inSeconds),
+        elapsed,
+      );
+      newDayExtra = elapsed - oldDayExtra;
+    }
+
+    final progress = await _service.rolloverSession(
+      sessionId,
+      at: now,
+      oldReadSeconds: _sessionReadSeconds + oldDayExtra,
+      newReadSeconds: newDayExtra,
+    );
+    if (_disposed || progress == null) return;
+
+    _applyProgress(progress);
+  }
+
+  static DateTime _day(DateTime date) {
+    return DateTime(date.year, date.month, date.day);
+  }
+
   void dispose() {
     _disposed = true;
+    WidgetsBinding.instance.removeObserver(this);
     _tickTimer?.cancel();
     _tickTimer = null;
     sessionNotifier.dispose();

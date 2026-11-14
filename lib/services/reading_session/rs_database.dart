@@ -22,7 +22,7 @@ class ReadingSessionDatabase {
            });
 
   static const _defaultDatabaseName = 'reading_session.db';
-  static const _databaseVersion = 5;
+  static const _databaseVersion = 6;
 
   final String _databaseName;
   final VerseInventoryProvider _verseInventoryProvider;
@@ -215,6 +215,7 @@ class ReadingSessionDatabase {
 
       for (final row in sessionRows) {
         row['reading_plan_id'] = 1;
+        row['read_seconds'] = _readSecondsForSessionRow(row);
         batch.insert('rs_session', row);
       }
       for (final row in logRows) {
@@ -257,11 +258,11 @@ class ReadingSessionDatabase {
     final goalValue = plan.isEmpty ? null : plan.first['goal_value'] as int?;
 
     final dayTotals = await txn.rawQuery(
-      "SELECT date(rs_date) AS rs_date, "
-      "coalesce(sum(strftime('%s', end_time) - strftime('%s', start_time)), 0) AS rs_seconds, "
+      'SELECT date(rs_date) AS rs_date, '
+      'coalesce(sum(read_seconds), 0) AS rs_seconds, '
       'coalesce(sum(verses), 0) AS rs_verses '
       'FROM rs_session '
-      'WHERE reading_plan_id = 1 AND end_time IS NOT NULL '
+      'WHERE reading_plan_id = 1 '
       'GROUP BY date(rs_date)',
     );
 
@@ -332,6 +333,7 @@ class ReadingSessionDatabase {
         batch.insert('reading_plan_book', row);
       }
       for (final row in sessionRows) {
+        row['read_seconds'] = _readSecondsForSessionRow(row);
         batch.insert('rs_session', row);
       }
       for (final row in logRows) {
@@ -359,6 +361,24 @@ class ReadingSessionDatabase {
       }
       return Map<String, Object?>.from(row);
     }).toList();
+  }
+
+  int _readSecondsForSessionRow(Map<String, Object?> row) {
+    final stored = row['read_seconds'];
+    if (stored is num) return stored.toInt();
+
+    final start = _parseTimestamp(row['start_time']);
+    final end = _parseTimestamp(row['end_time']);
+    if (start == null || end == null) return 0;
+
+    final seconds = end.difference(start).inSeconds;
+    return seconds < 0 ? 0 : seconds;
+  }
+
+  DateTime? _parseTimestamp(Object? value) {
+    if (value == null) return null;
+    if (value is DateTime) return value;
+    return DateTime.tryParse(value.toString());
   }
 
   /* READING PLAN */
@@ -707,7 +727,7 @@ class ReadingSessionDatabase {
   }) async {
     Future<void> upsert(DatabaseExecutor txn) async {
       final totals = await txn.rawQuery(
-        "SELECT coalesce(sum(strftime('%s', end_time) - strftime('%s', start_time)), 0) AS rs_seconds, "
+        'SELECT coalesce(sum(read_seconds), 0) AS rs_seconds, '
         'coalesce(sum(verses), 0) AS rs_verses '
         'FROM rs_session '
         'WHERE reading_plan_id = ? AND date(rs_date) = date(?)',
@@ -1074,7 +1094,7 @@ class ReadingSessionDatabase {
   }) async {
     final db = executor ?? _database;
     final result = await db.rawQuery(
-      "SELECT SUM(strftime('%s', end_time) - strftime('%s', start_time)) AS count "
+      'SELECT coalesce(sum(read_seconds), 0) AS count '
       'FROM rs_session '
       'WHERE date(rs_date) = date(?) and reading_plan_id = ?',
       [date.toIso8601String(), readingPlanId],

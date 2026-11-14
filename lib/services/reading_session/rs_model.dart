@@ -162,6 +162,7 @@ class RsSession {
   final DateTime rsDate;
   final DateTime startTime;
   final DateTime? endTime;
+  final int readSeconds;
   final int verses;
   final int readingPlanId;
 
@@ -170,6 +171,7 @@ class RsSession {
     required this.rsDate,
     required this.startTime,
     this.endTime,
+    this.readSeconds = 0,
     required this.verses,
     required this.readingPlanId,
   });
@@ -181,6 +183,7 @@ class RsSession {
     DateTime? rsDate,
     DateTime? startTime,
     Object? endTime = _undefined,
+    int? readSeconds,
     int? verses,
     int? readingPlanId,
   }) {
@@ -189,6 +192,7 @@ class RsSession {
       rsDate: rsDate ?? this.rsDate,
       startTime: startTime ?? this.startTime,
       endTime: endTime == _undefined ? this.endTime : endTime as DateTime?,
+      readSeconds: readSeconds ?? this.readSeconds,
       verses: verses ?? this.verses,
       readingPlanId: readingPlanId ?? this.readingPlanId,
     );
@@ -200,6 +204,7 @@ class RsSession {
       rsDate: DateTime.parse(map['rs_date']),
       startTime: DateTime.parse(map['start_time']),
       endTime: map['end_time'] != null ? DateTime.parse(map['end_time']) : null,
+      readSeconds: map['read_seconds'] as int? ?? 0,
       verses: map['verses'],
       readingPlanId: map['reading_plan_id'],
     );
@@ -211,6 +216,7 @@ class RsSession {
       'rs_date': rsDate.toIso8601String(),
       'start_time': startTime.toIso8601String(),
       'end_time': endTime?.toIso8601String(),
+      'read_seconds': readSeconds,
       'verses': verses,
       'reading_plan_id': readingPlanId,
     };

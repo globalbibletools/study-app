@@ -464,6 +464,7 @@ void main() {
             rsDate: sessionDate,
             startTime: DateTime(2026, 11, 5, 10, 0),
             endTime: DateTime(2026, 11, 5, 10, 12, 30),
+            readSeconds: 750,
             verses: 7,
             readingPlanId: plan.id!,
           ),

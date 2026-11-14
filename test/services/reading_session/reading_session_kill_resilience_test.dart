@@ -160,6 +160,7 @@ void main() {
             rsDate: yesterday,
             startTime: yesterday.add(const Duration(hours: 9)),
             endTime: yesterday.add(const Duration(hours: 9, minutes: 5)),
+            readSeconds: 300,
             verses: 5,
             readingPlanId: plan.id!,
           ),
@@ -234,6 +235,61 @@ void main() {
 
         expect(endAfter!.isAfter(endBefore!), isTrue);
         expect(secondsAfter, greaterThan(secondsBefore));
+      },
+    );
+
+    test(
+      'pausing the timer excludes background time from the read duration',
+      () async {
+        final plan = await planService.saveReadingPlan(
+          planName: 'Pause Test',
+          collectionId: 1,
+          goalType: GoalType.verses,
+          goalValue: 10,
+          selectedBookIds: {63},
+        );
+
+        await viewModel.startSession(plan.id!);
+        await Future<void>.delayed(const Duration(seconds: 2));
+
+        await viewModel.pauseTimer();
+        final pausedSeconds = viewModel.sessionSecondsNotifier.value;
+        expect(pausedSeconds, greaterThanOrEqualTo(1));
+
+        final now = DateTime.now();
+        final today = DateTime(now.year, now.month, now.day);
+        final pausedSession = (await rsDb.getSessionsForDate(
+          today,
+          plan.id!,
+        )).single;
+        expect(pausedSession.readSeconds, greaterThanOrEqualTo(1));
+
+        // No time is accumulated while the app is backgrounded.
+        await Future<void>.delayed(const Duration(seconds: 3));
+        expect(viewModel.sessionSecondsNotifier.value, pausedSeconds);
+
+        viewModel.resumeTimer();
+        await Future<void>.delayed(const Duration(seconds: 2));
+        await viewModel.endSession();
+
+        final endedSession = (await rsDb.getSessionsForDate(
+          today,
+          plan.id!,
+        )).single;
+        expect(
+          endedSession.readSeconds,
+          inInclusiveRange(pausedSeconds + 1, pausedSeconds + 3),
+        );
+
+        // The wall-clock span still includes the paused gap, but the stored
+        // read duration does not.
+        final wallClockSeconds = endedSession.endTime!
+            .difference(endedSession.startTime)
+            .inSeconds;
+        expect(
+          wallClockSeconds,
+          greaterThanOrEqualTo(endedSession.readSeconds + 2),
+        );
       },
     );
 

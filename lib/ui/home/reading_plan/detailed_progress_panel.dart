@@ -119,11 +119,7 @@ class _DetailedProgressPanelState extends State<DetailedProgressPanel> {
   }
 
   Widget _sessionCard(SessionDetails session) {
-    final sessionMinutes =
-        session.rsSession.endTime
-            ?.difference(session.rsSession.startTime)
-            .inMinutes ??
-        0;
+    final sessionMinutes = session.rsSession.readSeconds ~/ 60;
     final sessionVerses = session.rsSession.verses;
 
     return Container(
@@ -235,12 +231,7 @@ class _DetailedProgressPanelState extends State<DetailedProgressPanel> {
       builder: (context, data, _) {
         final totalSeconds = data.fold<int>(
           0,
-          (sum, session) =>
-              sum +
-              (session.rsSession.endTime
-                      ?.difference(session.rsSession.startTime)
-                      .inSeconds ??
-                  0),
+          (sum, session) => sum + session.rsSession.readSeconds,
         );
         final totalVerses = data.fold<int>(
           0,

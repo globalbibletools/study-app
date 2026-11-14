@@ -80,7 +80,7 @@ CREATE UNIQUE INDEX hash_rs_book_progress ON rs_book_progress(book_id);
     });
 
     test(
-      'upgrades seamlessly from Schema 1 -> 2 -> 3 -> 4 -> 5 preserving all progress',
+      'upgrades seamlessly from Schema 1 -> 2 -> 3 -> 4 -> 5 -> 6 preserving all progress',
       () {
         // 1. Initialize with Schema 1
         createSchemaV1(db);
@@ -324,12 +324,29 @@ DELETE FROM reading_plan_book WHERE reading_plan_id = 1 AND book_id = 40;
         expect(summary[0]['goal_value'], 10);
         expect(summary[0]['goal_reached'], 1);
 
+        // 6. Run migration 6 (reading_session_6.sql): sessions gain an
+        // accumulated read duration, backfilled from the old wall-clock
+        // interval for already-closed sessions.
+        executeSqlFile(db, 'assets/schemas/reading_session_6.sql');
+
+        final sessionColumns = db
+            .select('PRAGMA table_info(rs_session)')
+            .map((r) => r['name'])
+            .toList();
+        expect(sessionColumns, contains('read_seconds'));
+
+        final readTimes = db.select(
+          'SELECT id, read_seconds FROM rs_session ORDER BY id',
+        );
+        expect(readTimes, hasLength(1));
+        expect(readTimes[0]['read_seconds'], 930);
+
         expect(db.select('PRAGMA foreign_key_check'), isEmpty);
       },
     );
 
     test(
-      'v5 migration finalizes orphans, keeps empty sessions, renames sessions, backfills summaries, and retires rs_stats',
+      'v5/v6 migration finalizes orphans, keeps empty sessions, renames sessions, backfills summaries and read times, and retires rs_stats',
       () {
         createSchemaV1(db);
         upgradeTo(db, 4);
@@ -497,6 +514,21 @@ VALUES
           ),
           throwsA(isA<SqliteException>()),
         );
+
+        // v6 adds the accumulated foreground read time, backfilled from the
+        // legacy wall-clock interval. The empty session stays at zero.
+        executeSqlFile(db, 'assets/schemas/reading_session_6.sql');
+        final readTimes = db.select(
+          'SELECT id, read_seconds FROM rs_session ORDER BY id',
+        );
+        expect(readTimes.map((r) => r['read_seconds']).toList(), [
+          600,
+          330,
+          300,
+          300,
+          120,
+          0,
+        ]);
 
         expect(db.select('PRAGMA foreign_key_check'), isEmpty);
       },

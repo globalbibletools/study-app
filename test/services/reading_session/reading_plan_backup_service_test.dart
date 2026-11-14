@@ -71,6 +71,7 @@ void main() {
         rsDate: today,
         startTime: now.subtract(const Duration(minutes: 5)),
         endTime: now,
+        readSeconds: 300,
         verses: 1,
         readingPlanId: plan.id!,
       ),

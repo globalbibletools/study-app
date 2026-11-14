@@ -37,6 +37,7 @@ create table rs_session (
     rs_date date not null,
     start_time timestamp not null,
     end_time timestamp,
+    read_seconds int not null default 0,
     verses int not null,
     reading_plan_id int not null,
     foreign key (reading_plan_id) references reading_plan(id)

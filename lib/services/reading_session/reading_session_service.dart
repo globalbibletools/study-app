@@ -12,6 +12,7 @@ class SessionProgress {
     required this.sessionId,
     required this.sessionDay,
     required this.sessionStartTime,
+    required this.sessionReadSeconds,
     required this.versesToday,
     required this.secondsToday,
     required this.goalAlreadyReachedToday,
@@ -21,6 +22,7 @@ class SessionProgress {
   final int sessionId;
   final DateTime sessionDay;
   final DateTime sessionStartTime;
+  final int sessionReadSeconds;
   final int versesToday;
   final int secondsToday;
   final bool goalAlreadyReachedToday;
@@ -79,6 +81,7 @@ class ReadingSessionService {
         rsDate: today,
         startTime: now,
         endTime: now,
+        readSeconds: 0,
         verses: 0,
         readingPlanId: planId,
       ),
@@ -88,23 +91,27 @@ class ReadingSessionService {
     return ActiveSessionSnapshot(config: config, progress: progress);
   }
 
-  Future<void> endSession(int sessionId) async {
+  Future<void> endSession(
+    int sessionId, {
+    required int readSeconds,
+    DateTime? at,
+  }) async {
     var session = await _database.getSessionById(sessionId);
     if (session == null) return;
 
-    final now = DateTime.now();
-    session = await _rolloverTo(session, now);
+    final now = at ?? DateTime.now();
+    _ensureSessionIsCurrent(session, now);
 
-    final current = session;
+    final closed = session.copyWith(
+      endTime: now,
+      readSeconds: math.max(session.readSeconds, readSeconds),
+    );
 
     await _database.transaction((txn) async {
-      await _database.updateSession(
-        current.copyWith(endTime: now),
-        executor: txn,
-      );
+      await _database.updateSession(closed, executor: txn);
       await _database.upsertDaySummary(
-        current.readingPlanId,
-        current.rsDate,
+        session.readingPlanId,
+        session.rsDate,
         executor: txn,
       );
     });
@@ -112,16 +119,20 @@ class ReadingSessionService {
 
   Future<VerseReadResult?> setVerseRead(
     int sessionId,
-    VerseReadOptions options,
-  ) async {
+    VerseReadOptions options, {
+    required int readSeconds,
+    DateTime? at,
+  }) async {
     final bookId = options.bookId;
     final chapter = options.chapter;
     final verse = options.verse;
     final read = options.read;
 
-    final now = DateTime.now();
-    var session = await _database.getSessionById(sessionId);
+    final now = at ?? DateTime.now();
+    final session = await _database.getSessionById(sessionId);
     if (session == null) return null;
+
+    _ensureSessionIsCurrent(session, now);
 
     final details = await _database.getReadingPlanById(session.readingPlanId);
     if (details == null) return null;
@@ -141,12 +152,12 @@ class ReadingSessionService {
       );
     }
 
-    session = await _rolloverTo(session, now);
-    final current = session;
+    final effectiveReadSeconds = math.max(session.readSeconds, readSeconds);
+    final hasNewReadSeconds = effectiveReadSeconds > session.readSeconds;
 
     final outcome = await _database.transaction((txn) async {
       final logs = await _database.getRsLogForSessionAndVerse(
-        current.id!,
+        session.id!,
         bookId,
         chapter,
         verse,
@@ -154,7 +165,7 @@ class ReadingSessionService {
       );
       final readThisSession = logs.isNotEmpty;
 
-      var updatedSession = current;
+      var updatedSession = session.copyWith(readSeconds: effectiveReadSeconds);
       BookCompletedEvent? event;
 
       if (read && !readThisSession) {
@@ -170,7 +181,7 @@ class ReadingSessionService {
 
         await _database.insertLog(
           RsLog(
-            sessionId: current.id!,
+            sessionId: session.id!,
             bookId: bookId,
             chapter: chapter,
             verse: verse,
@@ -180,12 +191,11 @@ class ReadingSessionService {
           executor: txn,
         );
 
-        updatedSession = current.copyWith(
-          verses: current.verses + 1,
+        updatedSession = updatedSession.copyWith(
+          verses: session.verses + 1,
           endTime: now,
         );
 
-        await _database.updateSession(updatedSession, executor: txn);
         await _database.markVerseRead(
           planId,
           bookId,
@@ -215,7 +225,7 @@ class ReadingSessionService {
         }
       } else if (!read && readThisSession) {
         await _database.deleteRsLogForSessionAndVerse(
-          current.id!,
+          session.id!,
           bookId,
           chapter,
           verse,
@@ -229,15 +239,18 @@ class ReadingSessionService {
           executor: txn,
         );
 
-        updatedSession = current.copyWith(
-          verses: math.max(0, current.verses - 1),
+        updatedSession = updatedSession.copyWith(
+          verses: math.max(0, session.verses - 1),
           endTime: now,
         );
-        await _database.updateSession(updatedSession, executor: txn);
       }
 
-      if (read != readThisSession) {
-        await _database.upsertDaySummary(planId, current.rsDate, executor: txn);
+      if (read != readThisSession || hasNewReadSeconds) {
+        if (read == readThisSession) {
+          updatedSession = updatedSession.copyWith(endTime: now);
+        }
+        await _database.updateSession(updatedSession, executor: txn);
+        await _database.upsertDaySummary(planId, session.rsDate, executor: txn);
       }
 
       return (
@@ -260,27 +273,98 @@ class ReadingSessionService {
     );
   }
 
-  Future<SessionProgress?> heartbeat(int sessionId) async {
-    final now = DateTime.now();
-    var session = await _database.getSessionById(sessionId);
+  Future<SessionProgress?> heartbeat(
+    int sessionId, {
+    required int readSeconds,
+    DateTime? at,
+  }) async {
+    final now = at ?? DateTime.now();
+    final session = await _database.getSessionById(sessionId);
     if (session == null) return null;
 
-    session = await _rolloverTo(session, now);
-    final current = session;
+    _ensureSessionIsCurrent(session, now);
+
+    final updated = session.copyWith(
+      endTime: now,
+      readSeconds: math.max(session.readSeconds, readSeconds),
+    );
 
     await _database.transaction((txn) async {
-      await _database.updateSession(
-        current.copyWith(endTime: now),
-        executor: txn,
-      );
+      await _database.updateSession(updated, executor: txn);
       await _database.upsertDaySummary(
-        current.readingPlanId,
-        current.rsDate,
+        session.readingPlanId,
+        session.rsDate,
         executor: txn,
       );
     });
 
-    return _readProgress(current, now);
+    return _readProgress(updated, now);
+  }
+
+  Future<SessionProgress?> rolloverSession(
+    int sessionId, {
+    required DateTime at,
+    required int oldReadSeconds,
+    required int newReadSeconds,
+  }) async {
+    final session = await _database.getSessionById(sessionId);
+    if (session == null) return null;
+
+    final today = _day(at);
+    final sessionDay = _day(session.rsDate);
+    if (_sameDay(sessionDay, today)) {
+      throw StateError(
+        'Session $sessionId is already on '
+        '${RsDaySummary.dayString(today)}.',
+      );
+    }
+    if (today.isBefore(sessionDay)) {
+      throw StateError(
+        'Cannot roll session $sessionId back from '
+        '${RsDaySummary.dayString(sessionDay)} to '
+        '${RsDaySummary.dayString(today)}.',
+      );
+    }
+
+    final nextDay = DateTime(
+      session.rsDate.year,
+      session.rsDate.month,
+      session.rsDate.day + 1,
+    );
+    final closed = session.copyWith(
+      endTime: nextDay.subtract(const Duration(seconds: 1)),
+      readSeconds: math.max(session.readSeconds, oldReadSeconds),
+    );
+    final newSession = RsSession(
+      rsDate: today,
+      startTime: today,
+      endTime: at,
+      readSeconds: math.max(0, newReadSeconds),
+      verses: 0,
+      readingPlanId: session.readingPlanId,
+    );
+
+    final inserted = await _database.transaction((txn) async {
+      await _database.updateSession(closed, executor: txn);
+      await _database.upsertDaySummary(
+        session.readingPlanId,
+        closed.rsDate,
+        preserveStoredGoalSnapshot: true,
+        executor: txn,
+      );
+
+      final inserted = await _database.insertSession(newSession, executor: txn);
+      if (inserted.readSeconds > 0) {
+        await _database.upsertDaySummary(
+          session.readingPlanId,
+          inserted.rsDate,
+          executor: txn,
+        );
+      }
+      return inserted;
+    });
+
+    return _readProgress(inserted, at);
   }
 
   Future<Map<int, VerseReadState>> getVerseReadStates(
@@ -299,43 +383,15 @@ class ReadingSessionService {
     );
   }
 
-  Future<RsSession> _rolloverTo(RsSession session, DateTime now) async {
-    var current = session;
-    final today = _day(now);
+  void _ensureSessionIsCurrent(RsSession session, DateTime at) {
+    final today = _day(at);
+    if (_sameDay(session.rsDate, today)) return;
 
-    while (!_sameDay(current.rsDate, today)) {
-      final nextDay = DateTime(
-        current.rsDate.year,
-        current.rsDate.month,
-        current.rsDate.day + 1,
-      );
-      final endTime = nextDay.subtract(const Duration(seconds: 1));
-
-      final closed = current.copyWith(endTime: endTime);
-      final planId = closed.readingPlanId;
-
-      current = await _database.transaction((txn) async {
-        await _database.updateSession(closed, executor: txn);
-        await _database.upsertDaySummary(
-          planId,
-          closed.rsDate,
-          preserveStoredGoalSnapshot: true,
-          executor: txn,
-        );
-        return _database.insertSession(
-          RsSession(
-            rsDate: nextDay,
-            startTime: nextDay,
-            endTime: nextDay,
-            verses: 0,
-            readingPlanId: planId,
-          ),
-          executor: txn,
-        );
-      });
-    }
-
-    return current;
+    throw StateError(
+      'Session ${session.id} belongs to '
+      '${RsDaySummary.dayString(session.rsDate)}, but the current day is '
+      '${RsDaySummary.dayString(today)}. Call rolloverSession first.',
+    );
   }
 
   Future<SessionProgress> _readProgress(
@@ -349,6 +405,7 @@ class ReadingSessionService {
       sessionId: session.id!,
       sessionDay: _day(session.rsDate),
       sessionStartTime: session.startTime,
+      sessionReadSeconds: session.readSeconds,
       versesToday: await _database.getVersesReadToday(planId, session.rsDate),
       secondsToday: await _database.getTotalSecondsReadToday(
         planId,
