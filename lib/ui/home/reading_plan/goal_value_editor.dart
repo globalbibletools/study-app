@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-/// Numeric goal editor with decrement/increment steppers and a native
-/// numeric text field.
-///
-/// Owns its editing state and reports every valid value through [onChanged].
 class GoalValueEditor extends StatefulWidget {
   const GoalValueEditor({
     super.key,
