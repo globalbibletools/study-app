@@ -80,16 +80,6 @@ class AddReadingPlanViewModel extends ChangeNotifier {
 
   late int _goalValue;
   int get goalValue => _goalValue;
-  void incrementGoalValue() {
-    _goalValue++;
-    notifyListeners();
-  }
-
-  void decrementGoalValue() {
-    if (_goalValue <= 1) return;
-    _goalValue--;
-    notifyListeners();
-  }
 
   void setGoalValue(int value) {
     if (value < 1 || _goalValue == value) return;
@@ -129,8 +119,9 @@ class AddReadingPlanViewModel extends ChangeNotifier {
 
     try {
       await _planService.saveReadingPlan(
-        existingPlanDetails:
-            readingPlan.readingPlan.id != null ? readingPlan : null,
+        existingPlanDetails: readingPlan.readingPlan.id != null
+            ? readingPlan
+            : null,
         planName: _name,
         collectionId: _selectedCollection.id,
         goalType: _goalType,

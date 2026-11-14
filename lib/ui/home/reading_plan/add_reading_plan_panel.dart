@@ -3,8 +3,8 @@ import 'package:gbt/common/bible_collection.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/l10n/book_names.dart';
 import 'package:gbt/services/reading_session/rs_model.dart';
-import 'package:gbt/ui/home/keypad/numeric_keypad.dart';
 import 'package:gbt/ui/home/reading_plan/add_reading_plan_view_model.dart';
+import 'package:gbt/ui/home/reading_plan/goal_value_editor.dart';
 import 'package:gbt/ui/home/reading_plan/reading_plan_panel.dart';
 
 class AddReadingPlanPanel extends StatefulWidget {
@@ -20,13 +20,7 @@ class AddReadingPlanPanel extends StatefulWidget {
 }
 
 class _AddReadingPlanPanelState extends State<AddReadingPlanPanel> {
-  static const _allDigits = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
-  static const _firstDigits = {1, 2, 3, 4, 5, 6, 7, 8, 9};
-
   late final AddReadingPlanViewModel viewModel;
-
-  bool _isEditingValue = false;
-  String _valueInput = '';
 
   @override
   void initState() {
@@ -79,25 +73,7 @@ class _AddReadingPlanPanelState extends State<AddReadingPlanPanel> {
             top: false,
             child: Material(
               color: Theme.of(context).colorScheme.surface,
-              child: Column(
-                children: [
-                  Expanded(child: panel),
-                  if (_isEditingValue)
-                    Material(
-                      elevation: 16,
-                      color: Theme.of(context).scaffoldBackgroundColor,
-                      child: NumericKeypad(
-                        isLastInput: true,
-                        enabledDigits: _valueInput.isEmpty
-                            ? _firstDigits
-                            : _allDigits,
-                        onDigit: _handleDigit,
-                        onBackspace: _handleBackspace,
-                        onSubmit: _finishEditingValue,
-                      ),
-                    ),
-                ],
-              ),
+              child: panel,
             ),
           ),
         );
@@ -360,7 +336,6 @@ class _AddReadingPlanPanelState extends State<AddReadingPlanPanel> {
             title: l10n.verses,
             selected: viewModel.goalType == GoalType.verses,
             onTap: () {
-              _clearValueInput();
               viewModel.setGoalType(GoalType.verses);
             },
           ),
@@ -371,7 +346,6 @@ class _AddReadingPlanPanelState extends State<AddReadingPlanPanel> {
             title: l10n.minutes,
             selected: viewModel.goalType == GoalType.minutes,
             onTap: () {
-              _clearValueInput();
               viewModel.setGoalType(GoalType.minutes);
             },
           ),
@@ -409,135 +383,11 @@ class _AddReadingPlanPanelState extends State<AddReadingPlanPanel> {
     );
   }
 
-  /// Value stepper + tap-to-edit field, taken from SetDailyGoalView.
   Widget _buildEditableValue() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        _circleButton(
-          icon: Icons.remove,
-          onTap: () {
-            if (viewModel.goalValue <= 1) return;
-            _clearValueInput();
-            viewModel.decrementGoalValue();
-          },
-        ),
-        const SizedBox(width: 30),
-        _editableValueField(),
-        const SizedBox(width: 30),
-        _circleButton(
-          icon: Icons.add,
-          onTap: () {
-            _clearValueInput();
-            viewModel.incrementGoalValue();
-          },
-        ),
-      ],
+    return GoalValueEditor(
+      initialValue: viewModel.goalValue,
+      onChanged: viewModel.setGoalValue,
     );
-  }
-
-  Widget _editableValueField() {
-    final colorScheme = Theme.of(context).colorScheme;
-    final displayValue = _valueInput.isEmpty
-        ? viewModel.goalValue.toString()
-        : _valueInput;
-
-    return GestureDetector(
-      onTap: _startEditingValue,
-      behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        width: 110,
-        height: 84,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          border: _isEditingValue
-              ? Border.all(color: colorScheme.primary, width: 2)
-              : null,
-        ),
-        child: FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Text(
-            displayValue,
-            style: TextStyle(
-              fontSize: 64,
-              fontWeight: FontWeight.w300,
-              color: _isEditingValue ? colorScheme.primary : null,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _circleButton({required IconData icon, required VoidCallback onTap}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 48,
-        height: 48,
-        decoration: BoxDecoration(
-          color: Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Theme.of(context).colorScheme.primary),
-        ),
-        child: Icon(icon, color: Theme.of(context).colorScheme.primary),
-      ),
-    );
-  }
-
-  void _clearValueInput() {
-    setState(() {
-      _isEditingValue = false;
-      _valueInput = '';
-    });
-  }
-
-  void _startEditingValue() {
-    if (_isEditingValue) return;
-
-    setState(() {
-      _isEditingValue = true;
-      _valueInput = '';
-    });
-  }
-
-  void _finishEditingValue() {
-    setState(() {
-      _isEditingValue = false;
-      _valueInput = '';
-    });
-  }
-
-  void _handleDigit(int digit) {
-    if (_valueInput.isEmpty && digit == 0) return;
-
-    final nextInput = _valueInput + digit.toString();
-    final nextValue = int.tryParse(nextInput);
-    if (nextValue == null || nextValue < 1) return;
-
-    setState(() {
-      _valueInput = nextInput;
-    });
-    viewModel.setGoalValue(nextValue);
-  }
-
-  void _handleBackspace() {
-    if (_valueInput.isEmpty) {
-      _finishEditingValue();
-      return;
-    }
-
-    final nextInput = _valueInput.substring(0, _valueInput.length - 1);
-    final nextValue = int.tryParse(nextInput);
-
-    setState(() {
-      _valueInput = nextInput;
-    });
-    if (nextValue != null && nextValue > 0) {
-      viewModel.setGoalValue(nextValue);
-    }
   }
 
   Widget _estimatedCompletion() {
