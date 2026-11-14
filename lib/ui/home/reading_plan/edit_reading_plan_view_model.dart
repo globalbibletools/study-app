@@ -5,7 +5,7 @@ import 'package:gbt/services/reading_session/reading_plan_service.dart';
 import 'package:gbt/services/reading_session/rs_model.dart';
 import 'package:gbt/services/service_locator.dart';
 
-class AddReadingPlanViewModel extends ChangeNotifier {
+class EditReadingPlanViewModel extends ChangeNotifier {
   final ReadingPlanDetails readingPlan;
 
   final ReadingPlanService _planService;
@@ -34,14 +34,14 @@ class AddReadingPlanViewModel extends ChangeNotifier {
     ]);
   }
 
-  AddReadingPlanViewModel(ReadingPlanDetails readingPlan)
+  EditReadingPlanViewModel(ReadingPlanDetails readingPlan)
     : this.withDependencies(
         readingPlan,
         planService: getIt<ReadingPlanService>(),
         bibleNavigation: getIt<BibleNavigation>(),
       );
 
-  AddReadingPlanViewModel.withDependencies(
+  EditReadingPlanViewModel.withDependencies(
     this.readingPlan, {
     required ReadingPlanService planService,
     required BibleNavigation bibleNavigation,

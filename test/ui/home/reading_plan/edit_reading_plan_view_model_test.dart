@@ -4,12 +4,12 @@ import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/services/reading_session/reading_plan_service.dart';
 import 'package:gbt/services/reading_session/rs_database.dart';
 import 'package:gbt/services/reading_session/rs_model.dart';
-import 'package:gbt/ui/home/reading_plan/add_reading_plan_view_model.dart';
+import 'package:gbt/ui/home/reading_plan/edit_reading_plan_view_model.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import '../../../fixtures/bible_navigation_fixture.dart';
 
-/// Integration tests for [AddReadingPlanViewModel] running against a real
+/// Integration tests for [EditReadingPlanViewModel] running against a real
 /// in-memory SQLite database, the real [ReadingPlanService], and a
 /// [BibleNavigation] backed by the versification fixture.
 ///
@@ -52,16 +52,16 @@ void main() {
     database.dispose();
   });
 
-  AddReadingPlanViewModel newViewModel([String name = 'Test Plan']) {
-    return AddReadingPlanViewModel.withDependencies(
-      AddReadingPlanViewModel.defaultPlan(name),
+  EditReadingPlanViewModel newViewModel([String name = 'Test Plan']) {
+    return EditReadingPlanViewModel.withDependencies(
+      EditReadingPlanViewModel.defaultPlan(name),
       planService: planService,
       bibleNavigation: bibleNavigation,
     );
   }
 
-  AddReadingPlanViewModel existingViewModel(ReadingPlanDetails details) {
-    return AddReadingPlanViewModel.withDependencies(
+  EditReadingPlanViewModel existingViewModel(ReadingPlanDetails details) {
+    return EditReadingPlanViewModel.withDependencies(
       details,
       planService: planService,
       bibleNavigation: bibleNavigation,
@@ -88,7 +88,7 @@ void main() {
 
   group('defaultPlan', () {
     test('creates an unsaved whole-Bible plan with a 10-verse daily goal', () {
-      final details = AddReadingPlanViewModel.defaultPlan('Morning Reading');
+      final details = EditReadingPlanViewModel.defaultPlan('Morning Reading');
 
       final plan = details.readingPlan;
       expect(plan.id, isNull);
@@ -282,7 +282,7 @@ void main() {
 
   group('estimatedDays', () {
     // Ruth (book 8) has 85 verses in the versification fixture.
-    AddReadingPlanViewModel ruthViewModel() {
+    EditReadingPlanViewModel ruthViewModel() {
       final vm = newViewModel();
       vm.setSelectedBooks({8});
       return vm;

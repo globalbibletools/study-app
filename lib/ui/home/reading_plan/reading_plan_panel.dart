@@ -5,7 +5,7 @@ import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/l10n/book_names.dart';
 import 'package:gbt/services/reading_session/rs_model.dart';
 import 'package:gbt/ui/home/home_manager.dart';
-import 'package:gbt/ui/home/reading_plan/add_reading_plan_panel.dart';
+import 'package:gbt/ui/home/reading_plan/edit_reading_plan_panel.dart';
 import 'package:gbt/ui/home/reading_plan/reading_plan_detail_panel.dart';
 import 'package:gbt/ui/home/reading_plan/reading_plan_panel_manager.dart';
 
@@ -218,7 +218,7 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
             await Navigator.of(context).push(
               MaterialPageRoute(
                 builder:
-                    (_) => AddReadingPlanPanel.newPlan(
+                    (_) => EditReadingPlanPanel.newPlan(
                       l10n.defaultReadingPlanName,
                     ),
               ),
@@ -299,7 +299,7 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
               await Navigator.of(context).push(
                 MaterialPageRoute(
                   builder:
-                      (_) => AddReadingPlanPanel.existing(planDet),
+                      (_) => EditReadingPlanPanel.existing(planDet),
                 ),
               );
               _editMode = false;

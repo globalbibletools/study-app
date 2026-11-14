@@ -3,29 +3,29 @@ import 'package:gbt/common/bible_collection.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/l10n/book_names.dart';
 import 'package:gbt/services/reading_session/rs_model.dart';
-import 'package:gbt/ui/home/reading_plan/add_reading_plan_view_model.dart';
+import 'package:gbt/ui/home/reading_plan/edit_reading_plan_view_model.dart';
 import 'package:gbt/ui/home/reading_plan/goal_value_editor.dart';
 import 'package:gbt/ui/home/reading_plan/reading_plan_panel.dart';
 
-class AddReadingPlanPanel extends StatefulWidget {
+class EditReadingPlanPanel extends StatefulWidget {
   final ReadingPlanDetails planDetails;
 
-  const AddReadingPlanPanel.existing(this.planDetails, {super.key});
+  const EditReadingPlanPanel.existing(this.planDetails, {super.key});
 
-  AddReadingPlanPanel.newPlan(String name, {super.key})
-    : planDetails = AddReadingPlanViewModel.defaultPlan(name);
+  EditReadingPlanPanel.newPlan(String name, {super.key})
+    : planDetails = EditReadingPlanViewModel.defaultPlan(name);
 
   @override
-  State<AddReadingPlanPanel> createState() => _AddReadingPlanPanelState();
+  State<EditReadingPlanPanel> createState() => _EditReadingPlanPanelState();
 }
 
-class _AddReadingPlanPanelState extends State<AddReadingPlanPanel> {
-  late final AddReadingPlanViewModel viewModel;
+class _EditReadingPlanPanelState extends State<EditReadingPlanPanel> {
+  late final EditReadingPlanViewModel viewModel;
 
   @override
   void initState() {
     super.initState();
-    viewModel = AddReadingPlanViewModel(widget.planDetails);
+    viewModel = EditReadingPlanViewModel(widget.planDetails);
   }
 
   String _booksSummary(AppLocalizations l10n) {
