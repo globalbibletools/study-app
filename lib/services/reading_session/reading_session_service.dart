@@ -91,6 +91,23 @@ class ReadingSessionService {
     return ActiveSessionSnapshot(config: config, progress: progress);
   }
 
+  Future<ActiveSessionSnapshot?> loadSession(
+    int sessionId, {
+    DateTime? at,
+  }) async {
+    final session = await _database.getSessionById(sessionId);
+    if (session == null) return null;
+
+    final details = await _database.getReadingPlanById(session.readingPlanId);
+    if (details == null) return null;
+
+    final config = ReadingPlanConfig.fromPlanDetails(details, _bibleNavigation);
+    final now = at ?? DateTime.now();
+    final progress = await _readProgress(session, now);
+
+    return ActiveSessionSnapshot(config: config, progress: progress);
+  }
+
   Future<void> endSession(
     int sessionId, {
     required int readSeconds,

@@ -532,6 +532,105 @@ void main() {
     expect(summary.single.rsSeconds, greaterThanOrEqualTo(1));
   });
 
+  test(
+    'reloads an existing session with its latest plan config and progress',
+    () async {
+      final plan = await planService.saveReadingPlan(
+        planName: 'Reload Session Test',
+        collectionId: 1,
+        goalType: GoalType.verses,
+        goalValue: 5,
+        selectedBookIds: {63},
+      );
+
+      final sessionId = await startPlan(plan.id!);
+      await setVerseRead(sessionId, _readOptions(63, 1, 1, read: true));
+
+      final details = (await planService.getReadingPlanById(plan.id!))!;
+      await planService.saveReadingPlan(
+        existingPlanDetails: details,
+        planName: 'Reloaded Plan',
+        collectionId: 1,
+        goalType: GoalType.minutes,
+        goalValue: 12,
+        selectedBookIds: {63, 64},
+      );
+
+      final snapshot = (await sessionService.loadSession(sessionId))!;
+
+      expect(snapshot.progress.sessionId, sessionId);
+      expect(snapshot.progress.versesToday, 1);
+      expect(snapshot.config.planName, 'Reloaded Plan');
+      expect(snapshot.config.dailyGoal.type, GoalType.minutes);
+      expect(snapshot.config.dailyGoal.value, 12);
+      expect(snapshot.config.bookIds, {63, 64});
+    },
+  );
+
+  test('reload returns null for a missing session', () async {
+    expect(await sessionService.loadSession(-1), isNull);
+  });
+
+  test(
+    'view model reload applies plan changes made while a session runs',
+    () async {
+      final plan = await planService.saveReadingPlan(
+        planName: 'Reload View Model Test',
+        collectionId: 1,
+        goalType: GoalType.verses,
+        goalValue: 5,
+        selectedBookIds: {63},
+      );
+
+      final viewModel = ReadingSessionViewModel.withService(sessionService);
+      await viewModel.startSession(plan.id!);
+      await viewModel.setVerseRead(_readOptions(63, 1, 1, read: true));
+
+      final details = (await planService.getReadingPlanById(plan.id!))!;
+      await planService.saveReadingPlan(
+        existingPlanDetails: details,
+        planName: 'Reloaded View Model Plan',
+        collectionId: 1,
+        goalType: GoalType.verses,
+        goalValue: 20,
+        selectedBookIds: {63, 64},
+      );
+
+      expect(viewModel.planConfig?.planName, 'Reload View Model Test');
+
+      await viewModel.reloadSession();
+
+      expect(viewModel.hasActiveSession, isTrue);
+      expect(viewModel.planConfig?.planName, 'Reloaded View Model Plan');
+      expect(viewModel.planConfig?.dailyGoal.value, 20);
+      expect(viewModel.readingPlanBooks, {63, 64});
+      expect(viewModel.session?.versesToday, 1);
+
+      viewModel.dispose();
+    },
+  );
+
+  test('view model reload clears a session whose plan was deleted', () async {
+    final plan = await planService.saveReadingPlan(
+      planName: 'Reload Deleted Plan Test',
+      collectionId: 1,
+      goalType: GoalType.verses,
+      goalValue: 5,
+      selectedBookIds: {63},
+    );
+
+    final viewModel = ReadingSessionViewModel.withService(sessionService);
+    await viewModel.startSession(plan.id!);
+    await planService.deleteReadingPlan(plan.id!);
+
+    await viewModel.reloadSession();
+
+    expect(viewModel.hasActiveSession, isFalse);
+    expect(viewModel.session, isNull);
+
+    viewModel.dispose();
+  });
+
   test('returns null for actions on a missing session', () async {
     final plan = await planService.saveReadingPlan(
       planName: 'Missing Session Test',
