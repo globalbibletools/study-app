@@ -1705,7 +1705,6 @@ class RenderHebrewGreekText extends RenderBox {
     final readCount = readState?.readCount ?? 0;
     final readThisSession = readState?.readThisSession ?? false;
     final wasReadBefore = readCount > 0;
-    final isFilled = readThisSession || wasReadBefore;
     final isHighlighted = _spotlightVerse == verse.verse;
 
     final rect = verse.readingCheckboxRect!;
@@ -1717,46 +1716,43 @@ class RenderHebrewGreekText extends RenderBox {
         .withSaturation((fillHsl.saturation * 0.8).clamp(0.0, 1.0))
         .toColor();
 
-    // The unchecked checkbox is always painted as a 1 px border so the filled
-    // state is distinguishable by shape as well as by color.
-    final borderPaint = Paint()
-      ..color = filledColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1;
-    canvas.drawRRect(rrect.deflate(0.5), borderPaint);
-
-    if (isFilled) {
-      final filledRect = rect.deflate(2);
-      final filledRRect = RRect.fromRectAndRadius(
-        filledRect,
-        const Radius.circular(4),
-      );
+    final checkRect = rect.deflate(2);
+    if (readThisSession) {
+      // Current-session reads fill the entire checkbox.
       final fillPaint = Paint()..color = filledColor;
-      canvas.drawRRect(filledRRect, fillPaint);
+      canvas.drawRRect(rrect, fillPaint);
+    } else {
+      // Unchecked and previously-read states use a blue border with a
+      // transparent background.
+      final borderPaint = Paint()
+        ..color = filledColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1;
+      canvas.drawRRect(rrect.deflate(0.5), borderPaint);
+    }
 
-      if (readThisSession) {
-        final path = Path()
-          ..moveTo(
-            filledRect.left + filledRect.width * 0.22,
-            filledRect.top + filledRect.height * 0.55,
-          )
-          ..lineTo(
-            filledRect.left + filledRect.width * 0.42,
-            filledRect.top + filledRect.height * 0.75,
-          )
-          ..lineTo(
-            filledRect.left + filledRect.width * 0.78,
-            filledRect.top + filledRect.height * 0.28,
-          );
+    if (readThisSession || wasReadBefore) {
+      final path = Path()
+        ..moveTo(
+          checkRect.left + checkRect.width * 0.22,
+          checkRect.top + checkRect.height * 0.55,
+        )
+        ..lineTo(
+          checkRect.left + checkRect.width * 0.42,
+          checkRect.top + checkRect.height * 0.75,
+        )
+        ..lineTo(
+          checkRect.left + checkRect.width * 0.78,
+          checkRect.top + checkRect.height * 0.28,
+        );
 
-        final checkPaint = Paint()
-          ..color = Colors.white
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = filledRect.shortestSide * 0.12
-          ..strokeCap = StrokeCap.round
-          ..strokeJoin = StrokeJoin.round;
-        canvas.drawPath(path, checkPaint);
-      }
+      final checkPaint = Paint()
+        ..color = readThisSession ? Colors.white : filledColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = checkRect.shortestSide * 0.12
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round;
+      canvas.drawPath(path, checkPaint);
     }
 
     if (isHighlighted) {
