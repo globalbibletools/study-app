@@ -383,4 +383,30 @@ class HebrewGreekDatabase {
         (row['book'] as int, row['chapter'] as int): row['verses'] as int,
     };
   }
+
+  Future<Map<(int, int), List<int>>> getVerseInventory({
+    required Set<int> bookIds,
+  }) async {
+    if (bookIds.isEmpty) return {};
+
+    final placeholders = List.filled(bookIds.length, '?').join(', ');
+    final rows = await _database.rawQuery(
+      'SELECT ${HebrewGreekSchema.versesColBook} AS book, '
+      '${HebrewGreekSchema.versesColChapter} AS chapter, '
+      '${HebrewGreekSchema.versesColVerse} AS verse '
+      'FROM ${HebrewGreekSchema.versesTable} '
+      'WHERE ${HebrewGreekSchema.versesColBook} IN ($placeholders) '
+      'ORDER BY ${HebrewGreekSchema.versesColBook}, '
+      '${HebrewGreekSchema.versesColChapter}, '
+      '${HebrewGreekSchema.versesColVerse}',
+      bookIds.toList(),
+    );
+
+    final inventory = <(int, int), List<int>>{};
+    for (final row in rows) {
+      final key = (row['book'] as int, row['chapter'] as int);
+      (inventory[key] ??= <int>[]).add(row['verse'] as int);
+    }
+    return inventory;
+  }
 }

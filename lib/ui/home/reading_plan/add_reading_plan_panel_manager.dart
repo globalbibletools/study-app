@@ -1,9 +1,9 @@
-import 'package:gbt/services/reading_session/rs_manager.dart';
+import 'package:gbt/services/reading_session/reading_plan_service.dart';
 import 'package:gbt/services/reading_session/rs_model.dart';
 import 'package:gbt/services/service_locator.dart';
 
 class AddReadingPlanPanelManager {
-  final _rsManager = getIt<ReadingSessionManager>();
+  final _planService = getIt<ReadingPlanService>();
   final ReadingPlanDetails? readingPlan;
 
   AddReadingPlanPanelManager(this.readingPlan);
@@ -15,7 +15,7 @@ class AddReadingPlanPanelManager {
     int goalValue,
     Set<int> books,
   ) async {
-    return await _rsManager.saveReadingPlan(
+    return await _planService.saveReadingPlan(
       existingPlanDetails: readingPlan,
       planName: planName,
       collectionId: collectionId,
@@ -26,6 +26,6 @@ class AddReadingPlanPanelManager {
   }
 
   Future<void> deleteReadingPlan(int planId) async {
-    await _rsManager.deleteReadingPlan(planId);
+    await _planService.deleteReadingPlan(planId);
   }
 }

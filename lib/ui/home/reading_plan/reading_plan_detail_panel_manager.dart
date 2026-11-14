@@ -1,81 +1,86 @@
 import 'package:flutter/material.dart';
-import 'package:gbt/services/reading_session/rs_manager.dart';
+import 'package:gbt/common/reference.dart';
+import 'package:gbt/services/reading_session/reading_plan_service.dart';
+import 'package:gbt/ui/home/reading_plan/reading_session_view_model.dart';
 import 'package:gbt/services/reading_session/rs_model.dart';
 import 'package:gbt/services/service_locator.dart';
 
 class ReadingPlanDetailPanelManager {
-  final _rsManager = getIt<ReadingSessionManager>();
+  final _sessionViewModel = getIt<ReadingSessionViewModel>();
+  final _planService = getIt<ReadingPlanService>();
 
   final readingPlansNotifier = ValueNotifier<List<ReadingPlanDetails>>([]);
-  final booksProgressNotifier = ValueNotifier<List<RsBookProgress>>([]);
+  final booksProgressNotifier = ValueNotifier<List<RsBookStats>>([]);
   final todaysProgressNotifier = ValueNotifier<DayProgress?>(null);
   final bookmarkNotifier = ValueNotifier<bool>(false);
   final monthProgress = ValueNotifier<List<DayProgress>>([]);
-  final latestBookProgressNotifier = ValueNotifier<RsBookProgress?>(null);
+  final resumePositionNotifier = ValueNotifier<Reference?>(null);
 
   ReadingPlanDetails readingPlanDetails;
   bool _isDisposed = false;
+  late final Future<void> _initFuture;
 
   ReadingPlanDetailPanelManager(this.readingPlanDetails) {
     bookmarkNotifier.value = readingPlanDetails.readingPlan.isBookmarked;
-    final orderedBookIds = readingPlanDetails.books
-        .map((b) => b.bookId)
-        .toList();
-    readingPlanDetails.latestBookProgress = _rsManager.getLatestBookProgress(
-      readingPlanDetails.readingPlan.id!,
-      orderedBookIds: orderedBookIds,
-    );
-    latestBookProgressNotifier.value = readingPlanDetails.latestBookProgress;
-    init();
-    DateTime now = DateTime.now();
-    loadMonthData(DateTime(now.year, now.month, 1));
+    resumePositionNotifier.value = readingPlanDetails.resumePosition;
+    _initFuture = init();
   }
+
+  Future<void> get ready => _initFuture;
 
   Future<void> init() async {
     final planId = readingPlanDetails.readingPlan.id!;
-    _rsManager.subscribeForStats(onStatsUpdated);
-    final loaded = await _rsManager.loadBooksProgress(planId);
-    if (_isDisposed) return;
-    booksProgressNotifier.value = loaded;
-    final orderedBookIds = readingPlanDetails.books
-        .map((b) => b.bookId)
-        .toList();
-    readingPlanDetails.latestBookProgress = _rsManager.getLatestBookProgress(
-      planId,
-      orderedBookIds: orderedBookIds,
-    );
-    latestBookProgressNotifier.value = readingPlanDetails.latestBookProgress;
-    await onStatsUpdated();
-  }
-
-  Future<void> onStatsUpdated() async {
-    if (_isDisposed) return;
-    final planId = readingPlanDetails.readingPlan.id!;
-    List<DayProgress>? progress = await _rsManager.getMonthProgress(planId);
-    if (_isDisposed) return;
-
     final now = DateTime.now();
 
-    if (progress != null && progress.isNotEmpty && now.day <= progress.length) {
-      todaysProgressNotifier.value = progress[now.day - 1];
+    final loaded = await _planService.getBooksStats(planId);
+    final statsByBook = {for (final stat in loaded) stat.bookId: stat};
+    var totalVerses = 0;
+    var versesRead = 0;
+    var booksRead = 0;
+    for (final book in readingPlanDetails.books) {
+      final stat = statsByBook[book.bookId];
+      totalVerses += stat?.totalVerses ?? 0;
+      versesRead += stat?.versesRead ?? 0;
+      if (stat != null && stat.isComplete) {
+        booksRead += 1;
+      }
     }
+    final resumePosition = await _planService.getResumeReference(planId);
+    final month = await _planService.getMonthProgress(
+      planId,
+      DateTime(now.year, now.month, 1),
+    );
+
+    if (_isDisposed) return;
+
+    readingPlanDetails.totalVerses = totalVerses;
+    readingPlanDetails.versesRead = versesRead;
+    readingPlanDetails.booksRead = booksRead;
+    booksProgressNotifier.value = loaded;
+    readingPlanDetails.resumePosition = resumePosition;
+    resumePositionNotifier.value = resumePosition;
+    monthProgress.value = month;
+    todaysProgressNotifier.value = now.day <= month.length
+        ? month[now.day - 1]
+        : null;
   }
 
   Future<void> markToggleReadingPlanBookmark() async {
-    final isBookmarked = await _rsManager.toggleReadingPlanBookmark(
-      readingPlanDetails,
+    final updatedPlan = await _planService.setReadingPlanBookmark(
+      readingPlanDetails.readingPlan,
+      !readingPlanDetails.readingPlan.isBookmarked,
     );
-    bookmarkNotifier.value = isBookmarked;
+    readingPlanDetails.readingPlan = updatedPlan;
+    bookmarkNotifier.value = updatedPlan.isBookmarked;
   }
 
   void dispose() {
     _isDisposed = true;
-    _rsManager.unsubscribeForStats(onStatsUpdated);
-    latestBookProgressNotifier.dispose();
+    resumePositionNotifier.dispose();
   }
 
   Future<void> startReadingSession() async {
-    await _rsManager.startReadingSession(readingPlanDetails);
+    await _sessionViewModel.startSession(readingPlanDetails.readingPlan.id!);
   }
 
   Future<void> reorderBooks(List<ReadingPlanBook> books) async {
@@ -86,20 +91,20 @@ class ReadingPlanDetailPanelManager {
     readingPlanDetails.books
       ..clear()
       ..addAll(updatedBooks);
-    await _rsManager.reorderReadingPlanBooks(
+    await _planService.reorderReadingPlanBooks(
       readingPlanDetails.readingPlan.id!,
       updatedBooks,
     );
-    final orderedBookIds = updatedBooks.map((b) => b.bookId).toList();
-    readingPlanDetails.latestBookProgress = _rsManager.getLatestBookProgress(
+    final resumePosition = await _planService.getResumeReference(
       readingPlanDetails.readingPlan.id!,
-      orderedBookIds: orderedBookIds,
     );
-    latestBookProgressNotifier.value = readingPlanDetails.latestBookProgress;
+    if (_isDisposed) return;
+    readingPlanDetails.resumePosition = resumePosition;
+    resumePositionNotifier.value = resumePosition;
   }
 
-  void loadMonthData(DateTime month) async {
-    final data = await _rsManager.loadMonthProgress(
+  Future<void> loadMonthData(DateTime month) async {
+    final data = await _planService.getMonthProgress(
       readingPlanDetails.readingPlan.id!,
       month,
     );

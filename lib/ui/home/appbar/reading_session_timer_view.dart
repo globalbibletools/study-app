@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:gbt/services/reading_session/rs_manager.dart';
+import 'package:gbt/ui/home/reading_plan/reading_session_view_model.dart';
 import 'package:gbt/services/service_locator.dart';
 
 class ReadingSessionTimerView extends StatefulWidget {
@@ -11,7 +11,7 @@ class ReadingSessionTimerView extends StatefulWidget {
 }
 
 class _ReadingSessionTimerViewState extends State<ReadingSessionTimerView> {
-  final _readingSessionManager = getIt<ReadingSessionManager>();
+  final _sessionViewModel = getIt<ReadingSessionViewModel>();
 
   @override
   void initState() {
@@ -29,7 +29,7 @@ class _ReadingSessionTimerViewState extends State<ReadingSessionTimerView> {
 
     return GestureDetector(
       onTap: () {
-        _readingSessionManager.toggleDisplayGoalProgress();
+        _sessionViewModel.toggleDisplayGoalProgress();
       },
       child: Container(
         margin: const EdgeInsets.only(right: 8),
@@ -50,8 +50,7 @@ class _ReadingSessionTimerViewState extends State<ReadingSessionTimerView> {
             ),
             const SizedBox(width: 8),
             ValueListenableBuilder(
-              valueListenable:
-                  _readingSessionManager.totalSecondsReadPerSession,
+              valueListenable: _sessionViewModel.sessionSecondsNotifier,
               builder: (context, elapsedSeconds, _) {
                 return Text(
                   _formatDuration(elapsedSeconds),

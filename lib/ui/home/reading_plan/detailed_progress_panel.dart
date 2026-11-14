@@ -89,7 +89,7 @@ class _DetailedProgressPanelState extends State<DetailedProgressPanel> {
           style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
-        ValueListenableBuilder<List<Session>>(
+        ValueListenableBuilder<List<SessionDetails>>(
           valueListenable: widget.manager.details,
           builder: (context, data, _) {
             return Text(
@@ -104,7 +104,7 @@ class _DetailedProgressPanelState extends State<DetailedProgressPanel> {
 
   Widget _readingSection() {
     final screenHeight = MediaQuery.of(context).size.height;
-    return ValueListenableBuilder<List<Session>>(
+    return ValueListenableBuilder<List<SessionDetails>>(
       valueListenable: widget.manager.details,
       builder: (context, data, _) {
         return ConstrainedBox(
@@ -118,13 +118,9 @@ class _DetailedProgressPanelState extends State<DetailedProgressPanel> {
     );
   }
 
-  Widget _sessionCard(Session session) {
-    final sessionMinutes =
-        session.rsDailyLog.endTime
-            ?.difference(session.rsDailyLog.startTime)
-            .inMinutes ??
-        0;
-    final sessionVerses = session.rsDailyLog.verses;
+  Widget _sessionCard(SessionDetails session) {
+    final sessionMinutes = session.rsSession.readSeconds ~/ 60;
+    final sessionVerses = session.rsSession.verses;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -137,7 +133,7 @@ class _DetailedProgressPanelState extends State<DetailedProgressPanel> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            _formatTimeRange(session.rsDailyLog),
+            _formatTimeRange(session.rsSession),
             style: TextStyle(
               fontSize: 12,
               letterSpacing: 1.5,
@@ -230,21 +226,16 @@ class _DetailedProgressPanelState extends State<DetailedProgressPanel> {
     final accent = Theme.of(context).colorScheme.primary;
     final l10n = AppLocalizations.of(context)!;
 
-    return ValueListenableBuilder<List<Session>>(
+    return ValueListenableBuilder<List<SessionDetails>>(
       valueListenable: widget.manager.details,
       builder: (context, data, _) {
         final totalSeconds = data.fold<int>(
           0,
-          (sum, session) =>
-              sum +
-              (session.rsDailyLog.endTime
-                      ?.difference(session.rsDailyLog.startTime)
-                      .inSeconds ??
-                  0),
+          (sum, session) => sum + session.rsSession.readSeconds,
         );
         final totalVerses = data.fold<int>(
           0,
-          (sum, session) => sum + session.rsDailyLog.verses,
+          (sum, session) => sum + session.rsSession.verses,
         );
 
         return Container(
@@ -297,7 +288,7 @@ class _DetailedProgressPanelState extends State<DetailedProgressPanel> {
     return "$month ${date.day}, ${date.year}";
   }
 
-  String _formatTimeRange(RsDailyLog log) {
+  String _formatTimeRange(RsSession log) {
     final l10n = AppLocalizations.of(context)!;
     final start = _formatTime(log.startTime);
     final end = log.endTime != null

@@ -5,6 +5,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:gbt/common/word.dart';
+import 'package:gbt/services/reading_session/rs_model.dart';
 import 'package:gbt/services/settings/user_settings.dart';
 import 'package:gbt/ui/common/sparkle_icon.dart';
 import 'package:gbt/ui/common/word_popup.dart';
@@ -105,17 +106,14 @@ class WordRenderer {
 
 class VerseRenderer {
   final int verse;
-  int readingCount;
+  VerseReadState? readState;
   Rect? verseNumberRect;
   Rect? readingCheckboxRect;
   TextPainter verseNumberPainter;
-  TextPainter? verseReadingCountPainter;
   Size? checkboxSize;
   List<WordRenderer> words;
 
-  VerseRenderer(this.verse, this.verseNumberPainter)
-    : words = [],
-      readingCount = 0;
+  VerseRenderer(this.verse, this.verseNumberPainter) : words = [];
 }
 
 /// A widget that renders Hebrew and Greek text with custom layout and styling.
@@ -224,9 +222,9 @@ class HebrewGreekText extends LeafRenderObjectWidget {
   // Specifies if reading mode is enabled ot not
   final bool readingModeEnabled;
 
-  /// Indicates if the verse has been read or not
-  /// a filled checkbox will appear
-  final Map<int, int>? checkedVerses;
+  /// Indicates whether the verse has been read in the current session and
+  /// whether it has ever been read before.
+  final Map<int, VerseReadState>? checkedVerses;
   final int? changedCheckedVerse;
   final bool resetCheckedVerses;
   final int checkedVersesRevision;
@@ -410,7 +408,7 @@ class RenderHebrewGreekText extends RenderBox {
     Color? highlightColor,
     required VerseLayout verseLayout,
     required bool readingModeEnabled,
-    Map<int, int>? checkedVerses,
+    Map<int, VerseReadState>? checkedVerses,
     int? changedCheckedVerse,
     bool resetCheckedVerses = false,
     int checkedVersesRevision = 0,
@@ -438,7 +436,7 @@ class RenderHebrewGreekText extends RenderBox {
        _readingModeEnabled = readingModeEnabled,
        _checkedVerses = checkedVerses == null
            ? null
-           : Map<int, int>.unmodifiable(checkedVerses),
+           : Map<int, VerseReadState>.unmodifiable(checkedVerses),
        _checkedVersesRevision = checkedVersesRevision,
        _spotlightVerse = spotlightVerse,
        _primaryColor = primaryColor {
@@ -473,7 +471,7 @@ class RenderHebrewGreekText extends RenderBox {
   final List<_LineMetrics> _lineMetrics = [];
   VerseLayout _verseLayout;
   bool _readingModeEnabled;
-  Map<int, int>? _checkedVerses;
+  Map<int, VerseReadState>? _checkedVerses;
   int _checkedVersesRevision;
   int? _spotlightVerse;
 
@@ -519,7 +517,7 @@ class RenderHebrewGreekText extends RenderBox {
 
   List<VerseLayoutBlock> get verses => _verses;
   VerseLayout get verseLayout => _verseLayout;
-  Map<int, int>? get checkedVerses => _checkedVerses;
+  Map<int, VerseReadState>? get checkedVerses => _checkedVerses;
 
   set verseLayout(VerseLayout value) {
     if (_verseLayout == value) return;
@@ -528,7 +526,7 @@ class RenderHebrewGreekText extends RenderBox {
     markNeedsLayout();
   }
 
-  set checkedVerses(Map<int, int>? value) {
+  set checkedVerses(Map<int, VerseReadState>? value) {
     updateCheckedVerses(
       value,
       resetAll: true,
@@ -537,14 +535,16 @@ class RenderHebrewGreekText extends RenderBox {
   }
 
   void updateCheckedVerses(
-    Map<int, int>? value, {
+    Map<int, VerseReadState>? value, {
     int? changedVerse,
     bool resetAll = false,
     required int revision,
   }) {
     if (revision == _checkedVersesRevision) return;
 
-    _checkedVerses = value == null ? null : Map<int, int>.unmodifiable(value);
+    _checkedVerses = value == null
+        ? null
+        : Map<int, VerseReadState>.unmodifiable(value);
     _checkedVersesRevision = revision;
 
     if (resetAll) {
@@ -777,12 +777,11 @@ class RenderHebrewGreekText extends RenderBox {
 
     if (!_readingModeEnabled) {
       for (final verseRenderer in _verseRenderer) {
-        if (verseRenderer.readingCount != 0 ||
+        if (verseRenderer.readState != null ||
             verseRenderer.checkboxSize != null) {
-          verseRenderer.readingCount = 0;
+          verseRenderer.readState = null;
           verseRenderer.checkboxSize = null;
           verseRenderer.readingCheckboxRect = null;
-          verseRenderer.verseReadingCountPainter = null;
           sizeChanged = true;
         }
       }
@@ -846,22 +845,21 @@ class RenderHebrewGreekText extends RenderBox {
         _setupCheckboxPainter(verseRenderer);
       } else {
         verseRenderer.readingCheckboxRect = null;
-        verseRenderer.verseReadingCountPainter = null;
       }
     }
   }
 
   Size _setupCheckboxPainter(VerseRenderer verseRenderer) {
-    final readingCount = _checkedVerses?[verseRenderer.verse] ?? 0;
-    final horizontalPadding = 8.0;
-    final verticalPadding = 4.0;
+    verseRenderer.readState = _checkedVerses?[verseRenderer.verse];
+
+    // Preserve the original badge geometry so the checkbox keeps the same
+    // shape and footprint as the pre-three-state read checkbox.
+    const horizontalPadding = 8.0;
+    const verticalPadding = 4.0;
     final badgeHeight = 0.4 * (_textStyle.fontSize ?? 48);
-
-    verseRenderer.readingCount = readingCount;
-
-    final countPainter = TextPainter(
+    final referencePainter = TextPainter(
       text: TextSpan(
-        text: '$readingCount',
+        text: '0',
         style: _textStyle.copyWith(
           color: const Color(0xFFFFFFFF),
           fontWeight: FontWeight.w700,
@@ -873,12 +871,12 @@ class RenderHebrewGreekText extends RenderBox {
 
     final height = math.max(
       badgeHeight,
-      countPainter.height + verticalPadding * 2,
+      referencePainter.height + verticalPadding * 2,
     );
-
-    final width = math.max(countPainter.width + horizontalPadding * 2, height);
-
-    verseRenderer.verseReadingCountPainter = countPainter;
+    final width = math.max(
+      referencePainter.width + horizontalPadding * 2,
+      height,
+    );
 
     final newSize = Size(width, height);
     verseRenderer.checkboxSize = newSize;
@@ -1034,7 +1032,6 @@ class RenderHebrewGreekText extends RenderBox {
           currentLineMaxHeight,
           currentLineWords,
           j == 0 ? verse.verseNumberPainter : null,
-          j == 0 ? verse.verseReadingCountPainter : null,
           j == 0 ? verse.checkboxSize : null,
         );
 
@@ -1094,7 +1091,6 @@ class RenderHebrewGreekText extends RenderBox {
     double currentLineMaxHeight,
     List<({HebrewGreekWord word, bool isFirstInVerse})> currentLineWords,
     TextPainter? verseNumberPainter,
-    TextPainter? countPainter,
     Size? checkboxSize,
   ) {
     final wordPainter = wordRenderer.painter;
@@ -1207,18 +1203,7 @@ class RenderHebrewGreekText extends RenderBox {
     double spaceWidth,
     double effectiveSpaceWidth,
   ) {
-    // 1. Position verse reading checkbox if it exists
-    if (checkboxSize != null) {
-      final checkboxRect = Rect.fromLTWH(
-        mainAxisOffset,
-        crossAxisOffset + offset,
-        checkboxSize.width,
-        checkboxSize.height,
-      );
-      verse.readingCheckboxRect = checkboxRect;
-      mainAxisOffset += checkboxSize.width + spaceWidth;
-    }
-    // 2. Position verse number if it exists
+    // 1. Position verse number if it exists
     if (verseNumberPainter != null) {
       final verseRect = Rect.fromLTWH(
         mainAxisOffset,
@@ -1228,6 +1213,17 @@ class RenderHebrewGreekText extends RenderBox {
       );
       verse.verseNumberRect = verseRect;
       mainAxisOffset += verseNumberSize.width + spaceWidth;
+    }
+    // 2. Position verse reading checkbox if it exists
+    if (checkboxSize != null) {
+      final checkboxRect = Rect.fromLTWH(
+        mainAxisOffset,
+        crossAxisOffset + offset,
+        checkboxSize.width,
+        checkboxSize.height,
+      );
+      verse.readingCheckboxRect = checkboxRect;
+      mainAxisOffset += checkboxSize.width + spaceWidth;
     }
     // 3. Position the word
     final wordRect = Rect.fromLTWH(
@@ -1256,20 +1252,7 @@ class RenderHebrewGreekText extends RenderBox {
     double effectiveSpaceWidth,
   ) {
     // RTL
-    // 1. Position verse reading checkbox if it exists
-    if (checkboxSize != null) {
-      // Move cursor left by the width of the number to find its top-left
-      mainAxisOffset -= checkboxSize.width;
-      final checkboxRect = Rect.fromLTWH(
-        mainAxisOffset,
-        crossAxisOffset + offset,
-        checkboxSize.width,
-        checkboxSize.height,
-      );
-      verse.readingCheckboxRect = checkboxRect;
-      mainAxisOffset -= spaceWidth;
-    }
-    // 2. Position verse number if it exists (at the rightmost available spot)
+    // 1. Position verse number if it exists (at the rightmost available spot)
     if (verseNumberPainter != null) {
       // Move cursor left by the width of the number to find its top-left
       mainAxisOffset -= verseNumberSize.width;
@@ -1282,7 +1265,20 @@ class RenderHebrewGreekText extends RenderBox {
       verse.verseNumberRect = verseRect;
       mainAxisOffset -= spaceWidth;
     }
-    // 3. Position the word to the left of the verse number (or at the start)
+    // 2. Position verse reading checkbox if it exists
+    if (checkboxSize != null) {
+      // Move cursor left by the width of the checkbox to find its top-left
+      mainAxisOffset -= checkboxSize.width;
+      final checkboxRect = Rect.fromLTWH(
+        mainAxisOffset,
+        crossAxisOffset + offset,
+        checkboxSize.width,
+        checkboxSize.height,
+      );
+      verse.readingCheckboxRect = checkboxRect;
+      mainAxisOffset -= spaceWidth;
+    }
+    // 3. Position the word to the left of the checkbox (or at the start)
     mainAxisOffset -= wordRenderer.painter.size.width;
     final wordRect = Rect.fromLTWH(
       mainAxisOffset,
@@ -1321,17 +1317,15 @@ class RenderHebrewGreekText extends RenderBox {
         final versePainter = j == 0
             ? _verseRenderer[i].verseNumberPainter
             : null;
-        final checkboxPainter = j == 0
-            ? _verseRenderer[i].verseReadingCountPainter
-            : null;
+        final checkboxSize = j == 0 ? _verseRenderer[i].checkboxSize : null;
 
         double unitWidth = wordPainter.width;
-        if (versePainter != null && _verseRenderer[i].readingCount > 0) {
+        if (versePainter != null && checkboxSize != null) {
           unitWidth += versePainter.width + _spacePainter.width;
         }
 
-        if (checkboxPainter != null) {
-          unitWidth += checkboxPainter.width + _spacePainter.width;
+        if (checkboxSize != null) {
+          unitWidth += checkboxSize.width + _spacePainter.width;
         }
 
         maxWidth = math.max(maxWidth, unitWidth);
@@ -1350,8 +1344,8 @@ class RenderHebrewGreekText extends RenderBox {
     for (VerseRenderer vr in _verseRenderer) {
       totalWidth += vr.verseNumberPainter.width + _spacePainter.width;
 
-      if (vr.verseReadingCountPainter != null) {
-        totalWidth += vr.verseReadingCountPainter!.width + _spacePainter.width;
+      if (vr.checkboxSize != null) {
+        totalWidth += vr.checkboxSize!.width + _spacePainter.width;
       }
 
       // Sum of  words + inter-word spaces, skipping words that end with a maqaph.
@@ -1666,7 +1660,7 @@ class RenderHebrewGreekText extends RenderBox {
       final verse = _verseRenderer[i];
 
       //paint the checkbox for the reading session
-      if (verse.verseReadingCountPainter != null) {
+      if (verse.checkboxSize != null) {
         _paintCheckboxes(canvas, verse);
       }
 
@@ -1707,53 +1701,66 @@ class RenderHebrewGreekText extends RenderBox {
   }
 
   void _paintCheckboxes(Canvas canvas, VerseRenderer verse) {
-    final readingCount = verse.readingCount;
-    final isChecked = readingCount > 0;
+    final readState = verse.readState;
+    final readCount = readState?.readCount ?? 0;
+    final readThisSession = readState?.readThisSession ?? false;
+    final wasReadBefore = readCount > 0;
     final isHighlighted = _spotlightVerse == verse.verse;
 
     final rect = verse.readingCheckboxRect!;
-
     final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(6));
 
     final baseColor = _primaryColor;
-    final uncheckedTop = baseColor.withValues(alpha: 0.3);
-    final uncheckedBottom = baseColor.withValues(alpha: 0.1);
+    final fillHsl = HSLColor.fromColor(baseColor);
+    final filledColor = fillHsl
+        .withSaturation((fillHsl.saturation * 0.8).clamp(0.0, 1.0))
+        .toColor();
 
-    final paint = Paint()
-      ..shader = LinearGradient(
-        colors: isChecked
-            ? [
-                baseColor.withValues(alpha: 0.9),
-                baseColor.withValues(alpha: 0.6),
-              ]
-            : (isHighlighted
-                  ? [
-                      baseColor.withValues(alpha: 0.9),
-                      baseColor.withValues(alpha: 0.2),
-                    ]
-                  : [uncheckedTop, uncheckedBottom]),
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-      ).createShader(rect);
+    final checkRect = rect.deflate(2);
+    if (readThisSession) {
+      // Current-session reads fill the entire checkbox.
+      final fillPaint = Paint()..color = filledColor;
+      canvas.drawRRect(rrect, fillPaint);
+    } else {
+      // Unchecked and previously-read states use a blue border with a
+      // transparent background.
+      final borderPaint = Paint()
+        ..color = filledColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1;
+      canvas.drawRRect(rrect.deflate(0.5), borderPaint);
+    }
 
-    canvas.drawRRect(rrect, paint);
+    if (readThisSession || wasReadBefore) {
+      final path = Path()
+        ..moveTo(
+          checkRect.left + checkRect.width * 0.22,
+          checkRect.top + checkRect.height * 0.55,
+        )
+        ..lineTo(
+          checkRect.left + checkRect.width * 0.42,
+          checkRect.top + checkRect.height * 0.75,
+        )
+        ..lineTo(
+          checkRect.left + checkRect.width * 0.78,
+          checkRect.top + checkRect.height * 0.28,
+        );
+
+      final checkPaint = Paint()
+        ..color = readThisSession ? Colors.white : filledColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = checkRect.shortestSide * 0.12
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round;
+      canvas.drawPath(path, checkPaint);
+    }
 
     if (isHighlighted) {
-      final paint = Paint()
+      final highlightPaint = Paint()
         ..color = Colors.white
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2;
-      canvas.drawRRect(rrect.inflate(-1), paint);
-    }
-
-    if (isChecked) {
-      final countPainter = verse.verseReadingCountPainter!;
-
-      final textOffset = Offset(
-        rect.left + (rect.width - countPainter.width) / 2,
-        rect.top + (rect.height - countPainter.height) / 2,
-      );
-      countPainter.paint(canvas, textOffset);
+      canvas.drawRRect(rrect.inflate(-1), highlightPaint);
     }
   }
 

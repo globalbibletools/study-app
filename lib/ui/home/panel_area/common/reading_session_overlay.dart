@@ -2,40 +2,43 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:gbt/l10n/app_localizations.dart';
-import 'package:gbt/services/reading_session/rs_manager.dart';
+import 'package:gbt/services/reading_session/rs_model.dart'
+    show DailyGoal, GoalType;
+import 'package:gbt/ui/home/reading_plan/reading_session_view_model.dart';
 
 class ReadingSessionOverlay extends StatelessWidget {
-  const ReadingSessionOverlay({super.key, required this.manager});
+  const ReadingSessionOverlay({super.key, required this.viewModel});
 
-  final ReadingSessionManager manager;
+  final ReadingSessionViewModel viewModel;
 
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder(
-      valueListenable: manager.readingModeNotifier,
-      builder: (context, readingModeEnabled, _) {
+      valueListenable: viewModel.sessionNotifier,
+      builder: (context, session, _) {
         return ValueListenableBuilder(
-          valueListenable: manager.displayGoalProgresNotifier,
+          valueListenable: viewModel.hudVisible,
           builder: (context, displayGoalProgress, _) {
-            final dailyGoal = manager.getReadingPlan()?.dailyGoal;
+            final dailyGoal = viewModel.session?.config.dailyGoal;
             late final Widget child;
-            if (!readingModeEnabled || dailyGoal == null) {
+            if (session == null || dailyGoal == null) {
               child = const SizedBox.shrink(key: ValueKey('hidden'));
             } else if (!displayGoalProgress) {
               child = _CollapsedGoalProgress(
                 key: const ValueKey('collapsed'),
-                manager: manager,
+                viewModel: viewModel,
               );
             } else if (dailyGoal.type == GoalType.verses) {
               child = _VersesGoalProgressBar(
                 key: const ValueKey('verses-progress'),
-                manager: manager,
+                viewModel: viewModel,
                 dailyGoal: dailyGoal,
+                versesToday: session.versesToday,
               );
             } else {
               child = _MinutesGoalProgressBar(
                 key: const ValueKey('minutes-progress'),
-                manager: manager,
+                viewModel: viewModel,
                 dailyGoal: dailyGoal,
               );
             }
@@ -82,9 +85,9 @@ class ReadingSessionOverlay extends StatelessWidget {
 }
 
 class _CollapsedGoalProgress extends StatelessWidget {
-  const _CollapsedGoalProgress({super.key, required this.manager});
+  const _CollapsedGoalProgress({super.key, required this.viewModel});
 
-  final ReadingSessionManager manager;
+  final ReadingSessionViewModel viewModel;
 
   @override
   Widget build(BuildContext context) {
@@ -98,7 +101,7 @@ class _CollapsedGoalProgress extends StatelessWidget {
           label: l10n.show.toUpperCase(),
           icon: Icons.arrow_drop_down,
           onTap: () {
-            manager.displayGoalProgresNotifier.value = true;
+            viewModel.hudVisible.value = true;
           },
         ),
       ),
@@ -109,30 +112,26 @@ class _CollapsedGoalProgress extends StatelessWidget {
 class _VersesGoalProgressBar extends StatelessWidget {
   const _VersesGoalProgressBar({
     super.key,
-    required this.manager,
+    required this.viewModel,
     required this.dailyGoal,
+    required this.versesToday,
   });
 
   final DailyGoal dailyGoal;
-  final ReadingSessionManager manager;
+  final ReadingSessionViewModel viewModel;
+  final int versesToday;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final progress = math.min(1, versesToday / dailyGoal.value);
+    final verseLabel = l10n.versesShort;
 
-    return ValueListenableBuilder<int>(
-      valueListenable: manager.totalVersesReadPerDay,
-      builder: (context, totalVerses, _) {
-        final progress = math.min(1, totalVerses / dailyGoal.value);
-        final verseLabel = l10n.versesShort;
-
-        return _ProgressContainer(
-          manager: manager,
-          progressText: '$totalVerses $verseLabel',
-          goalText: '${dailyGoal.value} $verseLabel',
-          progress: progress.toDouble(),
-        );
-      },
+    return _ProgressContainer(
+      viewModel: viewModel,
+      progressText: '$versesToday $verseLabel',
+      goalText: '${dailyGoal.value} $verseLabel',
+      progress: progress.toDouble(),
     );
   }
 }
@@ -140,24 +139,24 @@ class _VersesGoalProgressBar extends StatelessWidget {
 class _MinutesGoalProgressBar extends StatelessWidget {
   const _MinutesGoalProgressBar({
     super.key,
-    required this.manager,
+    required this.viewModel,
     required this.dailyGoal,
   });
 
   final DailyGoal dailyGoal;
-  final ReadingSessionManager manager;
+  final ReadingSessionViewModel viewModel;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
     return ValueListenableBuilder<int>(
-      valueListenable: manager.totalSecondsReadPerDay,
+      valueListenable: viewModel.secondsTodayNotifier,
       builder: (context, totalSeconds, _) {
         final progress = math.min(1, totalSeconds / 60 / dailyGoal.value);
 
         return _ProgressContainer(
-          manager: manager,
+          viewModel: viewModel,
           progressText: _formatSeconds(totalSeconds),
           goalText: '${dailyGoal.value} ${l10n.minutesShort}',
           progress: progress.toDouble(),
@@ -175,13 +174,13 @@ class _MinutesGoalProgressBar extends StatelessWidget {
 
 class _ProgressContainer extends StatelessWidget {
   const _ProgressContainer({
-    required this.manager,
+    required this.viewModel,
     required this.progressText,
     required this.goalText,
     required this.progress,
   });
 
-  final ReadingSessionManager manager;
+  final ReadingSessionViewModel viewModel;
   final String progressText;
   final String goalText;
   final double progress;
@@ -223,7 +222,7 @@ class _ProgressContainer extends StatelessWidget {
             label: l10n.hide.toUpperCase(),
             icon: Icons.arrow_drop_up,
             onTap: () {
-              manager.displayGoalProgresNotifier.value = false;
+              viewModel.hudVisible.value = false;
             },
           ),
         ],

@@ -117,9 +117,10 @@ class _HomeScreenState extends State<HomeScreen> {
   PreferredSizeWidget _buildAppBar() {
     return PreferredSize(
       preferredSize: const Size.fromHeight(kToolbarHeight),
-      child: ValueListenableBuilder<bool>(
-        valueListenable: manager.readingSessionManager.readingModeNotifier,
-        builder: (context, readingSessionStarted, child) {
+      child: ValueListenableBuilder(
+        valueListenable: manager.readingSessionViewModel.sessionNotifier,
+        builder: (context, session, child) {
+          final readingSessionStarted = session != null;
           return ValueListenableBuilder<Reference>(
             valueListenable: manager.currentReference,
             builder: (context, ref, _) {
@@ -201,7 +202,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return ListenableBuilder(
       listenable: Listenable.merge([
         manager.appGuideManager.checkBoxSpotlightRect,
-        manager.readingSessionManager.readingModeNotifier,
+        manager.readingSessionViewModel.sessionNotifier,
         manager.appGuideManager.readingSessionButtonSpotlightRect,
         manager.appGuideManager.readingCheckboxGuideDismissedNotifier,
         manager.appGuideManager.readingSessionGuideDismissedNotifier,
@@ -276,8 +277,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void toggleReadingSession(BuildContext context) {
-    if (manager.readingSessionManager.readingModeNotifier.value) {
-      manager.readingSessionManager.endReadingSession();
+    if (manager.readingSessionViewModel.hasActiveSession) {
+      manager.readingSessionViewModel.endSession();
     } else {
       _openSheet(context);
     }

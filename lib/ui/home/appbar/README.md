@@ -17,7 +17,7 @@ Houses top-level navigation components for the main study screen, including Scri
 - Pushes navigation routes for Settings, Search, Downloads, About, and Backup screens.
 - Flushes logs via `AppLogger.flush` and exports zip archives to storage using `FilePicker.saveFile`.
 - Listens to `ResourceService.outdatedResourceCounts` to render update alert badges.
-- Toggles goal progress visibility via `ReadingSessionManager.toggleDisplayGoalProgress`.
+- Toggles goal progress visibility via `ReadingSessionService.toggleDisplayGoalProgress`.
 
 ## Verification
 - Run: `flutter test`

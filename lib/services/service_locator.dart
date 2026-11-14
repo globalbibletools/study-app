@@ -2,9 +2,12 @@ import 'package:get_it/get_it.dart';
 import 'package:gbt/app_state.dart';
 import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/services/app_guide/app_guide_manager.dart';
+import 'package:gbt/services/reading_session/reading_plan_backup_service.dart';
+import 'package:gbt/services/reading_session/reading_plan_service.dart';
 import 'package:gbt/services/reading_session/rs_database.dart';
-import 'package:gbt/services/reading_session/rs_manager.dart';
+import 'package:gbt/services/reading_session/reading_session_service.dart';
 import 'package:gbt/services/resources/remote_asset_service.dart';
+import 'package:gbt/ui/home/reading_plan/reading_session_view_model.dart';
 import 'package:gbt/services/bible/bible_service.dart';
 import 'package:gbt/services/download/download.dart';
 import 'package:gbt/services/files/file_service.dart';
@@ -41,6 +44,15 @@ void setupServiceLocator() {
   getIt.registerLazySingleton<ReadingSessionDatabase>(
     () => ReadingSessionDatabase(),
   );
-  getIt.registerSingleton<ReadingSessionManager>(ReadingSessionManager());
+  getIt.registerLazySingleton<ReadingPlanBackupService>(
+    () => ReadingPlanBackupService(),
+  );
+  getIt.registerLazySingleton<ReadingPlanService>(() => ReadingPlanService());
+  getIt.registerLazySingleton<ReadingSessionService>(
+    () => ReadingSessionService(),
+  );
+  getIt.registerLazySingleton<ReadingSessionViewModel>(
+    () => ReadingSessionViewModel(),
+  );
   getIt.registerSingleton<AppGuideManager>(AppGuideManager());
 }

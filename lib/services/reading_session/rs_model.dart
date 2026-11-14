@@ -1,4 +1,15 @@
-import 'package:gbt/services/reading_session/rs_manager.dart';
+import 'package:gbt/common/reference.dart';
+
+enum GoalType { minutes, verses }
+
+enum ProgressType { byBook, bySection }
+
+class DailyGoal {
+  final GoalType type;
+  final int value;
+
+  const DailyGoal(this.type, this.value);
+}
 
 class ReadingPlan {
   final int? id;
@@ -130,7 +141,7 @@ class ReadingPlanDetails {
   int versesRead;
   int booksRead;
   DailyGoal dailyGoal;
-  RsBookProgress? latestBookProgress;
+  Reference? resumePosition;
 
   ReadingPlanDetails(this.readingPlan, this.books)
     : totalChapters = 0,
@@ -146,49 +157,54 @@ class ReadingPlanDetails {
       );
 }
 
-class RsDailyLog {
+class RsSession {
   final int? id;
   final DateTime rsDate;
   final DateTime startTime;
   final DateTime? endTime;
+  final int readSeconds;
   final int verses;
   final int readingPlanId;
 
-  RsDailyLog({
+  RsSession({
     this.id,
     required this.rsDate,
     required this.startTime,
     this.endTime,
+    this.readSeconds = 0,
     required this.verses,
     required this.readingPlanId,
   });
 
   static const _undefined = Object();
 
-  RsDailyLog copyWith({
+  RsSession copyWith({
     Object? id = _undefined,
     DateTime? rsDate,
     DateTime? startTime,
     Object? endTime = _undefined,
+    int? readSeconds,
     int? verses,
     int? readingPlanId,
   }) {
-    return RsDailyLog(
+    return RsSession(
       id: id == _undefined ? this.id : id as int?,
       rsDate: rsDate ?? this.rsDate,
       startTime: startTime ?? this.startTime,
       endTime: endTime == _undefined ? this.endTime : endTime as DateTime?,
+      readSeconds: readSeconds ?? this.readSeconds,
       verses: verses ?? this.verses,
       readingPlanId: readingPlanId ?? this.readingPlanId,
     );
   }
 
-  factory RsDailyLog.fromMap(Map<String, dynamic> map) {
-    return RsDailyLog(
+  factory RsSession.fromMap(Map<String, dynamic> map) {
+    return RsSession(
       id: map['id'],
       rsDate: DateTime.parse(map['rs_date']),
       startTime: DateTime.parse(map['start_time']),
       endTime: map['end_time'] != null ? DateTime.parse(map['end_time']) : null,
+      readSeconds: map['read_seconds'] as int? ?? 0,
       verses: map['verses'],
       readingPlanId: map['reading_plan_id'],
     );
@@ -200,6 +216,7 @@ class RsDailyLog {
       'rs_date': rsDate.toIso8601String(),
       'start_time': startTime.toIso8601String(),
       'end_time': endTime?.toIso8601String(),
+      'read_seconds': readSeconds,
       'verses': verses,
       'reading_plan_id': readingPlanId,
     };
@@ -208,7 +225,7 @@ class RsDailyLog {
 
 class RsLog {
   final int? id;
-  final int rsDailyLogId;
+  final int sessionId;
   final int bookId;
   final int chapter;
   final int verse;
@@ -217,7 +234,7 @@ class RsLog {
 
   RsLog({
     this.id,
-    required this.rsDailyLogId,
+    required this.sessionId,
     required this.bookId,
     required this.chapter,
     required this.verse,
@@ -229,7 +246,7 @@ class RsLog {
 
   RsLog copyWith({
     Object? id = _undefined,
-    int? rsDailyLogId,
+    int? sessionId,
     int? bookId,
     int? chapter,
     int? verse,
@@ -238,7 +255,7 @@ class RsLog {
   }) {
     return RsLog(
       id: id == _undefined ? this.id : id as int?,
-      rsDailyLogId: rsDailyLogId ?? this.rsDailyLogId,
+      sessionId: sessionId ?? this.sessionId,
       bookId: bookId ?? this.bookId,
       chapter: chapter ?? this.chapter,
       verse: verse ?? this.verse,
@@ -250,7 +267,7 @@ class RsLog {
   factory RsLog.fromMap(Map<String, dynamic> map) {
     return RsLog(
       id: map['id'],
-      rsDailyLogId: map['rs_daily_log_id'],
+      sessionId: map['rs_session_id'],
       bookId: map['book_id'],
       chapter: map['chapter'],
       verse: map['verse'],
@@ -262,7 +279,7 @@ class RsLog {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
-      'rs_daily_log_id': rsDailyLogId,
+      'rs_session_id': sessionId,
       'book_id': bookId,
       'chapter': chapter,
       'verse': verse,
@@ -272,153 +289,161 @@ class RsLog {
   }
 }
 
-enum RsStatsType {
-  daily('D'),
-  monthly('M');
-
-  final String value;
-  const RsStatsType(this.value);
-  static RsStatsType fromString(String value) {
-    return RsStatsType.values.firstWhere((e) => e.value == value);
-  }
-}
-
-class RsStats {
-  final int? id;
-  final RsStatsType type;
-  final DateTime statsDate;
+class RsDaySummary {
+  final int readingPlanId;
+  final DateTime rsDate;
   final int rsSeconds;
   final int rsVerses;
+  final String? goalType;
+  final int? goalValue;
   final bool goalReached;
-  final int readingPlanId;
 
-  RsStats({
-    this.id,
-    required this.type,
-    required this.statsDate,
+  RsDaySummary({
+    required this.readingPlanId,
+    required this.rsDate,
     required this.rsSeconds,
     required this.rsVerses,
+    this.goalType,
+    this.goalValue,
     required this.goalReached,
-    required this.readingPlanId,
   });
 
   static const _undefined = Object();
 
-  RsStats copyWith({
-    Object? id = _undefined,
-    RsStatsType? type,
-    DateTime? statsDate,
+  RsDaySummary copyWith({
+    Object? goalType = _undefined,
+    Object? goalValue = _undefined,
     int? rsSeconds,
     int? rsVerses,
     bool? goalReached,
-    int? readingPlanId,
   }) {
-    return RsStats(
-      id: id == _undefined ? this.id : id as int?,
-      type: type ?? this.type,
-      statsDate: statsDate ?? this.statsDate,
+    return RsDaySummary(
+      readingPlanId: readingPlanId,
+      rsDate: rsDate,
       rsSeconds: rsSeconds ?? this.rsSeconds,
       rsVerses: rsVerses ?? this.rsVerses,
+      goalType: goalType == _undefined ? this.goalType : goalType as String?,
+      goalValue: goalValue == _undefined ? this.goalValue : goalValue as int?,
       goalReached: goalReached ?? this.goalReached,
-      readingPlanId: readingPlanId ?? this.readingPlanId,
     );
   }
 
-  factory RsStats.fromMap(Map<String, dynamic> map) {
-    return RsStats(
-      id: map['id'],
-      type: RsStatsType.fromString(map['type']),
-      statsDate: DateTime.parse(map['stats_date']),
+  factory RsDaySummary.fromMap(Map<String, dynamic> map) {
+    return RsDaySummary(
+      readingPlanId: map['reading_plan_id'],
+      rsDate: DateTime.parse(map['rs_date']),
       rsSeconds: map['rs_seconds'],
       rsVerses: map['rs_verses'],
+      goalType: map['goal_type'],
+      goalValue: map['goal_value'],
       goalReached: map['goal_reached'] == 1,
-      readingPlanId: map['reading_plan_id'],
     );
   }
 
   Map<String, dynamic> toMap() {
     return {
-      'id': id,
-      'type': type.value,
-      'stats_date': statsDate.toIso8601String(),
+      'reading_plan_id': readingPlanId,
+      'rs_date': dayString(rsDate),
       'rs_seconds': rsSeconds,
       'rs_verses': rsVerses,
+      'goal_type': goalType,
+      'goal_value': goalValue,
       'goal_reached': goalReached ? 1 : 0,
+    };
+  }
+
+  /// Formats a local date as the `YYYY-MM-DD` string stored in `rs_date`.
+  static String dayString(DateTime date) {
+    String pad2(int value) => value.toString().padLeft(2, '0');
+    return '${date.year.toString().padLeft(4, '0')}-${pad2(date.month)}-${pad2(date.day)}';
+  }
+}
+
+class RsVerseState {
+  final int readingPlanId;
+  final int bookId;
+  final int chapter;
+  final int verse;
+  final int readCount;
+  final DateTime? lastRead;
+
+  const RsVerseState({
+    required this.readingPlanId,
+    required this.bookId,
+    required this.chapter,
+    required this.verse,
+    required this.readCount,
+    required this.lastRead,
+  });
+
+  factory RsVerseState.fromMap(Map<String, dynamic> map) {
+    return RsVerseState(
+      readingPlanId: map['reading_plan_id'],
+      bookId: map['book_id'],
+      chapter: map['chapter'],
+      verse: map['verse'],
+      readCount: map['read_count'] ?? 0,
+      lastRead: map['last_read'] != null
+          ? DateTime.parse(map['last_read'])
+          : null,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
       'reading_plan_id': readingPlanId,
+      'book_id': bookId,
+      'chapter': chapter,
+      'verse': verse,
+      'read_count': readCount,
+      'last_read': lastRead?.toIso8601String(),
     };
   }
 }
 
-class RsBookProgress {
-  final int? id;
+class RsBookStats {
   final int bookId;
-  final int chapter;
-  final int verse;
-  final int chaptersRead;
+  final int totalVerses;
   final int versesRead;
-  final DateTime updatedAt;
-  final int readingPlanId;
+  final DateTime? lastRead;
 
-  RsBookProgress({
-    this.id,
+  const RsBookStats({
+    required this.bookId,
+    required this.totalVerses,
+    required this.versesRead,
+    required this.lastRead,
+  });
+
+  bool get isComplete => totalVerses > 0 && versesRead == totalVerses;
+}
+
+/// The read state of a single verse as it relates to the active session.
+class VerseReadState {
+  const VerseReadState({
+    required this.readCount,
+    required this.readThisSession,
+  });
+
+  /// Total number of times this verse has ever been read.
+  final int readCount;
+
+  /// Whether this verse has been read in the current session.
+  final bool readThisSession;
+}
+
+/// Options for setting a verse's read state in the active session.
+class VerseReadOptions {
+  const VerseReadOptions({
     required this.bookId,
     required this.chapter,
     required this.verse,
-    required this.chaptersRead,
-    required this.versesRead,
-    required this.updatedAt,
-    required this.readingPlanId,
+    required this.read,
   });
 
-  static const _undefined = Object();
-
-  RsBookProgress copyWith({
-    Object? id = _undefined,
-    int? bookId,
-    int? chapter,
-    int? verse,
-    int? chaptersRead,
-    int? versesRead,
-    DateTime? updatedAt,
-    int? readingPlanId,
-  }) {
-    return RsBookProgress(
-      id: id == _undefined ? this.id : id as int?,
-      bookId: bookId ?? this.bookId,
-      chapter: chapter ?? this.chapter,
-      verse: verse ?? this.verse,
-      chaptersRead: chaptersRead ?? this.chaptersRead,
-      versesRead: versesRead ?? this.versesRead,
-      updatedAt: updatedAt ?? DateTime.now(),
-      readingPlanId: readingPlanId ?? this.readingPlanId,
-    );
-  }
-
-  factory RsBookProgress.fromMap(Map<String, dynamic> map) {
-    return RsBookProgress(
-      id: map['id'],
-      bookId: map['book_id'],
-      chapter: map['chapter'],
-      verse: map['verse'],
-      chaptersRead: map['chapters_read'],
-      versesRead: map['verses_read'] ?? 0,
-      updatedAt: DateTime.parse(map['updated_at']),
-      readingPlanId: map['reading_plan_id'] ?? 1,
-    );
-  }
-
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'book_id': bookId,
-      'chapter': chapter,
-      'verse': verse,
-      'chapters_read': chaptersRead,
-      'verses_read': versesRead,
-      'updated_at': updatedAt.toIso8601String(),
-      'reading_plan_id': readingPlanId,
-    };
-  }
+  final int bookId;
+  final int chapter;
+  final int verse;
+  final bool read;
 }
 
 class DayProgress {
@@ -447,9 +472,9 @@ class DetailedProgess {
   DetailedProgess(this.bookId, this.chapter, this.fromVerse, this.toVerse);
 }
 
-class Session {
-  final RsDailyLog rsDailyLog;
+class SessionDetails {
+  final RsSession rsSession;
   final List<DetailedProgess> progress;
 
-  Session(this.rsDailyLog, this.progress);
+  SessionDetails(this.rsSession, this.progress);
 }

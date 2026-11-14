@@ -10,7 +10,7 @@ import 'package:gbt/services/download/download.dart';
 import 'package:gbt/services/gloss/gloss_database.dart';
 import 'package:gbt/services/gloss/gloss_service.dart';
 import 'package:gbt/services/hebrew_greek/database.dart';
-import 'package:gbt/services/reading_session/rs_manager.dart';
+import 'package:gbt/ui/home/reading_plan/reading_session_view_model.dart';
 import 'package:gbt/services/resources/resource_service.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/services/settings/user_settings.dart';
@@ -112,7 +112,7 @@ class FakeBibleService implements BibleService {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
-class FakeReadingSessionManager implements ReadingSessionManager {
+class FakeReadingSessionViewModel implements ReadingSessionViewModel {
   @override
   void dispose() {}
   @override
@@ -161,7 +161,9 @@ void main() {
     getIt.registerSingleton<HebrewGreekDatabase>(FakeHebrewGreekDatabase());
     getIt.registerSingleton<GlossService>(FakeGlossService());
     getIt.registerSingleton<BibleService>(FakeBibleService());
-    getIt.registerSingleton<ReadingSessionManager>(FakeReadingSessionManager());
+    getIt.registerSingleton<ReadingSessionViewModel>(
+      FakeReadingSessionViewModel(),
+    );
     getIt.registerSingleton<AppGuideManager>(FakeAppGuideManager());
 
     homeManager = HomeManager();

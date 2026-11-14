@@ -5,7 +5,7 @@ import 'package:gbt/common/book_name.dart';
 import 'package:gbt/common/reference.dart';
 import 'package:gbt/common/word.dart';
 import 'package:gbt/l10n/app_localizations.dart';
-import 'package:gbt/services/reading_session/rs_manager.dart';
+import 'package:gbt/services/reading_session/rs_model.dart';
 import 'package:gbt/services/resources/resource.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/common/resource_ui_helper.dart';
@@ -222,20 +222,15 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter>
                       return;
                     }
 
-                    int count = checkedVerses[verse] ?? 0;
-                    if (count < ReadingSessionManager.maximumReadCount) {
-                      await manager.markVerseAsRead(
-                        widget.bookId,
-                        widget.chapter,
-                        verse,
-                      );
-                    } else {
-                      await manager.resetVerseProgress(
-                        widget.bookId,
-                        widget.chapter,
-                        verse,
-                      );
-                    }
+                    final state = checkedVerses[verse];
+                    await manager.setVerseRead(
+                      VerseReadOptions(
+                        bookId: widget.bookId,
+                        chapter: widget.chapter,
+                        verse: verse,
+                        read: !(state?.readThisSession ?? false),
+                      ),
+                    );
                   },
                   onVerseNumberLongPress: (verse) {
                     _copyVerseToClipboard(context, verse);

@@ -36,8 +36,8 @@ class BiblePanelArea extends StatelessWidget {
           manager.panelAnchorNotifier,
           manager.isSinglePanelNotifier,
           manager.settingsVersionNotifier,
-          manager.readingSessionManager.readingModeNotifier,
-          manager.readingSessionManager.displayGoalProgresNotifier,
+          manager.readingSessionViewModel.sessionNotifier,
+          manager.readingSessionViewModel.hudVisible,
           manager.appGuideManager.readingCheckboxGuideDismissedNotifier,
           manager.appGuideManager.readingSessionGuideDismissedNotifier,
         ]),
@@ -46,8 +46,8 @@ class BiblePanelArea extends StatelessWidget {
           final isSinglePanel = manager.isSinglePanelNotifier.value;
           final settingsVersion = manager.settingsVersionNotifier.value;
           final shouldOffsetForProgress =
-              manager.readingSessionManager.readingModeNotifier.value &&
-              manager.readingSessionManager.displayGoalProgresNotifier.value;
+              manager.readingSessionViewModel.hasActiveSession &&
+              manager.readingSessionViewModel.hudVisible.value;
 
           final shouldShowReadingCheckboxGuide =
               manager.appGuideManager.shouldShowReadingCheckboxGuide;
@@ -109,14 +109,14 @@ class BiblePanelArea extends StatelessWidget {
                 start: 0,
                 end: 0,
                 child: ReadingSessionOverlay(
-                  manager: manager.readingSessionManager,
+                  viewModel: manager.readingSessionViewModel,
                 ),
               ),
 
-              GoalReachedOverlay(manager: manager.readingSessionManager),
+              GoalReachedOverlay(viewModel: manager.readingSessionViewModel),
 
               BookCompletedOverlay(
-                manager: manager.readingSessionManager,
+                viewModel: manager.readingSessionViewModel,
                 onNextBook: (bookId) => onNextBook(context, bookId),
               ),
             ],
@@ -126,17 +126,18 @@ class BiblePanelArea extends StatelessWidget {
     );
   }
 
-  void onNextBook(BuildContext context, int bookId) {
-    final progress = manager.readingSessionManager.getBookProgressForActivePlan(
-      bookId,
+  void onNextBook(BuildContext context, int _) {
+    final resume = manager.readingSessionViewModel.nextResumePosition;
+    if (resume == null) return;
+
+    manager.onBookSelected(context, resume.bookId);
+
+    manager.onChapterSelected(resume.chapter);
+
+    manager.syncController.jumpToVerse(
+      resume.bookId,
+      resume.chapter,
+      resume.verse,
     );
-    final initialChapter = progress?.chapter ?? 1;
-    final initialVerse = progress?.verse ?? 1;
-
-    manager.onBookSelected(context, bookId);
-
-    manager.onChapterSelected(initialChapter);
-
-    manager.syncController.jumpToVerse(bookId, initialChapter, initialVerse);
   }
 }

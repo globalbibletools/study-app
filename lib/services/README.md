@@ -6,9 +6,9 @@ Root coordination layer for application services and infrastructure modules. Con
 ## Interface
 - [service_locator.dart:getIt]: Global `GetIt` service locator instance used across the app.
 - [service_locator.dart:setupServiceLocator]: Configures and registers lazy, eager, and asynchronous service dependencies:
-  - Registers `FileService`, `RemoteAssetService`, `HebrewGreekDatabase`, `GlossService`, `LexiconsDatabase`, `UserSettings`, `AppState`, `DownloadService`, `BibleService`, `ResourceService`, and `ReadingSessionDatabase` as lazy singletons.
+  - Registers `FileService`, `RemoteAssetService`, `HebrewGreekDatabase`, `GlossService`, `LexiconsDatabase`, `UserSettings`, `AppState`, `DownloadService`, `BibleService`, `ResourceService`, `ReadingSessionDatabase`, `ReadingPlanBackupService`, and `ReadingPlanService` as lazy singletons.
   - Registers `AppLogger` as an asynchronous singleton via `AppLogger.createDefault`.
-  - Registers `ReadingSessionManager` and `AppGuideManager` as eager singletons.
+  - Registers `ReadingSessionService` and `AppGuideManager` as eager singletons.
 - [App Guide Service](./app_guide/README.md): Onboarding spotlight tours and dismissal tracking.
 - [Audio Service](./audio/README.md): Chapter audio streaming, downloads, and verse timing synchronizations.
 - [Bible Service](./bible/README.md): Active Bible database queries and USFM scripture line parsing.

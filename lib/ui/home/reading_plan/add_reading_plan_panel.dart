@@ -4,7 +4,6 @@ import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/l10n/book_names.dart';
-import 'package:gbt/services/reading_session/rs_manager.dart';
 import 'package:gbt/services/reading_session/rs_model.dart';
 import 'package:gbt/ui/home/keypad/numeric_keypad.dart';
 import 'package:gbt/ui/home/reading_plan/add_reading_plan_panel_manager.dart';
