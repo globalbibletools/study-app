@@ -13,7 +13,7 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 
 import 'appbar/appbar.dart';
 import 'package:gbt/services/service_locator.dart';
-import 'floating_return_pill.dart';
+import 'word_details_dialog/floating_return_pill.dart';
 import 'home_manager.dart';
 import 'word_study_overlay_layer.dart';
 

@@ -20,6 +20,7 @@ import 'package:gbt/ui/home/word_details_dialog/similar_verses/similar_verses_pa
 class OccurrenceSearchContext {
   final WordDetails word;
   final String? wordId;
+  final String? root;
   final SearchType searchType;
   final Reference anchorReference;
   final double scrollOffset;
@@ -27,6 +28,7 @@ class OccurrenceSearchContext {
   const OccurrenceSearchContext({
     required this.word,
     this.wordId,
+    this.root,
     required this.searchType,
     required this.anchorReference,
     this.scrollOffset = 0.0,

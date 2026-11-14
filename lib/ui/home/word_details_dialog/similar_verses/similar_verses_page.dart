@@ -62,6 +62,7 @@ class _SimilarVersesPageState extends State<SimilarVersesPage> {
     final contextData = OccurrenceSearchContext(
       word: widget.word,
       wordId: widget.wordId,
+      root: manager.rootNotifier.value,
       searchType: _searchType,
       anchorReference: reference,
       scrollOffset: _scrollController.hasClients
