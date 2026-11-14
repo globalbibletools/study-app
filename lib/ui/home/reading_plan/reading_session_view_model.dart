@@ -32,8 +32,6 @@ class ReadingSessionUiState {
 
   ReadingSessionUiState copyWith({
     int? sessionId,
-    ReadingPlanConfig? config,
-    Set<int>? bookIds,
     int? versesToday,
     bool? goalAlreadyReachedToday,
     Object? resumePosition = _undefined,
@@ -41,8 +39,8 @@ class ReadingSessionUiState {
   }) {
     return ReadingSessionUiState(
       sessionId: sessionId ?? this.sessionId,
-      config: config ?? this.config,
-      bookIds: bookIds ?? this.bookIds,
+      config: config,
+      bookIds: bookIds,
       versesToday: versesToday ?? this.versesToday,
       goalAlreadyReachedToday:
           goalAlreadyReachedToday ?? this.goalAlreadyReachedToday,
@@ -146,47 +144,6 @@ class ReadingSessionViewModel with WidgetsBindingObserver {
 
     try {
       await _endActiveSession();
-    } finally {
-      _unlockRequest();
-    }
-  }
-
-  Future<void> reloadSession() async {
-    if (!_tryLockRequest('reload session')) return;
-
-    try {
-      if (!hasActiveSession) return;
-
-      final now = DateTime.now();
-      await _rolloverIfNeeded(now, timerActive: !_timerPaused);
-      if (_disposed) return;
-
-      final sessionId = session?.sessionId;
-      if (sessionId == null) return;
-
-      if (!_timerPaused) {
-        _accumulateElapsed(now);
-      }
-
-      final snapshot = await _service.loadSession(sessionId, at: now);
-      if (_disposed) return;
-
-      if (snapshot == null) {
-        _clearPresentation();
-        return;
-      }
-
-      _applyProgress(snapshot.progress);
-
-      final current = session;
-      if (current != null) {
-        sessionNotifier.value = current.copyWith(
-          config: snapshot.config,
-          bookIds: snapshot.config.bookIds,
-        );
-      }
-
-      _checkGoalReached();
     } finally {
       _unlockRequest();
     }

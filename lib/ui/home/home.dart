@@ -276,16 +276,16 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> toggleReadingSession(BuildContext context) async {
+  void toggleReadingSession(BuildContext context) {
     if (manager.readingSessionViewModel.hasActiveSession) {
-      await manager.readingSessionViewModel.endSession();
+      manager.readingSessionViewModel.endSession();
     } else {
-      await _openSheet(context);
+      _openSheet(context);
     }
   }
 
-  Future<void> _openSheet(BuildContext context) async {
-    await showModalBottomSheet(
+  void _openSheet(BuildContext context) {
+    showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
@@ -296,7 +296,5 @@ class _HomeScreenState extends State<HomeScreen> {
         return ReadingSheet(homeManager: manager);
       },
     );
-
-    await manager.readingSessionViewModel.reloadSession();
   }
 }
