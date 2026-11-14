@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:gbt/l10n/book_names.dart';
 import 'package:unorm_dart/unorm_dart.dart' as unorm;
 

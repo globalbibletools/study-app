@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:gbt/ui/home/home_manager.dart';
 import 'package:gbt/ui/home/word_details_dialog/word_details_dialog.dart';
 

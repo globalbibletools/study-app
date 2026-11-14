@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:gbt/l10n/book_names.dart';
 import 'package:gbt/services/app_guide/global_rect.dart';
 import 'package:gbt/services/resources/resource_service.dart';

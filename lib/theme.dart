@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 // The original bright teal (Best for Dark backgrounds)
 const _primaryColorDark = Color(0xFF00BFB2);

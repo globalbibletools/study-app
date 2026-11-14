@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:gbt/common/reference.dart';
 import 'package:gbt/services/reading_session/reading_plan_service.dart';
 import 'package:gbt/ui/home/reading_plan/reading_session_view_model.dart';

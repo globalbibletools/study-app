@@ -34,6 +34,8 @@ dependencies:
   audio_video_progress_bar: ^2.0.3
   flutter_markdown_plus: ^1.0.7
   wakelock_plus: ^1.5.1
+  material_ui: ^1.11.0
+  cupertino_ui: ^1.1.6
 
 dev_dependencies:
   flutter_test:

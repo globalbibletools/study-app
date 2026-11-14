@@ -11,3 +11,4 @@ analyzer:
     - windows/**
     - macos/**
     - linux/**
+    - lib/l10n/app_localizations*.dart
