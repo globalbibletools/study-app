@@ -59,7 +59,7 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
   @override
   void initState() {
     super.initState();
-    viewModel = ReadingPlanPanelViewModel();
+    viewModel = ReadingPlanPanelViewModel(homeManager: widget.homeManager);
   }
 
   @override

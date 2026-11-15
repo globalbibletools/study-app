@@ -7,11 +7,11 @@ import 'package:gbt/ui/home/reading_plan/reading_session_view_model.dart';
 import 'package:gbt/services/service_locator.dart';
 
 class ReadingPlanPanelViewModel extends ChangeNotifier {
-  factory ReadingPlanPanelViewModel() {
+  factory ReadingPlanPanelViewModel({HomeManager? homeManager}) {
     final viewModel = ReadingPlanPanelViewModel.withDependencies(
       planService: getIt<ReadingPlanService>(),
       sessionViewModel: getIt<ReadingSessionViewModel>(),
-      homeManager: getIt<HomeManager>(),
+      homeManager: homeManager ?? getIt<HomeManager>(),
     );
     viewModel._initFuture = viewModel.refresh();
     return viewModel;
