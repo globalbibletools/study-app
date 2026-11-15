@@ -388,25 +388,9 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
                         onTap: () async {
                           log("starting reading session");
 
-                          final target = await viewModel.startReadingSession(
-                            planDet,
-                          );
+                          await viewModel.startReadingSession(planDet);
 
                           if (!mounted) return;
-
-                          widget.homeManager.onBookSelected(
-                            context,
-                            target.bookId,
-                          );
-
-                          widget.homeManager.onChapterSelected(target.chapter);
-
-                          widget.homeManager.syncController.jumpToVerse(
-                            target.bookId,
-                            target.chapter,
-                            target.verse,
-                          );
-
                           widget.onClose();
                         },
                         child: Row(

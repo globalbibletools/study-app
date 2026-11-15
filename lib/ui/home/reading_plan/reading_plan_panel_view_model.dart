@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:gbt/common/reference.dart';
 import 'package:gbt/services/reading_session/reading_plan_service.dart';
 import 'package:gbt/services/reading_session/rs_model.dart';
+import 'package:gbt/ui/home/home_manager.dart';
 import 'package:gbt/ui/home/reading_plan/reading_session_view_model.dart';
 import 'package:gbt/services/service_locator.dart';
 
@@ -10,6 +11,7 @@ class ReadingPlanPanelViewModel extends ChangeNotifier {
     final viewModel = ReadingPlanPanelViewModel.withDependencies(
       planService: getIt<ReadingPlanService>(),
       sessionViewModel: getIt<ReadingSessionViewModel>(),
+      homeManager: getIt<HomeManager>(),
     );
     viewModel._initFuture = viewModel.refresh();
     return viewModel;
@@ -18,11 +20,14 @@ class ReadingPlanPanelViewModel extends ChangeNotifier {
   ReadingPlanPanelViewModel.withDependencies({
     required ReadingPlanService planService,
     required ReadingSessionViewModel sessionViewModel,
+    required HomeManager homeManager,
   }) : _planService = planService,
-       _sessionViewModel = sessionViewModel;
+       _sessionViewModel = sessionViewModel,
+       _homeManager = homeManager;
 
   final ReadingPlanService _planService;
   final ReadingSessionViewModel _sessionViewModel;
+  final HomeManager _homeManager;
 
   List<ReadingPlanDetails> _plans = const [];
   List<ReadingPlanDetails> get plans => _plans;
@@ -93,9 +98,9 @@ class ReadingPlanPanelViewModel extends ChangeNotifier {
     }
   }
 
-  Future<Reference> startReadingSession(ReadingPlanDetails plan) async {
+  Future<void> startReadingSession(ReadingPlanDetails plan) async {
     await _sessionViewModel.startSession(plan.readingPlan.id!);
-    return resumeTargetFor(plan);
+    _homeManager.jumpToReference(resumeTargetFor(plan));
   }
 
   Reference resumeTargetFor(ReadingPlanDetails plan) {

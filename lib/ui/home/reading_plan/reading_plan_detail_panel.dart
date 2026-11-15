@@ -268,7 +268,7 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
                 verse = 1;
               }
 
-              widget.homeManager.onBookSelected(context, bookId);
+              widget.homeManager.onBookSelected(bookId);
 
               widget.homeManager.onChapterSelected(chapter);
 

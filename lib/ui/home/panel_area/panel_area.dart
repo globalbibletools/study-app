@@ -130,7 +130,7 @@ class BiblePanelArea extends StatelessWidget {
     final resume = manager.readingSessionViewModel.nextResumePosition;
     if (resume == null) return;
 
-    manager.onBookSelected(context, resume.bookId);
+    manager.onBookSelected(resume.bookId);
 
     manager.onChapterSelected(resume.chapter);
 
