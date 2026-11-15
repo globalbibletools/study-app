@@ -55,6 +55,8 @@
             cmake
             ninja
             fastlane
+            herdr
+            gh
           ];
 
           ANDROID_HOME = "${android-sdk}/share/android-sdk";
