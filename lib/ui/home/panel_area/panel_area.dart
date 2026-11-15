@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:gbt/common/reference.dart';
 import 'package:gbt/ui/home/panel_area/bible_panel/bible_panel.dart';
 import 'package:gbt/ui/home/panel_area/common/book_completed_overlay.dart';

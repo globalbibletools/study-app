@@ -1,12 +1,29 @@
-import 'package:flutter/material.dart';
+import 'package:database_builder/database_builder.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/home/home_manager.dart';
+import 'package:gbt/ui/home/word_details_dialog/similar_verses/similar_verses_page.dart';
 
 class FloatingReturnPill extends StatelessWidget {
   const FloatingReturnPill({super.key, required this.contextData});
 
   final OccurrenceSearchContext contextData;
+
+  String _displayWord() {
+    if (contextData.searchType == SearchType.root) {
+      final root = contextData.root;
+      if (root != null && root.isNotEmpty) {
+        return root;
+      }
+      return contextData.word.word;
+    }
+
+    final exactWithoutPunctuation = removePunctuation(contextData.word.word);
+    return exactWithoutPunctuation.isNotEmpty
+        ? exactWithoutPunctuation
+        : contextData.word.word;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -55,7 +72,7 @@ class FloatingReturnPill extends StatelessWidget {
                           ? TextDirection.rtl
                           : TextDirection.ltr,
                       child: Text(
-                        contextData.word.word,
+                        _displayWord(),
                         style: theme.textTheme.titleMedium?.copyWith(
                           color: theme.colorScheme.onSurface,
                           fontWeight: FontWeight.bold,

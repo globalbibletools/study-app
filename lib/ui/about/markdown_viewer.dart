@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:gbt/l10n/app_localizations.dart';
@@ -34,19 +34,34 @@ class LocalizedMarkdownViewer extends StatelessWidget {
       future: _loadMarkdown(context),
       builder: (context, snapshot) {
         if (snapshot.hasData) {
+          final theme = Theme.of(context);
+          final bodyMedium = theme.textTheme.bodyMedium;
           return MarkdownBody(
             data: snapshot.data!,
             selectable: true,
-            styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context))
-                .copyWith(
-                  p: Theme.of(context).textTheme.bodyMedium,
-                  h2: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                  a: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                ),
+            styleSheet: MarkdownStyleSheet(
+              p: bodyMedium,
+              code: bodyMedium?.copyWith(
+                backgroundColor: theme.cardTheme.color,
+                fontFamily: 'monospace',
+                fontSize: (bodyMedium.fontSize ?? 14) * 0.85,
+              ),
+              h1: theme.textTheme.headlineSmall,
+              h2: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+              h3: theme.textTheme.titleMedium,
+              h4: theme.textTheme.bodyLarge,
+              h5: theme.textTheme.bodyLarge,
+              h6: theme.textTheme.bodyLarge,
+              a: bodyMedium?.copyWith(color: theme.colorScheme.primary),
+              blockquote: bodyMedium,
+              img: bodyMedium,
+              listBullet: bodyMedium,
+              tableBody: bodyMedium,
+              tableHead: bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+              tableBorder: TableBorder.all(color: theme.dividerColor),
+            ),
             onTapLink: (text, href, title) async {
               if (href == null) return;
 

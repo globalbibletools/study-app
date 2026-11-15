@@ -1,6 +1,6 @@
 import 'package:gbt/services/logging/log.dart';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:scripture/scripture.dart';
 import 'package:gbt/common/book_name.dart';
 import 'package:gbt/services/resources/resource.dart';

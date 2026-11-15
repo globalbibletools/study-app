@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gbt/common/reference.dart';
 import 'package:gbt/common/word.dart';
@@ -13,7 +13,7 @@ import 'package:gbt/ui/home/reading_plan/reading_session_view_model.dart';
 import 'package:gbt/services/resources/resource_service.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/services/settings/user_settings.dart';
-import 'package:gbt/ui/home/floating_return_pill.dart';
+import 'package:gbt/ui/home/word_details_dialog/floating_return_pill.dart';
 import 'package:gbt/ui/home/home_manager.dart';
 import 'package:gbt/ui/home/word_details_dialog/dialog_manager.dart';
 import 'package:gbt/ui/home/word_details_dialog/similar_verses/similar_verses_page.dart';
@@ -190,11 +190,12 @@ void main() {
 
   const testContext = OccurrenceSearchContext(
     word: testWord,
+    root: 'דּוֹד',
     searchType: SearchType.root,
     anchorReference: Reference(bookId: 8, chapter: 4, verse: 17),
   );
 
-  testWidgets('renders lemma text, back arrow, and close button', (
+  testWidgets('renders root text in root mode, back arrow, and close button', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -205,10 +206,84 @@ void main() {
       ),
     );
 
-    expect(find.text('דָּוִד'), findsOneWidget);
+    expect(find.text('דּוֹד'), findsOneWidget);
+    expect(find.text('דָּוִד'), findsNothing);
     expect(find.byIcon(Icons.arrow_back), findsOneWidget);
     expect(find.byIcon(Icons.close), findsOneWidget);
   });
+
+  testWidgets(
+    'falls back to pressed word in root mode when root is null or empty',
+    (tester) async {
+      const nullRootContext = OccurrenceSearchContext(
+        word: testWord,
+        root: null,
+        searchType: SearchType.root,
+        anchorReference: Reference(bookId: 8, chapter: 4, verse: 17),
+      );
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: FloatingReturnPill(contextData: nullRootContext),
+            ),
+          ),
+        ),
+      );
+      expect(find.text('דָּוִד'), findsOneWidget);
+
+      const emptyRootContext = OccurrenceSearchContext(
+        word: testWord,
+        root: '',
+        searchType: SearchType.root,
+        anchorReference: Reference(bookId: 8, chapter: 4, verse: 17),
+      );
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: FloatingReturnPill(contextData: emptyRootContext),
+            ),
+          ),
+        ),
+      );
+      expect(find.text('דָּוִד'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'renders exact word without punctuation in exact mode even when root is set',
+    (tester) async {
+      const punctuatedWord = WordDetails(
+        word: 'דָּוִד׃',
+        gloss: 'David',
+        glossIsAi: false,
+        glossTextDirection: TextDirection.ltr,
+        strongsCode: 'H1732',
+        grammar: 'Np-ms',
+      );
+      const exactContext = OccurrenceSearchContext(
+        word: punctuatedWord,
+        root: 'דּוֹד',
+        searchType: SearchType.exact,
+        anchorReference: Reference(bookId: 8, chapter: 4, verse: 17),
+      );
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: Center(child: FloatingReturnPill(contextData: exactContext)),
+          ),
+        ),
+      );
+
+      expect(find.text('דָּוִד'), findsOneWidget);
+      expect(find.text('דָּוִד׃'), findsNothing);
+      expect(find.text('דּוֹד'), findsNothing);
+    },
+  );
 
   testWidgets(
     'tapping close icon calls dismissWordStudySession on HomeManager',
@@ -256,7 +331,7 @@ void main() {
       );
 
       // Tap the pill's back/lemma section
-      await tester.tap(find.text('דָּוִד'));
+      await tester.tap(find.text('דּוֹד'));
       await tester.pump();
 
       expect(

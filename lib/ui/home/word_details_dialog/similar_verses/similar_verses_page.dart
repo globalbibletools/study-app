@@ -1,5 +1,5 @@
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
+import 'package:cupertino_ui/cupertino_ui.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:gbt/common/book_name.dart';
 import 'package:gbt/common/reference.dart';
 import 'package:gbt/l10n/app_localizations.dart';
@@ -62,6 +62,7 @@ class _SimilarVersesPageState extends State<SimilarVersesPage> {
     final contextData = OccurrenceSearchContext(
       word: widget.word,
       wordId: widget.wordId,
+      root: manager.rootNotifier.value,
       searchType: _searchType,
       anchorReference: reference,
       scrollOffset: _scrollController.hasClients
