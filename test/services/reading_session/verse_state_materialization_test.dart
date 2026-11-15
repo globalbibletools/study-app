@@ -17,7 +17,7 @@ void main() {
   });
 
   Future<ReadingSessionDatabase> openDatabase(String name) async {
-    final database = ReadingSessionDatabase(
+    final database = ReadingSessionDatabase.withDependencies(
       databaseName: name,
       verseInventoryProvider: (bookIds) async =>
           createTestVerseInventory(bookIds: bookIds),
@@ -143,7 +143,7 @@ PRAGMA user_version = 3;
 ''');
     raw.close();
 
-    final database = ReadingSessionDatabase(
+    final database = ReadingSessionDatabase.withDependencies(
       databaseName: name,
       verseInventoryProvider: (bookIds) async =>
           createTestVerseInventory(bookIds: bookIds),

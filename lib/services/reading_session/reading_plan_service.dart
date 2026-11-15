@@ -5,12 +5,20 @@ import 'package:gbt/services/reading_session/rs_model.dart';
 import 'package:gbt/services/service_locator.dart';
 
 class ReadingPlanService {
-  ReadingPlanService() : _database = getIt<ReadingSessionDatabase>();
+  ReadingPlanService()
+    : this.withDependencies(
+        database: getIt<ReadingSessionDatabase>(),
+        bibleNavigation: getIt<BibleNavigation>(),
+      );
 
-  ReadingPlanService.withDatabase(this._database);
+  ReadingPlanService.withDependencies({
+    required ReadingSessionDatabase database,
+    required BibleNavigation bibleNavigation,
+  }) : _database = database,
+       _bibleNavigation = bibleNavigation;
 
   final ReadingSessionDatabase _database;
-  late final _bibleNavigation = getIt<BibleNavigation>();
+  final BibleNavigation _bibleNavigation;
 
   Future<List<ReadingPlanDetails>> getReadingPlans() {
     return _database.getReadingPlans();

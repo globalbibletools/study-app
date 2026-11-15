@@ -10,21 +10,28 @@ typedef VerseInventoryProvider =
     Future<Map<(int, int), List<int>>> Function(Set<int> bookIds);
 
 class ReadingSessionDatabase {
-  ReadingSessionDatabase({
+  ReadingSessionDatabase({String databaseName = _defaultDatabaseName})
+    : this.withDependencies(
+        databaseName: databaseName,
+        verseInventoryProvider: (bookIds) async {
+          final database = await getIt.getAsync<HebrewGreekDatabase>();
+          return database.getVerseInventory(bookIds: bookIds);
+        },
+      );
+
+  ReadingSessionDatabase.withDependencies({
     String databaseName = _defaultDatabaseName,
-    VerseInventoryProvider? verseInventoryProvider,
+    String? databasePath,
+    required VerseInventoryProvider verseInventoryProvider,
   }) : _databaseName = databaseName,
-       _verseInventoryProvider =
-           verseInventoryProvider ??
-           ((bookIds) async {
-             final database = await getIt.getAsync<HebrewGreekDatabase>();
-             return database.getVerseInventory(bookIds: bookIds);
-           });
+       _databasePath = databasePath,
+       _verseInventoryProvider = verseInventoryProvider;
 
   static const _defaultDatabaseName = 'reading_session.db';
   static const _databaseVersion = 6;
 
   final String _databaseName;
+  final String? _databasePath;
   final VerseInventoryProvider _verseInventoryProvider;
 
   late Database _database;
@@ -35,7 +42,7 @@ class ReadingSessionDatabase {
       return _initFuture;
     }
 
-    _initFuture = _initDatabase(_databaseName);
+    _initFuture = _initDatabase(_databasePath ?? _databaseName);
     try {
       await _initFuture;
     } catch (_) {
@@ -47,7 +54,7 @@ class ReadingSessionDatabase {
 
   Future<void> resetDatabase() async {
     final path = await getDatabasesPath();
-    final dbPath = '$path/$_databaseName';
+    final dbPath = _databasePath ?? '$path/$_databaseName';
 
     _initFuture = null;
     await deleteDatabase(dbPath);

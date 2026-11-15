@@ -26,14 +26,17 @@ void main() {
     }
     getIt.registerSingleton<BibleNavigation>(createTestBibleNavigation());
 
-    database = ReadingSessionDatabase(
+    database = ReadingSessionDatabase.withDependencies(
       databaseName: 'reading_plan_resume_test.db',
       verseInventoryProvider: (bookIds) async =>
           createTestVerseInventory(bookIds: bookIds),
     );
     await database.resetDatabase();
     await database.init();
-    planService = ReadingPlanService.withDatabase(database);
+    planService = ReadingPlanService.withDependencies(
+      database: database,
+      bibleNavigation: createTestBibleNavigation(),
+    );
   });
 
   tearDown(() {
@@ -222,7 +225,7 @@ void main() {
 
   test('skips verse numbers missing from the chapter inventory', () async {
     database.dispose();
-    database = ReadingSessionDatabase(
+    database = ReadingSessionDatabase.withDependencies(
       databaseName: 'reading_plan_resume_gap_test.db',
       verseInventoryProvider: (bookIds) async {
         final inventory = createTestVerseInventory(bookIds: bookIds);
@@ -238,7 +241,10 @@ void main() {
     );
     await database.resetDatabase();
     await database.init();
-    planService = ReadingPlanService.withDatabase(database);
+    planService = ReadingPlanService.withDependencies(
+      database: database,
+      bibleNavigation: createTestBibleNavigation(),
+    );
 
     final plan = await planService.saveReadingPlan(
       planName: 'Resume Gap Test',

@@ -18,14 +18,17 @@ void main() {
   });
 
   setUp(() async {
-    database = ReadingSessionDatabase(
+    database = ReadingSessionDatabase.withDependencies(
       databaseName: 'reading_plan_service_test.db',
       verseInventoryProvider: (bookIds) async =>
           createTestVerseInventory(bookIds: bookIds),
     );
     await database.resetDatabase();
     await database.init();
-    planService = ReadingPlanService.withDatabase(database);
+    planService = ReadingPlanService.withDependencies(
+      database: database,
+      bibleNavigation: createTestBibleNavigation(),
+    );
   });
 
   tearDown(() {

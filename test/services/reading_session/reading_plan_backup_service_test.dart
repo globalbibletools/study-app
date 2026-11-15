@@ -21,7 +21,7 @@ void main() {
   });
 
   setUp(() async {
-    database = ReadingSessionDatabase(
+    database = ReadingSessionDatabase.withDependencies(
       databaseName: 'reading_plan_backup_service_test.db',
       verseInventoryProvider: (bookIds) async =>
           createTestVerseInventory(bookIds: bookIds),
