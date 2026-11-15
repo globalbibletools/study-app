@@ -39,6 +39,9 @@ class _BibleChapterState extends State<BibleChapter>
     with ChapterGeometryProvider {
   final manager = BibleChapterManager();
 
+  // Keyed so the chapter title can be measured and attributed to verse 1.
+  final GlobalKey _titleKey = GlobalKey();
+
   ChapterGeometry? _geometry;
   List<UsfmLine> _verseLines = const [];
 
@@ -162,6 +165,7 @@ class _BibleChapterState extends State<BibleChapter>
                   const SizedBox(height: 10),
                   Center(
                     child: Text(
+                      key: _titleKey,
                       '${bookNameForId(context, widget.bookId)} ${widget.chapter}',
                       style: const TextStyle(fontSize: 30),
                     ),
@@ -253,9 +257,22 @@ class _BibleChapterState extends State<BibleChapter>
       return;
     }
 
-    _geometry = ChapterGeometry(
+    // The chapter title belongs to the verse that follows it; only the blank
+    // space around it stays gap.
+    final headings = <HeadingRect>[];
+    final titleBox =
+        _titleKey.currentContext?.findRenderObject() as RenderBox?;
+    if (titleBox != null && titleBox.attached && titleBox.hasSize) {
+      final top = titleBox.localToGlobal(Offset.zero, ancestor: chapterBox).dy;
+      headings.add(
+        HeadingRect(top: top, bottom: top + titleBox.size.height),
+      );
+    }
+
+    _geometry = buildGeometry(
       spans: spans,
-      gaps: deriveGapSpans(spans, chapterBox.size.height),
+      height: chapterBox.size.height,
+      headings: headings,
     );
 
     if (mounted) {

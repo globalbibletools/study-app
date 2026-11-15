@@ -303,6 +303,78 @@ ChapterGeometry geometryFromLines(
 List<GapSpan> deriveGapSpans(Map<int, VerseSpan> spans, double height) =>
     _deriveGaps(spans, height);
 
+/// A heading block (chapter title or section heading) rendered above a verse.
+@immutable
+class HeadingRect {
+  const HeadingRect({required this.top, required this.bottom});
+
+  /// Chapter-relative y of the top of the heading.
+  final double top;
+
+  /// Chapter-relative y of the bottom of the heading.
+  final double bottom;
+
+  double get height => bottom - top;
+
+  @override
+  String toString() => 'HeadingRect($top..$bottom)';
+}
+
+/// Builds chapter geometry, attributing [headings] to the verses they
+/// introduce.
+///
+/// A heading (chapter title, section heading) belongs to the verse that
+/// follows it: that verse's span starts at the top of its topmost heading, so
+/// the heading traverses as part of the verse during sync and a jump to the
+/// verse reveals the heading. Only the blank space around headings remains
+/// as gap. Headings with no following verse stay gap content.
+ChapterGeometry buildGeometry({
+  required Map<int, VerseSpan> spans,
+  required double height,
+  List<HeadingRect> headings = const [],
+}) {
+  if (headings.isEmpty) {
+    return ChapterGeometry(spans: spans, gaps: _deriveGaps(spans, height));
+  }
+
+  final ordered = spans.values.toList()
+    ..sort((a, b) {
+      final byStart = a.start.compareTo(b.start);
+      return byStart != 0 ? byStart : a.verse.compareTo(b.verse);
+    });
+  final sortedHeadings = headings.toList()
+    ..sort((a, b) => a.top.compareTo(b.top));
+
+  final adjusted = {for (final span in ordered) span.verse: span};
+
+  for (final heading in sortedHeadings) {
+    // The verse the heading introduces: the first span at or below the
+    // heading's bottom.
+    VerseSpan? followed;
+    for (final span in ordered) {
+      if (span.start >= heading.bottom - _eps) {
+        followed = span;
+        break;
+      }
+    }
+    if (followed == null) continue; // Trailing heading stays gap content.
+    if (heading.top >= followed.start - _eps) continue; // Defensive.
+
+    final current = adjusted[followed.verse]!;
+    adjusted[followed.verse] = VerseSpan(
+      verse: followed.verse,
+      start: math.min(current.start, heading.top),
+      end: current.end,
+      kind: current.kind,
+    );
+  }
+
+  return ChapterGeometry(
+    spans: adjusted,
+    gaps: _deriveGaps(adjusted, height),
+  );
+}
+
 List<GapSpan> _deriveGaps(Map<int, VerseSpan> spans, double height) {
   if (spans.isEmpty) {
     return height > 0 ? [GapSpan(start: 0, end: height)] : const <GapSpan>[];
@@ -351,6 +423,11 @@ class SyncLayout {
   final List<ChapterLayoutSnapshot> chapters;
   final List<SyncLayoutBlock> _blocks = [];
   final Map<int, ChapterLayoutSnapshot> _chaptersByKey = {};
+
+  /// Gap heights adjacent to each verse block (keyed by verse reference),
+  /// used by gap absorption in [resolvePosition].
+  final Map<int, double> _gapBeforeByVerse = {};
+  final Map<int, double> _gapAfterByVerse = {};
 
   /// Blocks in document order, tiling the measured content.
   List<SyncLayoutBlock> get blocks => List.unmodifiable(_blocks);
@@ -451,7 +528,28 @@ class SyncLayout {
           ),
         ),
       );
+
+    _indexAdjacentGaps();
   }
+
+  void _indexAdjacentGaps() {
+    _gapBeforeByVerse.clear();
+    _gapAfterByVerse.clear();
+    for (var i = 0; i < _blocks.length; i++) {
+      final block = _blocks[i];
+      if (!block.isVerse) continue;
+      final key = _refKey(block.verse!);
+      if (i > 0 && _blocks[i - 1].isGap) {
+        _gapBeforeByVerse[key] = _blocks[i - 1].height;
+      }
+      if (i + 1 < _blocks.length && _blocks[i + 1].isGap) {
+        _gapAfterByVerse[key] = _blocks[i + 1].height;
+      }
+    }
+  }
+
+  int _refKey(Reference ref) =>
+      ref.bookId * 1000000 + ref.chapter * 1000 + ref.verse;
 
   List<_RawPiece> _piecesForChapter(
     ChapterLayoutSnapshot snapshot,
@@ -619,6 +717,11 @@ class SyncLayout {
 
   /// Resolves an anchor in this layout, or null when its chapter/geometry is
   /// not available yet.
+  ///
+  /// This is the raw, unexpanded resolution: verse edges resolve to their
+  /// measured span edges and missing verses park at the previous verse that
+  /// exists. See [_resolveAnchorExpanded] for the smoothed resolution used by
+  /// [resolvePosition].
   double? resolveAnchor(Anchor anchor) {
     if (anchor.ref == null) {
       if (_blocks.isEmpty) return null;
@@ -637,17 +740,7 @@ class SyncLayout {
     }
 
     // Missing verse: park at the end of the previous verse that exists.
-    int? previous;
-    int? next;
-    for (final verse in geometry.spans.keys) {
-      if (verse < ref.verse && (previous == null || verse > previous)) {
-        previous = verse;
-      }
-      if (verse > ref.verse && (next == null || verse < next)) {
-        next = verse;
-      }
-    }
-
+    final (previous, next) = _missingNeighbors(geometry, ref.verse);
     if (previous != null) {
       return snapshot.top + geometry.spans[previous]!.end;
     }
@@ -657,12 +750,83 @@ class SyncLayout {
     return snapshot.top;
   }
 
+  (int?, int?) _missingNeighbors(ChapterGeometry geometry, int verse) {
+    int? previous;
+    int? next;
+    for (final candidate in geometry.spans.keys) {
+      if (candidate < verse && (previous == null || candidate > previous)) {
+        previous = candidate;
+      }
+      if (candidate > verse && (next == null || candidate < next)) {
+        next = candidate;
+      }
+    }
+    return (previous, next);
+  }
+
   /// Resolves both anchors and interpolates by [SyncPosition.t].
+  ///
+  /// Anchors expand outward by half the gap adjacent to them in THIS layout
+  /// (gap absorption), so a gap that exists only on this panel is traversed
+  /// gradually while the leader scrolls the neighboring verse, instead of
+  /// being jumped over at the verse boundary. Consequences:
+  ///
+  /// - `t = 1` of a verse and `t = 0` of the next verse meet at the midpoint
+  ///   of the gap between them — one pixel, no jump.
+  /// - A gap the leader reports resolves to the degenerate band between the
+  ///   two half-gaps: the follower holds at the gap's midpoint while the
+  ///   leader crosses its own gap.
+  /// - A missing verse parks at the expanded end of the previous existing
+  ///   verse, so a run of missing verses holds at one point and hands off
+  ///   continuously to the next existing verse.
   double? resolvePosition(SyncPosition position) {
-    final from = resolveAnchor(position.from);
-    final to = resolveAnchor(position.to);
+    final from = _resolveAnchorExpanded(position.from);
+    final to = _resolveAnchorExpanded(position.to);
     if (from == null || to == null) return null;
-    return from + (to - from) * position.t;
+    final low = math.min(from, to);
+    final high = math.max(from, to);
+    return low + (high - low) * position.t;
+  }
+
+  /// Resolves an anchor expanded outward by half its adjacent gap.
+  double? _resolveAnchorExpanded(Anchor anchor) {
+    if (anchor.ref == null) return resolveAnchor(anchor);
+
+    final ref = anchor.ref!;
+    final snapshot = chapterFor(ref.bookId, ref.chapter);
+    final geometry = snapshot?.geometry;
+    if (snapshot == null || geometry == null) return null;
+
+    final span = geometry.spans[ref.verse];
+    if (span != null) {
+      final raw =
+          snapshot.top +
+          (anchor.end == AnchorEnd.end ? span.end : span.start);
+      final key = _refKey(ref);
+      return anchor.end == AnchorEnd.end
+          ? raw + (_gapAfterByVerse[key] ?? 0) / 2
+          : raw - (_gapBeforeByVerse[key] ?? 0) / 2;
+    }
+
+    // Missing verse: park like resolveAnchor, expanded the same way the
+    // neighboring existing anchor expands, so handoffs stay continuous.
+    final (previous, next) = _missingNeighbors(geometry, ref.verse);
+
+    if (previous != null) {
+      final previousKey = _refKey(
+        Reference(bookId: ref.bookId, chapter: ref.chapter, verse: previous),
+      );
+      final raw = snapshot.top + geometry.spans[previous]!.end;
+      return raw + (_gapAfterByVerse[previousKey] ?? 0) / 2;
+    }
+    if (next != null) {
+      final nextKey = _refKey(
+        Reference(bookId: ref.bookId, chapter: ref.chapter, verse: next),
+      );
+      final raw = snapshot.top + geometry.spans[next]!.start;
+      return raw - (_gapBeforeByVerse[nextKey] ?? 0) / 2;
+    }
+    return snapshot.top;
   }
 
   /// The chapter a position is currently inside, used to re-center a panel.

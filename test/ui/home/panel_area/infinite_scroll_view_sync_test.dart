@@ -436,7 +436,87 @@ void main() {
     );
     await tester.pump();
 
-    expect(_pixels(tester, followerKey), closeTo(10, 0.5));
+    // The leader's leading-gap report expands the verse-1 anchor by half the
+    // follower's 20px leading gap, so t=0.5 lands at 10px: the follower
+    // traverses the top half of its gap during the leader's gap and the
+    // bottom half while verse 1 scrolls in.
+    expect(_pixels(tester, followerKey), closeTo(5, 0.5));
+    await tester.pump(const Duration(milliseconds: 250));
+  });
+
+  testWidgets('a gap that exists only on the follower is absorbed', (
+    tester,
+  ) async {
+    final controller = ScrollSyncController();
+    const followerKey = Key('follower');
+
+    // Follower-only gap of 20px between verses 1 and 2.
+    final spans = {
+      1: const VerseSpan(verse: 1, start: 0, end: 40, kind: SpanKind.exact),
+      2: const VerseSpan(
+        verse: 2,
+        start: 60,
+        end: 100,
+        kind: SpanKind.exact,
+      ),
+    };
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: _panel(
+            key: followerKey,
+            controller: controller,
+            bookId: 1,
+            chapter: 1,
+            geometryFor:
+                (_, _) => ChapterGeometry(
+                  spans: spans,
+                  gaps: deriveGapSpans(spans, _chapterHeight),
+                ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    controller.setActiveSource('leader');
+
+    void report(int verse, double t) {
+      controller.updatePosition(
+        'leader',
+        SyncPosition(
+          Anchor(
+            Reference(bookId: 1, chapter: 1, verse: verse),
+            AnchorEnd.start,
+          ),
+          Anchor(
+            Reference(bookId: 1, chapter: 1, verse: verse),
+            AnchorEnd.end,
+          ),
+          t,
+        ),
+      );
+    }
+
+    // The leader reaches the end of its verse 1: the follower sits at the
+    // midpoint of its own gap instead of its verse-1 end.
+    report(1, 1);
+    await tester.pump();
+    final atBoundary = _pixels(tester, followerKey);
+    expect(atBoundary, closeTo(50, 0.5));
+
+    // The leader crosses into verse 2 (it has no gap there): the follower
+    // does not jump over its gap — it continues from the same pixel.
+    report(2, 0);
+    await tester.pump();
+    expect(_pixels(tester, followerKey), closeTo(atBoundary, 0.5));
+
+    // And mid-verse 2 the follower is proportionally through its verse 2.
+    report(2, 0.5);
+    await tester.pump();
+    expect(_pixels(tester, followerKey), closeTo(75, 0.5));
+
     await tester.pump(const Duration(milliseconds: 250));
   });
 

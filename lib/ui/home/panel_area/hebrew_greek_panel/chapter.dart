@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:gbt/common/book_name.dart';
@@ -11,7 +12,7 @@ import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/common/resource_ui_helper.dart';
 import 'package:gbt/services/settings/user_settings.dart';
 import 'package:gbt/ui/home/home_manager.dart';
-import 'package:gbt/ui/home/panel_area/common/infinite_scroll_view.dart';
+import 'package:gbt/ui/home/panel_area/common/verse_sync_layout.dart';
 import 'package:gbt/ui/home/common/scroll_sync_controller.dart';
 import 'package:gbt/ui/home/panel_area/hebrew_greek_panel/chapter_manager.dart';
 import 'package:gbt/ui/home/panel_area/hebrew_greek_panel/text.dart';
@@ -65,6 +66,9 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter>
 
   // GlobalKey to track the HebrewGreekText widget's position relative to the HebrewGreekChapter
   final _hebrewGreekTextKey = GlobalKey();
+
+  // Keyed so the chapter title can be measured and attributed to verse 1.
+  final _titleKey = GlobalKey();
 
   @override
   void initState() {
@@ -121,6 +125,7 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter>
         _hebrewGreekTextKey.currentContext?.findRenderObject() as RenderBox?;
     final chapterRenderBox = context.findRenderObject() as RenderBox?;
     if (textRenderBox == null || chapterRenderBox == null) return null;
+    if (!chapterRenderBox.hasSize) return null;
 
     final textTopLeftInChapter = textRenderBox.localToGlobal(
       Offset.zero,
@@ -129,15 +134,30 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter>
     final dy = textTopLeftInChapter.dy;
 
     final translated = textGeometry.translated(dy);
-    if (dy <= 0) return translated;
 
-    final firstVerse = translated.firstVerse;
-    return ChapterGeometry(
+    // The chapter title belongs to the first verse that follows it; only the
+    // blank space around it stays gap.
+    final headings = <HeadingRect>[];
+    final titleBox =
+        _titleKey.currentContext?.findRenderObject() as RenderBox?;
+    if (titleBox != null && titleBox.attached && titleBox.hasSize) {
+      final top = titleBox
+          .localToGlobal(Offset.zero, ancestor: chapterRenderBox)
+          .dy;
+      headings.add(
+        HeadingRect(top: top, bottom: top + titleBox.size.height),
+      );
+    }
+
+    var contentBottom = dy;
+    for (final span in translated.spans.values) {
+      contentBottom = math.max(contentBottom, span.end);
+    }
+
+    return buildGeometry(
       spans: translated.spans,
-      gaps: [
-        if (firstVerse != null) GapSpan(start: 0, end: dy, toVerse: firstVerse),
-        ...translated.gaps,
-      ],
+      height: math.max(chapterRenderBox.size.height, contentBottom),
+      headings: headings,
     );
   }
 
@@ -251,6 +271,7 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter>
                     children: [
                       const SizedBox(height: 10),
                       Text(
+                        key: _titleKey,
                         '${bookNameForId(context, widget.bookId)} ${widget.chapter}',
                         style: TextStyle(fontSize: 30),
                       ),
