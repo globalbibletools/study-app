@@ -24,10 +24,83 @@ class VerseHighlight {
           bookId == other.bookId &&
           chapter == other.chapter &&
           verse == other.verse &&
-          isAuto == isAuto;
+          isAuto == other.isAuto;
 
   @override
   int get hashCode => Object.hash(bookId, chapter, verse, isAuto);
+}
+
+/// Which edge of a verse span an [Anchor] refers to.
+enum AnchorEnd { start, end }
+
+/// A named place in a reading layout.
+///
+/// An anchor is either the top or bottom edge of a verse's span, or the very
+/// top/bottom of the scrollable content (represented by a null [ref]).
+@immutable
+class Anchor {
+  const Anchor(this.ref, this.end);
+
+  /// The very top of the scrollable content.
+  const Anchor.top() : ref = null, end = AnchorEnd.start;
+
+  /// The very bottom of the scrollable content.
+  const Anchor.bottom() : ref = null, end = AnchorEnd.end;
+
+  /// The verse this anchor belongs to, or null for a scrollable extreme.
+  final Reference? ref;
+
+  /// Which edge of [ref]'s span this anchor refers to.
+  final AnchorEnd end;
+
+  bool get isTop => ref == null && end == AnchorEnd.start;
+  bool get isBottom => ref == null && end == AnchorEnd.end;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Anchor &&
+          runtimeType == other.runtimeType &&
+          ref == other.ref &&
+          end == other.end;
+
+  @override
+  int get hashCode => Object.hash(ref, end);
+
+  @override
+  String toString() {
+    if (ref == null) return isTop ? 'Anchor.top' : 'Anchor.bottom';
+    return 'Anchor(${ref!.bookId}:${ref!.chapter}:${ref!.verse}, $end)';
+  }
+}
+
+/// A position expressed as a fraction between two named places.
+///
+/// [t] is clamped to the inclusive range 0..1.
+@immutable
+class SyncPosition {
+  SyncPosition(this.from, this.to, double t) : t = t.clamp(0.0, 1.0);
+
+  final Anchor from;
+  final Anchor to;
+
+  /// How far the position is between [from] and [to].
+  final double t;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SyncPosition &&
+          runtimeType == other.runtimeType &&
+          from == other.from &&
+          to == other.to &&
+          t == other.t;
+
+  @override
+  int get hashCode => Object.hash(from, to, t);
+
+  @override
+  String toString() => 'SyncPosition($from -> $to @ ${t.toStringAsFixed(4)})';
 }
 
 class ScrollSyncController extends ChangeNotifier {
@@ -47,46 +120,53 @@ class ScrollSyncController extends ChangeNotifier {
     _activeSource = null;
   }
 
-  // The state to broadcast
-  int? _bookId;
-  int? _chapter;
-  int? _verse;
-  double _progress = 0.0;
+  // The state to broadcast.
+  SyncPosition? _position;
+  Reference? _displayReference;
 
-  int? get bookId => _bookId;
-  int? get chapter => _chapter;
-  int? get verse => _verse;
-  double get progress => _progress;
+  SyncPosition? get position => _position;
 
-  /// Called by the active panel to report position
+  /// The first fully visible verse reported by the leader, if known.
+  int? get displayVerse => _displayReference?.verse;
+
+  /// Full reference of the first fully visible verse reported by the leader.
+  Reference? get displayReference => _displayReference;
+
+  /// Called by the active panel to report position.
   void updatePosition(
     Object source,
-    int bookId,
-    int chapter,
-    double progress, {
-    int? verse,
+    SyncPosition position, {
+    int? displayVerse,
+    Reference? displayReference,
   }) {
-    // Only accept updates from the panel the user is actually touching
+    // Only accept updates from the panel the user is actually touching.
     if (_activeSource != null && _activeSource != source) return;
 
-    _bookId = bookId;
-    _chapter = chapter;
-    _verse = verse;
-    _progress = progress;
+    final resolvedDisplay =
+        displayReference ??
+        (displayVerse == null
+            ? null
+            : _referenceForVerse(position, displayVerse));
 
-    // Notify the other panel
+    if (_position == position && _displayReference == resolvedDisplay) {
+      return;
+    }
+
+    _position = position;
+    _displayReference = resolvedDisplay;
+
+    // Notify the other panel.
     notifyListeners();
   }
 
-  /// Called by a passive panel (one being automatically scrolled) to
-  /// report the verse it landed on, providing better metadata
-  /// than the active driver might possess.
-  void reportAutoDetectedVerse(int verse) {
-    // If the verse hasn't changed, don't notify to save performance
-    if (_verse == verse) return;
+  /// Best-effort full reference for a bare display verse reported without one.
+  static Reference? _referenceForVerse(SyncPosition position, int verse) {
+    final fromRef = position.from.ref;
+    final toRef = position.to.ref;
 
-    _verse = verse;
-    notifyListeners();
+    if (toRef != null && verse >= toRef.verse) return toRef;
+    if (fromRef != null && verse <= fromRef.verse) return fromRef;
+    return fromRef ?? toRef;
   }
 
   bool isSourceActive(Object source) => _activeSource == source;
@@ -118,7 +198,7 @@ class ScrollSyncController extends ChangeNotifier {
   }
 
   void _onAudioReferenceChanged() {
-    // Don't override the user scrolling
+    // Don't override the user scrolling.
     if (_activeSource != null) return;
 
     final reference = _audioReferenceNotifier?.value;

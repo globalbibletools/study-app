@@ -3,23 +3,25 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:gbt/common/bible_navigation.dart';
+import 'package:gbt/common/reference.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/home/common/scroll_sync_controller.dart';
+import 'package:gbt/ui/home/panel_area/common/verse_sync_layout.dart';
+
+export 'package:gbt/ui/home/panel_area/common/verse_sync_layout.dart'
+    show
+        ChapterGeometry,
+        ChapterGeometryChangedNotification,
+        ChapterGeometryProvider,
+        GapSpan,
+        SpanKind,
+        VerseSpan;
 
 const _topScrollOffset = 16.0;
+const _syncTolerance = 0.005;
 
 typedef ChapterBuilder =
     Widget Function(BuildContext context, int bookId, int chapter);
-
-mixin VerseScrollable {
-  /// Returns the vertical offset (pixels) of the verse relative to the top of the widget.
-  /// Returns null if the verse is not found.
-  double? getOffsetForVerse(int verseNumber);
-
-  /// Returns the verse number at the given vertical offset (pixels) relative to the top of the widget.
-  /// Returns null if no specific verse is found.
-  int? getVerseForOffset(double yOffset);
-}
 
 class InfiniteScrollView extends StatefulWidget {
   const InfiniteScrollView({
@@ -63,6 +65,14 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
   bool _isProgrammaticScroll = false;
   int? _lastVisibleBookId;
 
+  // Last leader report, used for throttling.
+  SyncPosition? _lastReportedPosition;
+  Reference? _lastReportedDisplay;
+
+  // Follower late-alignment retry (chapter data/geometry can arrive late).
+  int _alignmentRetryCount = 0;
+  bool _alignmentRetryScheduled = false;
+
   @override
   void initState() {
     super.initState();
@@ -100,55 +110,77 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
   }
 
   void _onSyncReceived() {
-    final controller = widget.syncController!;
+    _alignmentRetryCount = 0;
+    _tryAlignToController();
+  }
+
+  void _tryAlignToController() {
+    final controller = widget.syncController;
+    if (controller == null) return;
 
     // If THIS panel is the one the user is touching, ignore the update.
     if (controller.isSourceActive(_panelId)) return;
-    if (controller.bookId == null || controller.chapter == null) return;
 
-    final targetChapter = ChapterIdentifier(
-      controller.bookId!,
-      controller.chapter!,
+    final position = controller.position;
+    if (position == null) return;
+    if (!_scrollController.hasClients) return;
+
+    // If the truth lives in a chapter we have not loaded, re-center there.
+    // Never do this while this panel is the active source (checked above).
+    final targetChapter = SyncLayout(const []).chapterForPosition(position);
+    if (targetChapter != null) {
+      final targetId = ChapterIdentifier(
+        targetChapter.bookId,
+        targetChapter.chapter,
+      );
+      if (!_chapterKeys.containsKey(targetId)) {
+        _resetChaptersTo(targetChapter.bookId, targetChapter.chapter);
+        _scheduleAlignmentRetry();
+        return;
+      }
+    }
+
+    final layout = _buildSyncLayout();
+    final targetPixels = layout?.resolvePosition(position);
+    if (layout == null || targetPixels == null) {
+      _scheduleAlignmentRetry();
+      return;
+    }
+
+    final scrollPosition = _scrollController.position;
+    final clamped = targetPixels.clamp(
+      scrollPosition.minScrollExtent,
+      scrollPosition.maxScrollExtent,
     );
 
-    // Check if we have the target chapter loaded
-    if (_chapterKeys.containsKey(targetChapter)) {
-      final key = _chapterKeys[targetChapter]!;
-      final context = key.currentContext;
-
-      if (context != null) {
-        final renderSliver = context.findRenderObject() as RenderSliver?;
-        if (renderSliver != null &&
-            renderSliver.attached &&
-            renderSliver.geometry != null) {
-          final viewport = RenderAbstractViewport.of(renderSliver);
-          final revealedOffset = viewport.getOffsetToReveal(renderSliver, 0.0);
-          final chapterHeight = renderSliver.geometry!.scrollExtent;
-          if (chapterHeight == 0) return;
-
-          final targetPixels =
-              revealedOffset.offset + (chapterHeight * controller.progress);
-
-          if (_scrollController.hasClients) {
-            _scrollController.jumpTo(targetPixels);
-
-            // If the driver (Bottom Panel) didn't provide a verse (verse == null),
-            // and we (Top Panel) are able to calculate it, report it back.
-            if (controller.verse == null) {
-              final detectedVerse = _findVisibleVerse();
-              if (detectedVerse != null) {
-                controller.reportAutoDetectedVerse(detectedVerse);
-              }
-            }
-          }
-        }
-      }
+    _alignmentRetryCount = 0;
+    if ((_scrollController.offset - clamped).abs() > 0.5) {
+      _isProgrammaticScroll = true;
+      _scrollController.jumpTo(clamped);
+      _isProgrammaticScroll = false;
     }
   }
 
+  void _scheduleAlignmentRetry() {
+    if (!mounted || _alignmentRetryScheduled) return;
+    if (_alignmentRetryCount >= 20) return;
+
+    _alignmentRetryCount++;
+    _alignmentRetryScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _alignmentRetryScheduled = false;
+      if (!mounted) return;
+      _tryAlignToController();
+    });
+  }
+
   void _resetChapters() {
+    _resetChaptersTo(widget.bookId, widget.chapter);
+  }
+
+  void _resetChaptersTo(int bookId, int chapter) {
     setState(() {
-      _centerChapter = ChapterIdentifier(widget.bookId, widget.chapter);
+      _centerChapter = ChapterIdentifier(bookId, chapter);
       _displayedChapters.clear();
       _chapterKeys.clear();
 
@@ -162,6 +194,91 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
       _displayedChapters.add(_centerChapter);
       _chapterKeys[_centerChapter] = GlobalKey();
     });
+  }
+
+  ({double top, double height})? _chapterSlice(ChapterIdentifier chapterId) {
+    final key = _chapterKeys[chapterId];
+    final sliverContext = key?.currentContext;
+    if (sliverContext == null) return null;
+
+    final renderSliver = sliverContext.findRenderObject() as RenderSliver?;
+    if (renderSliver == null ||
+        !renderSliver.attached ||
+        renderSliver.geometry == null) {
+      return null;
+    }
+
+    final viewport = RenderAbstractViewport.of(renderSliver);
+    final top = viewport.getOffsetToReveal(renderSliver, 0.0).offset;
+    return (top: top, height: renderSliver.geometry!.scrollExtent);
+  }
+
+  ChapterGeometry? _geometryInSliver(BuildContext sliverContext) {
+    ChapterGeometry? geometry;
+
+    void visitor(Element element) {
+      if (geometry != null) return;
+      if (element is StatefulElement &&
+          element.state is ChapterGeometryProvider) {
+        geometry = (element.state as ChapterGeometryProvider).geometry;
+      } else {
+        element.visitChildren(visitor);
+      }
+    }
+
+    sliverContext.visitChildElements(visitor);
+    return geometry;
+  }
+
+  SyncLayout? _buildSyncLayout() {
+    if (!_scrollController.hasClients || _displayedChapters.isEmpty) {
+      return null;
+    }
+
+    final snapshots = <ChapterLayoutSnapshot>[];
+
+    for (final chapterId in _displayedChapters) {
+      final slice = _chapterSlice(chapterId);
+      if (slice == null) continue;
+
+      final key = _chapterKeys[chapterId];
+      final context = key?.currentContext;
+      if (context == null) continue;
+
+      final geometry = _geometryInSliver(context);
+      final verseCount = _bibleNavigation.getVerseCount(
+        chapterId.bookId,
+        chapterId.chapter,
+      );
+
+      snapshots.add(
+        ChapterLayoutSnapshot(
+          reference: Reference(
+            bookId: chapterId.bookId,
+            chapter: chapterId.chapter,
+            verse: 1,
+          ),
+          top: slice.top,
+          height: slice.height,
+          geometry: geometry,
+          firstVerse: geometry?.firstVerse ?? (verseCount > 0 ? 1 : null),
+          lastVerse:
+              geometry?.lastVerse ?? (verseCount > 0 ? verseCount : null),
+        ),
+      );
+    }
+
+    if (snapshots.isEmpty) return null;
+
+    // Revelation 22 gets an extra bottom spacer in build(). Include it so the
+    // bottom extreme resolves to the actual end of the scrollable.
+    var trailingExtent = 0.0;
+    final last = _displayedChapters.last;
+    if (last.bookId == 66 && last.chapter == 22) {
+      trailingExtent = 300.0;
+    }
+
+    return SyncLayout(snapshots, trailingExtent: trailingExtent);
   }
 
   int? getBookIdAtViewportOffset(double viewportY) {
@@ -305,104 +422,41 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
     _isLoadingPreviousChapter = false;
   }
 
-  /// Extracted logic to find the visible verse at the current scroll offset.
-  int? _findVisibleVerse() {
-    for (final chapterId in _displayedChapters) {
-      final key = _chapterKeys[chapterId];
-      if (key == null) continue;
+  /// Reports the leader's current interval to the sync controller.
+  void _reportSyncPosition({bool force = false}) {
+    final controller = widget.syncController;
+    if (controller == null || !_scrollController.hasClients) return;
 
-      final sliverContext = key.currentContext;
-      if (sliverContext == null) continue;
+    final layout = _buildSyncLayout();
+    if (layout == null) return;
 
-      final renderSliver = sliverContext.findRenderObject() as RenderSliver?;
-      if (renderSliver == null ||
-          !renderSliver.attached ||
-          renderSliver.geometry == null) {
-        continue;
-      }
+    final leader = layout.leaderAt(
+      _scrollController.offset,
+      _scrollController.position.viewportDimension,
+    );
+    if (leader == null) return;
 
-      final viewport = RenderAbstractViewport.of(renderSliver);
-      final revealedOffset = viewport
-          .getOffsetToReveal(renderSliver, 0.0)
-          .offset;
-      final currentScroll = _scrollController.offset;
-      final chapterHeight = renderSliver.geometry!.scrollExtent;
+    final position = leader.position;
+    final display = leader.displayReference;
 
-      // Is this chapter currently intersecting the top of the screen?
-      if (currentScroll >= revealedOffset &&
-          currentScroll < revealedOffset + chapterHeight) {
-        final double offsetIntoChapter = currentScroll - revealedOffset;
-
-        // Determine the verse
-        VerseScrollable? scrollableState;
-
-        void visitor(Element element) {
-          if (scrollableState != null) return;
-          if (element is StatefulElement && element.state is VerseScrollable) {
-            scrollableState = element.state as VerseScrollable;
-          } else {
-            element.visitChildren(visitor);
-          }
-        }
-
-        sliverContext.visitChildElements(visitor);
-
-        if (scrollableState != null) {
-          return scrollableState!.getVerseForOffset(offsetIntoChapter);
-        }
-        break;
-      }
+    if (!force &&
+        _lastReportedPosition != null &&
+        _lastReportedPosition!.from == position.from &&
+        _lastReportedPosition!.to == position.to &&
+        (position.t - _lastReportedPosition!.t).abs() < _syncTolerance &&
+        _lastReportedDisplay == display) {
+      return;
     }
-    return null;
-  }
 
-  void _reportSyncPosition() {
-    // 1. Find the visible chapter (Sliver)
-    // 2. Calculate progress
-    // 3. Find visible Verse
+    _lastReportedPosition = position;
+    _lastReportedDisplay = display;
 
-    // We duplicate the finding logic slightly here to get the 'progress'
-    // variables which _findVisibleVerse doesn't return.
-
-    for (final chapterId in _displayedChapters) {
-      final key = _chapterKeys[chapterId];
-      if (key == null) continue;
-
-      final sliverContext = key.currentContext;
-      if (sliverContext == null) continue;
-
-      final renderSliver = sliverContext.findRenderObject() as RenderSliver?;
-      if (renderSliver == null ||
-          !renderSliver.attached ||
-          renderSliver.geometry == null) {
-        continue;
-      }
-
-      final viewport = RenderAbstractViewport.of(renderSliver);
-      final revealedOffset = viewport
-          .getOffsetToReveal(renderSliver, 0.0)
-          .offset;
-      final currentScroll = _scrollController.offset;
-      final chapterHeight = renderSliver.geometry!.scrollExtent;
-
-      if (currentScroll >= revealedOffset &&
-          currentScroll < revealedOffset + chapterHeight) {
-        final double offsetIntoChapter = currentScroll - revealedOffset;
-        final double progress = offsetIntoChapter / chapterHeight;
-
-        // Use the helper to get the verse specifically
-        final visibleVerse = _findVisibleVerse();
-
-        widget.syncController!.updatePosition(
-          _panelId,
-          chapterId.bookId,
-          chapterId.chapter,
-          progress.clamp(0.0, 1.0),
-          verse: visibleVerse,
-        );
-        break;
-      }
-    }
+    controller.updatePosition(
+      _panelId,
+      position,
+      displayVerse: display?.verse,
+      displayReference: display,
+    );
   }
 
   @override
@@ -438,13 +492,15 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
       return;
     }
 
-    VerseScrollable? scrollableState;
+    ChapterGeometry? geometry;
     State? actualState;
 
     void visitor(Element element) {
-      if (scrollableState != null) return;
-      if (element is StatefulElement && element.state is VerseScrollable) {
-        scrollableState = element.state as VerseScrollable;
+      if (geometry != null) return;
+      if (element is StatefulElement &&
+          element.state is ChapterGeometryProvider) {
+        final provider = element.state as ChapterGeometryProvider;
+        geometry = provider.geometry;
         actualState = element.state;
       } else {
         element.visitChildren(visitor);
@@ -453,8 +509,11 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
 
     sliverContext.visitChildElements(visitor);
 
-    if (scrollableState != null && actualState != null) {
-      final verseOffset = scrollableState!.getOffsetForVerse(target.verse);
+    if (geometry != null && actualState != null) {
+      // Verse 1 deliberately shows the chapter title above it.
+      final verseOffset = target.verse == 1
+          ? 0.0
+          : geometry!.spans[target.verse]?.start;
 
       if (verseOffset == null) {
         _scheduleRetry(target);
@@ -468,22 +527,8 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
       _isProgrammaticScroll = true;
       widget.syncController?.setActiveSource(_panelId);
 
-      // Update sync controller (so other panels follow)
-      final double chapterHeight = renderSliver.geometry!.scrollExtent;
-      final double progress = chapterHeight > 0
-          ? verseOffset / chapterHeight
-          : 0.0;
-
-      widget.syncController!.updatePosition(
-        _panelId,
-        target.bookId,
-        target.chapter,
-        progress.clamp(0.0, 1.0),
-        verse: target.verse,
-      );
-
-      // Perform the scroll (Animate if Auto, Jump if Manual)
-      // We use an async closure to handle the cleanup AFTER the animation finishes
+      // Perform the scroll (Animate if Auto, Jump if Manual) and report the
+      // actual landed unit afterwards, so jump styling stays a separate layer.
       () async {
         await _scrollToAbsolutePosition(
           actualState!.context,
@@ -492,12 +537,13 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
           verseNumber: target.verse,
         );
 
-        if (mounted) {
-          _isProgrammaticScroll = false;
-          if (widget.syncController != null &&
-              widget.syncController!.isSourceActive(_panelId)) {
-            widget.syncController!.clearActiveSource();
-          }
+        if (!mounted) return;
+        _isProgrammaticScroll = false;
+        if (widget.syncController == null) return;
+
+        if (widget.syncController!.isSourceActive(_panelId)) {
+          _reportSyncPosition(force: true);
+          widget.syncController!.clearActiveSource();
         }
       }();
     } else {
@@ -611,13 +657,17 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
 
     // Detect End of Manual Drag / Momentum
     if (notification is ScrollEndNotification) {
-      if (widget.syncController!.isSourceActive(_panelId)) {
+      // A programmatic verse jump keeps ownership until it reports the unit
+      // it actually landed on.
+      if (!_isProgrammaticScroll &&
+          widget.syncController!.isSourceActive(_panelId)) {
         widget.syncController!.clearActiveSource();
       }
     }
 
     // Detect Size Changes (Zooming or Loading)
-    if (notification is SizeChangedLayoutNotification) {
+    if (notification is SizeChangedLayoutNotification ||
+        notification is ChapterGeometryChangedNotification) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
 

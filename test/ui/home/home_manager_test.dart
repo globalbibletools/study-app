@@ -9,6 +9,7 @@ import 'package:gbt/services/resources/resource_service.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/services/settings/user_settings.dart';
 import 'package:gbt/ui/home/home_manager.dart';
+import 'package:gbt/ui/home/common/scroll_sync_controller.dart';
 import 'package:gbt/ui/home/word_details_dialog/dialog_manager.dart';
 import 'package:gbt/ui/home/word_details_dialog/similar_verses/similar_verses_page.dart';
 import 'package:scripture/scripture.dart';
@@ -98,6 +99,39 @@ void main() {
 
     tearDown(() {
       homeManager.dispose();
+    });
+
+    test('seeds the sync controller with a chapter-top interval', () {
+      final position = homeManager.syncController.position!;
+      expect(
+        position.to,
+        const Anchor(
+          Reference(bookId: 1, chapter: 1, verse: 1),
+          AnchorEnd.start,
+        ),
+      );
+      expect(position.t, 0);
+      expect(
+        homeManager.syncController.displayReference,
+        const Reference(bookId: 1, chapter: 1, verse: 1),
+      );
+    });
+
+    test('onChapterSelected seeds an interval ending at the new chapter', () {
+      homeManager.onChapterSelected(2);
+
+      final position = homeManager.syncController.position!;
+      expect(
+        position.to,
+        const Anchor(
+          Reference(bookId: 1, chapter: 2, verse: 1),
+          AnchorEnd.start,
+        ),
+      );
+      expect(
+        homeManager.syncController.displayReference,
+        const Reference(bookId: 1, chapter: 2, verse: 1),
+      );
     });
 
     test(

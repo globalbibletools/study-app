@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:gbt/ui/home/audio/audio_player_view_model.dart';
 import 'package:scripture/scripture.dart';
 import 'package:gbt/app_state.dart';
+import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/common/reference.dart';
 import 'package:gbt/l10n/app_languages.dart';
 import 'package:gbt/services/app_guide/app_guide_manager.dart';
@@ -131,18 +132,74 @@ class HomeManager {
     syncController.addListener(_onSyncUpdate);
 
     syncController.clearActiveSource();
-    syncController.updatePosition('manager', bookId, chapter, 0.0, verse: 1);
+    _seedChapterPosition(bookId, chapter);
+  }
+
+  /// Seeds the controller with the gap that ends at the top of a chapter.
+  ///
+  /// When the previous chapter is loaded, this resolves to just above the
+  /// current chapter's title.
+  void _seedChapterPosition(int bookId, int chapter) {
+    Anchor from = const Anchor.top();
+
+    final navigation = getIt.isRegistered<BibleNavigation>()
+        ? getIt<BibleNavigation>()
+        : null;
+    if (navigation != null) {
+      final previous = navigation.getPreviousChapter(
+        ChapterIdentifier(bookId, chapter),
+      );
+      if (previous != null) {
+        final lastVerse = navigation.getVerseCount(
+          previous.bookId,
+          previous.chapter,
+        );
+        if (lastVerse > 0) {
+          from = Anchor(
+            Reference(
+              bookId: previous.bookId,
+              chapter: previous.chapter,
+              verse: lastVerse,
+            ),
+            AnchorEnd.end,
+          );
+        }
+      }
+    }
+
+    final firstRef = Reference(bookId: bookId, chapter: chapter, verse: 1);
+    syncController.updatePosition(
+      'manager',
+      SyncPosition(from, Anchor(firstRef, AnchorEnd.start), 0.0),
+      displayVerse: 1,
+      displayReference: firstRef,
+    );
   }
 
   void _onSyncUpdate() {
-    final newBook = syncController.bookId;
-    final newChapter = syncController.chapter;
-    if (newBook == null || newChapter == null) return;
-    final newVerse = syncController.verse ?? 1;
+    final display = syncController.displayReference;
+    final fallback = _chapterReferenceForPosition(syncController.position);
+    final reference = display ?? fallback;
+    if (reference == null) return;
 
     // Updates the AppBar, but NOT panelAnchorNotifier
-    updateReference(newBook, newChapter, newVerse);
-    saveBookAndChapter(newBook, newChapter);
+    updateReference(reference.bookId, reference.chapter, reference.verse);
+    saveBookAndChapter(reference.bookId, reference.chapter);
+  }
+
+  Reference? _chapterReferenceForPosition(SyncPosition? position) {
+    if (position == null) return null;
+
+    final from = position.from.ref;
+    final to = position.to.ref;
+    if (from == null && to == null) return null;
+
+    if (from != null && to != null) {
+      if (from.bookId == to.bookId && from.chapter == to.chapter) return from;
+      return position.t < 0.5 ? from : to;
+    }
+
+    return from ?? to;
   }
 
   Future<void> checkOnboarding(BuildContext context) async {
@@ -267,7 +324,7 @@ class HomeManager {
     currentReference.value = ref;
     panelAnchorNotifier.value = ref;
     syncController.clearActiveSource();
-    syncController.updatePosition('manager', bookId, 1, 0.0, verse: 1);
+    _seedChapterPosition(bookId, 1);
   }
 
   void onChapterSelected(int chapter) {
@@ -279,13 +336,7 @@ class HomeManager {
     currentReference.value = ref;
     panelAnchorNotifier.value = ref;
     syncController.clearActiveSource();
-    syncController.updatePosition(
-      'manager',
-      currentBookId,
-      chapter,
-      0.0,
-      verse: 1,
-    );
+    _seedChapterPosition(currentBookId, chapter);
   }
 
   /// Starts a new word study session, preserving the original reading reference.

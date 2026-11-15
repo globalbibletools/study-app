@@ -9,6 +9,7 @@ import 'package:gbt/services/reading_session/rs_model.dart';
 import 'package:gbt/services/settings/user_settings.dart';
 import 'package:gbt/ui/common/sparkle_icon.dart';
 import 'package:gbt/ui/common/word_popup.dart';
+import 'package:gbt/ui/home/panel_area/common/verse_sync_layout.dart';
 
 export 'package:gbt/ui/common/word_popup.dart' show WordPopup;
 
@@ -40,12 +41,16 @@ class _LineMetrics {
   //the maximum verse number on a given line
   final int highestVerseOnLine;
 
+  // Verses whose number/first word begins on this line, in document order.
+  final List<int> startingVerses;
+
   _LineMetrics(
     this.top,
     this.bottom,
     this.labelVerse,
     this.lowestVerseOnLine,
     this.highestVerseOnLine,
+    this.startingVerses,
   );
 }
 
@@ -53,8 +58,10 @@ class _LineMetrics {
 /// internal layout metrics of [HebrewGreekText].
 class HebrewGreekTextController {
   final Map<int, Rect> _verseRects = {};
+  ChapterGeometry? _geometry;
   VerseAtOffsetCallback? _verseAtOffsetCallback;
   ValueChanged<Rect?>? _spotlightSetCallback;
+  VoidCallback? _geometryAvailableCallback;
 
   /// Updates the controller with the latest verse rectangles.
   ///
@@ -63,6 +70,20 @@ class HebrewGreekTextController {
     _verseRects.clear();
     _verseRects.addAll(rects);
   }
+
+  void _updateGeometry(ChapterGeometry geometry) {
+    final becameAvailable = _geometry == null;
+    _geometry = geometry;
+    if (becameAvailable) _geometryAvailableCallback?.call();
+  }
+
+  /// Called once when geometry first becomes available for this chapter.
+  void setGeometryAvailableCallback(VoidCallback? callback) {
+    _geometryAvailableCallback = callback;
+  }
+
+  /// Verse-level geometry in HebrewGreekText-local coordinates.
+  ChapterGeometry? get geometry => _geometry;
 
   /// Registers the callback from the RenderObject
   void _registerVerseFinder(VerseAtOffsetCallback callback) {
@@ -956,6 +977,7 @@ class RenderHebrewGreekText extends RenderBox {
     int? bestStartVerse;
     int? lowestVerseOnLine;
     int? highestVerseOnLine;
+    final startingVerses = <int>[];
 
     for (final item in lineWords) {
       final verse = item.word.reference.verse;
@@ -967,6 +989,7 @@ class RenderHebrewGreekText extends RenderBox {
         highestVerseOnLine = verse;
       }
       if (item.isFirstInVerse) {
+        startingVerses.add(verse);
         if (bestStartVerse == null || verse < bestStartVerse) {
           bestStartVerse = verse;
         }
@@ -982,6 +1005,7 @@ class RenderHebrewGreekText extends RenderBox {
         label,
         lowestVerseOnLine ?? 1,
         highestVerseOnLine ?? 1,
+        startingVerses,
       ),
     );
     lineWords.clear();
@@ -1067,11 +1091,27 @@ class RenderHebrewGreekText extends RenderBox {
 
     controller?._updateVerseRects(verseRectsMap);
 
+    final double finalHeight = crossAxisOffset + currentLineMaxHeight;
+
+    controller?._updateGeometry(
+      geometryFromLines(
+        [
+          for (final line in _lineMetrics)
+            LineLayout(
+              top: line.top,
+              bottom: line.bottom,
+              startingVerses: line.startingVerses,
+            ),
+        ],
+        allVerses: _verseRenderer.map((verse) => verse.verse),
+        height: finalHeight,
+      ),
+    );
+
     if (spotlightRect != null) {
       controller?._spotlightSetCallback?.call(spotlightRect);
     }
 
-    final double finalHeight = crossAxisOffset + currentLineMaxHeight;
     final double finalWidth = constraints.hasBoundedWidth
         ? availableWidth
         : maxLineWidth;

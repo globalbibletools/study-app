@@ -58,7 +58,7 @@ class HebrewGreekChapter extends StatefulWidget {
 }
 
 class HebrewGreekChapterState extends State<HebrewGreekChapter>
-    with VerseScrollable {
+    with ChapterGeometryProvider {
   final manager = HebrewGreekChapterManager();
 
   final _textController = HebrewGreekTextController();
@@ -78,6 +78,14 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter>
     _textController.setSpotlightUpdatedCalllback(
       _reportReadingCheckboxGuideRect,
     );
+    _textController.setGeometryAvailableCallback(_notifyGeometryAvailable);
+  }
+
+  void _notifyGeometryAvailable() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      const ChapterGeometryChangedNotification().dispatch(context);
+    });
   }
 
   @override
@@ -103,56 +111,34 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter>
   }
 
   @override
-  double? getOffsetForVerse(int verseNumber) {
-    // If Verse 1 is requested, return 0.0 to show the Chapter Header (Title).
-    if (verseNumber == 1) {
-      return 0.0;
-    }
+  ChapterGeometry? get geometry {
+    if (manager.textNotifier.value.isEmpty) return null;
 
-    final textLocalRect = _textController.getVerseRect(verseNumber);
-    if (textLocalRect == null) return null;
+    final textGeometry = _textController.geometry;
+    if (textGeometry == null) return null;
 
-    // Calculate the offset relative to the Chapter widget (context)
-    // We need to add the height of the Header (Text + SizedBoxes)
     final textRenderBox =
         _hebrewGreekTextKey.currentContext?.findRenderObject() as RenderBox?;
     final chapterRenderBox = context.findRenderObject() as RenderBox?;
+    if (textRenderBox == null || chapterRenderBox == null) return null;
 
-    if (textRenderBox != null && chapterRenderBox != null) {
-      // Find where the Text widget starts inside the Chapter widget
-      final textTopLeftInChapter = textRenderBox.localToGlobal(
-        Offset.zero,
-        ancestor: chapterRenderBox,
-      );
+    final textTopLeftInChapter = textRenderBox.localToGlobal(
+      Offset.zero,
+      ancestor: chapterRenderBox,
+    );
+    final dy = textTopLeftInChapter.dy;
 
-      // Add that starting Y to the verse's local Y
-      return textTopLeftInChapter.dy + textLocalRect.top;
-    }
+    final translated = textGeometry.translated(dy);
+    if (dy <= 0) return translated;
 
-    // Fallback (if layout isn't ready, though it usually is when calling this)
-    return textLocalRect.top;
-  }
-
-  @override
-  int? getVerseForOffset(double yOffset) {
-    // Convert the Chapter Y offset back to Text widget local Y
-    final textRenderBox =
-        _hebrewGreekTextKey.currentContext?.findRenderObject() as RenderBox?;
-    final chapterRenderBox = context.findRenderObject() as RenderBox?;
-
-    if (textRenderBox != null && chapterRenderBox != null) {
-      final textTopLeftInChapter = textRenderBox.localToGlobal(
-        Offset.zero,
-        ancestor: chapterRenderBox,
-      );
-
-      // Subtract the header height to get "y" relative to the Text widget
-      final localY = yOffset - textTopLeftInChapter.dy;
-
-      return _textController.getVerseForOffset(localY);
-    }
-
-    return _textController.getVerseForOffset(yOffset);
+    final firstVerse = translated.firstVerse;
+    return ChapterGeometry(
+      spans: translated.spans,
+      gaps: [
+        if (firstVerse != null) GapSpan(start: 0, end: dy, toVerse: firstVerse),
+        ...translated.gaps,
+      ],
+    );
   }
 
   ValueNotifier<String?>? get _flashedWordIdNotifier {
