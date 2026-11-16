@@ -30,27 +30,16 @@ class VerseHighlight {
   int get hashCode => Object.hash(bookId, chapter, verse, isAuto);
 }
 
-/// Which edge of a verse span an [Anchor] refers to.
 enum AnchorEnd { start, end }
 
-/// A named place in a reading layout.
-///
-/// An anchor is either the top or bottom edge of a verse's span, or the very
-/// top/bottom of the scrollable content (represented by a null [ref]).
 @immutable
 class Anchor {
   const Anchor(this.ref, this.end);
 
-  /// The very top of the scrollable content.
   const Anchor.top() : ref = null, end = AnchorEnd.start;
-
-  /// The very bottom of the scrollable content.
   const Anchor.bottom() : ref = null, end = AnchorEnd.end;
 
-  /// The verse this anchor belongs to, or null for a scrollable extreme.
   final Reference? ref;
-
-  /// Which edge of [ref]'s span this anchor refers to.
   final AnchorEnd end;
 
   bool get isTop => ref == null && end == AnchorEnd.start;
@@ -74,17 +63,12 @@ class Anchor {
   }
 }
 
-/// A position expressed as a fraction between two named places.
-///
-/// [t] is clamped to the inclusive range 0..1.
 @immutable
 class SyncPosition {
   SyncPosition(this.from, this.to, double t) : t = t.clamp(0.0, 1.0);
 
   final Anchor from;
   final Anchor to;
-
-  /// How far the position is between [from] and [to].
   final double t;
 
   @override
@@ -104,75 +88,44 @@ class SyncPosition {
 }
 
 class ScrollSyncController extends ChangeNotifier {
-  // Track which panel is currently being touched/scrolled by the user
-  // so we don't create an infinite feedback loop.
-  Object? _activeSource;
+  VerseHighlight? _pendingVerseJump;
   final _verseJumpController = StreamController<VerseHighlight>.broadcast();
   Stream<VerseHighlight> get onVerseJump => _verseJumpController.stream;
+  VerseHighlight? get pendingVerseJump => _pendingVerseJump;
 
   ValueNotifier<Reference?>? _audioReferenceNotifier;
 
+  Object? _activeSource;
+  bool isSourceActive(Object source) => _activeSource == source;
   void setActiveSource(Object source) {
     _activeSource = source;
   }
-
   void clearActiveSource() {
     _activeSource = null;
   }
 
-  // The state to broadcast.
   SyncPosition? _position;
-  Reference? _displayReference;
-
   SyncPosition? get position => _position;
 
-  /// The first fully visible verse reported by the leader, if known.
-  int? get displayVerse => _displayReference?.verse;
-
-  /// Full reference of the first fully visible verse reported by the leader.
+  Reference? _displayReference;
   Reference? get displayReference => _displayReference;
 
-  /// Called by the active panel to report position.
   void updatePosition(
     Object source,
     SyncPosition position, {
-    int? displayVerse,
-    Reference? displayReference,
+    required Reference? displayReference,
   }) {
-    // Only accept updates from the panel the user is actually touching.
     if (_activeSource != null && _activeSource != source) return;
 
-    final resolvedDisplay =
-        displayReference ??
-        (displayVerse == null
-            ? null
-            : _referenceForVerse(position, displayVerse));
-
-    if (_position == position && _displayReference == resolvedDisplay) {
+    if (_position == position && _displayReference == displayReference) {
       return;
     }
 
     _position = position;
-    _displayReference = resolvedDisplay;
+    _displayReference = displayReference;
 
-    // Notify the other panel.
     notifyListeners();
   }
-
-  /// Best-effort full reference for a bare display verse reported without one.
-  static Reference? _referenceForVerse(SyncPosition position, int verse) {
-    final fromRef = position.from.ref;
-    final toRef = position.to.ref;
-
-    if (toRef != null && verse >= toRef.verse) return toRef;
-    if (fromRef != null && verse <= fromRef.verse) return fromRef;
-    return fromRef ?? toRef;
-  }
-
-  bool isSourceActive(Object source) => _activeSource == source;
-
-  VerseHighlight? _pendingVerseJump;
-  VerseHighlight? get pendingVerseJump => _pendingVerseJump;
 
   void jumpToVerse(int bookId, int chapter, int verse, {bool isAuto = false}) {
     final target = VerseHighlight(

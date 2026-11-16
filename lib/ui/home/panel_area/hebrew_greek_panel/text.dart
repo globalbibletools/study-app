@@ -10,6 +10,7 @@ import 'package:gbt/services/settings/user_settings.dart';
 import 'package:gbt/ui/common/sparkle_icon.dart';
 import 'package:gbt/ui/common/word_popup.dart';
 import 'package:gbt/ui/home/panel_area/common/verse_sync_layout.dart';
+import 'package:gbt/ui/home/panel_area/hebrew_greek_panel/geometry.dart';
 
 export 'package:gbt/ui/common/word_popup.dart' show WordPopup;
 
@@ -1094,18 +1095,14 @@ class RenderHebrewGreekText extends RenderBox {
     final double finalHeight = crossAxisOffset + currentLineMaxHeight;
 
     controller?._updateGeometry(
-      geometryFromLines(
-        [
-          for (final line in _lineMetrics)
-            LineLayout(
-              top: line.top,
-              bottom: line.bottom,
-              startingVerses: line.startingVerses,
-            ),
-        ],
-        allVerses: _verseRenderer.map((verse) => verse.verse),
-        height: finalHeight,
-      ),
+      geometryFromLines([
+        for (final line in _lineMetrics)
+          LineLayout(
+            top: line.top,
+            bottom: line.bottom,
+            startingVerses: line.startingVerses,
+          ),
+      ], verseCount: _verseRenderer.length),
     );
 
     if (spotlightRect != null) {

@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:gbt/common/book_name.dart';
@@ -125,7 +125,6 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter>
         _hebrewGreekTextKey.currentContext?.findRenderObject() as RenderBox?;
     final chapterRenderBox = context.findRenderObject() as RenderBox?;
     if (textRenderBox == null || chapterRenderBox == null) return null;
-    if (!chapterRenderBox.hasSize) return null;
 
     final textTopLeftInChapter = textRenderBox.localToGlobal(
       Offset.zero,
@@ -136,7 +135,7 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter>
     final translated = textGeometry.translated(dy);
 
     // The chapter title belongs to the first verse that follows it; only the
-    // blank space around it stays gap.
+    // blank space around it stays outside any span.
     final headings = <HeadingRect>[];
     final titleBox =
         _titleKey.currentContext?.findRenderObject() as RenderBox?;
@@ -149,16 +148,7 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter>
       );
     }
 
-    var contentBottom = dy;
-    for (final span in translated.spans.values) {
-      contentBottom = math.max(contentBottom, span.end);
-    }
-
-    return buildGeometry(
-      spans: translated.spans,
-      height: math.max(chapterRenderBox.size.height, contentBottom),
-      headings: headings,
-    );
+    return buildGeometry(spans: translated.spans, headings: headings);
   }
 
   ValueNotifier<String?>? get _flashedWordIdNotifier {

@@ -13,8 +13,6 @@ export 'package:gbt/ui/home/panel_area/common/verse_sync_layout.dart'
         ChapterGeometry,
         ChapterGeometryChangedNotification,
         ChapterGeometryProvider,
-        GapSpan,
-        SpanKind,
         VerseSpan;
 
 const _topScrollOffset = 16.0;
@@ -454,7 +452,6 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
     controller.updatePosition(
       _panelId,
       position,
-      displayVerse: display?.verse,
       displayReference: display,
     );
   }

@@ -5,7 +5,6 @@ import 'package:gbt/common/reference.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/home/common/scroll_sync_controller.dart';
 import 'package:gbt/ui/home/panel_area/common/infinite_scroll_view.dart';
-import 'package:gbt/ui/home/panel_area/common/verse_sync_layout.dart';
 
 const _chapterHeight = 100.0;
 
@@ -28,11 +27,10 @@ ChapterGeometry _verseGeometry({
       verse: verse,
       start: cursor,
       end: cursor + spanHeight,
-      kind: spanHeight == 0 ? SpanKind.zero : SpanKind.exact,
     );
     cursor += spanHeight;
   }
-  return ChapterGeometry(spans: spans, gaps: deriveGapSpans(spans, height));
+  return ChapterGeometry(spans: spans);
 }
 
 class _FakeChapter extends StatefulWidget {
@@ -175,6 +173,7 @@ void main() {
         Anchor(const Reference(bookId: 1, chapter: 1, verse: 3), AnchorEnd.end),
         0.5,
       ),
+      displayReference: null,
     );
     await tester.pump();
 
@@ -215,6 +214,7 @@ void main() {
         Anchor(const Reference(bookId: 1, chapter: 1, verse: 3), AnchorEnd.end),
         0.5,
       ),
+      displayReference: null,
     );
     await tester.pump();
 
@@ -256,6 +256,7 @@ void main() {
         ),
         0.5,
       ),
+      displayReference: null,
     );
     await tester.pump();
 
@@ -296,6 +297,7 @@ void main() {
         Anchor(const Reference(bookId: 1, chapter: 3, verse: 1), AnchorEnd.end),
         0.5,
       ),
+      displayReference: null,
     );
     await tester.pump();
     await tester.pump();
@@ -321,6 +323,7 @@ void main() {
         Anchor(const Reference(bookId: 1, chapter: 1, verse: 3), AnchorEnd.end),
         0.5,
       ),
+      displayReference: null,
     );
 
     Widget buildPanel() => MaterialApp(
@@ -384,6 +387,7 @@ void main() {
         Anchor(const Reference(bookId: 1, chapter: 1, verse: 3), AnchorEnd.end),
         0.5,
       ),
+      displayReference: null,
     );
 
     await tester.pumpWidget(buildPanel());
@@ -433,6 +437,7 @@ void main() {
         ),
         0.5,
       ),
+      displayReference: null,
     );
     await tester.pump();
 
@@ -452,13 +457,8 @@ void main() {
 
     // Follower-only gap of 20px between verses 1 and 2.
     final spans = {
-      1: const VerseSpan(verse: 1, start: 0, end: 40, kind: SpanKind.exact),
-      2: const VerseSpan(
-        verse: 2,
-        start: 60,
-        end: 100,
-        kind: SpanKind.exact,
-      ),
+      1: const VerseSpan(verse: 1, start: 0, end: 40),
+      2: const VerseSpan(verse: 2, start: 60, end: 100),
     };
 
     await tester.pumpWidget(
@@ -469,11 +469,7 @@ void main() {
             controller: controller,
             bookId: 1,
             chapter: 1,
-            geometryFor:
-                (_, _) => ChapterGeometry(
-                  spans: spans,
-                  gaps: deriveGapSpans(spans, _chapterHeight),
-                ),
+            geometryFor: (_, _) => ChapterGeometry(spans: spans),
           ),
         ),
       ),
@@ -496,6 +492,7 @@ void main() {
           ),
           t,
         ),
+        displayReference: null,
       );
     }
 

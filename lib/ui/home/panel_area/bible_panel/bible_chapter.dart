@@ -258,7 +258,7 @@ class _BibleChapterState extends State<BibleChapter>
     }
 
     // The chapter title belongs to the verse that follows it; only the blank
-    // space around it stays gap.
+    // space around it stays outside any span.
     final headings = <HeadingRect>[];
     final titleBox =
         _titleKey.currentContext?.findRenderObject() as RenderBox?;
@@ -269,11 +269,7 @@ class _BibleChapterState extends State<BibleChapter>
       );
     }
 
-    _geometry = buildGeometry(
-      spans: spans,
-      height: chapterBox.size.height,
-      headings: headings,
-    );
+    _geometry = buildGeometry(spans: spans, headings: headings);
 
     if (mounted) {
       const ChapterGeometryChangedNotification().dispatch(context);
@@ -328,12 +324,7 @@ class _BibleChapterState extends State<BibleChapter>
         final verse = expected[i];
         final start = top + height * i / count;
         final end = top + height * (i + 1) / count;
-        spans[verse] = VerseSpan(
-          verse: verse,
-          start: start,
-          end: end,
-          kind: SpanKind.virtual,
-        );
+        spans[verse] = VerseSpan(verse: verse, start: start, end: end);
       }
       return;
     }
@@ -348,7 +339,6 @@ class _BibleChapterState extends State<BibleChapter>
           verse: lastVerse,
           start: previous.start,
           end: math.max(previous.end, bottom),
-          kind: previous.kind,
         );
       }
       return;
@@ -365,7 +355,6 @@ class _BibleChapterState extends State<BibleChapter>
         verse: item.verse,
         start: start,
         end: math.max(start, end),
-        kind: end - start <= 0.01 ? SpanKind.zero : SpanKind.exact,
       );
     }
   }

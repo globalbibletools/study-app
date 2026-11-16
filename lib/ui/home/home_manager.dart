@@ -171,7 +171,6 @@ class HomeManager {
     syncController.updatePosition(
       'manager',
       SyncPosition(from, Anchor(firstRef, AnchorEnd.start), 0.0),
-      displayVerse: 1,
       displayReference: firstRef,
     );
   }

@@ -116,15 +116,11 @@ void main() {
       }
     }
 
-    expect(geometry.gaps, isNotEmpty);
-    expect(geometry.gaps.first.start, 0);
-
     // The chapter title is attributed to verse 1: its span starts at the
     // title's top (container padding 8 + spacer 10 = 18px with the test
-    // font), so the leading gap is only the blank space above the title —
-    // not the 30px title itself.
+    // font), so only the blank space above the title stays outside any
+    // span — not the 30px title itself.
     expect(geometry.spans[1]!.start, closeTo(18, 3));
-    expect(geometry.gaps.first.end, closeTo(18, 3));
   }
 
   testWidgets('paragraph layout measures verse numbers from RenderPassage', (

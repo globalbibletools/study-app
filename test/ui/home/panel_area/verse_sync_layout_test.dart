@@ -16,93 +16,14 @@ ChapterLayoutSnapshot _snapshot({
     reference: Reference(bookId: 1, chapter: chapter, verse: 1),
     top: top,
     height: height,
-    geometry: ChapterGeometry(
-      spans: spans,
-      gaps: deriveGapSpans(spans, height),
-    ),
+    geometry: ChapterGeometry(spans: spans),
   );
 }
 
-VerseSpan _span(
-  int verse,
-  double start,
-  double end, [
-  SpanKind kind = SpanKind.exact,
-]) => VerseSpan(verse: verse, start: start, end: end, kind: kind);
+VerseSpan _span(int verse, double start, double end) =>
+    VerseSpan(verse: verse, start: start, end: end);
 
 void main() {
-  group('geometryFromLines (line ownership)', () {
-    test('assigns lines to the last verse that starts on them', () {
-      final geometry = geometryFromLines(
-        [
-          const LineLayout(top: 0, bottom: 10, startingVerses: [1]),
-          const LineLayout(top: 10, bottom: 20, startingVerses: [2, 3]),
-          const LineLayout(top: 20, bottom: 30, startingVerses: []),
-          const LineLayout(top: 30, bottom: 40, startingVerses: [4]),
-          const LineLayout(top: 40, bottom: 50, startingVerses: []),
-        ],
-        allVerses: const [1, 2, 3, 4],
-      );
-
-      expect(geometry.spans[1]!.start, 0);
-      expect(geometry.spans[1]!.end, 10);
-      expect(geometry.spans[1]!.kind, SpanKind.exact);
-
-      // Verse 2 starts on the same line as verse 3, so it owns no lines.
-      expect(geometry.spans[2]!.start, 10);
-      expect(geometry.spans[2]!.end, 10);
-      expect(geometry.spans[2]!.kind, SpanKind.zero);
-
-      // Verse 3 owns line 1 and its continuation line.
-      expect(geometry.spans[3]!.start, 10);
-      expect(geometry.spans[3]!.end, 30);
-
-      // A wrapping verse whose last line is shared with the next verse is
-      // clipped at that line's top.
-      expect(geometry.spans[4]!.start, 30);
-      expect(geometry.spans[4]!.end, 50);
-    });
-
-    test('a verse with no starting line is zero-height at the end', () {
-      final geometry = geometryFromLines(
-        [
-          const LineLayout(top: 0, bottom: 10, startingVerses: [1]),
-          const LineLayout(top: 10, bottom: 20, startingVerses: []),
-        ],
-        allVerses: const [1, 2],
-        height: 20,
-      );
-
-      expect(geometry.spans[2]!.start, 20);
-      expect(geometry.spans[2]!.end, 20);
-      expect(geometry.spans[2]!.kind, SpanKind.zero);
-    });
-
-    test('spans are disjoint, ordered, and gaps are non-negative', () {
-      final geometry = geometryFromLines(
-        [
-          const LineLayout(top: 0, bottom: 10, startingVerses: [1]),
-          const LineLayout(top: 10, bottom: 20, startingVerses: [2]),
-          const LineLayout(top: 20, bottom: 30, startingVerses: []),
-        ],
-        allVerses: const [1, 2, 3],
-      );
-
-      final spans = geometry.spans.values.toList()
-        ..sort((a, b) => a.start.compareTo(b.start));
-
-      for (var i = 0; i < spans.length; i++) {
-        expect(spans[i].end, greaterThanOrEqualTo(spans[i].start));
-        if (i > 0) {
-          expect(spans[i].start, greaterThanOrEqualTo(spans[i - 1].start));
-        }
-      }
-      for (final gap in geometry.gaps) {
-        expect(gap.end, greaterThanOrEqualTo(gap.start));
-      }
-    });
-  });
-
   group('SyncLayout anchor resolution', () {
     late SyncLayout layout;
 
@@ -114,9 +35,9 @@ void main() {
           height: 100,
           spans: {
             1: _span(1, 0, 10),
-            2: _span(2, 10, 10, SpanKind.zero),
+            2: _span(2, 10, 10),
             3: _span(3, 10, 30),
-            4: _span(4, 30, 50, SpanKind.virtual),
+            4: _span(4, 30, 50),
             6: _span(6, 60, 80),
           },
         ),
@@ -256,9 +177,9 @@ void main() {
       chapter(
         top: 0,
         spans: {
-          1: _span(1, 0, 60, SpanKind.virtual),
-          3: _span(3, 60, 60, SpanKind.zero),
-          4: _span(4, 60, 140, SpanKind.virtual),
+          1: _span(1, 0, 60),
+          3: _span(3, 60, 60),
+          4: _span(4, 60, 140),
           6: _span(6, 140, 200),
         },
       ),
@@ -400,41 +321,35 @@ void main() {
     test('a chapter title is attributed to the first verse', () {
       final geometry = buildGeometry(
         spans: {1: _span(1, 40, 50), 2: _span(2, 50, 60)},
-        height: 60,
         headings: [const HeadingRect(top: 10, bottom: 30)],
       );
 
       // The span starts at the title's top; the space below the title is
-      // interior span content.
+      // interior span content, and no gap opens between verses 1 and 2.
+      // Everything above the title's top stays outside any span.
       expect(geometry.spans[1]!.start, 10);
       expect(geometry.spans[1]!.end, 50);
-
-      // Only the blank space above the title remains as gap.
-      expect(geometry.gaps, hasLength(1));
-      expect(geometry.gaps.first.start, 0);
-      expect(geometry.gaps.first.end, 10);
-      expect(geometry.gaps.first.toVerse, 1);
+      expect(geometry.spans[2]!.start, 50);
+      expect(geometry.spans[2]!.end, 60);
     });
 
     test('a section heading between verses joins the following verse', () {
       final geometry = buildGeometry(
         spans: {1: _span(1, 0, 10), 2: _span(2, 40, 50)},
-        height: 50,
         headings: [const HeadingRect(top: 20, bottom: 30)],
       );
 
+      // Verse 1 is untouched; verse 2 absorbs the heading, so the only open
+      // region is the blank between verse 1's end and the heading's top.
+      expect(geometry.spans[1]!.start, 0);
+      expect(geometry.spans[1]!.end, 10);
       expect(geometry.spans[2]!.start, 20);
       expect(geometry.spans[2]!.end, 50);
-      expect(geometry.gaps.single.start, 10);
-      expect(geometry.gaps.single.end, 20);
-      expect(geometry.gaps.single.fromVerse, 1);
-      expect(geometry.gaps.single.toVerse, 2);
     });
 
     test('stacked headings attribute to the same verse, topmost wins', () {
       final geometry = buildGeometry(
         spans: {1: _span(1, 40, 50)},
-        height: 50,
         headings: const [
           HeadingRect(top: 25, bottom: 30),
           HeadingRect(top: 10, bottom: 20),
@@ -442,30 +357,27 @@ void main() {
       );
 
       expect(geometry.spans[1]!.start, 10);
-      expect(geometry.gaps.single.start, 0);
-      expect(geometry.gaps.single.end, 10);
+      expect(geometry.spans[1]!.end, 50);
     });
 
-    test('a trailing heading with no following verse stays gap', () {
+    test('a trailing heading with no following verse stays unattributed', () {
       final geometry = buildGeometry(
         spans: {1: _span(1, 0, 10)},
-        height: 60,
         headings: [const HeadingRect(top: 40, bottom: 50)],
       );
 
+      // The heading is attributed to no verse: verse 1 keeps its span and
+      // nothing covers the heading's range.
+      expect(geometry.spans, hasLength(1));
       expect(geometry.spans[1]!.start, 0);
-      expect(geometry.gaps.single.start, 10);
-      expect(geometry.gaps.single.end, 60);
+      expect(geometry.spans[1]!.end, 10);
     });
 
-    test('no headings behaves like plain gap derivation', () {
+    test('no headings leaves spans untouched', () {
       final spans = {1: _span(1, 0, 10), 2: _span(2, 20, 30)};
-      final geometry = buildGeometry(spans: spans, height: 30);
+      final geometry = buildGeometry(spans: spans);
 
       expect(geometry.spans, spans);
-      expect(geometry.gaps, hasLength(1));
-      expect(geometry.gaps.first.start, 10);
-      expect(geometry.gaps.first.end, 20);
     });
   });
 
@@ -479,14 +391,14 @@ void main() {
         0,
       );
 
-      controller.updatePosition('b', position);
+      controller.updatePosition('b', position, displayReference: null);
       expect(controller.position, isNull);
 
-      controller.updatePosition('a', position);
+      controller.updatePosition('a', position, displayReference: null);
       expect(controller.position, position);
     });
 
-    test('exposes the leader display verse and no chapter progress', () {
+    test('exposes the leader display reference and no chapter progress', () {
       final controller = ScrollSyncController();
       final position = SyncPosition(
         Anchor(_ref(4), AnchorEnd.start),
@@ -494,14 +406,8 @@ void main() {
         0,
       );
 
-      controller.updatePosition(
-        'a',
-        position,
-        displayVerse: 4,
-        displayReference: _ref(4),
-      );
+      controller.updatePosition('a', position, displayReference: _ref(4));
 
-      expect(controller.displayVerse, 4);
       expect(controller.displayReference, _ref(4));
     });
   });
