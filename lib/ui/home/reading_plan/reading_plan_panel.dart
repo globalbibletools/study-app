@@ -7,7 +7,7 @@ import 'package:gbt/services/reading_session/rs_model.dart';
 import 'package:gbt/ui/home/home_manager.dart';
 import 'package:gbt/ui/home/reading_plan/edit_reading_plan_panel.dart';
 import 'package:gbt/ui/home/reading_plan/reading_plan_detail_panel.dart';
-import 'package:gbt/ui/home/reading_plan/reading_plan_panel_manager.dart';
+import 'package:gbt/ui/home/reading_plan/reading_plan_panel_view_model.dart';
 
 Future<bool> confirmDeleteReadingPlan(
   BuildContext context,
@@ -54,51 +54,46 @@ class ReadingPlanPanel extends StatefulWidget {
 }
 
 class ReadingPlanPanelState extends State<ReadingPlanPanel> {
-  late final ReadingPlanPanelManager manager;
-
-  bool _editMode = false;
+  late final ReadingPlanPanelViewModel viewModel;
 
   @override
   void initState() {
     super.initState();
-    manager = ReadingPlanPanelManager();
-  }
-
-  /// Re-reads the font scale from persisted settings into the notifier.
-  void refreshFromSettings() {}
-
-  @override
-  void didUpdateWidget(covariant ReadingPlanPanel oldWidget) {
-    super.didUpdateWidget(oldWidget);
+    viewModel = ReadingPlanPanelViewModel(homeManager: widget.homeManager);
   }
 
   @override
   void dispose() {
-    manager.dispose();
+    viewModel.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox.expand(
-      child: SafeArea(
-        top: false,
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: const BoxDecoration(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    return ListenableBuilder(
+      listenable: viewModel,
+      builder: (context, _) {
+        return SizedBox.expand(
+          child: SafeArea(
+            top: false,
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: const BoxDecoration(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              child: Column(
+                children: [
+                  _handle(),
+                  const SizedBox(height: 16),
+                  _topTitle(),
+                  const SizedBox(height: 12),
+                  Expanded(child: _content()),
+                ],
+              ),
+            ),
           ),
-          child: Column(
-            children: [
-              _handle(),
-              const SizedBox(height: 16),
-              _topTitle(),
-              const SizedBox(height: 12),
-              Expanded(child: _content()),
-            ],
-          ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -126,72 +121,63 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
 
   Widget _content() {
     final l10n = AppLocalizations.of(context)!;
-    return ValueListenableBuilder(
-      valueListenable: manager.readingPlansNotifier,
-      builder: (context, value, _) {
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 0),
-              child: Row(
-                children: [
-                  Text(
-                    l10n.yourReadingPlans,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 16,
-                    ),
-                  ),
-                  const Spacer(),
-                  TextButton(
-                    style: TextButton.styleFrom(
-                      padding: EdgeInsets.zero,
-                      minimumSize: const Size(40, 30),
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _editMode = !_editMode;
-                      });
-                    },
-                    child: Text(
-                      _editMode ? l10n.done : l10n.edit,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.primary,
-                        fontWeight: FontWeight.w500,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ),
-                ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 0),
+          child: Row(
+            children: [
+              Text(
+                l10n.yourReadingPlans,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 16,
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-            Expanded(
-              child: Stack(
-                children: [
-                  // Scrollable list, padded at the bottom so the last
-                  // card isn't hidden behind the floating button.
-                  ListView(
-                    padding: const EdgeInsets.only(bottom: 76),
-                    children: value.map((plan) {
-                      return _readingPlan(plan);
-                    }).toList(),
+              const Spacer(),
+              TextButton(
+                style: TextButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  minimumSize: const Size(40, 30),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                onPressed: viewModel.toggleEditMode,
+                child: Text(
+                  viewModel.isEditing ? l10n.done : l10n.edit,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 14,
                   ),
-                  // Floating "Create New Plan" button.
-                  Positioned(
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    child: _createNewPlanButton(),
-                  ),
-                ],
+                ),
               ),
-            ),
-          ],
-        );
-      },
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        Expanded(
+          child: Stack(
+            children: [
+              // Scrollable list, padded at the bottom so the last
+              // card isn't hidden behind the floating button.
+              ListView(
+                padding: const EdgeInsets.only(bottom: 76),
+                children: viewModel.plans.map((plan) {
+                  return _readingPlan(plan);
+                }).toList(),
+              ),
+              // Floating "Create New Plan" button.
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: _createNewPlanButton(),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -217,14 +203,12 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
           onTap: () async {
             await Navigator.of(context).push(
               MaterialPageRoute(
-                builder:
-                    (_) => EditReadingPlanPanel.newPlan(
-                      l10n.defaultReadingPlanName,
-                    ),
+                builder: (_) =>
+                    EditReadingPlanPanel.newPlan(l10n.defaultReadingPlanName),
               ),
             );
 
-            manager.init();
+            await viewModel.refresh();
           },
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 16),
@@ -295,14 +279,13 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
         child: InkWell(
           borderRadius: BorderRadius.circular(20),
           onTap: () async {
-            if (_editMode) {
+            if (viewModel.isEditing) {
               await Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder:
-                      (_) => EditReadingPlanPanel.existing(planDet),
+                  builder: (_) => EditReadingPlanPanel.existing(planDet),
                 ),
               );
-              _editMode = false;
+              viewModel.exitEditMode();
             } else {
               await Navigator.of(context).push(
                 MaterialPageRoute(
@@ -315,7 +298,7 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
               );
             }
 
-            manager.init();
+            await viewModel.refresh();
           },
           child: Padding(
             padding: const EdgeInsets.all(20),
@@ -399,38 +382,15 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
                       ),
                     ),
                     const Spacer(),
-                    if (!_editMode)
+                    if (!viewModel.isEditing)
                       GestureDetector(
                         behavior: HitTestBehavior.opaque,
                         onTap: () async {
                           log("starting reading session");
 
-                          await manager.startReadingSession(planDet);
+                          await viewModel.startReadingSession(planDet);
 
                           if (!mounted) return;
-
-                          int bookId, chapter, verse;
-
-                          if (planDet.resumePosition != null) {
-                            bookId = planDet.resumePosition!.bookId;
-                            chapter = planDet.resumePosition!.chapter;
-                            verse = planDet.resumePosition!.verse;
-                          } else {
-                            bookId = planDet.books[0].bookId;
-                            chapter = 1;
-                            verse = 1;
-                          }
-
-                          widget.homeManager.onBookSelected(context, bookId);
-
-                          widget.homeManager.onChapterSelected(chapter);
-
-                          widget.homeManager.syncController.jumpToVerse(
-                            bookId,
-                            chapter,
-                            verse,
-                          );
-
                           widget.onClose();
                         },
                         child: Row(
@@ -464,9 +424,7 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
                             planDet.readingPlan.planName,
                           );
                           if (confirmed) {
-                            await manager.deleteReadingPlan(
-                              planDet.readingPlan.id!,
-                            );
+                            await viewModel.deletePlan(planDet);
                           }
                         },
                       ),

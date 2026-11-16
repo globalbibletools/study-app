@@ -260,7 +260,7 @@ class HomeManager {
     textParagraphNotifier.value = content;
   }
 
-  void onBookSelected(BuildContext context, int bookId) {
+  void onBookSelected(int bookId) {
     dismissWordStudySession(keepCurrentLocation: true);
     clearSearchContext();
     final ref = Reference(bookId: bookId, chapter: 1, verse: 1);
@@ -287,6 +287,16 @@ class HomeManager {
       chapter,
       0.0,
       verse: 1,
+    );
+  }
+
+  void jumpToReference(Reference reference) {
+    onBookSelected(reference.bookId);
+    onChapterSelected(reference.chapter);
+    syncController.jumpToVerse(
+      reference.bookId,
+      reference.chapter,
+      reference.verse,
     );
   }
 

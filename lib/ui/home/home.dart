@@ -130,8 +130,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 displayChapter: ref.chapter,
                 displayVerse: ref.verse,
                 readingSessionStarted: readingSessionStarted,
-                onBookSelected: (bookId) =>
-                    manager.onBookSelected(context, bookId),
+                onBookSelected: manager.onBookSelected,
                 onChapterSelected: manager.onChapterSelected,
                 onVerseSelected: (verse) {
                   manager.syncController.jumpToVerse(
