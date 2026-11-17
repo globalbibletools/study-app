@@ -13,7 +13,7 @@ import 'package:gbt/ui/common/resource_ui_helper.dart';
 import 'package:gbt/services/settings/user_settings.dart';
 import 'package:gbt/ui/home/home_manager.dart';
 import 'package:gbt/ui/home/panel_area/common/verse_sync_layout.dart';
-import 'package:gbt/ui/home/common/scroll_sync_controller.dart';
+import 'package:gbt/ui/home/common/navigation_view_model.dart';
 import 'package:gbt/ui/home/panel_area/hebrew_greek_panel/chapter_manager.dart';
 import 'package:gbt/ui/home/panel_area/hebrew_greek_panel/text.dart';
 
@@ -39,7 +39,7 @@ class HebrewGreekChapter extends StatefulWidget {
     required this.verseLayout,
     required this.readingModeEnabled,
     required this.highlightNotifier,
-    this.syncController,
+    this.navigationViewModel,
     this.onReadingCheckboxGuideRectChanged,
     this.onReadingCheckboxGuideCompleted,
   });
@@ -49,7 +49,7 @@ class HebrewGreekChapter extends StatefulWidget {
   final double fontSize;
   final VerseLayout verseLayout;
   final bool readingModeEnabled;
-  final ScrollSyncController? syncController;
+  final NavigationViewModel? navigationViewModel;
   final ValueChanged<Rect?>? onReadingCheckboxGuideRectChanged;
   final VoidCallback? onReadingCheckboxGuideCompleted;
   final ValueNotifier<Reference?> highlightNotifier;

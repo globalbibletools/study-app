@@ -5,7 +5,7 @@ import 'package:flutter/rendering.dart';
 import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/common/reference.dart';
 import 'package:gbt/services/service_locator.dart';
-import 'package:gbt/ui/home/common/scroll_sync_controller.dart';
+import 'package:gbt/ui/home/common/navigation_view_model.dart';
 import 'package:gbt/ui/home/panel_area/common/verse_sync_layout.dart';
 
 export 'package:gbt/ui/home/panel_area/common/verse_sync_layout.dart'
@@ -32,7 +32,7 @@ class InfiniteScrollView extends StatefulWidget {
     required this.chapterBuilder,
     this.physics,
     this.scrollingEnabled = true,
-    this.syncController,
+    this.navigationViewModel,
     this.onVisibleBookChanged,
   });
 
@@ -41,7 +41,7 @@ class InfiniteScrollView extends StatefulWidget {
   final ChapterBuilder chapterBuilder;
   final ScrollPhysics? physics;
   final bool scrollingEnabled;
-  final ScrollSyncController? syncController;
+  final NavigationViewModel? navigationViewModel;
   final ValueChanged<int>? onVisibleBookChanged;
 
   @override
@@ -64,11 +64,11 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
   void initState() {
     super.initState();
     _scrollController = ScrollController()..addListener(_scrollListener);
-    widget.syncController?.addListener(_onSyncReceived);
+    widget.navigationViewModel?.addListener(_onSyncReceived);
 
     _resetChapters();
 
-    if (widget.syncController != null) {
+    if (widget.navigationViewModel != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           _onSyncReceived();
@@ -82,7 +82,7 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
   }
 
   void _tryAlignToController() {
-    final controller = widget.syncController;
+    final controller = widget.navigationViewModel;
     if (controller == null) return;
 
     // If THIS panel is the one the user is touching, ignore the update.
@@ -248,8 +248,8 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
     }
     if (!widget.scrollingEnabled &&
         oldWidget.scrollingEnabled &&
-        widget.syncController?.isSourceActive(_panelId) == true) {
-      widget.syncController!.clearActiveSource();
+        widget.navigationViewModel?.isSourceActive(_panelId) == true) {
+      widget.navigationViewModel!.clearActiveSource();
     }
   }
 
@@ -258,8 +258,8 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
     _updateVisibleBook();
 
     // Only calculate and report sync if WE are the active source
-    if (widget.syncController != null &&
-        widget.syncController!.isSourceActive(_panelId)) {
+    if (widget.navigationViewModel != null &&
+        widget.navigationViewModel!.isSourceActive(_panelId)) {
       _reportSyncPosition();
     }
   }
@@ -322,7 +322,7 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
 
   /// Reports the leader's current interval to the sync controller.
   void _reportSyncPosition() {
-    final controller = widget.syncController;
+    final controller = widget.navigationViewModel;
     if (controller == null || !_scrollController.hasClients) return;
 
     final layout = _buildSyncLayout();
@@ -334,16 +334,16 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
     );
     if (leader == null) return;
 
-    controller.updatePosition(
+    controller.reportPosition(
       _panelId,
       leader.position,
-      displayReference: leader.displayReference,
+      display: leader.displayReference,
     );
   }
 
   @override
   void dispose() {
-    widget.syncController?.removeListener(_onSyncReceived);
+    widget.navigationViewModel?.removeListener(_onSyncReceived);
     _scrollController.dispose();
     super.dispose();
   }
@@ -387,12 +387,13 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
   bool _onScrollNotification(Notification notification) {
     if (notification is ChapterGeometryChangedNotification) {
       _chapterGeometries[ChapterIdentifier(
-        notification.bookId,
-        notification.chapter,
-      )] = notification.geometry;
+            notification.bookId,
+            notification.chapter,
+          )] =
+          notification.geometry;
     }
 
-    if (widget.syncController == null) return false;
+    if (widget.navigationViewModel == null) return false;
 
     if (!widget.scrollingEnabled &&
         notification is ScrollStartNotification &&
@@ -403,14 +404,14 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
     // Detect Start of Manual Drag
     if (notification is ScrollStartNotification) {
       if (notification.dragDetails != null) {
-        widget.syncController!.setActiveSource(_panelId);
+        widget.navigationViewModel!.setActiveSource(_panelId);
       }
     }
 
     // Detect End of Manual Drag / Momentum
     if (notification is ScrollEndNotification) {
-      if (widget.syncController!.isSourceActive(_panelId)) {
-        widget.syncController!.clearActiveSource();
+      if (widget.navigationViewModel!.isSourceActive(_panelId)) {
+        widget.navigationViewModel!.clearActiveSource();
       }
     }
 
@@ -421,7 +422,7 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
         if (!mounted) return;
 
         // Check who is the active source
-        if (widget.syncController!.isSourceActive(_panelId)) {
+        if (widget.navigationViewModel!.isSourceActive(_panelId)) {
           // Case A: We are the active source (User zoomed us).
           _reportSyncPosition();
         } else {

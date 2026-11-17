@@ -9,7 +9,7 @@ import 'package:gbt/services/resources/resource_service.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/services/settings/user_settings.dart';
 import 'package:gbt/ui/home/home_manager.dart';
-import 'package:gbt/ui/home/common/scroll_sync_controller.dart';
+import 'package:gbt/ui/home/common/navigation_view_model.dart';
 import 'package:gbt/ui/home/word_details_dialog/dialog_manager.dart';
 import 'package:gbt/ui/home/word_details_dialog/similar_verses/similar_verses_page.dart';
 import 'package:scripture/scripture.dart';
@@ -102,7 +102,7 @@ void main() {
     });
 
     test('seeds the sync controller with a chapter-top interval', () {
-      final position = homeManager.syncController.position!;
+      final position = homeManager.navigationViewModel.position!;
       const chapterTop = Anchor(
         Reference(bookId: 1, chapter: 1, verse: 1),
         AnchorEnd.start,
@@ -111,7 +111,7 @@ void main() {
       expect(position.to, chapterTop);
       expect(position.t, 0);
       expect(
-        homeManager.syncController.displayReference,
+        homeManager.navigationViewModel.displayReference,
         const Reference(bookId: 1, chapter: 1, verse: 1),
       );
     });
@@ -119,7 +119,7 @@ void main() {
     test('onChapterSelected seeds an interval ending at the new chapter', () {
       homeManager.onChapterSelected(2);
 
-      final position = homeManager.syncController.position!;
+      final position = homeManager.navigationViewModel.position!;
       const chapterTop = Anchor(
         Reference(bookId: 1, chapter: 2, verse: 1),
         AnchorEnd.start,
@@ -127,7 +127,7 @@ void main() {
       expect(position.from, chapterTop);
       expect(position.to, chapterTop);
       expect(
-        homeManager.syncController.displayReference,
+        homeManager.navigationViewModel.displayReference,
         const Reference(bookId: 1, chapter: 2, verse: 1),
       );
     });
@@ -154,18 +154,22 @@ void main() {
         homeManager.jumpToContextReference(context);
 
         expect(homeManager.searchContextNotifier.value, equals(context));
-        expect(homeManager.currentReference.value, equals(targetRef));
-        expect(homeManager.panelAnchorNotifier.value, equals(targetRef));
+        expect(
+          homeManager.navigationViewModel.currentReference,
+          equals(targetRef),
+        );
+        expect(
+          homeManager.navigationViewModel.anchor.value,
+          equals(const Reference(bookId: 8, chapter: 4, verse: 1)),
+        );
       },
     );
 
     test(
       'jumpToContextReference across different books switches bookId and chapter',
       () {
-        homeManager.currentReference.value = const Reference(
-          bookId: 1,
-          chapter: 1,
-          verse: 1,
+        homeManager.navigationViewModel.navigateTo(
+          const Reference(bookId: 1, chapter: 1, verse: 1),
         );
 
         const targetRef = Reference(bookId: 19, chapter: 23, verse: 1);
@@ -186,10 +190,10 @@ void main() {
 
         homeManager.jumpToContextReference(context);
 
-        expect(homeManager.currentReference.value.bookId, 19);
-        expect(homeManager.currentReference.value.chapter, 23);
-        expect(homeManager.currentReference.value.verse, 1);
-        expect(homeManager.panelAnchorNotifier.value, equals(targetRef));
+        expect(homeManager.navigationViewModel.currentReference!.bookId, 19);
+        expect(homeManager.navigationViewModel.currentReference!.chapter, 23);
+        expect(homeManager.navigationViewModel.currentReference!.verse, 1);
+        expect(homeManager.navigationViewModel.anchor.value, equals(targetRef));
       },
     );
 
@@ -284,20 +288,18 @@ void main() {
 
       homeManager.jumpToContextReference(context);
 
-      final position = homeManager.syncController.position!;
+      final position = homeManager.navigationViewModel.position!;
       const target = Anchor(targetRef, AnchorEnd.start);
       expect(position.from, target);
       expect(position.to, target);
       expect(position.t, 0);
-      expect(homeManager.syncController.displayReference, targetRef);
-      expect(homeManager.syncController.lastUpdateIsSeek, isTrue);
+      expect(homeManager.navigationViewModel.displayReference, targetRef);
+      expect(homeManager.navigationViewModel.lastUpdateIsSeek, isTrue);
     });
 
     test('startWordStudy captures originalReference and creates session', () {
-      homeManager.currentReference.value = const Reference(
-        bookId: 1,
-        chapter: 12,
-        verse: 1,
+      homeManager.navigationViewModel.navigateTo(
+        const Reference(bookId: 1, chapter: 12, verse: 1),
       );
 
       homeManager.startWordStudy(wordId: 'w1', isRtl: true);
@@ -329,10 +331,8 @@ void main() {
     test(
       'dismissWordStudySession(keepCurrentLocation: false) restores originalReference',
       () {
-        homeManager.currentReference.value = const Reference(
-          bookId: 1,
-          chapter: 12,
-          verse: 1,
+        homeManager.navigationViewModel.navigateTo(
+          const Reference(bookId: 1, chapter: 12, verse: 1),
         );
         homeManager.startWordStudy(wordId: 'w1', isRtl: true);
 
@@ -354,7 +354,10 @@ void main() {
           ),
         );
 
-        expect(homeManager.currentReference.value, equals(previewRef));
+        expect(
+          homeManager.navigationViewModel.currentReference,
+          equals(previewRef),
+        );
 
         // User dismisses dialog (keepCurrentLocation: false)
         homeManager.dismissWordStudySession(keepCurrentLocation: false);
@@ -363,11 +366,11 @@ void main() {
         expect(homeManager.searchContextNotifier.value, isNull);
         // Reader restored to original location!
         expect(
-          homeManager.currentReference.value,
+          homeManager.navigationViewModel.currentReference,
           const Reference(bookId: 1, chapter: 12, verse: 1),
         );
         expect(
-          homeManager.panelAnchorNotifier.value,
+          homeManager.navigationViewModel.anchor.value,
           const Reference(bookId: 1, chapter: 12, verse: 1),
         );
         // Word is flashed upon returning!
@@ -393,10 +396,8 @@ void main() {
     test(
       'dismissWordStudySession(keepCurrentLocation: true) stays at current location',
       () {
-        homeManager.currentReference.value = const Reference(
-          bookId: 1,
-          chapter: 12,
-          verse: 1,
+        homeManager.navigationViewModel.navigateTo(
+          const Reference(bookId: 1, chapter: 12, verse: 1),
         );
         homeManager.startWordStudy(wordId: 'w1', isRtl: true);
 
@@ -418,7 +419,10 @@ void main() {
           ),
         );
 
-        expect(homeManager.currentReference.value, equals(previewRef));
+        expect(
+          homeManager.navigationViewModel.currentReference,
+          equals(previewRef),
+        );
 
         // User taps 'x' on return pill (keepCurrentLocation: true)
         homeManager.dismissWordStudySession(keepCurrentLocation: true);
@@ -426,7 +430,10 @@ void main() {
         expect(homeManager.wordStudySessionNotifier.value, isNull);
         expect(homeManager.searchContextNotifier.value, isNull);
         // Reader stays at previewed location!
-        expect(homeManager.currentReference.value, equals(previewRef));
+        expect(
+          homeManager.navigationViewModel.currentReference,
+          equals(previewRef),
+        );
       },
     );
   });

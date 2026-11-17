@@ -12,7 +12,7 @@ import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/services/settings/user_settings.dart';
 import 'package:gbt/ui/common/bible_chooser.dart';
 import 'package:gbt/ui/home/appbar/reference_chooser/reference_chooser.dart';
-import 'package:gbt/ui/home/common/scroll_sync_controller.dart';
+import 'package:gbt/ui/home/common/navigation_view_model.dart';
 import 'package:gbt/ui/home/reading_plan/reading_session_view_model.dart';
 import 'package:gbt/ui/home/word_details_dialog/dialog_manager.dart';
 import 'package:gbt/ui/home/word_details_dialog/similar_verses/similar_verses_page.dart';
@@ -58,15 +58,8 @@ class WordStudySession {
 }
 
 class HomeManager {
-  final currentReference = ValueNotifier<Reference>(
-    const Reference(bookId: 1, chapter: 1, verse: 1),
-  );
   final isSinglePanelNotifier = ValueNotifier(true);
   final textParagraphNotifier = ValueNotifier<List<UsfmLine>>([]);
-  final syncController = ScrollSyncController();
-  final panelAnchorNotifier = ValueNotifier<Reference>(
-    const Reference(bookId: 1, chapter: 1, verse: 1),
-  );
   final settingsVersionNotifier = ValueNotifier<int>(0);
   final searchContextNotifier = ValueNotifier<OccurrenceSearchContext?>(null);
   final wordStudySessionNotifier = ValueNotifier<WordStudySession?>(null);
@@ -97,12 +90,11 @@ class HomeManager {
   final readingSessionViewModel = getIt<ReadingSessionViewModel>();
   final appGuideManager = getIt<AppGuideManager>();
 
-  int? _lastSavedBook;
-  int? _lastSavedChapter;
+  late final navigationViewModel = NavigationViewModel(_settings);
 
   HomeManager() {
     _bibleService.addBibleResourceChangeListener(_onBibleResourceChanged);
-    syncController.listenToAudioReference(audioPlayerViewModel.reference);
+    navigationViewModel.bindAudioReference(audioPlayerViewModel.reference);
   }
 
   Future<void> _onBibleResourceChanged(String bibleId) async {
@@ -115,59 +107,12 @@ class HomeManager {
     notifySettingsChanged();
   }
 
-  int get currentBookId => currentReference.value.bookId;
-  int get currentChapter => currentReference.value.chapter;
-  int get currentVerse => currentReference.value.verse;
+  int get currentBookId => navigationViewModel.currentReference?.bookId ?? 1;
+  int get currentChapter => navigationViewModel.currentReference?.chapter ?? 1;
+  int get currentVerse => navigationViewModel.currentReference?.verse ?? 1;
 
   Future<void> init() async {
-    final (bookId, chapter) = _settings.currentBookChapter;
-    _lastSavedBook = bookId;
-    _lastSavedChapter = chapter;
-
-    final ref = Reference(bookId: bookId, chapter: chapter, verse: 1);
-    currentReference.value = ref;
-    panelAnchorNotifier.value = ref;
-
-    syncController.addListener(_onSyncUpdate);
-
-    syncController.clearActiveSource();
-    _seedChapterPosition(bookId, chapter);
-  }
-
-  void _seedChapterPosition(int bookId, int chapter) {
-    final firstRef = Reference(bookId: bookId, chapter: chapter, verse: 1);
-    final first = Anchor(firstRef, AnchorEnd.start);
-    syncController.updatePosition(
-      'manager',
-      SyncPosition(first, first, 0.0),
-      displayReference: firstRef,
-    );
-  }
-
-  void _onSyncUpdate() {
-    final display = syncController.displayReference;
-    final fallback = _chapterReferenceForPosition(syncController.position);
-    final reference = display ?? fallback;
-    if (reference == null) return;
-
-    // Updates the AppBar, but NOT panelAnchorNotifier
-    updateReference(reference.bookId, reference.chapter, reference.verse);
-    saveBookAndChapter(reference.bookId, reference.chapter);
-  }
-
-  Reference? _chapterReferenceForPosition(SyncPosition? position) {
-    if (position == null) return null;
-
-    final from = position.from.ref;
-    final to = position.to.ref;
-    if (from == null && to == null) return null;
-
-    if (from != null && to != null) {
-      if (from.bookId == to.bookId && from.chapter == to.chapter) return from;
-      return position.t < 0.5 ? from : to;
-    }
-
-    return from ?? to;
+    await navigationViewModel.init();
   }
 
   Future<void> checkOnboarding(BuildContext context) async {
@@ -215,26 +160,6 @@ class HomeManager {
   // Closes the keypad
   void resetKeypad() => chooserKey.currentState?.resetAll();
 
-  void updateReference(int bookId, int chapter, int verse) {
-    if (currentReference.value.bookId == bookId &&
-        currentReference.value.chapter == chapter &&
-        currentReference.value.verse == verse) {
-      return;
-    }
-    currentReference.value = Reference(
-      bookId: bookId,
-      chapter: chapter,
-      verse: verse,
-    );
-  }
-
-  Future<void> saveBookAndChapter(int bookId, int chapter) async {
-    if (_lastSavedBook == bookId && _lastSavedChapter == chapter) return;
-    _lastSavedBook = bookId;
-    _lastSavedChapter = chapter;
-    await _settings.setCurrentBookChapter(bookId, chapter);
-  }
-
   Future<void> togglePanelState(BuildContext context) async {
     // Opening the Bible panel requires a selected Bible. If none is selected,
     // prompt the user to pick one first instead of opening an empty panel.
@@ -243,7 +168,7 @@ class HomeManager {
       if (!chosen) return;
     }
 
-    panelAnchorNotifier.value = currentReference.value;
+    navigationViewModel.reanchorToCurrentReference();
     isSinglePanelNotifier.value = !isSinglePanelNotifier.value;
   }
 
@@ -278,7 +203,7 @@ class HomeManager {
   Future<void> requestText() async {
     final content = await _bibleService.getChapter(
       currentBookId,
-      currentReference.value.chapter,
+      currentChapter,
     );
     textParagraphNotifier.value = content;
   }
@@ -289,10 +214,7 @@ class HomeManager {
     final ref = Reference(bookId: bookId, chapter: 1, verse: 1);
     audioPlayerViewModel.pause();
     audioPlayerViewModel.jumpTo(ref);
-    currentReference.value = ref;
-    panelAnchorNotifier.value = ref;
-    syncController.clearActiveSource();
-    _seedChapterPosition(bookId, 1);
+    navigationViewModel.navigateTo(ref);
   }
 
   void onChapterSelected(int chapter) {
@@ -301,10 +223,7 @@ class HomeManager {
     final ref = Reference(bookId: currentBookId, chapter: chapter, verse: 1);
     audioPlayerViewModel.pause();
     audioPlayerViewModel.jumpTo(ref);
-    currentReference.value = ref;
-    panelAnchorNotifier.value = ref;
-    syncController.clearActiveSource();
-    _seedChapterPosition(currentBookId, chapter);
+    navigationViewModel.navigateTo(ref);
   }
 
   /// Starts a new word study session, preserving the original reading reference.
@@ -315,7 +234,9 @@ class HomeManager {
     wordStudySessionNotifier.value = WordStudySession(
       wordId: wordId,
       isRtl: isRtl,
-      originalReference: currentReference.value,
+      originalReference:
+          navigationViewModel.currentReference ??
+          const Reference(bookId: 1, chapter: 1, verse: 1),
     );
   }
 
@@ -339,24 +260,10 @@ class HomeManager {
 
     if (!keepCurrentLocation) {
       final wordIdToFlash = session.wordId;
-      final ref = session.originalReference;
-      currentReference.value = Reference(
-        bookId: ref.bookId,
-        chapter: ref.chapter,
-        verse: ref.verse,
-      );
-      panelAnchorNotifier.value = Reference(
-        bookId: ref.bookId,
-        chapter: ref.chapter,
-        verse: ref.verse,
-      );
-      saveBookAndChapter(ref.bookId, ref.chapter);
-      syncController.clearActiveSource();
-      syncController.seekTo(ref);
+      navigationViewModel.navigateTo(session.originalReference);
       flashWord(wordIdToFlash);
     } else {
-      final current = currentReference.value;
-      saveBookAndChapter(current.bookId, current.chapter);
+      unawaited(navigationViewModel.persistCurrentChapter());
     }
 
     session.dispose();
@@ -370,21 +277,8 @@ class HomeManager {
     searchContextNotifier.value = context;
     final ref = context.anchorReference;
 
-    currentReference.value = Reference(
-      bookId: ref.bookId,
-      chapter: ref.chapter,
-      verse: ref.verse,
-    );
-    panelAnchorNotifier.value = Reference(
-      bookId: ref.bookId,
-      chapter: ref.chapter,
-      verse: ref.verse,
-    );
-
-    // Note: Do not saveBookAndChapter here as this is a temporary preview!
-
-    syncController.clearActiveSource();
-    syncController.seekTo(ref);
+    // Temporary preview: do not persist the visited chapter.
+    navigationViewModel.navigateTo(ref, persist: false);
     flashVerse(ref);
   }
 
@@ -422,10 +316,8 @@ class HomeManager {
     dismissWordStudySession(keepCurrentLocation: true);
     _bibleService.removeBibleResourceChangeListener(_onBibleResourceChanged);
 
-    syncController.removeListener(_onSyncUpdate);
-    syncController.dispose();
+    navigationViewModel.dispose();
     audioPlayerViewModel.dispose();
-    currentReference.dispose();
     isSinglePanelNotifier.dispose();
     textParagraphNotifier.dispose();
     settingsVersionNotifier.dispose();

@@ -33,7 +33,7 @@ class BiblePanelArea extends StatelessWidget {
       },
       child: ListenableBuilder(
         listenable: Listenable.merge([
-          manager.panelAnchorNotifier,
+          manager.navigationViewModel.anchor,
           manager.isSinglePanelNotifier,
           manager.settingsVersionNotifier,
           manager.readingSessionViewModel.sessionNotifier,
@@ -42,7 +42,9 @@ class BiblePanelArea extends StatelessWidget {
           manager.appGuideManager.readingSessionGuideDismissedNotifier,
         ]),
         builder: (context, _) {
-          final anchor = manager.panelAnchorNotifier.value;
+          final anchor =
+              manager.navigationViewModel.anchor.value ??
+              const Reference(bookId: 1, chapter: 1, verse: 1);
           final isSinglePanel = manager.isSinglePanelNotifier.value;
           final settingsVersion = manager.settingsVersionNotifier.value;
           final shouldOffsetForProgress =
@@ -69,7 +71,7 @@ class BiblePanelArea extends StatelessWidget {
                     bookId: anchor.bookId,
                     chapter: anchor.chapter,
                     highlightNotifier: manager.audioPlayerViewModel.reference,
-                    syncController: manager.syncController,
+                    navigationViewModel: manager.navigationViewModel,
                     settingsVersion: settingsVersion,
                     scrollingEnabled: !disableScrolling,
                     showReadingCheckboxGuide: shouldShowReadingCheckboxGuide,
@@ -90,7 +92,7 @@ class BiblePanelArea extends StatelessWidget {
                       key: ValueKey('bi-${anchor.bookId}-${anchor.chapter}'),
                       bookId: anchor.bookId,
                       chapter: anchor.chapter,
-                      syncController: manager.syncController,
+                      navigationViewModel: manager.navigationViewModel,
                       settingsVersion: settingsVersion,
                       scrollingEnabled: !disableScrolling,
                       onResourceUnavailable: manager.closeBiblePanel,
@@ -134,6 +136,6 @@ class BiblePanelArea extends StatelessWidget {
 
     manager.onChapterSelected(resume.chapter);
 
-    manager.syncController.seekTo(resume);
+    manager.navigationViewModel.seekTo(resume);
   }
 }

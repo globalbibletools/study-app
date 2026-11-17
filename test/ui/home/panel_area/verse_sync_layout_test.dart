@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gbt/common/reference.dart';
-import 'package:gbt/ui/home/common/scroll_sync_controller.dart';
+import 'package:gbt/ui/home/common/navigation_view_model.dart';
+import '../common/fake_user_settings.dart';
 import 'package:gbt/ui/home/panel_area/common/verse_sync_layout.dart';
 
 Reference _ref(int verse, {int chapter = 1}) =>
@@ -318,9 +319,9 @@ void main() {
     });
   });
 
-  group('ScrollSyncController', () {
+  group('NavigationViewModel', () {
     test('ignores reports from a non-active source', () {
-      final controller = ScrollSyncController();
+      final controller = NavigationViewModel(FakeUserSettings());
       controller.setActiveSource('a');
       final position = SyncPosition(
         Anchor(_ref(1), AnchorEnd.start),
@@ -328,22 +329,22 @@ void main() {
         0,
       );
 
-      controller.updatePosition('b', position, displayReference: null);
+      controller.reportPosition('b', position, display: null);
       expect(controller.position, isNull);
 
-      controller.updatePosition('a', position, displayReference: null);
+      controller.reportPosition('a', position, display: null);
       expect(controller.position, position);
     });
 
     test('exposes the leader display reference and no chapter progress', () {
-      final controller = ScrollSyncController();
+      final controller = NavigationViewModel(FakeUserSettings());
       final position = SyncPosition(
         Anchor(_ref(4), AnchorEnd.start),
         Anchor(_ref(4), AnchorEnd.end),
         0,
       );
 
-      controller.updatePosition('a', position, displayReference: _ref(4));
+      controller.reportPosition('a', position, display: _ref(4));
 
       expect(controller.displayReference, _ref(4));
     });

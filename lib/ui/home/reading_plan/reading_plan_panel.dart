@@ -218,10 +218,8 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
           onTap: () async {
             await Navigator.of(context).push(
               MaterialPageRoute(
-                builder:
-                    (_) => EditReadingPlanPanel.newPlan(
-                      l10n.defaultReadingPlanName,
-                    ),
+                builder: (_) =>
+                    EditReadingPlanPanel.newPlan(l10n.defaultReadingPlanName),
               ),
             );
 
@@ -299,8 +297,7 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
             if (_editMode) {
               await Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder:
-                      (_) => EditReadingPlanPanel.existing(planDet),
+                  builder: (_) => EditReadingPlanPanel.existing(planDet),
                 ),
               );
               _editMode = false;
@@ -426,7 +423,7 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
 
                           widget.homeManager.onChapterSelected(chapter);
 
-                          widget.homeManager.syncController.seekTo(
+                          widget.homeManager.navigationViewModel.seekTo(
                             Reference(
                               bookId: bookId,
                               chapter: chapter,

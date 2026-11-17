@@ -192,10 +192,8 @@ void main() {
   testWidgets(
     'WordStudyOverlayLayer lifecycle: display, navigate, offstage, restore original',
     (tester) async {
-      homeManager.currentReference.value = const Reference(
-        bookId: 1,
-        chapter: 12,
-        verse: 1,
+      homeManager.navigationViewModel.navigateTo(
+        const Reference(bookId: 1, chapter: 12, verse: 1),
       );
       homeManager.startWordStudy(wordId: 'w1', isRtl: true);
 
@@ -275,7 +273,7 @@ void main() {
 
       // Reader jumped to preview reference
       expect(
-        homeManager.currentReference.value,
+        homeManager.navigationViewModel.currentReference,
         const Reference(bookId: 8, chapter: 4, verse: 17),
       );
 
@@ -332,7 +330,7 @@ void main() {
 
       // Reader automatically returned to original reading location (Genesis 12:1)!
       expect(
-        homeManager.currentReference.value,
+        homeManager.navigationViewModel.currentReference,
         const Reference(bookId: 1, chapter: 12, verse: 1),
       );
     },
@@ -341,10 +339,8 @@ void main() {
   testWidgets(
     'FloatingReturnPill close icon stays at current location and discards session',
     (tester) async {
-      homeManager.currentReference.value = const Reference(
-        bookId: 1,
-        chapter: 12,
-        verse: 1,
+      homeManager.navigationViewModel.navigateTo(
+        const Reference(bookId: 1, chapter: 12, verse: 1),
       );
       homeManager.startWordStudy(wordId: 'w1', isRtl: true);
 
@@ -428,7 +424,7 @@ void main() {
 
       // Reader STAYS at previewed location (Ruth 4:17)
       expect(
-        homeManager.currentReference.value,
+        homeManager.navigationViewModel.currentReference,
         const Reference(bookId: 8, chapter: 4, verse: 17),
       );
     },

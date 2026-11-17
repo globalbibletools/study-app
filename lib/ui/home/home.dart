@@ -121,25 +121,25 @@ class _HomeScreenState extends State<HomeScreen> {
         valueListenable: manager.readingSessionViewModel.sessionNotifier,
         builder: (context, session, child) {
           final readingSessionStarted = session != null;
-          return ValueListenableBuilder<Reference>(
-            valueListenable: manager.currentReference,
-            builder: (context, ref, _) {
+          return ListenableBuilder(
+            listenable: manager.navigationViewModel,
+            builder: (context, _) {
+              final ref = manager.navigationViewModel.currentReference;
               return HomeAppBar(
                 referenceChooserKey: manager.chooserKey,
-                displayBookId: ref.bookId,
-                displayChapter: ref.chapter,
-                displayVerse: ref.verse,
+                displayBookId: ref?.bookId ?? 1,
+                displayChapter: ref?.chapter ?? 1,
+                displayVerse: ref?.verse ?? 1,
                 readingSessionStarted: readingSessionStarted,
                 onBookSelected: (bookId) =>
                     manager.onBookSelected(context, bookId),
                 onChapterSelected: manager.onChapterSelected,
                 onVerseSelected: (verse) {
                   // Manual taps intentionally supersede an in-flight drag.
-                  manager.syncController.clearActiveSource();
-                  manager.syncController.seekTo(
+                  manager.navigationViewModel.navigateTo(
                     Reference(
-                      bookId: manager.currentBookId,
-                      chapter: manager.currentChapter,
+                      bookId: ref?.bookId ?? 1,
+                      chapter: ref?.chapter ?? 1,
                       verse: verse,
                     ),
                   );

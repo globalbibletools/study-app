@@ -272,12 +272,8 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
 
               widget.homeManager.onChapterSelected(chapter);
 
-              widget.homeManager.syncController.seekTo(
-                Reference(
-                  bookId: bookId,
-                  chapter: chapter,
-                  verse: verse,
-                ),
+              widget.homeManager.navigationViewModel.seekTo(
+                Reference(bookId: bookId, chapter: chapter, verse: verse),
               );
 
               widget.onClose();

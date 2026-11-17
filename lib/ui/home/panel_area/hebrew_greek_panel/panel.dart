@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:gbt/common/reference.dart';
 import 'package:gbt/services/settings/user_settings.dart';
 import 'package:gbt/ui/home/panel_area/common/infinite_scroll_view.dart';
-import 'package:gbt/ui/home/common/scroll_sync_controller.dart';
+import 'package:gbt/ui/home/common/navigation_view_model.dart';
 import 'package:gbt/ui/home/common/zoom_wrapper.dart';
 import 'package:gbt/ui/home/panel_area/hebrew_greek_panel/chapter.dart';
 import 'package:gbt/ui/home/panel_area/hebrew_greek_panel/panel_manager.dart';
@@ -13,7 +13,7 @@ class HebrewGreekPanel extends StatefulWidget {
     required this.bookId,
     required this.chapter,
     required this.highlightNotifier,
-    this.syncController,
+    this.navigationViewModel,
     required this.settingsVersion,
     this.scrollingEnabled = true,
     required this.showReadingCheckboxGuide,
@@ -23,7 +23,7 @@ class HebrewGreekPanel extends StatefulWidget {
 
   final int bookId;
   final int chapter;
-  final ScrollSyncController? syncController;
+  final NavigationViewModel? navigationViewModel;
   final ValueNotifier<Reference?> highlightNotifier;
   final int settingsVersion;
   final bool scrollingEnabled;
@@ -117,7 +117,7 @@ class HebrewGreekPanelState extends State<HebrewGreekPanel> {
                           key: _scrollKey,
                           bookId: widget.bookId,
                           chapter: widget.chapter,
-                          syncController: widget.syncController,
+                          navigationViewModel: widget.navigationViewModel,
                           scrollingEnabled: widget.scrollingEnabled,
                           onVisibleBookChanged: _onVisibleBookChanged,
                           chapterBuilder: (context, bookId, chapter) {
@@ -137,7 +137,7 @@ class HebrewGreekPanelState extends State<HebrewGreekPanel> {
                               chapter: chapter,
                               highlightNotifier: widget.highlightNotifier,
                               fontSize: fontSize,
-                              syncController: widget.syncController,
+                              navigationViewModel: widget.navigationViewModel,
                               verseLayout: verseLayout,
                               readingModeEnabled:
                                   readingModeEnabled &&

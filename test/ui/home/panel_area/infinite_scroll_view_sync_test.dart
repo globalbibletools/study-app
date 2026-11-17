@@ -3,7 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/common/reference.dart';
 import 'package:gbt/services/service_locator.dart';
-import 'package:gbt/ui/home/common/scroll_sync_controller.dart';
+import 'package:gbt/ui/home/common/navigation_view_model.dart';
+import '../common/fake_user_settings.dart';
 import 'package:gbt/ui/home/panel_area/common/infinite_scroll_view.dart';
 
 const _chapterHeight = 100.0;
@@ -89,7 +90,7 @@ class _FakeChapterState extends State<_FakeChapter> {
 
 Widget _panel({
   required Key key,
-  required ScrollSyncController controller,
+  required NavigationViewModel controller,
   required int bookId,
   required int chapter,
   required ChapterGeometry Function(int bookId, int chapter) geometryFor,
@@ -102,7 +103,7 @@ Widget _panel({
     child: InfiniteScrollView(
       bookId: bookId,
       chapter: chapter,
-      syncController: controller,
+      navigationViewModel: controller,
       chapterBuilder: (context, bId, ch) => _FakeChapter(
         bookId: bId,
         chapter: ch,
@@ -138,7 +139,7 @@ void main() {
   testWidgets('two identical panels stay in sync while dragging', (
     tester,
   ) async {
-    final controller = ScrollSyncController();
+    final controller = NavigationViewModel(FakeUserSettings());
     const leaderKey = Key('leader');
     const followerKey = Key('follower');
 
@@ -183,7 +184,7 @@ void main() {
   testWidgets('missing follower verse parks at the previous verse end', (
     tester,
   ) async {
-    final controller = ScrollSyncController();
+    final controller = NavigationViewModel(FakeUserSettings());
     const followerKey = Key('follower');
 
     await tester.pumpWidget(
@@ -202,7 +203,7 @@ void main() {
     await tester.pump();
 
     controller.setActiveSource('leader');
-    controller.updatePosition(
+    controller.reportPosition(
       'leader',
       SyncPosition(
         Anchor(
@@ -212,7 +213,7 @@ void main() {
         Anchor(const Reference(bookId: 1, chapter: 1, verse: 3), AnchorEnd.end),
         0.5,
       ),
-      displayReference: null,
+      display: null,
     );
     await tester.pump();
 
@@ -224,7 +225,7 @@ void main() {
   testWidgets('zero-height follower verse resolves both edges to one point', (
     tester,
   ) async {
-    final controller = ScrollSyncController();
+    final controller = NavigationViewModel(FakeUserSettings());
     const followerKey = Key('follower');
 
     await tester.pumpWidget(
@@ -243,7 +244,7 @@ void main() {
     await tester.pump();
 
     controller.setActiveSource('leader');
-    controller.updatePosition(
+    controller.reportPosition(
       'leader',
       SyncPosition(
         Anchor(
@@ -253,7 +254,7 @@ void main() {
         Anchor(const Reference(bookId: 1, chapter: 1, verse: 3), AnchorEnd.end),
         0.5,
       ),
-      displayReference: null,
+      display: null,
     );
     await tester.pump();
 
@@ -263,7 +264,7 @@ void main() {
   });
 
   testWidgets('cross-chapter boundary has no gap', (tester) async {
-    final controller = ScrollSyncController();
+    final controller = NavigationViewModel(FakeUserSettings());
     const followerKey = Key('follower');
 
     await tester.pumpWidget(
@@ -284,7 +285,7 @@ void main() {
     controller.setActiveSource('leader');
 
     void report(double t) {
-      controller.updatePosition(
+      controller.reportPosition(
         'leader',
         SyncPosition(
           Anchor(
@@ -297,7 +298,7 @@ void main() {
           ),
           t,
         ),
-        displayReference: null,
+        display: null,
       );
     }
 
@@ -315,7 +316,7 @@ void main() {
   testWidgets('far-away controller truth re-centers the follower', (
     tester,
   ) async {
-    final controller = ScrollSyncController();
+    final controller = NavigationViewModel(FakeUserSettings());
     const followerKey = Key('follower');
 
     await tester.pumpWidget(
@@ -334,7 +335,7 @@ void main() {
     await tester.pump();
 
     controller.setActiveSource('leader');
-    controller.updatePosition(
+    controller.reportPosition(
       'leader',
       SyncPosition(
         Anchor(
@@ -344,7 +345,7 @@ void main() {
         Anchor(const Reference(bookId: 1, chapter: 3, verse: 1), AnchorEnd.end),
         0.5,
       ),
-      displayReference: null,
+      display: null,
     );
     await tester.pump();
     await tester.pump();
@@ -356,11 +357,11 @@ void main() {
   testWidgets('a reopened panel aligns to the controller truth', (
     tester,
   ) async {
-    final controller = ScrollSyncController();
+    final controller = NavigationViewModel(FakeUserSettings());
     const followerKey = Key('follower');
 
     controller.setActiveSource('leader');
-    controller.updatePosition(
+    controller.reportPosition(
       'leader',
       SyncPosition(
         Anchor(
@@ -370,7 +371,7 @@ void main() {
         Anchor(const Reference(bookId: 1, chapter: 1, verse: 3), AnchorEnd.end),
         0.5,
       ),
-      displayReference: null,
+      display: null,
     );
 
     Widget buildPanel() => MaterialApp(
@@ -406,7 +407,7 @@ void main() {
   testWidgets('follower re-aligns after a chapter layout change', (
     tester,
   ) async {
-    final controller = ScrollSyncController();
+    final controller = NavigationViewModel(FakeUserSettings());
     const followerKey = Key('follower');
     var chapterHeight = 100.0;
 
@@ -424,7 +425,7 @@ void main() {
     );
 
     controller.setActiveSource('leader');
-    controller.updatePosition(
+    controller.reportPosition(
       'leader',
       SyncPosition(
         Anchor(
@@ -434,7 +435,7 @@ void main() {
         Anchor(const Reference(bookId: 1, chapter: 1, verse: 3), AnchorEnd.end),
         0.5,
       ),
-      displayReference: null,
+      display: null,
     );
 
     await tester.pumpWidget(buildPanel());
@@ -453,7 +454,7 @@ void main() {
   });
 
   testWidgets('null top anchor maps to the top of the chapter', (tester) async {
-    final controller = ScrollSyncController();
+    final controller = NavigationViewModel(FakeUserSettings());
     const followerKey = Key('follower');
 
     await tester.pumpWidget(
@@ -472,7 +473,7 @@ void main() {
     await tester.pump();
 
     controller.setActiveSource('leader');
-    controller.updatePosition(
+    controller.reportPosition(
       'leader',
       SyncPosition(
         const Anchor.top(),
@@ -482,7 +483,7 @@ void main() {
         ),
         0.5,
       ),
-      displayReference: null,
+      display: null,
     );
     await tester.pump();
 
@@ -493,7 +494,7 @@ void main() {
   testWidgets(
     'a follower-only verse is skipped when the leader jumps over it',
     (tester) async {
-      final controller = ScrollSyncController();
+      final controller = NavigationViewModel(FakeUserSettings());
       const followerKey = Key('follower');
 
       await tester.pumpWidget(
@@ -514,7 +515,7 @@ void main() {
       controller.setActiveSource('leader');
 
       void report(int verse, double t) {
-        controller.updatePosition(
+        controller.reportPosition(
           'leader',
           SyncPosition(
             Anchor(
@@ -527,7 +528,7 @@ void main() {
             ),
             t,
           ),
-          displayReference: null,
+          display: null,
         );
       }
 
@@ -545,7 +546,7 @@ void main() {
   );
 
   testWidgets('audio-driven seek animates to the target verse', (tester) async {
-    final controller = ScrollSyncController();
+    final controller = NavigationViewModel(FakeUserSettings());
     const followerKey = Key('follower');
 
     await tester.pumpWidget(
@@ -581,7 +582,7 @@ void main() {
   testWidgets('manual seek jumps to the target verse with breathing room', (
     tester,
   ) async {
-    final controller = ScrollSyncController();
+    final controller = NavigationViewModel(FakeUserSettings());
     const followerKey = Key('follower');
 
     await tester.pumpWidget(
@@ -609,7 +610,7 @@ void main() {
   testWidgets('a seek before geometry is published completes on publish', (
     tester,
   ) async {
-    final controller = ScrollSyncController();
+    final controller = NavigationViewModel(FakeUserSettings());
     const followerKey = Key('follower');
     var publishGeometry = false;
 
