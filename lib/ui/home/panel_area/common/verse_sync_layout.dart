@@ -28,12 +28,6 @@ class ChapterGeometry {
 
   final Map<int, VerseSpan> spans;
 
-  int? get firstVerse =>
-      spans.isEmpty ? null : spans.keys.reduce((a, b) => a < b ? a : b);
-
-  int? get lastVerse =>
-      spans.isEmpty ? null : spans.keys.reduce((a, b) => a > b ? a : b);
-
   ChapterGeometry translated(double dy) {
     if (dy == 0) return this;
     return ChapterGeometry(
@@ -64,15 +58,11 @@ class ChapterLayoutSnapshot {
     required this.top,
     required this.height,
     required this.geometry,
-    this.firstVerse,
-    this.lastVerse,
   });
 
   final Reference reference;
   int get bookId => reference.bookId;
   int get chapter => reference.chapter;
-  final int? firstVerse;
-  final int? lastVerse;
 
   final double top;
   final double height;
@@ -228,8 +218,6 @@ class SyncLayout {
         top: snapshot.top,
         height: snapshot.height,
         geometry: normalized,
-        firstVerse: normalized.firstVerse,
-        lastVerse: normalized.lastVerse,
       );
       _chaptersByKey[_chapterKey(
             normalizedSnapshot.bookId,

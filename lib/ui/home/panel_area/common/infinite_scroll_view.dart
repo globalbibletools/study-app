@@ -16,7 +16,11 @@ export 'package:gbt/ui/home/panel_area/common/verse_sync_layout.dart'
         VerseSpan;
 
 const _topScrollOffset = 16.0;
-const _syncTolerance = 0.005;
+
+/// Padding added below the last chapter of scripture so it can scroll fully
+/// into view. Mirrored in [_buildSyncLayout] so the bottom extreme of the
+/// scrollable resolves to the real end of the content.
+const _scriptureEndPadding = 300.0;
 
 typedef ChapterBuilder =
     Widget Function(BuildContext context, int bookId, int chapter);
@@ -62,10 +66,6 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
   // with the geometrically visible verse during a programmatic jump.
   bool _isProgrammaticScroll = false;
   int? _lastVisibleBookId;
-
-  // Last leader report, used for throttling.
-  SyncPosition? _lastReportedPosition;
-  Reference? _lastReportedDisplay;
 
   // Follower late-alignment retry (chapter data/geometry can arrive late).
   int _alignmentRetryCount = 0;
@@ -211,21 +211,25 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
     return (top: top, height: renderSliver.geometry!.scrollExtent);
   }
 
-  ChapterGeometry? _geometryInSliver(BuildContext sliverContext) {
+  ({ChapterGeometry? geometry, BuildContext? providerContext})
+  _geometryInSliver(BuildContext sliverContext) {
     ChapterGeometry? geometry;
+    BuildContext? providerContext;
 
     void visitor(Element element) {
       if (geometry != null) return;
       if (element is StatefulElement &&
           element.state is ChapterGeometryProvider) {
-        geometry = (element.state as ChapterGeometryProvider).geometry;
+        final provider = element.state as ChapterGeometryProvider;
+        geometry = provider.geometry;
+        providerContext = element;
       } else {
         element.visitChildren(visitor);
       }
     }
 
     sliverContext.visitChildElements(visitor);
-    return geometry;
+    return (geometry: geometry, providerContext: providerContext);
   }
 
   SyncLayout? _buildSyncLayout() {
@@ -243,11 +247,7 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
       final context = key?.currentContext;
       if (context == null) continue;
 
-      final geometry = _geometryInSliver(context);
-      final verseCount = _bibleNavigation.getVerseCount(
-        chapterId.bookId,
-        chapterId.chapter,
-      );
+      final geometry = _geometryInSliver(context).geometry;
 
       snapshots.add(
         ChapterLayoutSnapshot(
@@ -259,59 +259,42 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
           top: slice.top,
           height: slice.height,
           geometry: geometry,
-          firstVerse: geometry?.firstVerse ?? (verseCount > 0 ? 1 : null),
-          lastVerse:
-              geometry?.lastVerse ?? (verseCount > 0 ? verseCount : null),
         ),
       );
     }
 
     if (snapshots.isEmpty) return null;
 
-    // Revelation 22 gets an extra bottom spacer in build(). Include it so the
-    // bottom extreme resolves to the actual end of the scrollable.
-    var trailingExtent = 0.0;
-    final last = _displayedChapters.last;
-    if (last.bookId == 66 && last.chapter == 22) {
-      trailingExtent = 300.0;
-    }
+    // The last chapter of scripture gets an extra bottom spacer in build().
+    // Include it so the bottom extreme resolves to the actual end of the
+    // scrollable.
+    final trailingExtent = _isAtEndOfScripture ? _scriptureEndPadding : 0.0;
 
     return SyncLayout(snapshots, trailingExtent: trailingExtent);
+  }
+
+  bool get _isAtEndOfScripture =>
+      _bibleNavigation.getNextChapter(_displayedChapters.last) == null;
+
+  /// The chapter occupying [absoluteOffset] in scroll coordinates, if any.
+  ChapterIdentifier? _chapterAtOffset(double absoluteOffset) {
+    for (final chapterId in _displayedChapters) {
+      final slice = _chapterSlice(chapterId);
+      if (slice == null) continue;
+      if (absoluteOffset >= slice.top &&
+          absoluteOffset < slice.top + slice.height) {
+        return chapterId;
+      }
+    }
+    return null;
   }
 
   int? getBookIdAtViewportOffset(double viewportY) {
     if (!_scrollController.hasClients) return null;
 
     // Calculate the absolute scroll coordinate of the touch
-    final absoluteOffset = _scrollController.offset + viewportY;
-
-    for (final chapterId in _displayedChapters) {
-      final key = _chapterKeys[chapterId];
-      if (key == null) continue;
-
-      final sliverContext = key.currentContext;
-      if (sliverContext == null) continue;
-
-      final renderSliver = sliverContext.findRenderObject() as RenderSliver?;
-      if (renderSliver == null ||
-          !renderSliver.attached ||
-          renderSliver.geometry == null) {
-        continue;
-      }
-
-      final viewport = RenderAbstractViewport.of(renderSliver);
-      final revealedOffset = viewport
-          .getOffsetToReveal(renderSliver, 0.0)
-          .offset;
-      final chapterHeight = renderSliver.geometry!.scrollExtent;
-
-      // Check if the touch lands inside this chapter's vertical slice
-      if (absoluteOffset >= revealedOffset &&
-          absoluteOffset < revealedOffset + chapterHeight) {
-        return chapterId.bookId;
-      }
-    }
-    return null;
+    final chapter = _chapterAtOffset(_scrollController.offset + viewportY);
+    return chapter?.bookId;
   }
 
   @override
@@ -346,33 +329,14 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
   }
 
   void _updateVisibleBook() {
-    if (widget.onVisibleBookChanged == null) return;
-    for (final chapterId in _displayedChapters) {
-      final key = _chapterKeys[chapterId];
-      if (key == null) continue;
-      final sliverContext = key.currentContext;
-      if (sliverContext == null) continue;
-      final renderSliver = sliverContext.findRenderObject() as RenderSliver?;
-      if (renderSliver == null ||
-          !renderSliver.attached ||
-          renderSliver.geometry == null) {
-        continue;
-      }
-      final viewport = RenderAbstractViewport.of(renderSliver);
-      final revealedOffset = viewport
-          .getOffsetToReveal(renderSliver, 0.0)
-          .offset;
-      final currentScroll = _scrollController.offset;
-      final chapterHeight = renderSliver.geometry!.scrollExtent;
-      if (currentScroll >= revealedOffset &&
-          currentScroll < revealedOffset + chapterHeight) {
-        if (chapterId.bookId != _lastVisibleBookId) {
-          _lastVisibleBookId = chapterId.bookId;
-          widget.onVisibleBookChanged!(chapterId.bookId);
-        }
-        break;
-      }
-    }
+    final onVisibleBookChanged = widget.onVisibleBookChanged;
+    if (onVisibleBookChanged == null) return;
+
+    final bookId = _chapterAtOffset(_scrollController.offset)?.bookId;
+    if (bookId == null || bookId == _lastVisibleBookId) return;
+
+    _lastVisibleBookId = bookId;
+    onVisibleBookChanged(bookId);
   }
 
   void _handleInfiniteScrollLoading() {
@@ -421,7 +385,7 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
   }
 
   /// Reports the leader's current interval to the sync controller.
-  void _reportSyncPosition({bool force = false}) {
+  void _reportSyncPosition() {
     final controller = widget.syncController;
     if (controller == null || !_scrollController.hasClients) return;
 
@@ -434,22 +398,11 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
     );
     if (leader == null) return;
 
-    final position = leader.position;
-    final display = leader.displayReference;
-
-    if (!force &&
-        _lastReportedPosition != null &&
-        _lastReportedPosition!.from == position.from &&
-        _lastReportedPosition!.to == position.to &&
-        (position.t - _lastReportedPosition!.t).abs() < _syncTolerance &&
-        _lastReportedDisplay == display) {
-      return;
-    }
-
-    _lastReportedPosition = position;
-    _lastReportedDisplay = display;
-
-    controller.updatePosition(_panelId, position, displayReference: display);
+    controller.updatePosition(
+      _panelId,
+      leader.position,
+      displayReference: leader.displayReference,
+    );
   }
 
   @override
@@ -485,25 +438,12 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
       return;
     }
 
-    ChapterGeometry? geometry;
-    State? actualState;
+    final found = _geometryInSliver(sliverContext);
+    final ChapterGeometry? geometry = found.geometry;
+    final BuildContext? providerContext = found.providerContext;
 
-    void visitor(Element element) {
-      if (geometry != null) return;
-      if (element is StatefulElement &&
-          element.state is ChapterGeometryProvider) {
-        final provider = element.state as ChapterGeometryProvider;
-        geometry = provider.geometry;
-        actualState = element.state;
-      } else {
-        element.visitChildren(visitor);
-      }
-    }
-
-    sliverContext.visitChildElements(visitor);
-
-    if (geometry != null && actualState != null) {
-      final verseOffset = _verseOffsetFor(geometry!, target.verse);
+    if (geometry != null && providerContext != null) {
+      final verseOffset = _verseOffsetFor(geometry, target.verse);
 
       if (verseOffset == null) {
         _pendingJump = null;
@@ -523,7 +463,7 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
       // actual landed unit afterwards, so jump styling stays a separate layer.
       () async {
         await _scrollToAbsolutePosition(
-          actualState!.context,
+          providerContext,
           verseOffset,
           animate: target.isAuto,
           verseNumber: target.verse,
@@ -534,7 +474,7 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
         if (widget.syncController == null) return;
 
         if (widget.syncController!.isSourceActive(_panelId)) {
-          _reportSyncPosition(force: true);
+          _reportSyncPosition();
           widget.syncController!.clearActiveSource();
         }
       }();
@@ -624,12 +564,12 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
       );
     }).toList();
 
-    // Add extra padding only if we are at the very end of Revelation
-    if (_displayedChapters.isNotEmpty) {
-      final last = _displayedChapters.last;
-      if (last.bookId == 66 && last.chapter == 22) {
-        slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 300)));
-      }
+    // Add extra padding so the last chapter of scripture can scroll fully
+    // into view.
+    if (_isAtEndOfScripture) {
+      slivers.add(
+        const SliverToBoxAdapter(child: SizedBox(height: _scriptureEndPadding)),
+      );
     }
 
     return NotificationListener<Notification>(

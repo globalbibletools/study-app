@@ -87,6 +87,11 @@ class SyncPosition {
   String toString() => 'SyncPosition($from -> $to @ ${t.toStringAsFixed(4)})';
 }
 
+/// Reports whose anchors and display reference match the last accepted
+/// report and whose [SyncPosition.t] differs by less than this are treated as
+/// duplicates and do not notify listeners.
+const double _syncTolerance = 0.005;
+
 class ScrollSyncController extends ChangeNotifier {
   VerseHighlight? _pendingVerseJump;
   final _verseJumpController = StreamController<VerseHighlight>.broadcast();
@@ -100,6 +105,7 @@ class ScrollSyncController extends ChangeNotifier {
   void setActiveSource(Object source) {
     _activeSource = source;
   }
+
   void clearActiveSource() {
     _activeSource = null;
   }
@@ -117,7 +123,11 @@ class ScrollSyncController extends ChangeNotifier {
   }) {
     if (_activeSource != null && _activeSource != source) return;
 
-    if (_position == position && _displayReference == displayReference) {
+    if (_position != null &&
+        _position!.from == position.from &&
+        _position!.to == position.to &&
+        _displayReference == displayReference &&
+        (position.t - _position!.t).abs() < _syncTolerance) {
       return;
     }
 
