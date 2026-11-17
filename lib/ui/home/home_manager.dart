@@ -90,7 +90,7 @@ class HomeManager {
   final readingSessionViewModel = getIt<ReadingSessionViewModel>();
   final appGuideManager = getIt<AppGuideManager>();
 
-  late final navigationViewModel = NavigationViewModel(_settings);
+  late final navigationViewModel = getIt<NavigationViewModel>();
 
   StreamSubscription<HardNavigation>? _hardNavigationSubscription;
 
@@ -311,6 +311,9 @@ class HomeManager {
     _bibleService.removeBibleResourceChangeListener(_onBibleResourceChanged);
 
     _hardNavigationSubscription?.cancel();
+    if (getIt.isRegistered<NavigationViewModel>()) {
+      getIt.unregister<NavigationViewModel>();
+    }
     navigationViewModel.dispose();
     audioPlayerViewModel.dispose();
     isSinglePanelNotifier.dispose();

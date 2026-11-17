@@ -84,6 +84,9 @@ void main() {
       final settings = UserSettings();
       await settings.init();
       getIt.registerSingleton<UserSettings>(settings);
+      getIt.registerSingleton<NavigationViewModel>(
+        NavigationViewModel(settings),
+      );
       getIt.registerSingleton<DownloadService>(FakeDownloadService());
       getIt.registerSingleton<ResourceService>(FakeResourceService());
       getIt.registerSingleton<BibleService>(FakeBibleService());

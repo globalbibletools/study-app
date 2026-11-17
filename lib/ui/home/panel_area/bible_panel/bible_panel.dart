@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gbt/services/settings/user_settings.dart';
 import 'package:gbt/ui/home/panel_area/common/infinite_scroll_view.dart';
-import 'package:gbt/ui/home/common/navigation_view_model.dart';
 import 'package:gbt/ui/home/common/zoom_wrapper.dart';
 import 'bible_chapter.dart';
 import 'bible_panel_manager.dart';
@@ -11,7 +10,6 @@ class BiblePanel extends StatefulWidget {
     super.key,
     required this.bookId,
     required this.chapter,
-    this.navigationViewModel,
     required this.settingsVersion,
     this.scrollingEnabled = true,
     this.onResourceUnavailable,
@@ -19,7 +17,6 @@ class BiblePanel extends StatefulWidget {
 
   final int bookId;
   final int chapter;
-  final NavigationViewModel? navigationViewModel;
   final int settingsVersion;
   final bool scrollingEnabled;
   final VoidCallback? onResourceUnavailable;
@@ -70,7 +67,6 @@ class BiblePanelState extends State<BiblePanel> {
                   child: InfiniteScrollView(
                     bookId: widget.bookId,
                     chapter: widget.chapter,
-                    navigationViewModel: widget.navigationViewModel,
                     scrollingEnabled: widget.scrollingEnabled,
                     chapterBuilder: (context, bId, ch) {
                       return BibleChapter(

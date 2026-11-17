@@ -90,7 +90,6 @@ class _FakeChapterState extends State<_FakeChapter> {
 
 Widget _panel({
   required Key key,
-  required NavigationViewModel controller,
   required int bookId,
   required int chapter,
   required ChapterGeometry Function(int bookId, int chapter) geometryFor,
@@ -103,7 +102,6 @@ Widget _panel({
     child: InfiniteScrollView(
       bookId: bookId,
       chapter: chapter,
-      navigationViewModel: controller,
       chapterBuilder: (context, bId, ch) => _FakeChapter(
         bookId: bId,
         chapter: ch,
@@ -130,6 +128,9 @@ void main() {
     getIt.registerSingleton<BibleNavigation>(
       BibleNavigation.withCounts({(1, 1): 5, (1, 2): 5, (1, 3): 5}),
     );
+    getIt.registerSingleton<NavigationViewModel>(
+      NavigationViewModel(FakeUserSettings()),
+    );
   });
 
   tearDown(() async {
@@ -139,7 +140,6 @@ void main() {
   testWidgets('two identical panels stay in sync while dragging', (
     tester,
   ) async {
-    final controller = NavigationViewModel(FakeUserSettings());
     const leaderKey = Key('leader');
     const followerKey = Key('follower');
 
@@ -150,14 +150,12 @@ void main() {
             children: [
               _panel(
                 key: leaderKey,
-                controller: controller,
                 bookId: 1,
                 chapter: 2,
                 geometryFor: (_, _) => _verseGeometry(),
               ),
               _panel(
                 key: followerKey,
-                controller: controller,
                 bookId: 1,
                 chapter: 2,
                 geometryFor: (_, _) => _verseGeometry(),
@@ -184,7 +182,7 @@ void main() {
   testWidgets('missing follower verse parks at the previous verse end', (
     tester,
   ) async {
-    final controller = NavigationViewModel(FakeUserSettings());
+    final controller = getIt<NavigationViewModel>();
     const followerKey = Key('follower');
 
     await tester.pumpWidget(
@@ -192,7 +190,6 @@ void main() {
         home: Scaffold(
           body: _panel(
             key: followerKey,
-            controller: controller,
             bookId: 1,
             chapter: 1,
             geometryFor: (_, _) => _verseGeometry(missing: {3}),
@@ -225,7 +222,7 @@ void main() {
   testWidgets('zero-height follower verse resolves both edges to one point', (
     tester,
   ) async {
-    final controller = NavigationViewModel(FakeUserSettings());
+    final controller = getIt<NavigationViewModel>();
     const followerKey = Key('follower');
 
     await tester.pumpWidget(
@@ -233,7 +230,6 @@ void main() {
         home: Scaffold(
           body: _panel(
             key: followerKey,
-            controller: controller,
             bookId: 1,
             chapter: 1,
             geometryFor: (_, _) => _verseGeometry(zero: {3}),
@@ -264,7 +260,7 @@ void main() {
   });
 
   testWidgets('cross-chapter boundary has no gap', (tester) async {
-    final controller = NavigationViewModel(FakeUserSettings());
+    final controller = getIt<NavigationViewModel>();
     const followerKey = Key('follower');
 
     await tester.pumpWidget(
@@ -272,7 +268,6 @@ void main() {
         home: Scaffold(
           body: _panel(
             key: followerKey,
-            controller: controller,
             bookId: 1,
             chapter: 2,
             geometryFor: (_, _) => _verseGeometry(),
@@ -316,7 +311,7 @@ void main() {
   testWidgets('far-away controller truth re-centers the follower', (
     tester,
   ) async {
-    final controller = NavigationViewModel(FakeUserSettings());
+    final controller = getIt<NavigationViewModel>();
     const followerKey = Key('follower');
 
     await tester.pumpWidget(
@@ -324,7 +319,6 @@ void main() {
         home: Scaffold(
           body: _panel(
             key: followerKey,
-            controller: controller,
             bookId: 1,
             chapter: 1,
             geometryFor: (_, _) => _verseGeometry(),
@@ -357,7 +351,7 @@ void main() {
   testWidgets('a reopened panel aligns to the controller truth', (
     tester,
   ) async {
-    final controller = NavigationViewModel(FakeUserSettings());
+    final controller = getIt<NavigationViewModel>();
     const followerKey = Key('follower');
 
     controller.setActiveSource('leader');
@@ -378,7 +372,6 @@ void main() {
       home: Scaffold(
         body: _panel(
           key: followerKey,
-          controller: controller,
           bookId: 1,
           chapter: 1,
           geometryFor: (_, _) => _verseGeometry(),
@@ -407,7 +400,7 @@ void main() {
   testWidgets('follower re-aligns after a chapter layout change', (
     tester,
   ) async {
-    final controller = NavigationViewModel(FakeUserSettings());
+    final controller = getIt<NavigationViewModel>();
     const followerKey = Key('follower');
     var chapterHeight = 100.0;
 
@@ -415,7 +408,6 @@ void main() {
       home: Scaffold(
         body: _panel(
           key: followerKey,
-          controller: controller,
           bookId: 1,
           chapter: 1,
           chapterHeight: chapterHeight,
@@ -454,7 +446,7 @@ void main() {
   });
 
   testWidgets('null top anchor maps to the top of the chapter', (tester) async {
-    final controller = NavigationViewModel(FakeUserSettings());
+    final controller = getIt<NavigationViewModel>();
     const followerKey = Key('follower');
 
     await tester.pumpWidget(
@@ -462,7 +454,6 @@ void main() {
         home: Scaffold(
           body: _panel(
             key: followerKey,
-            controller: controller,
             bookId: 1,
             chapter: 1,
             geometryFor: (_, _) => _verseGeometry(lead: 20),
@@ -494,7 +485,7 @@ void main() {
   testWidgets(
     'a follower-only verse is skipped when the leader jumps over it',
     (tester) async {
-      final controller = NavigationViewModel(FakeUserSettings());
+      final controller = getIt<NavigationViewModel>();
       const followerKey = Key('follower');
 
       await tester.pumpWidget(
@@ -502,7 +493,6 @@ void main() {
           home: Scaffold(
             body: _panel(
               key: followerKey,
-              controller: controller,
               bookId: 1,
               chapter: 1,
               geometryFor: (_, _) => _verseGeometry(),
@@ -546,7 +536,7 @@ void main() {
   );
 
   testWidgets('audio-driven seek animates to the target verse', (tester) async {
-    final controller = NavigationViewModel(FakeUserSettings());
+    final controller = getIt<NavigationViewModel>();
     const followerKey = Key('follower');
 
     await tester.pumpWidget(
@@ -554,7 +544,6 @@ void main() {
         home: Scaffold(
           body: _panel(
             key: followerKey,
-            controller: controller,
             bookId: 1,
             chapter: 2,
             geometryFor: (_, _) => _verseGeometry(),
@@ -582,7 +571,7 @@ void main() {
   testWidgets('manual seek jumps to the target verse with breathing room', (
     tester,
   ) async {
-    final controller = NavigationViewModel(FakeUserSettings());
+    final controller = getIt<NavigationViewModel>();
     const followerKey = Key('follower');
 
     await tester.pumpWidget(
@@ -590,7 +579,6 @@ void main() {
         home: Scaffold(
           body: _panel(
             key: followerKey,
-            controller: controller,
             bookId: 1,
             chapter: 2,
             geometryFor: (_, _) => _verseGeometry(),
@@ -610,7 +598,7 @@ void main() {
   testWidgets('a seek before geometry is published completes on publish', (
     tester,
   ) async {
-    final controller = NavigationViewModel(FakeUserSettings());
+    final controller = getIt<NavigationViewModel>();
     const followerKey = Key('follower');
     var publishGeometry = false;
 
@@ -618,7 +606,6 @@ void main() {
       home: Scaffold(
         body: _panel(
           key: followerKey,
-          controller: controller,
           bookId: 1,
           chapter: 2,
           publishGeometry: publishGeometry,

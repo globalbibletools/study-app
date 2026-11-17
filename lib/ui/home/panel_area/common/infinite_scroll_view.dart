@@ -32,7 +32,6 @@ class InfiniteScrollView extends StatefulWidget {
     required this.chapterBuilder,
     this.physics,
     this.scrollingEnabled = true,
-    this.navigationViewModel,
     this.onVisibleBookChanged,
   });
 
@@ -41,7 +40,6 @@ class InfiniteScrollView extends StatefulWidget {
   final ChapterBuilder chapterBuilder;
   final ScrollPhysics? physics;
   final bool scrollingEnabled;
-  final NavigationViewModel? navigationViewModel;
   final ValueChanged<int>? onVisibleBookChanged;
 
   @override
@@ -50,6 +48,7 @@ class InfiniteScrollView extends StatefulWidget {
 
 class InfiniteScrollViewState extends State<InfiniteScrollView> {
   late final _bibleNavigation = getIt<BibleNavigation>();
+  late final _navigationViewModel = getIt<NavigationViewModel>();
   late final ScrollController _scrollController;
   final List<ChapterIdentifier> _displayedChapters = [];
   late ChapterIdentifier _centerChapter;
@@ -64,17 +63,15 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
   void initState() {
     super.initState();
     _scrollController = ScrollController()..addListener(_scrollListener);
-    widget.navigationViewModel?.addListener(_onSyncReceived);
+    _navigationViewModel.addListener(_onSyncReceived);
 
     _resetChapters();
 
-    if (widget.navigationViewModel != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          _onSyncReceived();
-        }
-      });
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _onSyncReceived();
+      }
+    });
   }
 
   void _onSyncReceived() {
@@ -82,8 +79,7 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
   }
 
   void _tryAlignToController() {
-    final controller = widget.navigationViewModel;
-    if (controller == null) return;
+    final controller = _navigationViewModel;
 
     // If THIS panel is the one the user is touching, ignore the update.
     if (controller.isSourceActive(_panelId)) return;
@@ -248,8 +244,8 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
     }
     if (!widget.scrollingEnabled &&
         oldWidget.scrollingEnabled &&
-        widget.navigationViewModel?.isSourceActive(_panelId) == true) {
-      widget.navigationViewModel!.clearActiveSource();
+        _navigationViewModel.isSourceActive(_panelId)) {
+      _navigationViewModel.clearActiveSource();
     }
   }
 
@@ -258,8 +254,7 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
     _updateVisibleBook();
 
     // Only calculate and report sync if WE are the active source
-    if (widget.navigationViewModel != null &&
-        widget.navigationViewModel!.isSourceActive(_panelId)) {
+    if (_navigationViewModel.isSourceActive(_panelId)) {
       _reportSyncPosition();
     }
   }
@@ -322,8 +317,8 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
 
   /// Reports the leader's current interval to the sync controller.
   void _reportSyncPosition() {
-    final controller = widget.navigationViewModel;
-    if (controller == null || !_scrollController.hasClients) return;
+    final controller = _navigationViewModel;
+    if (!_scrollController.hasClients) return;
 
     final layout = _buildSyncLayout();
     if (layout == null) return;
@@ -343,7 +338,7 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
 
   @override
   void dispose() {
-    widget.navigationViewModel?.removeListener(_onSyncReceived);
+    _navigationViewModel.removeListener(_onSyncReceived);
     _scrollController.dispose();
     super.dispose();
   }
@@ -393,8 +388,6 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
           notification.geometry;
     }
 
-    if (widget.navigationViewModel == null) return false;
-
     if (!widget.scrollingEnabled &&
         notification is ScrollStartNotification &&
         notification.dragDetails != null) {
@@ -404,14 +397,14 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
     // Detect Start of Manual Drag
     if (notification is ScrollStartNotification) {
       if (notification.dragDetails != null) {
-        widget.navigationViewModel!.setActiveSource(_panelId);
+        _navigationViewModel.setActiveSource(_panelId);
       }
     }
 
     // Detect End of Manual Drag / Momentum
     if (notification is ScrollEndNotification) {
-      if (widget.navigationViewModel!.isSourceActive(_panelId)) {
-        widget.navigationViewModel!.clearActiveSource();
+      if (_navigationViewModel.isSourceActive(_panelId)) {
+        _navigationViewModel.clearActiveSource();
       }
     }
 
@@ -422,7 +415,7 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
         if (!mounted) return;
 
         // Check who is the active source
-        if (widget.navigationViewModel!.isSourceActive(_panelId)) {
+        if (_navigationViewModel.isSourceActive(_panelId)) {
           // Case A: We are the active source (User zoomed us).
           _reportSyncPosition();
         } else {
