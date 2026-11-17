@@ -35,8 +35,7 @@ class BibleChapter extends StatefulWidget {
   State<BibleChapter> createState() => _BibleChapterState();
 }
 
-class _BibleChapterState extends State<BibleChapter>
-    with ChapterGeometryProvider {
+class _BibleChapterState extends State<BibleChapter> {
   final manager = BibleChapterManager();
 
   // Keyed so the chapter title can be measured and attributed to verse 1.
@@ -44,9 +43,6 @@ class _BibleChapterState extends State<BibleChapter>
 
   ChapterGeometry? _geometry;
   List<UsfmLine> _verseLines = const [];
-
-  @override
-  ChapterGeometry? get geometry => _geometry;
 
   @override
   void initState() {
@@ -59,11 +55,11 @@ class _BibleChapterState extends State<BibleChapter>
     super.didUpdateWidget(oldWidget);
     if (widget.bookId != oldWidget.bookId ||
         widget.chapter != oldWidget.chapter) {
-      _geometry = null;
+      _publishGeometry(null);
       _loadChapterData();
     } else if (widget.settingsVersion != oldWidget.settingsVersion &&
         manager.bibleChanged) {
-      _geometry = null;
+      _publishGeometry(null);
       _loadChapterData();
     }
   }
@@ -101,6 +97,22 @@ class _BibleChapterState extends State<BibleChapter>
     }
   }
 
+  void _publishGeometry(ChapterGeometry? geometry) {
+    _geometry = geometry;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _dispatchGeometryChanged();
+    });
+  }
+
+  void _dispatchGeometryChanged() {
+    ChapterGeometryChangedNotification(
+      bookId: widget.bookId,
+      chapter: widget.chapter,
+      geometry: _geometry,
+    ).dispatch(context);
+  }
+
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<List<UsfmLine>>(
@@ -109,7 +121,7 @@ class _BibleChapterState extends State<BibleChapter>
         _verseLines = verseLines;
 
         if (verseLines.isEmpty) {
-          _geometry = null;
+          _publishGeometry(null);
           return const SizedBox(
             height: 200,
             child: Center(child: CircularProgressIndicator()),
@@ -253,7 +265,7 @@ class _BibleChapterState extends State<BibleChapter>
     }
 
     if (spans.isEmpty) {
-      _geometry = null;
+      _publishGeometry(null);
       return;
     }
 
@@ -270,9 +282,7 @@ class _BibleChapterState extends State<BibleChapter>
       height: chapterBox.size.height,
     );
 
-    if (mounted) {
-      const ChapterGeometryChangedNotification().dispatch(context);
-    }
+    _dispatchGeometryChanged();
   }
 
   void _addParagraphSpans({

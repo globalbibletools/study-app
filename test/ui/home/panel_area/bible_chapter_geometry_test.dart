@@ -84,21 +84,32 @@ void main() {
     WidgetTester tester,
     VerseLayout layout,
   ) async {
+    ChapterGeometry? publishedGeometry;
+
     await tester.pumpWidget(
       MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
-          body: BibleChapter(bookId: 1, chapter: 1, verseLayout: layout),
+          body: NotificationListener<ChapterGeometryChangedNotification>(
+            onNotification: (notification) {
+              publishedGeometry = notification.geometry;
+              return false;
+            },
+            child: BibleChapter(
+              bookId: 1,
+              chapter: 1,
+              verseLayout: layout,
+            ),
+          ),
         ),
       ),
     );
     await tester.pumpAndSettle();
 
-    final state = tester.state<State<BibleChapter>>(find.byType(BibleChapter));
-    final provider = state as ChapterGeometryProvider;
-    expect(provider.geometry, isNotNull);
-    return provider.geometry!;
+    expect(publishedGeometry, isNotNull,
+        reason: 'chapter should publish its geometry via notification');
+    return publishedGeometry!;
   }
 
   void expectValidGeometry(ChapterGeometry geometry) {

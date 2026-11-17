@@ -62,7 +62,7 @@ class HebrewGreekTextController {
   ChapterGeometry? _geometry;
   VerseAtOffsetCallback? _verseAtOffsetCallback;
   ValueChanged<Rect?>? _spotlightSetCallback;
-  VoidCallback? _geometryAvailableCallback;
+  VoidCallback? _geometryChangedCallback;
 
   /// Updates the controller with the latest verse rectangles.
   ///
@@ -73,14 +73,13 @@ class HebrewGreekTextController {
   }
 
   void _updateGeometry(ChapterGeometry geometry) {
-    final becameAvailable = _geometry == null;
     _geometry = geometry;
-    if (becameAvailable) _geometryAvailableCallback?.call();
+    _geometryChangedCallback?.call();
   }
 
-  /// Called once when geometry first becomes available for this chapter.
-  void setGeometryAvailableCallback(VoidCallback? callback) {
-    _geometryAvailableCallback = callback;
+  /// Called whenever the text layout's verse geometry changes.
+  void setGeometryChangedCallback(VoidCallback? callback) {
+    _geometryChangedCallback = callback;
   }
 
   /// Verse-level geometry in HebrewGreekText-local coordinates.

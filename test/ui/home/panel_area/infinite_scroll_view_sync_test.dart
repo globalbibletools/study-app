@@ -34,8 +34,15 @@ ChapterGeometry _verseGeometry({
 }
 
 class _FakeChapter extends StatefulWidget {
-  const _FakeChapter({required this.geometry, this.height = _chapterHeight});
+  const _FakeChapter({
+    required this.bookId,
+    required this.chapter,
+    required this.geometry,
+    this.height = _chapterHeight,
+  });
 
+  final int bookId;
+  final int chapter;
   final ChapterGeometry geometry;
   final double height;
 
@@ -43,10 +50,32 @@ class _FakeChapter extends StatefulWidget {
   State<_FakeChapter> createState() => _FakeChapterState();
 }
 
-class _FakeChapterState extends State<_FakeChapter>
-    with ChapterGeometryProvider {
+class _FakeChapterState extends State<_FakeChapter> {
   @override
-  ChapterGeometry? get geometry => widget.geometry;
+  void initState() {
+    super.initState();
+    _publishGeometry();
+  }
+
+  @override
+  void didUpdateWidget(covariant _FakeChapter oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.geometry != oldWidget.geometry ||
+        widget.height != oldWidget.height) {
+      _publishGeometry();
+    }
+  }
+
+  void _publishGeometry() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ChapterGeometryChangedNotification(
+        bookId: widget.bookId,
+        chapter: widget.chapter,
+        geometry: widget.geometry,
+      ).dispatch(context);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -69,8 +98,12 @@ Widget _panel({
       bookId: bookId,
       chapter: chapter,
       syncController: controller,
-      chapterBuilder: (context, bId, ch) =>
-          _FakeChapter(geometry: geometryFor(bId, ch), height: chapterHeight),
+      chapterBuilder: (context, bId, ch) => _FakeChapter(
+        bookId: bId,
+        chapter: ch,
+        geometry: geometryFor(bId, ch),
+        height: chapterHeight,
+      ),
     ),
   );
 }

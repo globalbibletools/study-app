@@ -9,11 +9,7 @@ import 'package:gbt/ui/home/common/scroll_sync_controller.dart';
 import 'package:gbt/ui/home/panel_area/common/verse_sync_layout.dart';
 
 export 'package:gbt/ui/home/panel_area/common/verse_sync_layout.dart'
-    show
-        ChapterGeometry,
-        ChapterGeometryChangedNotification,
-        ChapterGeometryProvider,
-        VerseSpan;
+    show ChapterGeometry, ChapterGeometryChangedNotification, VerseSpan;
 
 const _topScrollOffset = 16.0;
 
@@ -57,6 +53,7 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
   bool _isLoadingNextChapter = false;
   bool _isLoadingPreviousChapter = false;
   final Map<ChapterIdentifier, GlobalKey> _chapterKeys = {};
+  final Map<ChapterIdentifier, ChapterGeometry?> _chapterGeometries = {};
   final String _panelId = UniqueKey().toString();
   StreamSubscription? _verseJumpSubscription;
   VerseHighlight? _pendingJump;
@@ -181,6 +178,7 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
       _centerChapter = ChapterIdentifier(bookId, chapter);
       _displayedChapters.clear();
       _chapterKeys.clear();
+      _chapterGeometries.clear();
 
       final previousChapter = _bibleNavigation.getPreviousChapter(
         _centerChapter,
@@ -211,27 +209,6 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
     return (top: top, height: renderSliver.geometry!.scrollExtent);
   }
 
-  ({ChapterGeometry? geometry, BuildContext? providerContext})
-  _geometryInSliver(BuildContext sliverContext) {
-    ChapterGeometry? geometry;
-    BuildContext? providerContext;
-
-    void visitor(Element element) {
-      if (geometry != null) return;
-      if (element is StatefulElement &&
-          element.state is ChapterGeometryProvider) {
-        final provider = element.state as ChapterGeometryProvider;
-        geometry = provider.geometry;
-        providerContext = element;
-      } else {
-        element.visitChildren(visitor);
-      }
-    }
-
-    sliverContext.visitChildElements(visitor);
-    return (geometry: geometry, providerContext: providerContext);
-  }
-
   SyncLayout? _buildSyncLayout() {
     if (!_scrollController.hasClients || _displayedChapters.isEmpty) {
       return null;
@@ -243,12 +220,6 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
       final slice = _chapterSlice(chapterId);
       if (slice == null) continue;
 
-      final key = _chapterKeys[chapterId];
-      final context = key?.currentContext;
-      if (context == null) continue;
-
-      final geometry = _geometryInSliver(context).geometry;
-
       snapshots.add(
         ChapterLayoutSnapshot(
           reference: Reference(
@@ -258,7 +229,7 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
           ),
           top: slice.top,
           height: slice.height,
-          geometry: geometry,
+          geometry: _chapterGeometries[chapterId],
         ),
       );
     }
@@ -422,65 +393,54 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
     }
 
     // Find if the target chapter is currently displayed
-    // We construct a temporary ID to look up the key
     final targetId = ChapterIdentifier(target.bookId, target.chapter);
-    final key = _chapterKeys[targetId];
-    if (key == null || key.currentContext == null) {
+    if (!_chapterKeys.containsKey(targetId)) {
       _scheduleRetry(target);
       return;
     }
 
-    // Get context using the specific chapter's key
-    final sliverContext = key.currentContext!;
-    final renderSliver = sliverContext.findRenderObject() as RenderSliver?;
-    if (renderSliver == null || renderSliver.geometry == null) {
+    final slice = _chapterSlice(targetId);
+    final geometry = _chapterGeometries[targetId];
+    if (slice == null || geometry == null) {
       _scheduleRetry(target);
       return;
     }
 
-    final found = _geometryInSliver(sliverContext);
-    final ChapterGeometry? geometry = found.geometry;
-    final BuildContext? providerContext = found.providerContext;
+    final verseOffset = _verseOffsetFor(geometry, target.verse);
 
-    if (geometry != null && providerContext != null) {
-      final verseOffset = _verseOffsetFor(geometry, target.verse);
-
-      if (verseOffset == null) {
-        _pendingJump = null;
-        _retryCount = 0;
-        widget.syncController?.clearPendingJump();
-        return;
-      }
-
+    if (verseOffset == null) {
       _pendingJump = null;
       _retryCount = 0;
       widget.syncController?.clearPendingJump();
-
-      _isProgrammaticScroll = true;
-      widget.syncController?.setActiveSource(_panelId);
-
-      // Perform the scroll (Animate if Auto, Jump if Manual) and report the
-      // actual landed unit afterwards, so jump styling stays a separate layer.
-      () async {
-        await _scrollToAbsolutePosition(
-          providerContext,
-          verseOffset,
-          animate: target.isAuto,
-          verseNumber: target.verse,
-        );
-
-        if (!mounted) return;
-        _isProgrammaticScroll = false;
-        if (widget.syncController == null) return;
-
-        if (widget.syncController!.isSourceActive(_panelId)) {
-          _reportSyncPosition();
-          widget.syncController!.clearActiveSource();
-        }
-      }();
-    } else {
-      _scheduleRetry(target);
+      return;
     }
+
+    _pendingJump = null;
+    _retryCount = 0;
+    widget.syncController?.clearPendingJump();
+
+    _isProgrammaticScroll = true;
+    widget.syncController?.setActiveSource(_panelId);
+
+    // Perform the scroll (Animate if Auto, Jump if Manual) and report the
+    // actual landed unit afterwards, so jump styling stays a separate layer.
+    () async {
+      await _scrollToAbsolutePosition(
+        slice.top,
+        verseOffset,
+        animate: target.isAuto,
+        verseNumber: target.verse,
+      );
+
+      if (!mounted) return;
+      _isProgrammaticScroll = false;
+      if (widget.syncController == null) return;
+
+      if (widget.syncController!.isSourceActive(_panelId)) {
+        _reportSyncPosition();
+        widget.syncController!.clearActiveSource();
+      }
+    }();
   }
 
   double? _verseOffsetFor(ChapterGeometry geometry, int verse) {
@@ -511,20 +471,13 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
   }
 
   Future<void> _scrollToAbsolutePosition(
-    BuildContext chapterContext,
+    double chapterTop,
     double offsetInsideChapter, {
     required bool animate,
     required int verseNumber,
   }) async {
     // Calculate absolute scroll position
-    final renderObject = chapterContext.findRenderObject();
-    if (renderObject is! RenderBox) return;
-
-    final viewport = RenderAbstractViewport.of(renderObject);
-    final revealedOffset = viewport.getOffsetToReveal(renderObject, 0.0);
-
-    // Add the verse's internal offset
-    double targetPixels = revealedOffset.offset + offsetInsideChapter;
+    double targetPixels = chapterTop + offsetInsideChapter;
 
     // Subtract 16 pixels so the verse isn't glued to the top of the viewport,
     // unless it's verse 1 (which has the chapter title above it).
@@ -586,6 +539,13 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
   }
 
   bool _onScrollNotification(Notification notification) {
+    if (notification is ChapterGeometryChangedNotification) {
+      _chapterGeometries[ChapterIdentifier(
+        notification.bookId,
+        notification.chapter,
+      )] = notification.geometry;
+    }
+
     if (widget.syncController == null) return false;
 
     if (!widget.scrollingEnabled &&

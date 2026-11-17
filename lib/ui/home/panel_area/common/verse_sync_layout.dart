@@ -43,12 +43,16 @@ class ChapterGeometry {
   }
 }
 
-mixin ChapterGeometryProvider {
-  ChapterGeometry? get geometry;
-}
-
 class ChapterGeometryChangedNotification extends Notification {
-  const ChapterGeometryChangedNotification();
+  const ChapterGeometryChangedNotification({
+    required this.bookId,
+    required this.chapter,
+    required this.geometry,
+  });
+
+  final int bookId;
+  final int chapter;
+  final ChapterGeometry? geometry;
 }
 
 @immutable

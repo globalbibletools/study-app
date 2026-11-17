@@ -58,8 +58,7 @@ class HebrewGreekChapter extends StatefulWidget {
   State<HebrewGreekChapter> createState() => HebrewGreekChapterState();
 }
 
-class HebrewGreekChapterState extends State<HebrewGreekChapter>
-    with ChapterGeometryProvider {
+class HebrewGreekChapterState extends State<HebrewGreekChapter> {
   final manager = HebrewGreekChapterManager();
 
   final _textController = HebrewGreekTextController();
@@ -82,13 +81,17 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter>
     _textController.setSpotlightUpdatedCalllback(
       _reportReadingCheckboxGuideRect,
     );
-    _textController.setGeometryAvailableCallback(_notifyGeometryAvailable);
+    _textController.setGeometryChangedCallback(_publishGeometry);
   }
 
-  void _notifyGeometryAvailable() {
+  void _publishGeometry() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      const ChapterGeometryChangedNotification().dispatch(context);
+      ChapterGeometryChangedNotification(
+        bookId: widget.bookId,
+        chapter: widget.chapter,
+        geometry: _computeGeometry(),
+      ).dispatch(context);
     });
   }
 
@@ -114,8 +117,7 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter>
     super.dispose();
   }
 
-  @override
-  ChapterGeometry? get geometry {
+  ChapterGeometry? _computeGeometry() {
     if (manager.textNotifier.value.isEmpty) return null;
 
     final textGeometry = _textController.geometry;
