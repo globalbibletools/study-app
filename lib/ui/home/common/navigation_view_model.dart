@@ -148,7 +148,11 @@ class NavigationViewModel extends ChangeNotifier {
   }
 
   void seekTo(Reference ref, {bool animated = false}) {
-    if (_activeSource != null) return;
+    clearActiveSource();
+    _persistSeek(ref, animated: animated);
+  }
+
+  void _persistSeek(Reference ref, {required bool animated}) {
     if (_seek(ref, animated: animated)) {
       unawaited(_persistChapter(ref.bookId, ref.chapter));
     }
@@ -270,7 +274,7 @@ class NavigationViewModel extends ChangeNotifier {
     final reference = _audioReferenceNotifier?.value;
     if (reference == null) return;
 
-    seekTo(reference, animated: true);
+    _persistSeek(reference, animated: true);
   }
 
   @override

@@ -144,8 +144,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                 onVerseSelected: (verse) {
-                  // Manual taps intentionally supersede an in-flight drag.
-                  manager.navigationViewModel.clearActiveSource();
                   manager.navigationViewModel.seekTo(
                     Reference(
                       bookId: ref?.bookId ?? 1,

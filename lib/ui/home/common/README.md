@@ -21,7 +21,8 @@ Houses shared widgets, gesture handlers, visual overlays, and synchronization co
 ## Invariants
 - `NavigationViewModel` tracks three different granularities: continuous position, continuously updated display reference, and a chapter-level anchor that only explicit navigation may change. Scroll reports never move the anchor, so panels are not remounted mid-scroll.
 - `NavigationViewModel` ignores scroll reports from passive panels when another panel is the active source, preventing infinite feedback recursion.
-- Seeks and manual navigation respect the active-source gate; manual navigation clears the active source first.
+- Seeks and manual navigation clear the active source so explicit actions supersede an in-flight drag.
+- Audio-driven follows respect the active-source gate, so playback does not fight the user's finger.
 - `ZoomWrapper` clamps effective scaling strictly within range `[0.5, 5.0]`.
 - In `TouchState.allowUnderSpotlight`, hit tests pass through exclusively within the inflated bounds of active cutouts.
 

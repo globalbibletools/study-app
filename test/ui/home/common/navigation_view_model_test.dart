@@ -144,15 +144,32 @@ void main() {
       expect(events, isEmpty);
     });
 
-    test('is ignored while a panel is the active source', () {
+    test('clears the active source so manual seeks supersede a drag', () {
       viewModel.setActiveSource('panel');
 
       viewModel.seekTo(_verse);
+
+      expect(viewModel.isSourceActive('panel'), isFalse);
+      expect(viewModel.position, _positionFor(_verse));
+    });
+
+    test('audio follows are ignored while a panel is the active source', () {
+      final audioReference = ValueNotifier<Reference?>(null);
+      addTearDown(audioReference.dispose);
+      viewModel.bindAudioReference(audioReference);
+      viewModel.setActiveSource('panel');
+
+      audioReference.value = _verse;
+
       expect(viewModel.position, isNull);
+      expect(viewModel.isSourceActive('panel'), isTrue);
 
       viewModel.clearActiveSource();
-      viewModel.seekTo(_verse);
-      expect(viewModel.position, isNotNull);
+      const nextVerse = Reference(bookId: 1, chapter: 2, verse: 5);
+      audioReference.value = nextVerse;
+
+      expect(viewModel.position, _positionFor(nextVerse));
+      expect(viewModel.lastUpdateAnimated, isTrue);
     });
 
     test('persists the target chapter', () {
