@@ -92,9 +92,14 @@ class HomeManager {
 
   late final navigationViewModel = NavigationViewModel(_settings);
 
+  StreamSubscription<HardNavigation>? _hardNavigationSubscription;
+
   HomeManager() {
     _bibleService.addBibleResourceChangeListener(_onBibleResourceChanged);
     navigationViewModel.bindAudioReference(audioPlayerViewModel.reference);
+    _hardNavigationSubscription = navigationViewModel.hardNavigation.listen(
+      _onHardNavigation,
+    );
   }
 
   Future<void> _onBibleResourceChanged(String bibleId) async {
@@ -113,6 +118,13 @@ class HomeManager {
 
   Future<void> init() async {
     await navigationViewModel.init();
+  }
+
+  void _onHardNavigation(HardNavigation navigation) {
+    dismissWordStudySession(keepCurrentLocation: true);
+    clearSearchContext();
+    audioPlayerViewModel.pause();
+    audioPlayerViewModel.jumpTo(navigation.reference);
   }
 
   Future<void> checkOnboarding(BuildContext context) async {
@@ -208,24 +220,6 @@ class HomeManager {
     textParagraphNotifier.value = content;
   }
 
-  void onBookSelected(BuildContext context, int bookId) {
-    dismissWordStudySession(keepCurrentLocation: true);
-    clearSearchContext();
-    final ref = Reference(bookId: bookId, chapter: 1, verse: 1);
-    audioPlayerViewModel.pause();
-    audioPlayerViewModel.jumpTo(ref);
-    navigationViewModel.navigateTo(ref);
-  }
-
-  void onChapterSelected(int chapter) {
-    dismissWordStudySession(keepCurrentLocation: true);
-    clearSearchContext();
-    final ref = Reference(bookId: currentBookId, chapter: chapter, verse: 1);
-    audioPlayerViewModel.pause();
-    audioPlayerViewModel.jumpTo(ref);
-    navigationViewModel.navigateTo(ref);
-  }
-
   /// Starts a new word study session, preserving the original reading reference.
   void startWordStudy({required String wordId, required bool isRtl}) {
     if (wordStudySessionNotifier.value != null) {
@@ -260,7 +254,7 @@ class HomeManager {
 
     if (!keepCurrentLocation) {
       final wordIdToFlash = session.wordId;
-      navigationViewModel.navigateTo(session.originalReference);
+      navigationViewModel.navigateTo(session.originalReference, hard: false);
       flashWord(wordIdToFlash);
     } else {
       unawaited(navigationViewModel.persistCurrentChapter());
@@ -278,7 +272,7 @@ class HomeManager {
     final ref = context.anchorReference;
 
     // Temporary preview: do not persist the visited chapter.
-    navigationViewModel.navigateTo(ref, persist: false);
+    navigationViewModel.navigateTo(ref, persist: false, hard: false);
     flashVerse(ref);
   }
 
@@ -316,6 +310,7 @@ class HomeManager {
     dismissWordStudySession(keepCurrentLocation: true);
     _bibleService.removeBibleResourceChangeListener(_onBibleResourceChanged);
 
+    _hardNavigationSubscription?.cancel();
     navigationViewModel.dispose();
     audioPlayerViewModel.dispose();
     isSinglePanelNotifier.dispose();

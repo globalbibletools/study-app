@@ -102,6 +102,26 @@ void main() {
       expect(settings.currentBookChapter, (1, 2));
       expect(settings.saveCalls, 1);
     });
+
+    test('emits a hard navigation by default', () {
+      final events = <HardNavigation>[];
+      final subscription = viewModel.hardNavigation.listen(events.add);
+      addTearDown(subscription.cancel);
+
+      viewModel.navigateTo(_verse);
+
+      expect(events.single.reference, _verse);
+    });
+
+    test('does not emit hard navigation when hard is false', () {
+      final events = <HardNavigation>[];
+      final subscription = viewModel.hardNavigation.listen(events.add);
+      addTearDown(subscription.cancel);
+
+      viewModel.navigateTo(_verse, hard: false);
+
+      expect(events, isEmpty);
+    });
   });
 
   group('seekTo', () {
@@ -112,6 +132,16 @@ void main() {
       expect(viewModel.displayReference, _verse);
       expect(viewModel.lastUpdateIsSeek, isTrue);
       expect(viewModel.lastUpdateAnimated, isFalse);
+    });
+
+    test('does not emit a hard navigation', () {
+      final events = <HardNavigation>[];
+      final subscription = viewModel.hardNavigation.listen(events.add);
+      addTearDown(subscription.cancel);
+
+      viewModel.seekTo(_verse);
+
+      expect(events, isEmpty);
     });
 
     test('is ignored while a panel is the active source', () {

@@ -116,8 +116,10 @@ void main() {
       );
     });
 
-    test('onChapterSelected seeds an interval ending at the new chapter', () {
-      homeManager.onChapterSelected(2);
+    test('navigateTo seeds an interval ending at the new chapter', () {
+      homeManager.navigationViewModel.navigateTo(
+        const Reference(bookId: 1, chapter: 2, verse: 1),
+      );
 
       final position = homeManager.navigationViewModel.position!;
       const chapterTop = Anchor(
@@ -222,7 +224,7 @@ void main() {
       expect(homeManager.searchContextNotifier.value, isNull);
     });
 
-    test('onChapterSelected clears active search context', () {
+    test('navigateTo clears active search context', () {
       const targetRef = Reference(bookId: 8, chapter: 4, verse: 17);
       const word = WordDetails(
         word: 'דָּוִד',
@@ -244,8 +246,46 @@ void main() {
       expect(homeManager.searchContextNotifier.value, isNotNull);
 
       // User selects a different chapter from AppBar
-      homeManager.onChapterSelected(2);
+      homeManager.navigationViewModel.navigateTo(
+        const Reference(bookId: 8, chapter: 2, verse: 1),
+      );
       expect(homeManager.searchContextNotifier.value, isNull);
+    });
+
+    test('hard navigation dismisses the word study session', () {
+      homeManager.startWordStudy(wordId: 'w1', isRtl: true);
+      expect(homeManager.wordStudySessionNotifier.value, isNotNull);
+
+      homeManager.navigationViewModel.navigateTo(
+        const Reference(bookId: 1, chapter: 2, verse: 1),
+      );
+
+      expect(homeManager.wordStudySessionNotifier.value, isNull);
+    });
+
+    test('soft reference changes do not dismiss the word study session', () {
+      homeManager.startWordStudy(wordId: 'w1', isRtl: true);
+
+      homeManager.navigationViewModel.seekTo(
+        const Reference(bookId: 1, chapter: 2, verse: 4),
+      );
+
+      expect(homeManager.wordStudySessionNotifier.value, isNotNull);
+    });
+
+    test('scroll reports do not dismiss the word study session', () {
+      homeManager.startWordStudy(wordId: 'w1', isRtl: true);
+      const ref = Reference(bookId: 1, chapter: 2, verse: 4);
+      final anchor = Anchor(ref, AnchorEnd.start);
+
+      homeManager.navigationViewModel.setActiveSource('panel');
+      homeManager.navigationViewModel.reportPosition(
+        'panel',
+        SyncPosition(anchor, anchor, 0.0),
+        display: ref,
+      );
+
+      expect(homeManager.wordStudySessionNotifier.value, isNotNull);
     });
 
     testWidgets('flashVerse sets highlight and clears it after 1.5 seconds', (

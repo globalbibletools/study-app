@@ -63,10 +63,22 @@ class SyncPosition {
 
 const double _syncTolerance = 0.005;
 
+@immutable
+class HardNavigation {
+  const HardNavigation(this.reference);
+
+  final Reference reference;
+}
+
 class NavigationViewModel extends ChangeNotifier {
   NavigationViewModel(this._settings);
 
   final UserSettings _settings;
+
+  final StreamController<HardNavigation> _hardNavigationController =
+      StreamController<HardNavigation>.broadcast(sync: true);
+
+  Stream<HardNavigation> get hardNavigation => _hardNavigationController.stream;
 
   final ValueNotifier<Reference?> anchor = ValueNotifier(
     const Reference(bookId: 1, chapter: 1, verse: 1),
@@ -122,11 +134,17 @@ class NavigationViewModel extends ChangeNotifier {
     );
   }
 
-  void navigateTo(Reference ref, {bool persist = true, bool animated = false}) {
+  void navigateTo(
+    Reference ref, {
+    bool persist = true,
+    bool animated = false,
+    bool hard = true,
+  }) {
     clearActiveSource();
     _writeAnchor(ref);
     _seek(ref, animated: animated);
     if (persist) unawaited(_persistChapter(ref.bookId, ref.chapter));
+    if (hard) _hardNavigationController.add(HardNavigation(ref));
   }
 
   void seekTo(Reference ref, {bool animated = false}) {
@@ -257,6 +275,7 @@ class NavigationViewModel extends ChangeNotifier {
 
   @override
   void dispose() {
+    unawaited(_hardNavigationController.close());
     _audioReferenceNotifier?.removeListener(_onAudioReferenceChanged);
     anchor.dispose();
     super.dispose();

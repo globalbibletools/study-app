@@ -132,11 +132,21 @@ class _HomeScreenState extends State<HomeScreen> {
                 displayVerse: ref?.verse ?? 1,
                 readingSessionStarted: readingSessionStarted,
                 onBookSelected: (bookId) =>
-                    manager.onBookSelected(context, bookId),
-                onChapterSelected: manager.onChapterSelected,
+                    manager.navigationViewModel.navigateTo(
+                      Reference(bookId: bookId, chapter: 1, verse: 1),
+                    ),
+                onChapterSelected: (chapter) =>
+                    manager.navigationViewModel.navigateTo(
+                      Reference(
+                        bookId: manager.currentBookId,
+                        chapter: chapter,
+                        verse: 1,
+                      ),
+                    ),
                 onVerseSelected: (verse) {
                   // Manual taps intentionally supersede an in-flight drag.
-                  manager.navigationViewModel.navigateTo(
+                  manager.navigationViewModel.clearActiveSource();
+                  manager.navigationViewModel.seekTo(
                     Reference(
                       bookId: ref?.bookId ?? 1,
                       chapter: ref?.chapter ?? 1,

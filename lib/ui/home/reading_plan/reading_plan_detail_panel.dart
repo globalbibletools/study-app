@@ -268,11 +268,7 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
                 verse = 1;
               }
 
-              widget.homeManager.onBookSelected(context, bookId);
-
-              widget.homeManager.onChapterSelected(chapter);
-
-              widget.homeManager.navigationViewModel.seekTo(
+              widget.homeManager.navigationViewModel.navigateTo(
                 Reference(bookId: bookId, chapter: chapter, verse: verse),
               );
 
