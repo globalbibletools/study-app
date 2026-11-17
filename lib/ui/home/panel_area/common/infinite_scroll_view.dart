@@ -13,6 +13,9 @@ export 'package:gbt/ui/home/panel_area/common/verse_sync_layout.dart'
 
 const _topScrollOffset = 16.0;
 
+/// Deltas smaller than this are not worth animating; jump straight there.
+const _animatedSeekMinDelta = 1.0;
+
 /// Padding added below the last chapter of scripture so it can scroll fully
 /// into view. Mirrored in [_buildSyncLayout] so the bottom extreme of the
 /// scrollable resolves to the real end of the content.
@@ -55,43 +58,13 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
   final Map<ChapterIdentifier, GlobalKey> _chapterKeys = {};
   final Map<ChapterIdentifier, ChapterGeometry?> _chapterGeometries = {};
   final String _panelId = UniqueKey().toString();
-  StreamSubscription? _verseJumpSubscription;
-  VerseHighlight? _pendingJump;
-  int _retryCount = 0;
-
-  // Flag to prevent the scroll listener from overwriting the selected verse
-  // with the geometrically visible verse during a programmatic jump.
-  bool _isProgrammaticScroll = false;
   int? _lastVisibleBookId;
-
-  // Follower late-alignment retry (chapter data/geometry can arrive late).
-  int _alignmentRetryCount = 0;
-  bool _alignmentRetryScheduled = false;
 
   @override
   void initState() {
     super.initState();
     _scrollController = ScrollController()..addListener(_scrollListener);
     widget.syncController?.addListener(_onSyncReceived);
-
-    if (widget.syncController != null) {
-      _verseJumpSubscription = widget.syncController!.onVerseJump.listen(
-        _handleVerseJump,
-      );
-
-      if (widget.syncController!.pendingVerseJump != null) {
-        final pending = widget.syncController!.pendingVerseJump!;
-        if (pending.bookId == widget.bookId &&
-            pending.chapter == widget.chapter) {
-          _pendingJump = pending;
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted && _pendingJump != null) {
-              _handleVerseJump(_pendingJump!);
-            }
-          });
-        }
-      }
-    }
 
     _resetChapters();
 
@@ -105,7 +78,6 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
   }
 
   void _onSyncReceived() {
-    _alignmentRetryCount = 0;
     _tryAlignToController();
   }
 
@@ -122,6 +94,7 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
 
     // If the truth lives in a chapter we have not loaded, re-center there.
     // Never do this while this panel is the active source (checked above).
+    // Alignment resumes once the new chapters publish their geometry.
     final targetChapter = SyncLayout(const []).chapterForPosition(position);
     if (targetChapter != null) {
       final targetId = ChapterIdentifier(
@@ -130,16 +103,21 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
       );
       if (!_chapterKeys.containsKey(targetId)) {
         _resetChaptersTo(targetChapter.bookId, targetChapter.chapter);
-        _scheduleAlignmentRetry();
         return;
       }
     }
 
     final layout = _buildSyncLayout();
-    final targetPixels = layout?.resolvePosition(position);
-    if (layout == null || targetPixels == null) {
-      _scheduleAlignmentRetry();
-      return;
+    var targetPixels = layout?.resolvePosition(position);
+    if (layout == null || targetPixels == null) return;
+
+    // Explicit seeks get a little breathing room at the top of the viewport,
+    // but verse 1 already has the chapter title above it. Scroll-follow
+    // alignment must not apply this: leaders and followers have to resolve
+    // anchors identically or continuous sync drifts.
+    if (controller.lastUpdateIsSeek) {
+      final targetVerse = position.from.ref?.verse ?? 1;
+      if (targetVerse > 1) targetPixels -= _topScrollOffset;
     }
 
     final scrollPosition = _scrollController.position;
@@ -148,25 +126,18 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
       scrollPosition.maxScrollExtent,
     );
 
-    _alignmentRetryCount = 0;
-    if ((_scrollController.offset - clamped).abs() > 0.5) {
-      _isProgrammaticScroll = true;
+    final delta = (_scrollController.offset - clamped).abs();
+    if (delta <= 0.5) return;
+
+    if (controller.lastUpdateAnimated && delta > _animatedSeekMinDelta) {
+      _scrollController.animateTo(
+        clamped,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      );
+    } else {
       _scrollController.jumpTo(clamped);
-      _isProgrammaticScroll = false;
     }
-  }
-
-  void _scheduleAlignmentRetry() {
-    if (!mounted || _alignmentRetryScheduled) return;
-    if (_alignmentRetryCount >= 20) return;
-
-    _alignmentRetryCount++;
-    _alignmentRetryScheduled = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _alignmentRetryScheduled = false;
-      if (!mounted) return;
-      _tryAlignToController();
-    });
   }
 
   void _resetChapters() {
@@ -284,12 +255,6 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
 
   void _scrollListener() {
     _handleInfiniteScrollLoading();
-
-    // If we are scrolling programmatically (jumping to a verse),
-    // do not report geometric position. The jump logic handles reporting
-    // the specific target verse.
-    if (_isProgrammaticScroll) return;
-
     _updateVisibleBook();
 
     // Only calculate and report sync if WE are the active source
@@ -378,128 +343,9 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
 
   @override
   void dispose() {
-    _verseJumpSubscription?.cancel();
     widget.syncController?.removeListener(_onSyncReceived);
     _scrollController.dispose();
     super.dispose();
-  }
-
-  void _handleVerseJump(VerseHighlight target) {
-    // If this specific panel is being touched/dragged by the user, ignore auto-scrolls.
-    if (widget.syncController != null &&
-        widget.syncController!.isSourceActive(_panelId) &&
-        target.isAuto) {
-      return;
-    }
-
-    // Find if the target chapter is currently displayed
-    final targetId = ChapterIdentifier(target.bookId, target.chapter);
-    if (!_chapterKeys.containsKey(targetId)) {
-      _scheduleRetry(target);
-      return;
-    }
-
-    final slice = _chapterSlice(targetId);
-    final geometry = _chapterGeometries[targetId];
-    if (slice == null || geometry == null) {
-      _scheduleRetry(target);
-      return;
-    }
-
-    final verseOffset = _verseOffsetFor(geometry, target.verse);
-
-    if (verseOffset == null) {
-      _pendingJump = null;
-      _retryCount = 0;
-      widget.syncController?.clearPendingJump();
-      return;
-    }
-
-    _pendingJump = null;
-    _retryCount = 0;
-    widget.syncController?.clearPendingJump();
-
-    _isProgrammaticScroll = true;
-    widget.syncController?.setActiveSource(_panelId);
-
-    // Perform the scroll (Animate if Auto, Jump if Manual) and report the
-    // actual landed unit afterwards, so jump styling stays a separate layer.
-    () async {
-      await _scrollToAbsolutePosition(
-        slice.top,
-        verseOffset,
-        animate: target.isAuto,
-        verseNumber: target.verse,
-      );
-
-      if (!mounted) return;
-      _isProgrammaticScroll = false;
-      if (widget.syncController == null) return;
-
-      if (widget.syncController!.isSourceActive(_panelId)) {
-        _reportSyncPosition();
-        widget.syncController!.clearActiveSource();
-      }
-    }();
-  }
-
-  double? _verseOffsetFor(ChapterGeometry geometry, int verse) {
-    final span = geometry.spans[verse];
-    if (span != null) return span.start;
-
-    int? next;
-    for (final candidate in geometry.spans.keys) {
-      if (candidate > verse && (next == null || candidate < next)) {
-        next = candidate;
-      }
-    }
-
-    if (next == null) return null;
-    return geometry.spans[next]!.start;
-  }
-
-  void _scheduleRetry(VerseHighlight target) {
-    _pendingJump = target;
-    if (_retryCount < 10) {
-      _retryCount++;
-      Future.delayed(const Duration(milliseconds: 50), () {
-        if (mounted && _pendingJump != null) {
-          _handleVerseJump(_pendingJump!);
-        }
-      });
-    }
-  }
-
-  Future<void> _scrollToAbsolutePosition(
-    double chapterTop,
-    double offsetInsideChapter, {
-    required bool animate,
-    required int verseNumber,
-  }) async {
-    // Calculate absolute scroll position
-    double targetPixels = chapterTop + offsetInsideChapter;
-
-    // Subtract 16 pixels so the verse isn't glued to the top of the viewport,
-    // unless it's verse 1 (which has the chapter title above it).
-    if (verseNumber > 1) {
-      targetPixels -= _topScrollOffset;
-    }
-
-    // Clamp to bounds
-    targetPixels = targetPixels.clamp(
-      _scrollController.position.minScrollExtent,
-      _scrollController.position.maxScrollExtent,
-    );
-
-    if (animate) {
-      await _scrollController.animateTo(
-        targetPixels,
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeInOut,
-      );
-    } else {
-      _scrollController.jumpTo(targetPixels);
-    }
   }
 
   @override
@@ -557,17 +403,13 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
     // Detect Start of Manual Drag
     if (notification is ScrollStartNotification) {
       if (notification.dragDetails != null) {
-        _isProgrammaticScroll = false;
         widget.syncController!.setActiveSource(_panelId);
       }
     }
 
     // Detect End of Manual Drag / Momentum
     if (notification is ScrollEndNotification) {
-      // A programmatic verse jump keeps ownership until it reports the unit
-      // it actually landed on.
-      if (!_isProgrammaticScroll &&
-          widget.syncController!.isSourceActive(_panelId)) {
+      if (widget.syncController!.isSourceActive(_panelId)) {
         widget.syncController!.clearActiveSource();
       }
     }
@@ -581,15 +423,16 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
         // Check who is the active source
         if (widget.syncController!.isSourceActive(_panelId)) {
           // Case A: We are the active source (User zoomed us).
-          if (!_isProgrammaticScroll) {
-            _reportSyncPosition();
-          }
+          _reportSyncPosition();
         } else {
           // Case B: We are the other panel.
           // Re-align ourselves to match the active panel's target.
           _onSyncReceived();
         }
       });
+      // Geometry is often published from a post-frame callback, where adding
+      // another post-frame callback does not itself schedule a frame.
+      WidgetsBinding.instance.ensureVisualUpdate();
     }
 
     return false;

@@ -1,6 +1,7 @@
 import 'dart:developer';
 
 import 'package:flutter/material.dart';
+import 'package:gbt/common/reference.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/l10n/book_names.dart';
 import 'package:gbt/services/reading_session/rs_model.dart';
@@ -425,10 +426,12 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
 
                           widget.homeManager.onChapterSelected(chapter);
 
-                          widget.homeManager.syncController.jumpToVerse(
-                            bookId,
-                            chapter,
-                            verse,
+                          widget.homeManager.syncController.seekTo(
+                            Reference(
+                              bookId: bookId,
+                              chapter: chapter,
+                              verse: verse,
+                            ),
                           );
 
                           widget.onClose();

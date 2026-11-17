@@ -39,12 +39,14 @@ class _FakeChapter extends StatefulWidget {
     required this.chapter,
     required this.geometry,
     this.height = _chapterHeight,
+    this.publishGeometry = true,
   });
 
   final int bookId;
   final int chapter;
   final ChapterGeometry geometry;
   final double height;
+  final bool publishGeometry;
 
   @override
   State<_FakeChapter> createState() => _FakeChapterState();
@@ -61,14 +63,16 @@ class _FakeChapterState extends State<_FakeChapter> {
   void didUpdateWidget(covariant _FakeChapter oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.geometry != oldWidget.geometry ||
-        widget.height != oldWidget.height) {
+        widget.height != oldWidget.height ||
+        widget.publishGeometry != oldWidget.publishGeometry) {
       _publishGeometry();
     }
   }
 
   void _publishGeometry() {
+    if (!widget.publishGeometry) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
+      if (!mounted || !widget.publishGeometry) return;
       ChapterGeometryChangedNotification(
         bookId: widget.bookId,
         chapter: widget.chapter,
@@ -90,6 +94,7 @@ Widget _panel({
   required int chapter,
   required ChapterGeometry Function(int bookId, int chapter) geometryFor,
   double chapterHeight = _chapterHeight,
+  bool publishGeometry = true,
 }) {
   return SizedBox(
     key: key,
@@ -103,6 +108,7 @@ Widget _panel({
         chapter: ch,
         geometry: geometryFor(bId, ch),
         height: chapterHeight,
+        publishGeometry: publishGeometry,
       ),
     ),
   );
@@ -538,7 +544,7 @@ void main() {
     },
   );
 
-  testWidgets('audio-driven jump scrolls to the target verse', (tester) async {
+  testWidgets('audio-driven seek animates to the target verse', (tester) async {
     final controller = ScrollSyncController();
     const followerKey = Key('follower');
 
@@ -557,18 +563,84 @@ void main() {
     );
     await tester.pump();
 
-    controller.jumpToVerse(1, 2, 4, isAuto: true);
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 600));
-    await tester.pumpAndSettle(const Duration(milliseconds: 50));
+    controller.seekTo(
+      const Reference(bookId: 1, chapter: 2, verse: 4),
+      animated: true,
+    );
+    await tester.pumpAndSettle();
 
-    // Verse 4 starts at 60px; the jump keeps 16px of breathing room.
+    // Verse 4 starts at 60px; the seek keeps 16px of breathing room.
     expect(_pixels(tester, followerKey), closeTo(44, 0.5));
     expect(controller.position, isNotNull);
     expect(
       controller.displayReference,
       const Reference(bookId: 1, chapter: 2, verse: 4),
     );
+  });
+
+  testWidgets('manual seek jumps to the target verse with breathing room', (
+    tester,
+  ) async {
+    final controller = ScrollSyncController();
+    const followerKey = Key('follower');
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: _panel(
+            key: followerKey,
+            controller: controller,
+            bookId: 1,
+            chapter: 2,
+            geometryFor: (_, _) => _verseGeometry(),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    controller.seekTo(const Reference(bookId: 1, chapter: 2, verse: 4));
+    await tester.pump();
+
+    expect(_pixels(tester, followerKey), closeTo(44, 0.5));
+    await tester.pump(const Duration(milliseconds: 250));
+  });
+
+  testWidgets('a seek before geometry is published completes on publish', (
+    tester,
+  ) async {
+    final controller = ScrollSyncController();
+    const followerKey = Key('follower');
+    var publishGeometry = false;
+
+    Widget buildPanel() => MaterialApp(
+      home: Scaffold(
+        body: _panel(
+          key: followerKey,
+          controller: controller,
+          bookId: 1,
+          chapter: 2,
+          publishGeometry: publishGeometry,
+          geometryFor: (_, _) => _verseGeometry(),
+        ),
+      ),
+    );
+
+    await tester.pumpWidget(buildPanel());
+    await tester.pump();
+
+    controller.seekTo(const Reference(bookId: 1, chapter: 2, verse: 4));
+    await tester.pump();
+
+    // No geometry yet: alignment is a silent no-op, not a retry poll.
+    expect(_pixels(tester, followerKey), closeTo(0, 0.5));
+
+    publishGeometry = true;
+    await tester.pumpWidget(buildPanel());
+    await tester.pump();
+    await tester.pump();
+
+    expect(_pixels(tester, followerKey), closeTo(44, 0.5));
     await tester.pump(const Duration(milliseconds: 250));
   });
 }

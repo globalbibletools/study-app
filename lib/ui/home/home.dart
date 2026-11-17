@@ -134,10 +134,14 @@ class _HomeScreenState extends State<HomeScreen> {
                     manager.onBookSelected(context, bookId),
                 onChapterSelected: manager.onChapterSelected,
                 onVerseSelected: (verse) {
-                  manager.syncController.jumpToVerse(
-                    manager.currentBookId,
-                    manager.currentChapter,
-                    verse,
+                  // Manual taps intentionally supersede an in-flight drag.
+                  manager.syncController.clearActiveSource();
+                  manager.syncController.seekTo(
+                    Reference(
+                      bookId: manager.currentBookId,
+                      chapter: manager.currentChapter,
+                      verse: verse,
+                    ),
                   );
                 },
                 onInputModeChanged: manager.setInputMode,

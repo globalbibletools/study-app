@@ -265,7 +265,7 @@ void main() {
       expect(homeManager.audioPlayerViewModel.reference.value, isNull);
     });
 
-    test('jumpToContextReference sets pendingVerseJump on syncController', () {
+    test('jumpToContextReference seeks the sync controller', () {
       const targetRef = Reference(bookId: 8, chapter: 4, verse: 17);
       const word = WordDetails(
         word: 'דָּוִד',
@@ -284,10 +284,13 @@ void main() {
 
       homeManager.jumpToContextReference(context);
 
-      expect(homeManager.syncController.pendingVerseJump, isNotNull);
-      expect(homeManager.syncController.pendingVerseJump!.bookId, 8);
-      expect(homeManager.syncController.pendingVerseJump!.chapter, 4);
-      expect(homeManager.syncController.pendingVerseJump!.verse, 17);
+      final position = homeManager.syncController.position!;
+      const target = Anchor(targetRef, AnchorEnd.start);
+      expect(position.from, target);
+      expect(position.to, target);
+      expect(position.t, 0);
+      expect(homeManager.syncController.displayReference, targetRef);
+      expect(homeManager.syncController.lastUpdateIsSeek, isTrue);
     });
 
     test('startWordStudy captures originalReference and creates session', () {

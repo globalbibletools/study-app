@@ -352,7 +352,7 @@ class HomeManager {
       );
       saveBookAndChapter(ref.bookId, ref.chapter);
       syncController.clearActiveSource();
-      syncController.jumpToVerse(ref.bookId, ref.chapter, ref.verse);
+      syncController.seekTo(ref);
       flashWord(wordIdToFlash);
     } else {
       final current = currentReference.value;
@@ -384,7 +384,7 @@ class HomeManager {
     // Note: Do not saveBookAndChapter here as this is a temporary preview!
 
     syncController.clearActiveSource();
-    syncController.jumpToVerse(ref.bookId, ref.chapter, ref.verse);
+    syncController.seekTo(ref);
     flashVerse(ref);
   }
 

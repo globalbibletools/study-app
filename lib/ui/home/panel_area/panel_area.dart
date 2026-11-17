@@ -134,10 +134,6 @@ class BiblePanelArea extends StatelessWidget {
 
     manager.onChapterSelected(resume.chapter);
 
-    manager.syncController.jumpToVerse(
-      resume.bookId,
-      resume.chapter,
-      resume.verse,
-    );
+    manager.syncController.seekTo(resume);
   }
 }
