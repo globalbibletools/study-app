@@ -3,6 +3,7 @@ import 'package:gbt/common/reference.dart';
 import 'package:gbt/services/reading_session/reading_plan_service.dart';
 import 'package:gbt/services/reading_session/rs_model.dart';
 import 'package:gbt/ui/home/home_manager.dart';
+import 'package:gbt/ui/home/reading_plan/reading_plan_estimates.dart';
 import 'package:gbt/ui/home/reading_plan/reading_session_view_model.dart';
 import 'package:gbt/services/service_locator.dart';
 
@@ -104,8 +105,7 @@ class ReadingPlanPanelViewModel extends ChangeNotifier {
   }
 
   Reference resumeTargetFor(ReadingPlanDetails plan) {
-    return plan.resumePosition ??
-        Reference(bookId: plan.books[0].bookId, chapter: 1, verse: 1);
+    return ReadingPlanEstimates.resumeTargetFor(plan);
   }
 
   @override

@@ -4,6 +4,7 @@ import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/services/reading_session/reading_plan_service.dart';
 import 'package:gbt/services/reading_session/rs_model.dart';
 import 'package:gbt/services/service_locator.dart';
+import 'package:gbt/ui/home/reading_plan/reading_plan_estimates.dart';
 
 class EditReadingPlanViewModel extends ChangeNotifier {
   final ReadingPlanDetails readingPlan;
@@ -114,14 +115,15 @@ class EditReadingPlanViewModel extends ChangeNotifier {
       totalVerses += _bibleNavigation.getTotalVerseCount(bookId);
     }
 
-    if (_goalType == GoalType.verses) {
-      return (totalVerses / _goalValue).ceil().clamp(1, 100000);
-    }
-    final totalMinutes = (totalVerses / 5).ceil();
-    return (totalMinutes / _goalValue).ceil().clamp(1, 100000);
+    return ReadingPlanEstimates.daysFor(
+      remainingVerses: totalVerses,
+      goalType: _goalType,
+      goalValue: _goalValue,
+    ).clamp(1, 100000);
   }
 
-  double get estimatedMonths => estimatedDays / 30.44;
+  double get estimatedMonths =>
+      ReadingPlanEstimates.monthsForDays(estimatedDays);
 
   Future<bool> submit() async {
     if (!canSubmit) return false;
