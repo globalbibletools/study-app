@@ -449,11 +449,7 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
     _lastReportedPosition = position;
     _lastReportedDisplay = display;
 
-    controller.updatePosition(
-      _panelId,
-      position,
-      displayReference: display,
-    );
+    controller.updatePosition(_panelId, position, displayReference: display);
   }
 
   @override
@@ -507,13 +503,12 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
     sliverContext.visitChildElements(visitor);
 
     if (geometry != null && actualState != null) {
-      // Verse 1 deliberately shows the chapter title above it.
-      final verseOffset = target.verse == 1
-          ? 0.0
-          : geometry!.spans[target.verse]?.start;
+      final verseOffset = _verseOffsetFor(geometry!, target.verse);
 
       if (verseOffset == null) {
-        _scheduleRetry(target);
+        _pendingJump = null;
+        _retryCount = 0;
+        widget.syncController?.clearPendingJump();
         return;
       }
 
@@ -546,6 +541,26 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
     } else {
       _scheduleRetry(target);
     }
+  }
+
+  double? _verseOffsetFor(ChapterGeometry geometry, int verse) {
+    final span = geometry.spans[verse];
+    if (span != null) return span.start;
+
+    int? previous;
+    int? next;
+    for (final candidate in geometry.spans.keys) {
+      if (candidate < verse && (previous == null || candidate > previous)) {
+        previous = candidate;
+      }
+      if (candidate > verse && (next == null || candidate < next)) {
+        next = candidate;
+      }
+    }
+
+    if (previous != null) return geometry.spans[previous]!.end;
+    if (next != null) return geometry.spans[next]!.start;
+    return null;
   }
 
   void _scheduleRetry(VerseHighlight target) {

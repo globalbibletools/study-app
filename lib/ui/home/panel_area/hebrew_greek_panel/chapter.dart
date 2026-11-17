@@ -124,7 +124,11 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter>
     final textRenderBox =
         _hebrewGreekTextKey.currentContext?.findRenderObject() as RenderBox?;
     final chapterRenderBox = context.findRenderObject() as RenderBox?;
-    if (textRenderBox == null || chapterRenderBox == null) return null;
+    if (textRenderBox == null ||
+        chapterRenderBox == null ||
+        !chapterRenderBox.hasSize) {
+      return null;
+    }
 
     final textTopLeftInChapter = textRenderBox.localToGlobal(
       Offset.zero,
@@ -134,21 +138,20 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter>
 
     final translated = textGeometry.translated(dy);
 
-    // The chapter title belongs to the first verse that follows it; only the
-    // blank space around it stays outside any span.
     final headings = <HeadingRect>[];
-    final titleBox =
-        _titleKey.currentContext?.findRenderObject() as RenderBox?;
+    final titleBox = _titleKey.currentContext?.findRenderObject() as RenderBox?;
     if (titleBox != null && titleBox.attached && titleBox.hasSize) {
       final top = titleBox
           .localToGlobal(Offset.zero, ancestor: chapterRenderBox)
           .dy;
-      headings.add(
-        HeadingRect(top: top, bottom: top + titleBox.size.height),
-      );
+      headings.add(HeadingRect(top: top, bottom: top + titleBox.size.height));
     }
 
-    return buildGeometry(spans: translated.spans, headings: headings);
+    return buildGeometry(
+      spans: translated.spans,
+      headings: headings,
+      height: chapterRenderBox.size.height,
+    );
   }
 
   ValueNotifier<String?>? get _flashedWordIdNotifier {

@@ -1095,14 +1095,17 @@ class RenderHebrewGreekText extends RenderBox {
     final double finalHeight = crossAxisOffset + currentLineMaxHeight;
 
     controller?._updateGeometry(
-      geometryFromLines([
-        for (final line in _lineMetrics)
-          LineLayout(
-            top: line.top,
-            bottom: line.bottom,
-            startingVerses: line.startingVerses,
-          ),
-      ], verseCount: _verseRenderer.length),
+      geometryFromLines(
+        [
+          for (final line in _lineMetrics)
+            LineLayout(
+              top: line.top,
+              bottom: line.bottom,
+              startingVerses: line.startingVerses,
+            ),
+        ],
+        verses: [for (final verse in _verseRenderer) verse.verse],
+      ),
     );
 
     if (spotlightRect != null) {

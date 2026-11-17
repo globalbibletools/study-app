@@ -107,20 +107,19 @@ void main() {
     final spans = geometry.spans.values.toList()
       ..sort((a, b) => a.start.compareTo(b.start));
 
-    expect(spans.first.start, greaterThan(0), reason: 'chapter title gap');
+    expect(spans.first.start, 0, reason: 'first verse owns chapter top');
     for (var i = 0; i < spans.length; i++) {
       expect(spans[i].end, greaterThanOrEqualTo(spans[i].start));
       if (i > 0) {
-        expect(spans[i].start, greaterThanOrEqualTo(spans[i - 1].start));
-        expect(spans[i].start, greaterThanOrEqualTo(spans[i - 1].end - 0.01));
+        expect(
+          spans[i].start,
+          spans[i - 1].end,
+          reason: 'verse spans must be contiguous',
+        );
       }
     }
 
-    // The chapter title is attributed to verse 1: its span starts at the
-    // title's top (container padding 8 + spacer 10 = 18px with the test
-    // font), so only the blank space above the title stays outside any
-    // span — not the 30px title itself.
-    expect(geometry.spans[1]!.start, closeTo(18, 3));
+    expect(geometry.spans[1]!.end, greaterThan(geometry.spans[1]!.start));
   }
 
   testWidgets('paragraph layout measures verse numbers from RenderPassage', (

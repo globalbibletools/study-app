@@ -223,9 +223,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 250));
   });
 
-  testWidgets('cross-chapter gap resolves between last and first verse', (
-    tester,
-  ) async {
+  testWidgets('cross-chapter boundary has no gap', (tester) async {
     final controller = ScrollSyncController();
     const followerKey = Key('follower');
 
@@ -237,8 +235,7 @@ void main() {
             controller: controller,
             bookId: 1,
             chapter: 2,
-            geometryFor: (_, chapter) =>
-                chapter == 1 ? _verseGeometry() : _verseGeometry(lead: 10),
+            geometryFor: (_, _) => _verseGeometry(),
           ),
         ),
       ),
@@ -246,22 +243,33 @@ void main() {
     await tester.pump();
 
     controller.setActiveSource('leader');
-    controller.updatePosition(
-      'leader',
-      SyncPosition(
-        Anchor(const Reference(bookId: 1, chapter: 1, verse: 5), AnchorEnd.end),
-        Anchor(
-          const Reference(bookId: 1, chapter: 2, verse: 1),
-          AnchorEnd.start,
-        ),
-        0.5,
-      ),
-      displayReference: null,
-    );
-    await tester.pump();
 
-    // Chapter 1 ends at global 0 and chapter 2's first verse starts at 10.
-    expect(_pixels(tester, followerKey), closeTo(5, 0.5));
+    void report(double t) {
+      controller.updatePosition(
+        'leader',
+        SyncPosition(
+          Anchor(
+            const Reference(bookId: 1, chapter: 1, verse: 5),
+            AnchorEnd.end,
+          ),
+          Anchor(
+            const Reference(bookId: 1, chapter: 2, verse: 1),
+            AnchorEnd.start,
+          ),
+          t,
+        ),
+        displayReference: null,
+      );
+    }
+
+    report(0);
+    await tester.pump();
+    final atBoundary = _pixels(tester, followerKey);
+
+    report(1);
+    await tester.pump();
+    expect(_pixels(tester, followerKey), closeTo(atBoundary, 0.5));
+
     await tester.pump(const Duration(milliseconds: 250));
   });
 
@@ -405,9 +413,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 250));
   });
 
-  testWidgets('null top anchor maps to the top of loaded content', (
-    tester,
-  ) async {
+  testWidgets('null top anchor maps to the top of the chapter', (tester) async {
     final controller = ScrollSyncController();
     const followerKey = Key('follower');
 
@@ -441,81 +447,63 @@ void main() {
     );
     await tester.pump();
 
-    // The leader's leading-gap report expands the verse-1 anchor by half the
-    // follower's 20px leading gap, so t=0.5 lands at 10px: the follower
-    // traverses the top half of its gap during the leader's gap and the
-    // bottom half while verse 1 scrolls in.
-    expect(_pixels(tester, followerKey), closeTo(5, 0.5));
+    expect(_pixels(tester, followerKey), closeTo(0, 0.5));
     await tester.pump(const Duration(milliseconds: 250));
   });
 
-  testWidgets('a gap that exists only on the follower is absorbed', (
-    tester,
-  ) async {
-    final controller = ScrollSyncController();
-    const followerKey = Key('follower');
+  testWidgets(
+    'a follower-only verse is skipped when the leader jumps over it',
+    (tester) async {
+      final controller = ScrollSyncController();
+      const followerKey = Key('follower');
 
-    // Follower-only gap of 20px between verses 1 and 2.
-    final spans = {
-      1: const VerseSpan(verse: 1, start: 0, end: 40),
-      2: const VerseSpan(verse: 2, start: 60, end: 100),
-    };
-
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: _panel(
-            key: followerKey,
-            controller: controller,
-            bookId: 1,
-            chapter: 1,
-            geometryFor: (_, _) => ChapterGeometry(spans: spans),
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: _panel(
+              key: followerKey,
+              controller: controller,
+              bookId: 1,
+              chapter: 1,
+              geometryFor: (_, _) => _verseGeometry(),
+            ),
           ),
         ),
-      ),
-    );
-    await tester.pump();
-
-    controller.setActiveSource('leader');
-
-    void report(int verse, double t) {
-      controller.updatePosition(
-        'leader',
-        SyncPosition(
-          Anchor(
-            Reference(bookId: 1, chapter: 1, verse: verse),
-            AnchorEnd.start,
-          ),
-          Anchor(
-            Reference(bookId: 1, chapter: 1, verse: verse),
-            AnchorEnd.end,
-          ),
-          t,
-        ),
-        displayReference: null,
       );
-    }
+      await tester.pump();
 
-    // The leader reaches the end of its verse 1: the follower sits at the
-    // midpoint of its own gap instead of its verse-1 end.
-    report(1, 1);
-    await tester.pump();
-    final atBoundary = _pixels(tester, followerKey);
-    expect(atBoundary, closeTo(50, 0.5));
+      controller.setActiveSource('leader');
 
-    // The leader crosses into verse 2 (it has no gap there): the follower
-    // does not jump over its gap — it continues from the same pixel.
-    report(2, 0);
-    await tester.pump();
-    expect(_pixels(tester, followerKey), closeTo(atBoundary, 0.5));
+      void report(int verse, double t) {
+        controller.updatePosition(
+          'leader',
+          SyncPosition(
+            Anchor(
+              Reference(bookId: 1, chapter: 1, verse: verse),
+              AnchorEnd.start,
+            ),
+            Anchor(
+              Reference(bookId: 1, chapter: 1, verse: verse),
+              AnchorEnd.end,
+            ),
+            t,
+          ),
+          displayReference: null,
+        );
+      }
 
-    // And mid-verse 2 the follower is proportionally through its verse 2.
-    report(2, 0.5);
-    await tester.pump();
-    expect(_pixels(tester, followerKey), closeTo(75, 0.5));
+      report(1, 1);
+      await tester.pump();
+      final atBoundary = _pixels(tester, followerKey);
+      expect(atBoundary, closeTo(20, 0.5));
 
-    await tester.pump(const Duration(milliseconds: 250));
-  });
+      report(3, 0);
+      await tester.pump();
+      expect(_pixels(tester, followerKey), closeTo(atBoundary + 20, 0.5));
+
+      await tester.pump(const Duration(milliseconds: 250));
+    },
+  );
 
   testWidgets('audio-driven jump scrolls to the target verse', (tester) async {
     final controller = ScrollSyncController();

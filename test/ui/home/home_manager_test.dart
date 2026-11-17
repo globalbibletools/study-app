@@ -103,13 +103,12 @@ void main() {
 
     test('seeds the sync controller with a chapter-top interval', () {
       final position = homeManager.syncController.position!;
-      expect(
-        position.to,
-        const Anchor(
-          Reference(bookId: 1, chapter: 1, verse: 1),
-          AnchorEnd.start,
-        ),
+      const chapterTop = Anchor(
+        Reference(bookId: 1, chapter: 1, verse: 1),
+        AnchorEnd.start,
       );
+      expect(position.from, chapterTop);
+      expect(position.to, chapterTop);
       expect(position.t, 0);
       expect(
         homeManager.syncController.displayReference,
@@ -121,13 +120,12 @@ void main() {
       homeManager.onChapterSelected(2);
 
       final position = homeManager.syncController.position!;
-      expect(
-        position.to,
-        const Anchor(
-          Reference(bookId: 1, chapter: 2, verse: 1),
-          AnchorEnd.start,
-        ),
+      const chapterTop = Anchor(
+        Reference(bookId: 1, chapter: 2, verse: 1),
+        AnchorEnd.start,
       );
+      expect(position.from, chapterTop);
+      expect(position.to, chapterTop);
       expect(
         homeManager.syncController.displayReference,
         const Reference(bookId: 1, chapter: 2, verse: 1),

@@ -99,7 +99,6 @@ class SyncLayoutBlock {
   final Reference? verse;
 
   bool get isVerse => verse != null;
-  bool get isGap => verse == null;
   double get height => end - start;
 
   @override
@@ -135,44 +134,77 @@ class HeadingRect {
 
 ChapterGeometry buildGeometry({
   required Map<int, VerseSpan> spans,
+  required double height,
   List<HeadingRect> headings = const [],
 }) {
-  if (headings.isEmpty) {
-    return ChapterGeometry(spans: spans);
+  final adjusted = <int, VerseSpan>{
+    for (final span in spans.values) span.verse: span,
+  };
+
+  if (headings.isNotEmpty) {
+    final ordered = spans.values.toList()
+      ..sort((a, b) {
+        final byStart = a.start.compareTo(b.start);
+        return byStart != 0 ? byStart : a.verse.compareTo(b.verse);
+      });
+    final sortedHeadings = headings.toList()
+      ..sort((a, b) => a.top.compareTo(b.top));
+
+    for (final heading in sortedHeadings) {
+      // The verse the heading introduces: the first span at or below the
+      // heading's bottom.
+      VerseSpan? followed;
+      for (final span in ordered) {
+        if (span.start >= heading.bottom - _eps) {
+          followed = span;
+          break;
+        }
+      }
+      if (followed == null) continue;
+      if (heading.top >= followed.start - _eps) continue; // Defensive.
+
+      final current = adjusted[followed.verse]!;
+      adjusted[followed.verse] = VerseSpan(
+        verse: followed.verse,
+        start: math.min(current.start, heading.top),
+        end: current.end,
+      );
+    }
   }
+
+  return makeContiguousGeometry(spans: adjusted, height: height);
+}
+
+ChapterGeometry makeContiguousGeometry({
+  required Map<int, VerseSpan> spans,
+  required double height,
+}) {
+  if (spans.isEmpty) return const ChapterGeometry(spans: {});
 
   final ordered = spans.values.toList()
     ..sort((a, b) {
       final byStart = a.start.compareTo(b.start);
       return byStart != 0 ? byStart : a.verse.compareTo(b.verse);
     });
-  final sortedHeadings = headings.toList()
-    ..sort((a, b) => a.top.compareTo(b.top));
 
-  final adjusted = {for (final span in ordered) span.verse: span};
-
-  for (final heading in sortedHeadings) {
-    // The verse the heading introduces: the first span at or below the
-    // heading's bottom.
-    VerseSpan? followed;
-    for (final span in ordered) {
-      if (span.start >= heading.bottom - _eps) {
-        followed = span;
-        break;
-      }
-    }
-    if (followed == null) continue; // Trailing heading stays gap content.
-    if (heading.top >= followed.start - _eps) continue; // Defensive.
-
-    final current = adjusted[followed.verse]!;
-    adjusted[followed.verse] = VerseSpan(
-      verse: followed.verse,
-      start: math.min(current.start, heading.top),
-      end: current.end,
-    );
+  final boundedHeight = math.max(0.0, height);
+  final cuts = <double>[0.0];
+  for (var i = 1; i < ordered.length; i++) {
+    final rawStart = ordered[i].start.clamp(0.0, boundedHeight);
+    cuts.add(math.max(cuts.last, rawStart));
   }
+  cuts.add(boundedHeight);
 
-  return ChapterGeometry(spans: adjusted);
+  return ChapterGeometry(
+    spans: {
+      for (var i = 0; i < ordered.length; i++)
+        ordered[i].verse: VerseSpan(
+          verse: ordered[i].verse,
+          start: cuts[i],
+          end: math.max(cuts[i], cuts[i + 1]),
+        ),
+    },
+  );
 }
 
 class SyncLayout {
@@ -183,11 +215,6 @@ class SyncLayout {
   final List<ChapterLayoutSnapshot> chapters;
   final List<SyncLayoutBlock> _blocks = [];
   final Map<int, ChapterLayoutSnapshot> _chaptersByKey = {};
-
-  /// Gap heights adjacent to each verse block (keyed by verse reference),
-  /// used by gap absorption in [resolvePosition].
-  final Map<int, double> _gapBeforeByVerse = {};
-  final Map<int, double> _gapAfterByVerse = {};
 
   /// Blocks in document order, tiling the measured content.
   List<SyncLayoutBlock> get blocks => List.unmodifiable(_blocks);
@@ -200,196 +227,81 @@ class SyncLayout {
       _chaptersByKey[_chapterKey(bookId, chapter)];
 
   void _build(double trailingExtent) {
-    for (final snapshot in chapters) {
-      _chaptersByKey[_chapterKey(snapshot.bookId, snapshot.chapter)] = snapshot;
-    }
-
-    final pieces = <_RawPiece>[];
-
     for (var i = 0; i < chapters.length; i++) {
       final snapshot = chapters[i];
+      final geometry = snapshot.geometry;
+
+      if (geometry == null || geometry.spans.isEmpty) continue;
+
       final isLast = i == chapters.length - 1;
       final height = snapshot.height + (isLast ? trailingExtent : 0);
-      pieces.addAll(_piecesForChapter(snapshot, height));
-    }
-
-    // Merge adjacent gaps. This joins a chapter's trailing gap with the next
-    // chapter's leading gap into one cross-chapter gap.
-    final merged = <_RawPiece>[];
-    for (final piece in pieces) {
-      if (piece.isGap &&
-          merged.isNotEmpty &&
-          merged.last.isGap &&
-          (piece.start - merged.last.end).abs() <= _eps) {
-        final previous = merged.removeLast();
-        merged.add(
-          _RawPiece(
-            start: previous.start,
-            end: piece.end,
-            from: previous.from ?? piece.from,
-            to: piece.to ?? previous.to,
-          ),
-        );
-      } else {
-        merged.add(piece);
-      }
-    }
-
-    // Fill any remaining open side from the nearest verse block, then map the
-    // book extremes to null anchors.
-    for (var i = 0; i < merged.length; i++) {
-      final piece = merged[i];
-      if (!piece.isGap) continue;
-
-      Anchor? from = piece.from;
-      Anchor? to = piece.to;
-
-      if (from == null) {
-        for (var j = i - 1; j >= 0; j--) {
-          final previous = merged[j];
-          if (previous.verse != null) {
-            from = Anchor(previous.verse, AnchorEnd.end);
-            break;
-          }
-        }
-        from ??= const Anchor.top();
-      }
-
-      if (to == null) {
-        for (var j = i + 1; j < merged.length; j++) {
-          final next = merged[j];
-          if (next.verse != null) {
-            to = Anchor(next.verse, AnchorEnd.start);
-            break;
-          }
-        }
-        to ??= const Anchor.bottom();
-      }
-
-      merged[i] = _RawPiece(
-        start: piece.start,
-        end: piece.end,
-        from: from,
-        to: to,
+      final normalized = makeContiguousGeometry(
+        spans: geometry.spans,
+        height: height,
       );
-    }
+      if (normalized.spans.isEmpty) continue;
 
-    _blocks
-      ..clear()
-      ..addAll(
-        merged.map(
+      final normalizedSnapshot = ChapterLayoutSnapshot(
+        reference: snapshot.reference,
+        top: snapshot.top,
+        height: snapshot.height,
+        geometry: normalized,
+        firstVerse: normalized.firstVerse,
+        lastVerse: normalized.lastVerse,
+      );
+      _chaptersByKey[_chapterKey(
+            normalizedSnapshot.bookId,
+            normalizedSnapshot.chapter,
+          )] =
+          normalizedSnapshot;
+
+      _blocks.addAll(
+        _piecesForChapter(normalizedSnapshot, height).map(
           (piece) => SyncLayoutBlock(
             start: piece.start,
             end: piece.end,
-            from: piece.from ?? const Anchor.top(),
-            to: piece.to ?? const Anchor.bottom(),
+            from: piece.from,
+            to: piece.to,
             verse: piece.verse,
           ),
         ),
       );
-
-    _indexAdjacentGaps();
-  }
-
-  void _indexAdjacentGaps() {
-    _gapBeforeByVerse.clear();
-    _gapAfterByVerse.clear();
-    for (var i = 0; i < _blocks.length; i++) {
-      final block = _blocks[i];
-      if (!block.isVerse) continue;
-      final key = _refKey(block.verse!);
-      if (i > 0 && _blocks[i - 1].isGap) {
-        _gapBeforeByVerse[key] = _blocks[i - 1].height;
-      }
-      if (i + 1 < _blocks.length && _blocks[i + 1].isGap) {
-        _gapAfterByVerse[key] = _blocks[i + 1].height;
-      }
     }
   }
-
-  int _refKey(Reference ref) =>
-      ref.bookId * 1000000 + ref.chapter * 1000 + ref.verse;
 
   List<_RawPiece> _piecesForChapter(
     ChapterLayoutSnapshot snapshot,
     double height,
   ) {
     final geometry = snapshot.geometry;
+    if (geometry == null || geometry.spans.isEmpty) return const [];
+
     final chapterStart = snapshot.top;
-
-    if (geometry == null || geometry.spans.isEmpty) {
-      if (height <= _eps) return const [];
-      return [_RawPiece(start: chapterStart, end: chapterStart + height)];
-    }
-
     final orderedSpans = geometry.spans.values.toList()
       ..sort((a, b) {
         final byStart = a.start.compareTo(b.start);
         return byStart != 0 ? byStart : a.verse.compareTo(b.verse);
       });
-    final visibleSpans = orderedSpans
-        .map((span) {
-          final start = span.start.clamp(0.0, height);
-          final end = span.end.clamp(start, height);
-          return VerseSpan(verse: span.verse, start: start, end: end);
-        })
-        .where((span) => span.start < height - _eps)
-        .toList();
-
-    if (visibleSpans.isEmpty) {
-      if (height <= _eps) return const [];
-      return [_RawPiece(start: chapterStart, end: chapterStart + height)];
-    }
 
     final pieces = <_RawPiece>[];
-    var previousEnd = 0.0;
-    var isFirstSpan = true;
+    for (final span in orderedSpans) {
+      if (span.start >= height - _eps) continue;
 
-    for (final span in visibleSpans) {
-      final start = span.start + chapterStart;
-      final end = span.end + chapterStart;
+      final start = span.start.clamp(0.0, height);
+      final end = span.end.clamp(start, height);
       final verseRef = Reference(
         bookId: snapshot.bookId,
         chapter: snapshot.chapter,
         verse: span.verse,
       );
 
-      if (span.start > previousEnd + _eps) {
-        pieces.add(
-          _RawPiece(
-            start: previousEnd + chapterStart,
-            end: start,
-            // A leading gap has no anchor of its own; the stitching pass
-            // resolves it against the previous chapter's last verse.
-            from: isFirstSpan ? null : _verseAnchor(snapshot, previousEnd),
-            to: Anchor(verseRef, AnchorEnd.start),
-          ),
-        );
-      }
-
       pieces.add(
         _RawPiece(
-          start: start,
-          end: end,
+          start: chapterStart + start,
+          end: chapterStart + end,
           verse: verseRef,
           from: Anchor(verseRef, AnchorEnd.start),
           to: Anchor(verseRef, AnchorEnd.end),
-        ),
-      );
-
-      previousEnd = math.max(previousEnd, span.end);
-      isFirstSpan = false;
-    }
-
-    if (height > previousEnd + _eps) {
-      final lastVerseRef = _lastVerseRef(snapshot);
-      pieces.add(
-        _RawPiece(
-          start: previousEnd + chapterStart,
-          end: chapterStart + height,
-          from: lastVerseRef == null
-              ? null
-              : Anchor(lastVerseRef, AnchorEnd.end),
         ),
       );
     }
@@ -397,46 +309,16 @@ class SyncLayout {
     return pieces;
   }
 
-  Anchor? _verseAnchor(ChapterLayoutSnapshot snapshot, double localY) {
-    final geometry = snapshot.geometry;
-    if (geometry == null) return null;
-
-    VerseSpan? match;
-    for (final span in geometry.spans.values) {
-      if (span.end <= localY + _eps) {
-        if (match == null || span.end >= match.end) match = span;
-      }
-    }
-    if (match == null) return null;
-    return Anchor(
-      Reference(
-        bookId: snapshot.bookId,
-        chapter: snapshot.chapter,
-        verse: match.verse,
-      ),
-      AnchorEnd.end,
-    );
-  }
-
-  Reference? _lastVerseRef(ChapterLayoutSnapshot snapshot) {
-    final lastVerse = snapshot.geometry?.lastVerse ?? snapshot.lastVerse;
-    if (lastVerse == null) return null;
-    return Reference(
-      bookId: snapshot.bookId,
-      chapter: snapshot.chapter,
-      verse: lastVerse,
-    );
-  }
-
   /// The block containing [y] in scroll coordinates.
   SyncLayoutBlock? blockAt(double y) {
     if (_blocks.isEmpty) return null;
     for (final block in _blocks) {
+      if (y < block.start - _eps) return null;
       if (block.end > y + _eps) {
         return block;
       }
     }
-    return _blocks.last;
+    return y <= _blocks.last.end + _eps ? _blocks.last : null;
   }
 
   /// Resolves a leader report at [viewportTop].
@@ -470,11 +352,6 @@ class SyncLayout {
 
   /// Resolves an anchor in this layout, or null when its chapter/geometry is
   /// not available yet.
-  ///
-  /// This is the raw, unexpanded resolution: verse edges resolve to their
-  /// measured span edges and missing verses park at the previous verse that
-  /// exists. See [_resolveAnchorExpanded] for the smoothed resolution used by
-  /// [resolvePosition].
   double? resolveAnchor(Anchor anchor) {
     if (anchor.ref == null) {
       if (_blocks.isEmpty) return null;
@@ -518,67 +395,13 @@ class SyncLayout {
   }
 
   /// Resolves both anchors and interpolates by [SyncPosition.t].
-  ///
-  /// Anchors expand outward by half the gap adjacent to them in THIS layout
-  /// (gap absorption), so a gap that exists only on this panel is traversed
-  /// gradually while the leader scrolls the neighboring verse, instead of
-  /// being jumped over at the verse boundary. Consequences:
-  ///
-  /// - `t = 1` of a verse and `t = 0` of the next verse meet at the midpoint
-  ///   of the gap between them — one pixel, no jump.
-  /// - A gap the leader reports resolves to the degenerate band between the
-  ///   two half-gaps: the follower holds at the gap's midpoint while the
-  ///   leader crosses its own gap.
-  /// - A missing verse parks at the expanded end of the previous existing
-  ///   verse, so a run of missing verses holds at one point and hands off
-  ///   continuously to the next existing verse.
   double? resolvePosition(SyncPosition position) {
-    final from = _resolveAnchorExpanded(position.from);
-    final to = _resolveAnchorExpanded(position.to);
+    final from = resolveAnchor(position.from);
+    final to = resolveAnchor(position.to);
     if (from == null || to == null) return null;
     final low = math.min(from, to);
     final high = math.max(from, to);
     return low + (high - low) * position.t;
-  }
-
-  /// Resolves an anchor expanded outward by half its adjacent gap.
-  double? _resolveAnchorExpanded(Anchor anchor) {
-    if (anchor.ref == null) return resolveAnchor(anchor);
-
-    final ref = anchor.ref!;
-    final snapshot = chapterFor(ref.bookId, ref.chapter);
-    final geometry = snapshot?.geometry;
-    if (snapshot == null || geometry == null) return null;
-
-    final span = geometry.spans[ref.verse];
-    if (span != null) {
-      final raw =
-          snapshot.top + (anchor.end == AnchorEnd.end ? span.end : span.start);
-      final key = _refKey(ref);
-      return anchor.end == AnchorEnd.end
-          ? raw + (_gapAfterByVerse[key] ?? 0) / 2
-          : raw - (_gapBeforeByVerse[key] ?? 0) / 2;
-    }
-
-    // Missing verse: park like resolveAnchor, expanded the same way the
-    // neighboring existing anchor expands, so handoffs stay continuous.
-    final (previous, next) = _missingNeighbors(geometry, ref.verse);
-
-    if (previous != null) {
-      final previousKey = _refKey(
-        Reference(bookId: ref.bookId, chapter: ref.chapter, verse: previous),
-      );
-      final raw = snapshot.top + geometry.spans[previous]!.end;
-      return raw + (_gapAfterByVerse[previousKey] ?? 0) / 2;
-    }
-    if (next != null) {
-      final nextKey = _refKey(
-        Reference(bookId: ref.bookId, chapter: ref.chapter, verse: next),
-      );
-      final raw = snapshot.top + geometry.spans[next]!.start;
-      return raw - (_gapBeforeByVerse[nextKey] ?? 0) / 2;
-    }
-    return snapshot.top;
   }
 
   /// The chapter a position is currently inside, used to re-center a panel.
@@ -606,16 +429,14 @@ class _RawPiece {
   const _RawPiece({
     required this.start,
     required this.end,
-    this.from,
-    this.to,
-    this.verse,
+    required this.from,
+    required this.to,
+    required this.verse,
   });
 
   final double start;
   final double end;
-  final Anchor? from;
-  final Anchor? to;
-  final Reference? verse;
-
-  bool get isGap => verse == null;
+  final Anchor from;
+  final Anchor to;
+  final Reference verse;
 }

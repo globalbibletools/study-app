@@ -257,19 +257,18 @@ class _BibleChapterState extends State<BibleChapter>
       return;
     }
 
-    // The chapter title belongs to the verse that follows it; only the blank
-    // space around it stays outside any span.
     final headings = <HeadingRect>[];
-    final titleBox =
-        _titleKey.currentContext?.findRenderObject() as RenderBox?;
+    final titleBox = _titleKey.currentContext?.findRenderObject() as RenderBox?;
     if (titleBox != null && titleBox.attached && titleBox.hasSize) {
       final top = titleBox.localToGlobal(Offset.zero, ancestor: chapterBox).dy;
-      headings.add(
-        HeadingRect(top: top, bottom: top + titleBox.size.height),
-      );
+      headings.add(HeadingRect(top: top, bottom: top + titleBox.size.height));
     }
 
-    _geometry = buildGeometry(spans: spans, headings: headings);
+    _geometry = buildGeometry(
+      spans: spans,
+      headings: headings,
+      height: chapterBox.size.height,
+    );
 
     if (mounted) {
       const ChapterGeometryChangedNotification().dispatch(context);

@@ -28,13 +28,14 @@ class LineLayout {
 /// no rendered content parks at the end of the last verse that owned lines.
 ChapterGeometry geometryFromLines(
   List<LineLayout> lines, {
-  required int verseCount,
+  required Iterable<int> verses,
 }) {
   final spans = <int, VerseSpan>{};
+  final orderedVerses = verses.toSet().toList()..sort();
   var lineIndex = 0;
   var lastEnd = 0.0;
 
-  for (var verse = 1; verse <= verseCount; verse++) {
+  for (final verse in orderedVerses) {
     final List<int> starts = lineIndex < lines.length
         ? lines[lineIndex].startingVerses
         : const <int>[];

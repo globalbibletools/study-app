@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:gbt/ui/home/audio/audio_player_view_model.dart';
 import 'package:scripture/scripture.dart';
 import 'package:gbt/app_state.dart';
-import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/common/reference.dart';
 import 'package:gbt/l10n/app_languages.dart';
 import 'package:gbt/services/app_guide/app_guide_manager.dart';
@@ -135,42 +134,12 @@ class HomeManager {
     _seedChapterPosition(bookId, chapter);
   }
 
-  /// Seeds the controller with the gap that ends at the top of a chapter.
-  ///
-  /// When the previous chapter is loaded, this resolves to just above the
-  /// current chapter's title.
   void _seedChapterPosition(int bookId, int chapter) {
-    Anchor from = const Anchor.top();
-
-    final navigation = getIt.isRegistered<BibleNavigation>()
-        ? getIt<BibleNavigation>()
-        : null;
-    if (navigation != null) {
-      final previous = navigation.getPreviousChapter(
-        ChapterIdentifier(bookId, chapter),
-      );
-      if (previous != null) {
-        final lastVerse = navigation.getVerseCount(
-          previous.bookId,
-          previous.chapter,
-        );
-        if (lastVerse > 0) {
-          from = Anchor(
-            Reference(
-              bookId: previous.bookId,
-              chapter: previous.chapter,
-              verse: lastVerse,
-            ),
-            AnchorEnd.end,
-          );
-        }
-      }
-    }
-
     final firstRef = Reference(bookId: bookId, chapter: chapter, verse: 1);
+    final first = Anchor(firstRef, AnchorEnd.start);
     syncController.updatePosition(
       'manager',
-      SyncPosition(from, Anchor(firstRef, AnchorEnd.start), 0.0),
+      SyncPosition(first, first, 0.0),
       displayReference: firstRef,
     );
   }
