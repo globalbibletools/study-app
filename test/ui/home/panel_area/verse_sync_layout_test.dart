@@ -68,9 +68,14 @@ void main() {
       expect(resolve(4, AnchorEnd.end), resolve(6, AnchorEnd.start));
     });
 
-    test('missing verses park at the shared boundary', () {
+    test('missing verses project forward to the next existing verse', () {
       expect(resolve(5, AnchorEnd.start), 160);
       expect(resolve(5, AnchorEnd.end), 160);
+    });
+
+    test('missing verses with no later verse stay unresolved', () {
+      expect(resolve(7, AnchorEnd.start), isNull);
+      expect(resolve(7, AnchorEnd.end), isNull);
     });
 
     test('null anchors resolve to the loaded extremes', () {
@@ -202,6 +207,7 @@ void main() {
           3: _span(3, 60, 60),
           4: _span(4, 60, 140),
           6: _span(6, 140, 200),
+          10: _span(10, 200, 200),
         },
       ),
     ]);

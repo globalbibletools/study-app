@@ -137,48 +137,6 @@ ChapterGeometry buildGeometry({
   required double height,
   List<HeadingRect> headings = const [],
 }) {
-  final adjusted = <int, VerseSpan>{
-    for (final span in spans.values) span.verse: span,
-  };
-
-  if (headings.isNotEmpty) {
-    final ordered = spans.values.toList()
-      ..sort((a, b) {
-        final byStart = a.start.compareTo(b.start);
-        return byStart != 0 ? byStart : a.verse.compareTo(b.verse);
-      });
-    final sortedHeadings = headings.toList()
-      ..sort((a, b) => a.top.compareTo(b.top));
-
-    for (final heading in sortedHeadings) {
-      // The verse the heading introduces: the first span at or below the
-      // heading's bottom.
-      VerseSpan? followed;
-      for (final span in ordered) {
-        if (span.start >= heading.bottom - _eps) {
-          followed = span;
-          break;
-        }
-      }
-      if (followed == null) continue;
-      if (heading.top >= followed.start - _eps) continue; // Defensive.
-
-      final current = adjusted[followed.verse]!;
-      adjusted[followed.verse] = VerseSpan(
-        verse: followed.verse,
-        start: math.min(current.start, heading.top),
-        end: current.end,
-      );
-    }
-  }
-
-  return makeContiguousGeometry(spans: adjusted, height: height);
-}
-
-ChapterGeometry makeContiguousGeometry({
-  required Map<int, VerseSpan> spans,
-  required double height,
-}) {
   if (spans.isEmpty) return const ChapterGeometry(spans: {});
 
   final ordered = spans.values.toList()
@@ -186,25 +144,52 @@ ChapterGeometry makeContiguousGeometry({
       final byStart = a.start.compareTo(b.start);
       return byStart != 0 ? byStart : a.verse.compareTo(b.verse);
     });
+  final sortedHeadings = headings.toList()
+    ..sort((a, b) => a.bottom.compareTo(b.bottom));
 
   final boundedHeight = math.max(0.0, height);
-  final cuts = <double>[0.0];
-  for (var i = 1; i < ordered.length; i++) {
-    final rawStart = ordered[i].start.clamp(0.0, boundedHeight);
-    cuts.add(math.max(cuts.last, rawStart));
-  }
-  cuts.add(boundedHeight);
+  final result = <int, VerseSpan>{};
+  var headingIndex = 0;
+  var cut = 0.0;
+  var previousStart = 0.0;
+  int? previousVerse;
 
-  return ChapterGeometry(
-    spans: {
-      for (var i = 0; i < ordered.length; i++)
-        ordered[i].verse: VerseSpan(
-          verse: ordered[i].verse,
-          start: cuts[i],
-          end: math.max(cuts[i], cuts[i + 1]),
-        ),
-    },
-  );
+  for (var i = 0; i < ordered.length; i++) {
+    final span = ordered[i];
+    var start = span.start;
+
+    while (headingIndex < sortedHeadings.length &&
+        sortedHeadings[headingIndex].bottom - _eps <= span.start) {
+      final heading = sortedHeadings[headingIndex++];
+      if (heading.top < start - _eps) start = heading.top;
+    }
+
+    if (i > 0) {
+      cut = math.max(cut, start.clamp(0.0, boundedHeight));
+    }
+
+    if (previousVerse != null) {
+      result[previousVerse] = VerseSpan(
+        verse: previousVerse,
+        start: previousStart,
+        end: cut,
+      );
+    }
+
+    result[span.verse] = VerseSpan(verse: span.verse, start: cut, end: cut);
+    previousVerse = span.verse;
+    previousStart = cut;
+  }
+
+  if (previousVerse != null) {
+    result[previousVerse] = VerseSpan(
+      verse: previousVerse,
+      start: previousStart,
+      end: boundedHeight,
+    );
+  }
+
+  return ChapterGeometry(spans: result);
 }
 
 class SyncLayout {
@@ -235,10 +220,7 @@ class SyncLayout {
 
       final isLast = i == chapters.length - 1;
       final height = snapshot.height + (isLast ? trailingExtent : 0);
-      final normalized = makeContiguousGeometry(
-        spans: geometry.spans,
-        height: height,
-      );
+      final normalized = buildGeometry(spans: geometry.spans, height: height);
       if (normalized.spans.isEmpty) continue;
 
       final normalizedSnapshot = ChapterLayoutSnapshot(
@@ -369,29 +351,14 @@ class SyncLayout {
           (anchor.end == AnchorEnd.end ? span.end : span.start);
     }
 
-    // Missing verse: park at the end of the previous verse that exists.
-    final (previous, next) = _missingNeighbors(geometry, ref.verse);
-    if (previous != null) {
-      return snapshot.top + geometry.spans[previous]!.end;
-    }
-    if (next != null) {
-      return snapshot.top + geometry.spans[next]!.start;
-    }
-    return snapshot.top;
-  }
-
-  (int?, int?) _missingNeighbors(ChapterGeometry geometry, int verse) {
-    int? previous;
     int? next;
     for (final candidate in geometry.spans.keys) {
-      if (candidate < verse && (previous == null || candidate > previous)) {
-        previous = candidate;
-      }
-      if (candidate > verse && (next == null || candidate < next)) {
+      if (candidate > ref.verse && (next == null || candidate < next)) {
         next = candidate;
       }
     }
-    return (previous, next);
+    if (next == null) return null;
+    return snapshot.top + geometry.spans[next]!.start;
   }
 
   /// Resolves both anchors and interpolates by [SyncPosition.t].

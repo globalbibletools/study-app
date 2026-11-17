@@ -547,20 +547,15 @@ class InfiniteScrollViewState extends State<InfiniteScrollView> {
     final span = geometry.spans[verse];
     if (span != null) return span.start;
 
-    int? previous;
     int? next;
     for (final candidate in geometry.spans.keys) {
-      if (candidate < verse && (previous == null || candidate > previous)) {
-        previous = candidate;
-      }
       if (candidate > verse && (next == null || candidate < next)) {
         next = candidate;
       }
     }
 
-    if (previous != null) return geometry.spans[previous]!.end;
-    if (next != null) return geometry.spans[next]!.start;
-    return null;
+    if (next == null) return null;
+    return geometry.spans[next]!.start;
   }
 
   void _scheduleRetry(VerseHighlight target) {
