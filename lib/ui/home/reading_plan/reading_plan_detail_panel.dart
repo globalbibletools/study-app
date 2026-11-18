@@ -1,14 +1,11 @@
-import 'package:flutter/material.dart';
-import 'package:gbt/common/bible_navigation.dart';
-import 'package:gbt/common/reference.dart';
-import 'package:gbt/services/service_locator.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/l10n/book_names.dart';
 import 'package:gbt/services/reading_session/rs_model.dart';
 import 'package:gbt/ui/home/home_manager.dart';
 import 'package:gbt/ui/home/panel_area/common/calendar_view.dart';
-import 'package:gbt/ui/home/reading_plan/reading_plan_detail_panel_manager.dart';
-import 'package:gbt/ui/home/reading_plan/detailed_progress_panel.dart';
+import 'package:gbt/ui/home/reading_plan/day_activity_log_panel.dart';
+import 'package:gbt/ui/home/reading_plan/reading_plan_detail_view_model.dart';
 
 class ReadingPlanDetailPanel extends StatefulWidget {
   final ReadingPlanDetails readingPlanDetails;
@@ -27,39 +24,20 @@ class ReadingPlanDetailPanel extends StatefulWidget {
 }
 
 class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
-  late final _bibleNavigation = getIt<BibleNavigation>();
-  late final ReadingPlanDetailPanelManager manager;
-
-  /// Local, reorderable copy of the plan's books. Seeded from the widget and
-  /// kept in sync with drag-and-drop reordering while `_reorderMode` is on.
-  late List<ReadingPlanBook> _books;
-
-  bool _reorderMode = false;
-
-  /// Rough average reading pace, used only to convert a minutes-based daily
-  /// goal into an equivalent verses-per-day figure for the estimate below.
-  /// This is an approximation — swap in a measured pace from reading
-  /// sessions if/when that data is available.
-  static const double _estimatedVersesPerMinute = 8;
+  late final ReadingPlanDetailViewModel viewModel;
 
   @override
   void initState() {
     super.initState();
-    manager = ReadingPlanDetailPanelManager(widget.readingPlanDetails);
-    _books = List.of(widget.readingPlanDetails.books);
-  }
-
-  /// Re-reads the font scale from persisted settings into the notifier.
-  void refreshFromSettings() {}
-
-  @override
-  void didUpdateWidget(covariant ReadingPlanDetailPanel oldWidget) {
-    super.didUpdateWidget(oldWidget);
+    viewModel = ReadingPlanDetailViewModel(
+      plan: widget.readingPlanDetails,
+      homeManager: widget.homeManager,
+    );
   }
 
   @override
   void dispose() {
-    manager.dispose();
+    viewModel.dispose();
     super.dispose();
   }
 
@@ -75,14 +53,19 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
             decoration: const BoxDecoration(
               borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
             ),
-            child: Column(
-              children: [
-                _handle(),
-                const SizedBox(height: 16),
-                _topTitle(),
-                const SizedBox(height: 12),
-                Expanded(child: _content()),
-              ],
+            child: ListenableBuilder(
+              listenable: viewModel,
+              builder: (context, _) {
+                return Column(
+                  children: [
+                    _handle(),
+                    const SizedBox(height: 16),
+                    _topTitle(),
+                    const SizedBox(height: 12),
+                    Expanded(child: _content()),
+                  ],
+                );
+              },
             ),
           ),
         ),
@@ -113,7 +96,7 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
           ),
         ),
         Text(
-          widget.readingPlanDetails.readingPlan.planName,
+          viewModel.planName,
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
         ),
       ],
@@ -123,7 +106,7 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
   Widget _content() {
     return SingleChildScrollView(
       // While reordering, the ReorderableListView drives its own scrolling
-      // via NeverScrollableScrollPhysics below, so nesting here stays safe.
+      // via its shrink-wrapped, non-scrollable physics below.
       padding: EdgeInsets.all(8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -145,198 +128,149 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
   }
 
   Widget _progressHeader() {
-    final progress = widget.readingPlanDetails.totalVerses > 0
-        ? widget.readingPlanDetails.versesRead /
-              widget.readingPlanDetails.totalVerses
-        : 0.0;
-
-    final progressPercent = (progress * 100).round();
+    final progressPercent = viewModel.progressPercent;
     final l10n = AppLocalizations.of(context)!;
+    final resumePosition = viewModel.resumePosition;
 
-    final Widget bookmarkWidget = ValueListenableBuilder<bool>(
-      valueListenable: manager.bookmarkNotifier,
-      builder: (_, isBookmarked, child) {
-        return IconButton(
-          icon: Icon(isBookmarked ? Icons.bookmark : Icons.bookmark_border),
-          onPressed: () {
-            manager.markToggleReadingPlanBookmark();
-          },
-        );
-      },
+    final Widget progressWidget = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          l10n.booksReadOfTotal(viewModel.booksRead, viewModel.books.length),
+        ),
+        const SizedBox(height: 4),
+        if (resumePosition != null) ...[
+          Text(
+            l10n.current,
+            style: TextStyle(color: Theme.of(context).colorScheme.primary),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            '${bookNameFromId(context, resumePosition.bookId)} ${resumePosition.chapter}',
+          ),
+        ],
+      ],
     );
 
-    return ValueListenableBuilder<Reference?>(
-      valueListenable: manager.resumePositionNotifier,
-      builder: (context, resumePosition, _) {
-        final Widget progressWidget = Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return Row(
+      children: [
+        Stack(
+          alignment: Alignment.center,
           children: [
+            SizedBox(
+              width: 70,
+              height: 70,
+              child: CircularProgressIndicator(
+                value: viewModel.overallProgress,
+                strokeWidth: 6,
+                backgroundColor: Theme.of(
+                  context,
+                ).colorScheme.surfaceContainerHighest,
+              ),
+            ),
             Text(
-              l10n.booksReadOfTotal(
-                widget.readingPlanDetails.booksRead,
-                widget.readingPlanDetails.books.length,
-              ),
+              "$progressPercent%",
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 4),
-            if (resumePosition != null) ...[
-              Text(
-                l10n.current,
-                style: TextStyle(color: Theme.of(context).colorScheme.primary),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                '${bookNameFromId(context, resumePosition.bookId)} ${resumePosition.chapter}',
-              ),
-            ],
           ],
-        );
-
-        return Row(
-          children: [
-            Stack(
-              alignment: Alignment.center,
-              children: [
-                SizedBox(
-                  width: 70,
-                  height: 70,
-                  child: CircularProgressIndicator(
-                    value: progress,
-                    strokeWidth: 6,
-                    backgroundColor: Theme.of(
-                      context,
-                    ).colorScheme.surfaceContainerHighest,
-                  ),
-                ),
-                Text(
-                  "$progressPercent%",
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(width: 16),
-            Expanded(child: progressWidget),
-            bookmarkWidget,
-          ],
-        );
-      },
+        ),
+        const SizedBox(width: 16),
+        Expanded(child: progressWidget),
+        IconButton(
+          icon: Icon(
+            viewModel.isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+          ),
+          onPressed: () {
+            viewModel.toggleBookmark();
+          },
+        ),
+      ],
     );
   }
 
   Widget _startResumeButton() {
     final l10n = AppLocalizations.of(context)!;
 
-    final txt = widget.readingPlanDetails.versesRead == 0
+    final txt = viewModel.versesRead == 0
         ? l10n.startReading
         : l10n.resumeReading;
 
-    return ValueListenableBuilder<Reference?>(
-      valueListenable: manager.resumePositionNotifier,
-      builder: (_, resumePosition, child) {
-        return SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.primary,
-              foregroundColor: Theme.of(context).colorScheme.onPrimary,
-              side: BorderSide.none,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(30),
-              ),
-            ),
-            onPressed: () async {
-              await manager.startReadingSession();
-
-              if (!mounted) return;
-
-              int bookId, chapter, verse;
-
-              if (resumePosition != null) {
-                bookId = resumePosition.bookId;
-                chapter = resumePosition.chapter;
-                verse = resumePosition.verse;
-              } else if (_books.isNotEmpty) {
-                bookId = _books[0].bookId;
-                chapter = 1;
-                verse = 1;
-              } else {
-                bookId = 1;
-                chapter = 1;
-                verse = 1;
-              }
-
-              widget.homeManager.navigationViewModel.navigateTo(
-                Reference(bookId: bookId, chapter: chapter, verse: verse),
-              );
-
-              widget.onClose();
-            },
-            icon: const Icon(Icons.play_arrow),
-            label: Text(txt),
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Theme.of(context).colorScheme.primary,
+          foregroundColor: Theme.of(context).colorScheme.onPrimary,
+          side: BorderSide.none,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(30),
           ),
-        );
-      },
+        ),
+        onPressed: () async {
+          await viewModel.startReadingSession();
+
+          if (!mounted) return;
+
+          widget.onClose();
+        },
+        icon: const Icon(Icons.play_arrow),
+        label: Text(txt),
+      ),
     );
   }
 
   Widget _statsRow() {
     final l10n = AppLocalizations.of(context)!;
 
-    final goalType = widget.readingPlanDetails.dailyGoal.type;
+    final goalType = viewModel.goalType;
 
     String goalTxt = goalType == GoalType.minutes
         ? l10n.minutesPerDay.toLowerCase()
         : l10n.versesPerDay.toLowerCase();
 
-    final target = widget.readingPlanDetails.readingPlan.goalValue;
+    final target = viewModel.goalValue;
+    final progress = viewModel.todaysProgress;
 
-    final todaysProgress = ValueListenableBuilder<DayProgress?>(
-      valueListenable: manager.todaysProgressNotifier,
-      builder: (_, progress, child) {
-        String progressStr;
-        double progressValue = 0;
+    String progressStr;
+    if (progress == null) {
+      progressStr = '0/$target';
+    } else if (goalType == GoalType.verses) {
+      progressStr = '${progress.verses}/$target';
+    } else {
+      progressStr = '${progress.minutes}/$target';
+    }
 
-        if (progress == null) {
-          progressStr = '0/$target';
-        } else if (goalType == GoalType.verses) {
-          progressValue = progress.verses / target;
-          progressStr = '${progress.verses}/$target';
-        } else {
-          progressValue = progress.minutes / target;
-          progressStr = '${progress.minutes}/$target';
-        }
+    final progressValue = viewModel.todaysGoalProgress
+        .clamp(0.0, 1.0)
+        .toDouble();
 
-        return Column(
+    final todaysProgress = Column(
+      children: [
+        Text('$target $goalTxt'),
+        SizedBox(height: 8),
+
+        Stack(
+          alignment: Alignment.center,
           children: [
-            Text('$target $goalTxt'),
-            SizedBox(height: 8),
-
-            Stack(
-              alignment: Alignment.center,
-              children: [
-                SizedBox(
-                  width: 40,
-                  height: 40,
-                  child: CircularProgressIndicator(
-                    value: progressValue,
-                    strokeWidth: 6,
-                    backgroundColor: Theme.of(
-                      context,
-                    ).colorScheme.surfaceContainerHighest,
-                  ),
-                ),
-                Text(progressStr, style: const TextStyle(fontSize: 10)),
-              ],
+            SizedBox(
+              width: 40,
+              height: 40,
+              child: CircularProgressIndicator(
+                value: progressValue,
+                strokeWidth: 6,
+                backgroundColor: Theme.of(
+                  context,
+                ).colorScheme.surfaceContainerHighest,
+              ),
             ),
-
-            const SizedBox(height: 4),
-            if (progressValue >= 1) Text(l10n.completedToday),
+            Text(progressStr, style: const TextStyle(fontSize: 10)),
           ],
-        );
-      },
+        ),
+
+        const SizedBox(height: 4),
+        if (viewModel.goalReachedToday) Text(l10n.completedToday),
+      ],
     );
 
     return Row(
@@ -355,34 +289,6 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
     );
   }
 
-  /// Computes {days, months, date} remaining to finish the plan, assuming
-  /// the reader keeps hitting their daily goal. Returns null once the plan
-  /// is complete or if there's no usable goal to project from.
-  ({int days, double months, DateTime date})? _estimatedCompletion() {
-    final totalVerses = widget.readingPlanDetails.totalVerses;
-    final versesRead = widget.readingPlanDetails.versesRead;
-    final remainingVerses = totalVerses - versesRead;
-
-    if (remainingVerses <= 0) return null;
-
-    final goalType = widget.readingPlanDetails.dailyGoal.type;
-    final target = widget.readingPlanDetails.dailyGoal.value;
-
-    if (target <= 0) return null;
-
-    final versesPerDay = goalType == GoalType.verses
-        ? target.toDouble()
-        : target * _estimatedVersesPerMinute;
-
-    if (versesPerDay <= 0) return null;
-
-    final days = (remainingVerses / versesPerDay).ceil();
-    final months = days / 30.44; // average Gregorian month length
-    final date = DateTime.now().add(Duration(days: days));
-
-    return (days: days, months: months, date: date);
-  }
-
   String _formatDate(DateTime date) {
     final l10n = AppLocalizations.of(context)!;
     return '${l10n.months(date.month.toString())} ${date.day}, ${date.year}';
@@ -390,22 +296,21 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
 
   Widget _estimatedCompletionContent() {
     final l10n = AppLocalizations.of(context)!;
-    final estimate = _estimatedCompletion();
 
-    if (estimate == null) {
+    if (!viewModel.hasEstimate) {
       return Text(l10n.planComplete, style: const TextStyle(fontSize: 16));
     }
 
     return Column(
       children: [
         Text(
-          l10n.daysCount(estimate.days),
+          l10n.daysCount(viewModel.estimatedDays),
           style: const TextStyle(fontSize: 18),
         ),
         const SizedBox(height: 4),
-        Text(l10n.monthsCount(estimate.months.toStringAsFixed(1))),
+        Text(l10n.monthsCount(viewModel.estimatedMonths.toStringAsFixed(1))),
         const SizedBox(height: 4),
-        Text(_formatDate(estimate.date)),
+        Text(_formatDate(viewModel.estimatedCompletionDate)),
       ],
     );
   }
@@ -441,9 +346,11 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
       children: [
         Text(AppLocalizations.of(context)!.booksInThisPlan),
         GestureDetector(
-          onTap: _toggleReorderMode,
+          onTap: () {
+            viewModel.toggleReorderMode();
+          },
           child: Text(
-            _reorderMode
+            viewModel.isReorderMode
                 ? AppLocalizations.of(context)!.done
                 : AppLocalizations.of(context)!.editOrder,
             style: TextStyle(color: Theme.of(context).colorScheme.primary),
@@ -453,89 +360,54 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
     );
   }
 
-  void _toggleReorderMode() async {
-    final wasReorder = _reorderMode;
-    setState(() {
-      _reorderMode = !_reorderMode;
-    });
-
-    // Persist the new order once the user finishes reordering.
-    if (wasReorder) {
-      await manager.reorderBooks(_books);
-      if (mounted) setState(() {});
-    }
-  }
-
   Widget _booksList() {
-    return ValueListenableBuilder<List<RsBookStats>>(
-      valueListenable: manager.booksProgressNotifier,
-      builder: (_, booksProgress, child) {
-        if (booksProgress.isEmpty) {
-          return const SizedBox.shrink();
-        }
+    if (viewModel.bookStats.isEmpty) {
+      return const SizedBox.shrink();
+    }
 
-        if (_reorderMode) {
-          return ReorderableListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            buildDefaultDragHandles: false,
-            itemCount: _books.length,
-            onReorderItem: (oldIndex, newIndex) {
-              setState(() {
-                final book = _books.removeAt(oldIndex);
-                _books.insert(newIndex, book);
-              });
-            },
-            itemBuilder: (context, index) {
-              final book = _books[index];
-              int bookChap = _bibleNavigation.getChapterCount(book.bookId);
-              int bookVerses = 0;
+    final books = viewModel.books;
 
-              for (int i = 1; i <= bookChap; i++) {
-                bookVerses += _bibleNavigation.getVerseCount(book.bookId, i);
-              }
+    if (viewModel.isReorderMode) {
+      return ReorderableListView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        buildDefaultDragHandles: false,
+        itemCount: books.length,
+        onReorderItem: viewModel.moveBook,
+        itemBuilder: (context, index) {
+          final book = books[index];
 
-              return ReorderableDragStartListener(
-                key: ValueKey(book.bookId),
-                index: index,
-                child: _BookRow(
-                  name: bookNameFromId(context, book.bookId),
-                  progress:
-                      booksProgress[book.bookId - 1].versesRead / bookVerses,
-                  reorderable: true,
-                ),
-              );
-            },
-          );
-        }
-
-        return Column(
-          children: _books.map((book) {
-            int bookChap = _bibleNavigation.getChapterCount(book.bookId);
-            int bookVerses = 0;
-
-            for (int i = 1; i <= bookChap; i++) {
-              bookVerses += _bibleNavigation.getVerseCount(book.bookId, i);
-            }
-
-            return _BookRow(
+          return ReorderableDragStartListener(
+            key: ValueKey(book.bookId),
+            index: index,
+            child: _BookRow(
               name: bookNameFromId(context, book.bookId),
-              progress: booksProgress[book.bookId - 1].versesRead / bookVerses,
-            );
-          }).toList(),
+              progress: viewModel.progressForBook(book.bookId),
+              reorderable: true,
+            ),
+          );
+        },
+      );
+    }
+
+    return Column(
+      children: books.map((book) {
+        return _BookRow(
+          name: bookNameFromId(context, book.bookId),
+          progress: viewModel.progressForBook(book.bookId),
         );
-      },
+      }).toList(),
     );
   }
 
-  Future<void> _openDetailedProgress(DayProgress progress) async {
+  Future<void> _openDayActivityLog(DayProgress progress) async {
     if (progress.empty) {
       return;
     }
 
     await showDialog<void>(
       context: context,
-      builder: (context) => DetailedProgressPanel(
+      builder: (context) => DayActivityLogPanel(
         readingPlanId: widget.readingPlanDetails.readingPlan.id!,
         date: progress.day,
       ),
@@ -548,10 +420,10 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
 
   Widget _goalsContentByMonth() {
     return CalendarView(
-      value: manager.monthProgress,
-      onTap: _openDetailedProgress,
+      value: viewModel.monthProgress,
+      onTap: _openDayActivityLog,
       isHighlighted: isHighlighted,
-      onMonthChanged: (month) => manager.loadMonthData(month),
+      onMonthChanged: (month) => viewModel.loadMonthData(month),
       padding: EdgeInsets.all(20),
     );
   }

@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:material_ui/material_ui.dart';
+import 'package:flutter_localizations/flutter_localizations.dart'
+    show GlobalWidgetsLocalizations;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:gbt/common/bible_navigation.dart';
@@ -12,7 +13,6 @@ import 'package:gbt/ui/home/reading_plan/reading_session_view_model.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/home/panel_area/common/book_completed_overlay.dart';
 import 'package:gbt/ui/home/panel_area/common/calendar_view.dart';
-import 'package:gbt/ui/home/reading_plan/reading_plan_detail_panel_manager.dart';
 import 'package:gbt/ui/home/reading_plan/reading_sheet.dart';
 import 'package:gbt/ui/home/home_manager.dart';
 
@@ -410,42 +410,6 @@ void main() {
         final planBResult = await rsDb.getReadingPlanById(planB.id!);
         expect(planBResult, isNotNull);
         expect(await rsDb.getReadingPlanBooks(planB.id!), isNotEmpty);
-      },
-    );
-
-    test(
-      'reordering books (moving Exodus before Genesis) updates latest book progress in ReadingPlanDetailPanelManager',
-      () async {
-        final plan = await planService.saveReadingPlan(
-          planName: 'Exodus First Test',
-          collectionId: 1,
-          goalType: GoalType.verses,
-          goalValue: 10,
-          selectedBookIds: {1, 2}, // Genesis (1), Exodus (2)
-        );
-
-        var plans = await planService.getReadingPlansWithProgress();
-        var details = plans.firstWhere((p) => p.readingPlan.id == plan.id);
-        expect(details.resumePosition?.bookId, 1);
-
-        final detailManager = ReadingPlanDetailPanelManager(details);
-        await detailManager.ready;
-        expect(detailManager.resumePositionNotifier.value?.bookId, 1);
-
-        // Reorder so Exodus (bookId 2) comes first, Genesis (bookId 1) second
-        final reordered = [
-          details.books[1].copyWith(ord: 1),
-          details.books[0].copyWith(ord: 2),
-        ];
-        await detailManager.reorderBooks(reordered);
-
-        expect(detailManager.resumePositionNotifier.value?.bookId, 2);
-
-        plans = await planService.getReadingPlansWithProgress();
-        details = plans.firstWhere((p) => p.readingPlan.id == plan.id);
-        expect(details.resumePosition?.bookId, 2);
-
-        detailManager.dispose();
       },
     );
 

@@ -7,8 +7,8 @@ Provides the full modal sheet interface and navigation flow for managing Bible r
 - `reading_sheet.dart:ReadingSheet`: Root modal container wrapping reading plan navigation in an isolated nested navigator, constrained to 85% of screen height with top rounded corners.
 - `reading_plan_panel.dart:ReadingPlanPanel`: Overview panel listing all reading plans with progress bars, completion percentages, plan deletion, and session resumption triggers.
 - `reading_plan_panel.dart:confirmDeleteReadingPlan`: Shared modal dialog helper confirming reading plan deletion.
-- `reading_plan_panel.dart:ReadingPlanPanelState`: State class managing edit mode toggles and plan list rendering.
-- `reading_plan_panel_manager.dart:ReadingPlanPanelManager`: ViewModel aggregating chapter/verse totals, books read, and latest book progress across plans via `ReadingPlanService`, and starting sessions via `ReadingSessionService`.
+- `reading_plan_panel.dart:ReadingPlanPanelState`: State class creating and disposing the panel ViewModel and rendering the plan list.
+- `reading_plan_panel_view_model.dart:ReadingPlanPanelViewModel`: ViewModel owning the plan list, edit mode, and refresh/delete/session-start orchestration via `ReadingPlanService`, `ReadingSessionViewModel`, and `HomeManager` reader navigation.
 - `add_reading_plan_panel.dart:AddReadingPlanPanel`: Form panel for naming a plan, choosing a Bible collection, selecting books, configuring daily reading goals, and deleting plans.
 - `add_reading_plan_panel_manager.dart:AddReadingPlanPanelManager`: ViewModel delegating plan creation, updates, and deletion to `ReadingPlanService`.
 - `reading_plan_detail_panel.dart:ReadingPlanDetailPanel`: Detailed view of a specific plan showing circular progress, daily goal completion, calendar history, and reorderable book lists.

@@ -2,7 +2,7 @@ import 'package:gbt/services/logging/log.dart';
 
 import 'dart:math' as math;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:scripture/scripture.dart';
 import 'package:scripture/scripture_core.dart' as core;
 import 'package:gbt/common/book_name.dart';

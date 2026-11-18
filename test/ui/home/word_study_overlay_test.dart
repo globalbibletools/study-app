@@ -1,5 +1,7 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:cupertino_ui/cupertino_ui.dart';
+import 'package:material_ui/material_ui.dart';
+import 'package:flutter_localizations/flutter_localizations.dart'
+    show GlobalWidgetsLocalizations;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gbt/common/reference.dart';
 import 'package:gbt/common/word.dart';
@@ -15,7 +17,7 @@ import 'package:gbt/ui/home/reading_plan/reading_session_view_model.dart';
 import 'package:gbt/services/resources/resource_service.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/services/settings/user_settings.dart';
-import 'package:gbt/ui/home/floating_return_pill.dart';
+import 'package:gbt/ui/home/word_details_dialog/floating_return_pill.dart';
 import 'package:gbt/ui/home/common/navigation_view_model.dart';
 import 'package:gbt/ui/home/home_manager.dart';
 import 'package:gbt/ui/home/word_details_dialog/similar_verses/similar_verses_page.dart';
@@ -292,8 +294,8 @@ void main() {
       final offstageWidget = tester.widget<Offstage>(offstageFinder);
       expect(offstageWidget.offstage, isTrue);
 
-      // 4. Tap the return pill body to return to occurrences list
-      await tester.tap(find.text('דָּוִד'));
+      // 4. Tap the return pill body (showing root in Root mode) to return to occurrences list
+      await tester.tap(find.text('דּוֹד'));
       await tester.pumpAndSettle();
 
       // Overlay is now ONSTAGE immediately without rebuilding

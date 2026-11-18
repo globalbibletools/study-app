@@ -1,5 +1,7 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:cupertino_ui/cupertino_ui.dart';
+import 'package:material_ui/material_ui.dart';
+import 'package:flutter_localizations/flutter_localizations.dart'
+    show GlobalWidgetsLocalizations;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gbt/common/reference.dart';
 import 'package:gbt/common/word.dart';
@@ -253,9 +255,65 @@ void main() {
     final searchCtx = homeManager.searchContextNotifier.value;
     expect(searchCtx, isNotNull);
     expect(searchCtx!.word.word, 'דָּוִד');
+    expect(searchCtx.root, 'דּוֹד');
+    expect(searchCtx.searchType, SearchType.root);
     expect(
       searchCtx.anchorReference,
       const Reference(bookId: 8, chapter: 4, verse: 17),
     );
+  });
+
+  testWidgets('tapping reference in exact mode records SearchType.exact', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('en')],
+        home: Navigator(
+          onGenerateRoute: (settings) {
+            return MaterialPageRoute(
+              builder: (context) => Scaffold(
+                body: TextButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const SimilarVersesPage(word: testWord),
+                      ),
+                    );
+                  },
+                  child: const Text('Open Similar'),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Open Similar'));
+    await tester.pumpAndSettle();
+
+    // Switch to Exact mode
+    await tester.tap(find.text('Exact'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Ruth 4:17'));
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 1600));
+
+    final searchCtx = homeManager.searchContextNotifier.value;
+    expect(searchCtx, isNotNull);
+    expect(searchCtx!.searchType, SearchType.exact);
+    expect(searchCtx.root, 'דּוֹד');
+    expect(searchCtx.word.word, 'דָּוִד');
   });
 }

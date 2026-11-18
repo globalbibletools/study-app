@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 class CalendarView<E, T extends List<E>> extends StatefulWidget {
   final ValueListenable<T> value;

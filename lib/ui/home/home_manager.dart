@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:gbt/ui/home/audio/audio_player_view_model.dart';
 import 'package:scripture/scripture.dart';
 import 'package:gbt/app_state.dart';
@@ -20,6 +20,7 @@ import 'package:gbt/ui/home/word_details_dialog/similar_verses/similar_verses_pa
 class OccurrenceSearchContext {
   final WordDetails word;
   final String? wordId;
+  final String? root;
   final SearchType searchType;
   final Reference anchorReference;
   final double scrollOffset;
@@ -27,6 +28,7 @@ class OccurrenceSearchContext {
   const OccurrenceSearchContext({
     required this.word,
     this.wordId,
+    this.root,
     required this.searchType,
     required this.anchorReference,
     this.scrollOffset = 0.0,
@@ -214,6 +216,12 @@ class HomeManager {
       currentChapter,
     );
     textParagraphNotifier.value = content;
+  }
+
+  /// Navigates the reader to [reference] with all hard-navigation
+  /// side effects (dismiss overlays, pause audio, persist chapter).
+  void jumpToReference(Reference reference) {
+    navigationViewModel.navigateTo(reference);
   }
 
   /// Starts a new word study session, preserving the original reading reference.

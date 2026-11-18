@@ -46,7 +46,7 @@
 
           packages = with pkgs; [
             flutter347
-            jdk17
+            jdk21
             android-sdk
             gradle
             git
@@ -55,6 +55,8 @@
             cmake
             ninja
             fastlane
+            herdr
+            gh
           ];
 
           ANDROID_HOME = "${android-sdk}/share/android-sdk";
@@ -62,7 +64,7 @@
 
           GRADLE_OPTS = "-Dorg.gradle.project.android.aapt2FromMavenOverride=${android-sdk}/share/android-sdk/build-tools/36.0.0/aapt2";
 
-          JAVA_HOME = pkgs.jdk17;
+          JAVA_HOME = pkgs.jdk21;
 
           shellHook = ''
             # Writable pub / gradle caches (independent of the SDK fix, but

@@ -1,25 +1,38 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:gbt/common/book_name.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/services/reading_session/rs_model.dart';
-import 'package:gbt/ui/home/reading_plan/detailed_progress_panel_manager.dart';
+import 'package:gbt/ui/home/reading_plan/day_activity_log_view_model.dart';
 
-class DetailedProgressPanel extends StatefulWidget {
-  final DetailedProgressPanelManager manager;
-  DetailedProgressPanel({
+class DayActivityLogPanel extends StatefulWidget {
+  final int readingPlanId;
+  final DateTime date;
+
+  const DayActivityLogPanel({
     super.key,
-    required int readingPlanId,
-    required DateTime date,
-  }) : manager = DetailedProgressPanelManager(readingPlanId, date);
+    required this.readingPlanId,
+    required this.date,
+  });
 
   @override
-  State<DetailedProgressPanel> createState() => _DetailedProgressPanelState();
+  State<DayActivityLogPanel> createState() => _DayActivityLogPanelState();
 }
 
-class _DetailedProgressPanelState extends State<DetailedProgressPanel> {
+class _DayActivityLogPanelState extends State<DayActivityLogPanel> {
+  late final DayActivityLogViewModel viewModel;
+
+  @override
+  void initState() {
+    super.initState();
+    viewModel = DayActivityLogViewModel(
+      readingPlanId: widget.readingPlanId,
+      date: widget.date,
+    );
+  }
+
   @override
   void dispose() {
-    widget.manager.dispose();
+    viewModel.dispose();
     super.dispose();
   }
 
@@ -37,41 +50,50 @@ class _DetailedProgressPanelState extends State<DetailedProgressPanel> {
               color: Theme.of(context).colorScheme.surface,
               borderRadius: BorderRadius.circular(20),
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const SizedBox(height: 10),
-                _header(),
+            child: ListenableBuilder(
+              listenable: viewModel,
+              builder: (context, _) {
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(height: 10),
+                    _header(),
 
-                const SizedBox(height: 10),
+                    const SizedBox(height: 10),
 
-                _readingSection(),
+                    _readingSection(),
 
-                const SizedBox(height: 30),
+                    const SizedBox(height: 30),
 
-                _totals(),
+                    _totals(),
 
-                const SizedBox(height: 20),
+                    const SizedBox(height: 20),
 
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(context).colorScheme.primary,
-                      foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Theme.of(
+                            context,
+                          ).colorScheme.primary,
+                          foregroundColor: Theme.of(
+                            context,
+                          ).colorScheme.onPrimary,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        onPressed: () => Navigator.pop(context),
+                        child: Text(
+                          l10n.dismiss,
+                          style: TextStyle(letterSpacing: 2),
+                        ),
                       ),
                     ),
-                    onPressed: () => Navigator.pop(context),
-                    child: Text(
-                      l10n.dismiss,
-                      style: TextStyle(letterSpacing: 2),
-                    ),
-                  ),
-                ),
-              ],
+                  ],
+                );
+              },
             ),
           ),
         ),
@@ -81,45 +103,50 @@ class _DetailedProgressPanelState extends State<DetailedProgressPanel> {
 
   Widget _header() {
     final l10n = AppLocalizations.of(context)!;
+    final sessionsLabel = viewModel.isRefreshing && viewModel.sessions.isEmpty
+        ? ''
+        : l10n.sessions(viewModel.sessionCount).toUpperCase();
     return Column(
       children: [
         Text(
-          _formatDate(widget.manager.date),
+          _formatDate(viewModel.date),
           textAlign: TextAlign.center,
           style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
-        ValueListenableBuilder<List<SessionDetails>>(
-          valueListenable: widget.manager.details,
-          builder: (context, data, _) {
-            return Text(
-              l10n.sessions(data.length).toUpperCase(),
-              style: const TextStyle(fontSize: 12, letterSpacing: 2),
-            );
-          },
+        Text(
+          sessionsLabel,
+          style: const TextStyle(fontSize: 12, letterSpacing: 2),
         ),
       ],
     );
   }
 
   Widget _readingSection() {
+    if (viewModel.loadError != null) {
+      final l10n = AppLocalizations.of(context)!;
+      return Text(l10n.errorLoadingContent, textAlign: TextAlign.center);
+    }
+
+    if (viewModel.isRefreshing && viewModel.sessions.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 24),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     final screenHeight = MediaQuery.of(context).size.height;
-    return ValueListenableBuilder<List<SessionDetails>>(
-      valueListenable: widget.manager.details,
-      builder: (context, data, _) {
-        return ConstrainedBox(
-          constraints: BoxConstraints(maxHeight: screenHeight * 0.5),
-          child: ListView(
-            shrinkWrap: true,
-            children: data.map(_sessionCard).toList(),
-          ),
-        );
-      },
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxHeight: screenHeight * 0.5),
+      child: ListView(
+        shrinkWrap: true,
+        children: viewModel.sessions.map(_sessionCard).toList(),
+      ),
     );
   }
 
   Widget _sessionCard(SessionDetails session) {
-    final sessionMinutes = session.rsSession.readSeconds ~/ 60;
+    final sessionMinutes = viewModel.minutesFor(session);
     final sessionVerses = session.rsSession.verses;
 
     return Container(
@@ -226,51 +253,37 @@ class _DetailedProgressPanelState extends State<DetailedProgressPanel> {
     final accent = Theme.of(context).colorScheme.primary;
     final l10n = AppLocalizations.of(context)!;
 
-    return ValueListenableBuilder<List<SessionDetails>>(
-      valueListenable: widget.manager.details,
-      builder: (context, data, _) {
-        final totalSeconds = data.fold<int>(
-          0,
-          (sum, session) => sum + session.rsSession.readSeconds,
-        );
-        final totalVerses = data.fold<int>(
-          0,
-          (sum, session) => sum + session.rsSession.verses,
-        );
-
-        return Container(
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(14)),
-          child: Row(
-            children: [
-              Text(
-                l10n.total.toUpperCase(),
-                style: TextStyle(letterSpacing: 2, fontSize: 12),
-              ),
-              const SizedBox(width: 16),
-              Text(
-                "${totalSeconds ~/ 60} ${l10n.minutesShort}",
-                style: TextStyle(
-                  fontSize: 18,
-                  color: accent,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Text("•", style: TextStyle(color: accent)),
-              const SizedBox(width: 10),
-              Text(
-                "$totalVerses ${l10n.verses}",
-                style: TextStyle(
-                  fontSize: 18,
-                  color: accent,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(14)),
+      child: Row(
+        children: [
+          Text(
+            l10n.total.toUpperCase(),
+            style: TextStyle(letterSpacing: 2, fontSize: 12),
           ),
-        );
-      },
+          const SizedBox(width: 16),
+          Text(
+            "${viewModel.totalMinutes} ${l10n.minutesShort}",
+            style: TextStyle(
+              fontSize: 18,
+              color: accent,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Text("•", style: TextStyle(color: accent)),
+          const SizedBox(width: 10),
+          Text(
+            "${viewModel.totalVerses} ${l10n.verses}",
+            style: TextStyle(
+              fontSize: 18,
+              color: accent,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
