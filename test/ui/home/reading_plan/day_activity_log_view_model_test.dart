@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:gbt/services/reading_session/reading_plan_service.dart';
 import 'package:gbt/services/reading_session/rs_database.dart';
 import 'package:gbt/services/reading_session/rs_model.dart';
-import 'package:gbt/ui/home/reading_plan/detailed_progress_view_model.dart';
+import 'package:gbt/ui/home/reading_plan/day_activity_log_view_model.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import '../../../fixtures/bible_navigation_fixture.dart';
@@ -32,7 +32,7 @@ class FlakyPlanService extends ReadingPlanService {
   }
 }
 
-/// Integration tests for [DetailedProgressViewModel] against a real in-memory
+/// Integration tests for [DayActivityLogViewModel] against a real in-memory
 /// SQLite database and the real [ReadingPlanService]. Everything is injected
 /// through `withDependencies`; the service locator is never used.
 void main() {
@@ -119,8 +119,8 @@ void main() {
     );
   }
 
-  DetailedProgressViewModel newViewModel(int planId) {
-    return DetailedProgressViewModel.withDependencies(
+  DayActivityLogViewModel newViewModel(int planId) {
+    return DayActivityLogViewModel.withDependencies(
       readingPlanId: planId,
       date: date,
       planService: planService,
@@ -222,7 +222,7 @@ void main() {
   test('captures a load error instead of throwing from ready', () async {
     final planId = await createPlan();
     final flaky = FlakyPlanService(database, failures: 1);
-    final viewModel = DetailedProgressViewModel.withDependencies(
+    final viewModel = DayActivityLogViewModel.withDependencies(
       readingPlanId: planId,
       date: date,
       planService: flaky,
@@ -241,7 +241,7 @@ void main() {
     await insertLog(session, 63, 1, 1);
 
     final flaky = FlakyPlanService(database, failures: 1);
-    final viewModel = DetailedProgressViewModel.withDependencies(
+    final viewModel = DayActivityLogViewModel.withDependencies(
       readingPlanId: planId,
       date: date,
       planService: flaky,

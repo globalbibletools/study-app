@@ -2,29 +2,29 @@ import 'package:material_ui/material_ui.dart';
 import 'package:gbt/common/book_name.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/services/reading_session/rs_model.dart';
-import 'package:gbt/ui/home/reading_plan/detailed_progress_view_model.dart';
+import 'package:gbt/ui/home/reading_plan/day_activity_log_view_model.dart';
 
-class DetailedProgressPanel extends StatefulWidget {
+class DayActivityLogPanel extends StatefulWidget {
   final int readingPlanId;
   final DateTime date;
 
-  const DetailedProgressPanel({
+  const DayActivityLogPanel({
     super.key,
     required this.readingPlanId,
     required this.date,
   });
 
   @override
-  State<DetailedProgressPanel> createState() => _DetailedProgressPanelState();
+  State<DayActivityLogPanel> createState() => _DayActivityLogPanelState();
 }
 
-class _DetailedProgressPanelState extends State<DetailedProgressPanel> {
-  late final DetailedProgressViewModel viewModel;
+class _DayActivityLogPanelState extends State<DayActivityLogPanel> {
+  late final DayActivityLogViewModel viewModel;
 
   @override
   void initState() {
     super.initState();
-    viewModel = DetailedProgressViewModel(
+    viewModel = DayActivityLogViewModel(
       readingPlanId: widget.readingPlanId,
       date: widget.date,
     );

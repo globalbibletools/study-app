@@ -3,12 +3,12 @@ import 'package:gbt/services/reading_session/reading_plan_service.dart';
 import 'package:gbt/services/reading_session/rs_model.dart';
 import 'package:gbt/services/service_locator.dart';
 
-class DetailedProgressViewModel extends ChangeNotifier {
-  factory DetailedProgressViewModel({
+class DayActivityLogViewModel extends ChangeNotifier {
+  factory DayActivityLogViewModel({
     required int readingPlanId,
     required DateTime date,
   }) {
-    final viewModel = DetailedProgressViewModel.withDependencies(
+    final viewModel = DayActivityLogViewModel.withDependencies(
       readingPlanId: readingPlanId,
       date: date,
       planService: getIt<ReadingPlanService>(),
@@ -17,7 +17,7 @@ class DetailedProgressViewModel extends ChangeNotifier {
     return viewModel;
   }
 
-  DetailedProgressViewModel.withDependencies({
+  DayActivityLogViewModel.withDependencies({
     required this.readingPlanId,
     required this.date,
     required ReadingPlanService planService,
