@@ -42,9 +42,7 @@ class BiblePanelArea extends StatelessWidget {
           manager.appGuideManager.readingSessionGuideDismissedNotifier,
         ]),
         builder: (context, _) {
-          final anchor =
-              manager.navigationViewModel.anchor.value ??
-              const Reference(bookId: 1, chapter: 1, verse: 1);
+          final anchor = manager.navigationViewModel.anchor.value;
           final isSinglePanel = manager.isSinglePanelNotifier.value;
           final settingsVersion = manager.settingsVersionNotifier.value;
           final shouldOffsetForProgress =

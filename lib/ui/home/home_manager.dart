@@ -116,10 +116,6 @@ class HomeManager {
   int get currentChapter => navigationViewModel.currentReference?.chapter ?? 1;
   int get currentVerse => navigationViewModel.currentReference?.verse ?? 1;
 
-  Future<void> init() async {
-    await navigationViewModel.init();
-  }
-
   void _onHardNavigation(HardNavigation navigation) {
     dismissWordStudySession(keepCurrentLocation: true);
     clearSearchContext();
@@ -311,10 +307,6 @@ class HomeManager {
     _bibleService.removeBibleResourceChangeListener(_onBibleResourceChanged);
 
     _hardNavigationSubscription?.cancel();
-    if (getIt.isRegistered<NavigationViewModel>()) {
-      getIt.unregister<NavigationViewModel>();
-    }
-    navigationViewModel.dispose();
     audioPlayerViewModel.dispose();
     isSinglePanelNotifier.dispose();
     textParagraphNotifier.dispose();

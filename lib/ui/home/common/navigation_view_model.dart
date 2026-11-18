@@ -71,7 +71,21 @@ class HardNavigation {
 }
 
 class NavigationViewModel extends ChangeNotifier {
-  NavigationViewModel(this._settings);
+  NavigationViewModel(this._settings)
+    : anchor = ValueNotifier(_restoredReference(_settings)) {
+    final ref = anchor.value;
+    _lastSavedBook = ref.bookId;
+    _lastSavedChapter = ref.chapter;
+
+    final top = Anchor(ref, AnchorEnd.start);
+    _applyPosition(
+      'manager',
+      SyncPosition(top, top, 0.0),
+      displayReference: ref,
+      animated: false,
+      isSeek: false,
+    );
+  }
 
   final UserSettings _settings;
 
@@ -80,9 +94,7 @@ class NavigationViewModel extends ChangeNotifier {
 
   Stream<HardNavigation> get hardNavigation => _hardNavigationController.stream;
 
-  final ValueNotifier<Reference?> anchor = ValueNotifier(
-    const Reference(bookId: 1, chapter: 1, verse: 1),
-  );
+  final ValueNotifier<Reference> anchor;
 
   ValueNotifier<Reference?>? _audioReferenceNotifier;
 
@@ -115,23 +127,9 @@ class NavigationViewModel extends ChangeNotifier {
 
   bool get lastUpdateIsSeek => _lastUpdateIsSeek;
 
-  Future<void> init() async {
-    final (bookId, chapter) = _settings.currentBookChapter;
-    _lastSavedBook = bookId;
-    _lastSavedChapter = chapter;
-
-    final ref = Reference(bookId: bookId, chapter: chapter, verse: 1);
-    anchor.value = ref;
-    clearActiveSource();
-
-    final top = Anchor(ref, AnchorEnd.start);
-    _applyPosition(
-      'manager',
-      SyncPosition(top, top, 0.0),
-      displayReference: ref,
-      animated: false,
-      isSeek: false,
-    );
+  static Reference _restoredReference(UserSettings settings) {
+    final (bookId, chapter) = settings.currentBookChapter;
+    return Reference(bookId: bookId, chapter: chapter, verse: 1);
   }
 
   void navigateTo(
@@ -193,9 +191,7 @@ class NavigationViewModel extends ChangeNotifier {
 
   void _writeAnchor(Reference ref) {
     final current = anchor.value;
-    if (current != null &&
-        current.bookId == ref.bookId &&
-        current.chapter == ref.chapter) {
+    if (current.bookId == ref.bookId && current.chapter == ref.chapter) {
       return;
     }
     anchor.value = Reference(

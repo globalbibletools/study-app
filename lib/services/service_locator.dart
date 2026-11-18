@@ -24,10 +24,25 @@ import 'settings/user_settings.dart';
 final getIt = GetIt.instance;
 
 void setupServiceLocator() {
-  getIt.registerLazySingleton<NavigationViewModel>(
-    () => NavigationViewModel(getIt<UserSettings>()),
+  getIt.registerSingletonAsync<UserSettings>(() async {
+    final settings = UserSettings();
+    await settings.init();
+    return settings;
+  });
+  getIt.registerSingletonAsync<NavigationViewModel>(
+    () async => NavigationViewModel(await getIt.getAsync<UserSettings>()),
   );
-  getIt.registerLazySingleton<HomeManager>(() => HomeManager());
+  // TODO: Maybe we should delay loading the lexicon until it is needed.
+  getIt.registerSingletonAsync<LexiconsDatabase>(() async {
+    final database = LexiconsDatabase();
+    await database.init();
+    return database;
+  });
+  getIt.registerSingletonAsync<ReadingSessionDatabase>(() async {
+    final database = ReadingSessionDatabase();
+    await database.init();
+    return database;
+  });
   getIt.registerLazySingleton<FileService>(() => FileService());
   getIt.registerLazySingleton<RemoteAssetService>(() => RemoteAssetService());
   getIt.registerLazySingletonAsync<HebrewGreekDatabase>(
@@ -38,16 +53,11 @@ void setupServiceLocator() {
         BibleNavigation.create(await getIt.getAsync<HebrewGreekDatabase>()),
   );
   getIt.registerLazySingleton<GlossService>(() => GlossService());
-  getIt.registerLazySingleton<LexiconsDatabase>(() => LexiconsDatabase());
-  getIt.registerLazySingleton<UserSettings>(() => UserSettings());
   getIt.registerLazySingleton<AppState>(() => AppState());
   getIt.registerSingletonAsync<AppLogger>(AppLogger.createDefault);
   getIt.registerLazySingleton<DownloadService>(() => DownloadService());
   getIt.registerLazySingleton<BibleService>(() => BibleService());
   getIt.registerLazySingleton<ResourceService>(() => ResourceService());
-  getIt.registerLazySingleton<ReadingSessionDatabase>(
-    () => ReadingSessionDatabase(),
-  );
   getIt.registerLazySingleton<ReadingPlanBackupService>(
     () => ReadingPlanBackupService(),
   );
@@ -58,5 +68,6 @@ void setupServiceLocator() {
   getIt.registerLazySingleton<ReadingSessionViewModel>(
     () => ReadingSessionViewModel(),
   );
-  getIt.registerSingleton<AppGuideManager>(AppGuideManager());
+  getIt.registerLazySingleton<AppGuideManager>(() => AppGuideManager());
+  getIt.registerLazySingleton<HomeManager>(() => HomeManager());
 }

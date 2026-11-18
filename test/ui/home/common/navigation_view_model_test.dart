@@ -25,12 +25,10 @@ void main() {
     viewModel.dispose();
   });
 
-  group('init', () {
-    test('restores the saved chapter at the chapter top', () async {
+  group('construction', () {
+    test('restores the saved chapter at the chapter top', () {
       settings = FakeUserSettings(bookId: 19, chapter: 23);
       viewModel = NavigationViewModel(settings);
-
-      await viewModel.init();
 
       const ref = Reference(bookId: 19, chapter: 23, verse: 1);
       expect(viewModel.position, _positionFor(ref));
@@ -154,6 +152,7 @@ void main() {
     });
 
     test('audio follows are ignored while a panel is the active source', () {
+      final seeded = viewModel.position;
       final audioReference = ValueNotifier<Reference?>(null);
       addTearDown(audioReference.dispose);
       viewModel.bindAudioReference(audioReference);
@@ -161,7 +160,7 @@ void main() {
 
       audioReference.value = _verse;
 
-      expect(viewModel.position, isNull);
+      expect(viewModel.position, seeded);
       expect(viewModel.isSourceActive('panel'), isTrue);
 
       viewModel.clearActiveSource();
@@ -190,14 +189,22 @@ void main() {
 
   group('reportPosition', () {
     test('reports from a non-active source are ignored', () {
+      final seeded = viewModel.position;
       viewModel.setActiveSource('leader');
       final position = _positionFor(_verse);
 
       viewModel.reportPosition('follower', position, display: _verse);
-      expect(viewModel.position, isNull);
+      expect(viewModel.position, seeded);
 
       viewModel.reportPosition('leader', position, display: _verse);
       expect(viewModel.position, position);
+    });
+
+    test('leader reports expose the display reference', () {
+      viewModel.setActiveSource('panel');
+      viewModel.reportPosition('panel', _positionFor(_verse), display: _verse);
+
+      expect(viewModel.displayReference, _verse);
     });
 
     test('never changes the navigation anchor', () {

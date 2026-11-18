@@ -97,14 +97,13 @@ void main() {
 
       homeManager = HomeManager();
       getIt.registerSingleton<HomeManager>(homeManager);
-      await homeManager.init();
     });
 
     tearDown(() {
       homeManager.dispose();
     });
 
-    test('seeds the sync controller with a chapter-top interval', () {
+    test('construction seeds a chapter-top interval', () {
       final position = homeManager.navigationViewModel.position!;
       const chapterTop = Anchor(
         Reference(bookId: 1, chapter: 1, verse: 1),

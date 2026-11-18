@@ -39,12 +39,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    manager.init();
-  }
-
-  @override
   void dispose() {
     WakelockPlus.disable();
     manager.dispose();

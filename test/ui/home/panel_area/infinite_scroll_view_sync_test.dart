@@ -143,6 +143,12 @@ void main() {
     const leaderKey = Key('leader');
     const followerKey = Key('follower');
 
+    // The view model arrives seeded at the last-read chapter; point the truth
+    // at the panels' center chapter so both start aligned at its top.
+    getIt<NavigationViewModel>().seekTo(
+      const Reference(bookId: 1, chapter: 2, verse: 1),
+    );
+
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(

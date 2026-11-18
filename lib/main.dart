@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:just_audio_background/just_audio_background.dart';
 import 'package:gbt/l10n/app_localizations.dart';
-import 'package:gbt/services/lexicon/database.dart';
 import 'package:gbt/services/logging/log.dart';
-import 'package:gbt/services/reading_session/rs_database.dart';
-import 'package:gbt/services/service_locator.dart';
-import 'package:gbt/services/settings/user_settings.dart';
 import 'package:gbt/services/resources/resource_service.dart';
+import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/home/home.dart';
 
 import 'app_state.dart';
@@ -17,10 +14,6 @@ Future<void> main() async {
   setupServiceLocator();
   await getIt.allReady();
   info('App starting');
-  await getIt<UserSettings>().init();
-  // TODO: Maybe we should delay loading the lexicon until it is needed.
-  await getIt<LexiconsDatabase>().init();
-  await getIt<ReadingSessionDatabase>().init();
   await JustAudioBackground.init(
     androidNotificationChannelId: 'com.ryanheise.bg_demo.channel.audio',
     androidNotificationChannelName: 'Audio playback',
