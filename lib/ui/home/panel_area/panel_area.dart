@@ -33,7 +33,7 @@ class BiblePanelArea extends StatelessWidget {
       },
       child: ListenableBuilder(
         listenable: Listenable.merge([
-          manager.panelAnchorNotifier,
+          manager.navigationViewModel.anchor,
           manager.isSinglePanelNotifier,
           manager.settingsVersionNotifier,
           manager.readingSessionViewModel.sessionNotifier,
@@ -42,7 +42,7 @@ class BiblePanelArea extends StatelessWidget {
           manager.appGuideManager.readingSessionGuideDismissedNotifier,
         ]),
         builder: (context, _) {
-          final anchor = manager.panelAnchorNotifier.value;
+          final anchor = manager.navigationViewModel.anchor.value;
           final isSinglePanel = manager.isSinglePanelNotifier.value;
           final settingsVersion = manager.settingsVersionNotifier.value;
           final shouldOffsetForProgress =
@@ -69,7 +69,6 @@ class BiblePanelArea extends StatelessWidget {
                     bookId: anchor.bookId,
                     chapter: anchor.chapter,
                     highlightNotifier: manager.audioPlayerViewModel.reference,
-                    syncController: manager.syncController,
                     settingsVersion: settingsVersion,
                     scrollingEnabled: !disableScrolling,
                     showReadingCheckboxGuide: shouldShowReadingCheckboxGuide,
@@ -90,7 +89,6 @@ class BiblePanelArea extends StatelessWidget {
                       key: ValueKey('bi-${anchor.bookId}-${anchor.chapter}'),
                       bookId: anchor.bookId,
                       chapter: anchor.chapter,
-                      syncController: manager.syncController,
                       settingsVersion: settingsVersion,
                       scrollingEnabled: !disableScrolling,
                       onResourceUnavailable: manager.closeBiblePanel,
@@ -130,14 +128,6 @@ class BiblePanelArea extends StatelessWidget {
     final resume = manager.readingSessionViewModel.nextResumePosition;
     if (resume == null) return;
 
-    manager.onBookSelected(resume.bookId);
-
-    manager.onChapterSelected(resume.chapter);
-
-    manager.syncController.jumpToVerse(
-      resume.bookId,
-      resume.chapter,
-      resume.verse,
-    );
+    manager.navigationViewModel.navigateTo(resume);
   }
 }

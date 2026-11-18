@@ -18,6 +18,7 @@ import 'package:gbt/services/resources/resource_service.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/services/settings/user_settings.dart';
 import 'package:gbt/ui/home/word_details_dialog/floating_return_pill.dart';
+import 'package:gbt/ui/home/common/navigation_view_model.dart';
 import 'package:gbt/ui/home/home_manager.dart';
 import 'package:gbt/ui/home/word_details_dialog/similar_verses/similar_verses_page.dart';
 import 'package:gbt/ui/home/word_details_dialog/word_details_dialog.dart';
@@ -172,6 +173,7 @@ void main() {
     final settings = UserSettings();
     await settings.init();
     getIt.registerSingleton<UserSettings>(settings);
+    getIt.registerSingleton<NavigationViewModel>(NavigationViewModel(settings));
     getIt.registerSingleton<DownloadService>(FakeDownloadService());
     getIt.registerSingleton<ResourceService>(FakeResourceService());
     getIt.registerSingleton<BibleService>(FakeBibleService());
@@ -194,10 +196,8 @@ void main() {
   testWidgets(
     'WordStudyOverlayLayer lifecycle: display, navigate, offstage, restore original',
     (tester) async {
-      homeManager.currentReference.value = const Reference(
-        bookId: 1,
-        chapter: 12,
-        verse: 1,
+      homeManager.navigationViewModel.navigateTo(
+        const Reference(bookId: 1, chapter: 12, verse: 1),
       );
       homeManager.startWordStudy(wordId: 'w1', isRtl: true);
 
@@ -277,7 +277,7 @@ void main() {
 
       // Reader jumped to preview reference
       expect(
-        homeManager.currentReference.value,
+        homeManager.navigationViewModel.currentReference,
         const Reference(bookId: 8, chapter: 4, verse: 17),
       );
 
@@ -334,7 +334,7 @@ void main() {
 
       // Reader automatically returned to original reading location (Genesis 12:1)!
       expect(
-        homeManager.currentReference.value,
+        homeManager.navigationViewModel.currentReference,
         const Reference(bookId: 1, chapter: 12, verse: 1),
       );
     },
@@ -343,10 +343,8 @@ void main() {
   testWidgets(
     'FloatingReturnPill close icon stays at current location and discards session',
     (tester) async {
-      homeManager.currentReference.value = const Reference(
-        bookId: 1,
-        chapter: 12,
-        verse: 1,
+      homeManager.navigationViewModel.navigateTo(
+        const Reference(bookId: 1, chapter: 12, verse: 1),
       );
       homeManager.startWordStudy(wordId: 'w1', isRtl: true);
 
@@ -430,7 +428,7 @@ void main() {
 
       // Reader STAYS at previewed location (Ruth 4:17)
       expect(
-        homeManager.currentReference.value,
+        homeManager.navigationViewModel.currentReference,
         const Reference(bookId: 8, chapter: 4, verse: 17),
       );
     },

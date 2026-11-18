@@ -17,6 +17,7 @@ import 'package:gbt/services/resources/resource_service.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/services/settings/user_settings.dart';
 import 'package:gbt/ui/common/verse_list_item.dart';
+import 'package:gbt/ui/home/common/navigation_view_model.dart';
 import 'package:gbt/ui/home/home_manager.dart';
 import 'package:gbt/ui/home/word_details_dialog/dialog_manager.dart';
 import 'package:gbt/ui/home/word_details_dialog/similar_verses/similar_verses_page.dart';
@@ -158,6 +159,7 @@ void main() {
     final settings = UserSettings();
     await settings.init();
     getIt.registerSingleton<UserSettings>(settings);
+    getIt.registerSingleton<NavigationViewModel>(NavigationViewModel(settings));
     getIt.registerSingleton<DownloadService>(FakeDownloadService());
     getIt.registerSingleton<ResourceService>(FakeResourceService());
     getIt.registerSingleton<HebrewGreekDatabase>(FakeHebrewGreekDatabase());

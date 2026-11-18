@@ -7,12 +7,12 @@ Primary study screen orchestrating the Scripture reading workspace, app bar navi
 - `home.dart:HomeScreen`: Root stateful widget hosting the scaffold, app bar, navigation drawer, reading panels, audio player, keypad, and spotlight guide overlay.
 - `floating_return_pill.dart:FloatingReturnPill`: Floating pill widget displaying the active occurrence search lemma, return arrow to reopen occurrences, and a close button (`✕`) to dismiss search context.
 - `word_study_overlay_layer.dart:WordStudyOverlayLayer`: Live Offstage overlay layer managing the nested Navigator for WordDetailsDialog and SimilarVersesPage, preserving memory state and scroll offset across context previews.
-- `home_manager.dart:HomeManager`: Central state orchestrator coordinating references, panel anchors, split panel visibility, audio view model, search context pill lifecycle, word study session offstage toggling, and settings updates.
+- `home_manager.dart:HomeManager`: Central state orchestrator coordinating audio, split panel visibility, search context pill lifecycle, word study session offstage toggling, and settings updates; navigation truth lives in `NavigationViewModel`.
 - `home_manager.dart:OccurrenceSearchContext`: Value record holding lemma details, search type, and origin anchor reference for word occurrences return navigation.
 - `home_manager.dart:WordStudySession`: Active session tracking the word ID, text direction, original reading reference, and overlay visibility state.
 - [App Bar](./appbar/README.md): Top toolbar providing reference navigation, reading mode indicators, and route drawers.
 - [Audio Player](./audio/README.md): Media player interface for streaming and looping synchronized chapter audio.
-- [Home Common UI](./common/README.md): Spotlight cutouts, tutorial guide bubbles, and dual-panel scroll synchronization controllers.
+- [Home Common UI](./common/README.md): Spotlight cutouts, tutorial guide bubbles, and the shared navigation view model.
 - [Keypad](./keypad/README.md): Slide-up numerical entry pad for typing chapters and verses.
 - [Panel Area](./panel_area/README.md): Container grouping original Hebrew/Greek and translation reading panels.
 - [Reading Plan](./reading_plan/README.md): Bottom sheet managing reading plans, goals, and session history.

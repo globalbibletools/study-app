@@ -11,8 +11,7 @@ import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/common/resource_ui_helper.dart';
 import 'package:gbt/services/settings/user_settings.dart';
 import 'package:gbt/ui/home/home_manager.dart';
-import 'package:gbt/ui/home/panel_area/common/infinite_scroll_view.dart';
-import 'package:gbt/ui/home/common/scroll_sync_controller.dart';
+import 'package:gbt/ui/home/panel_area/common/verse_sync_layout.dart';
 import 'package:gbt/ui/home/panel_area/hebrew_greek_panel/chapter_manager.dart';
 import 'package:gbt/ui/home/panel_area/hebrew_greek_panel/text.dart';
 
@@ -38,7 +37,6 @@ class HebrewGreekChapter extends StatefulWidget {
     required this.verseLayout,
     required this.readingModeEnabled,
     required this.highlightNotifier,
-    this.syncController,
     this.onReadingCheckboxGuideRectChanged,
     this.onReadingCheckboxGuideCompleted,
   });
@@ -48,7 +46,6 @@ class HebrewGreekChapter extends StatefulWidget {
   final double fontSize;
   final VerseLayout verseLayout;
   final bool readingModeEnabled;
-  final ScrollSyncController? syncController;
   final ValueChanged<Rect?>? onReadingCheckboxGuideRectChanged;
   final VoidCallback? onReadingCheckboxGuideCompleted;
   final ValueNotifier<Reference?> highlightNotifier;
@@ -57,14 +54,16 @@ class HebrewGreekChapter extends StatefulWidget {
   State<HebrewGreekChapter> createState() => HebrewGreekChapterState();
 }
 
-class HebrewGreekChapterState extends State<HebrewGreekChapter>
-    with VerseScrollable {
+class HebrewGreekChapterState extends State<HebrewGreekChapter> {
   final manager = HebrewGreekChapterManager();
 
   final _textController = HebrewGreekTextController();
 
   // GlobalKey to track the HebrewGreekText widget's position relative to the HebrewGreekChapter
   final _hebrewGreekTextKey = GlobalKey();
+
+  // Keyed so the chapter title can be measured and attributed to verse 1.
+  final _titleKey = GlobalKey();
 
   @override
   void initState() {
@@ -78,6 +77,18 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter>
     _textController.setSpotlightUpdatedCalllback(
       _reportReadingCheckboxGuideRect,
     );
+    _textController.setGeometryChangedCallback(_publishGeometry);
+  }
+
+  void _publishGeometry() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ChapterGeometryChangedNotification(
+        bookId: widget.bookId,
+        chapter: widget.chapter,
+        geometry: _computeGeometry(),
+      ).dispatch(context);
+    });
   }
 
   @override
@@ -102,57 +113,43 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter>
     super.dispose();
   }
 
-  @override
-  double? getOffsetForVerse(int verseNumber) {
-    // If Verse 1 is requested, return 0.0 to show the Chapter Header (Title).
-    if (verseNumber == 1) {
-      return 0.0;
-    }
+  ChapterGeometry? _computeGeometry() {
+    if (manager.textNotifier.value.isEmpty) return null;
 
-    final textLocalRect = _textController.getVerseRect(verseNumber);
-    if (textLocalRect == null) return null;
+    final textGeometry = _textController.geometry;
+    if (textGeometry == null) return null;
 
-    // Calculate the offset relative to the Chapter widget (context)
-    // We need to add the height of the Header (Text + SizedBoxes)
     final textRenderBox =
         _hebrewGreekTextKey.currentContext?.findRenderObject() as RenderBox?;
     final chapterRenderBox = context.findRenderObject() as RenderBox?;
-
-    if (textRenderBox != null && chapterRenderBox != null) {
-      // Find where the Text widget starts inside the Chapter widget
-      final textTopLeftInChapter = textRenderBox.localToGlobal(
-        Offset.zero,
-        ancestor: chapterRenderBox,
-      );
-
-      // Add that starting Y to the verse's local Y
-      return textTopLeftInChapter.dy + textLocalRect.top;
+    if (textRenderBox == null ||
+        chapterRenderBox == null ||
+        !chapterRenderBox.hasSize) {
+      return null;
     }
 
-    // Fallback (if layout isn't ready, though it usually is when calling this)
-    return textLocalRect.top;
-  }
+    final textTopLeftInChapter = textRenderBox.localToGlobal(
+      Offset.zero,
+      ancestor: chapterRenderBox,
+    );
+    final dy = textTopLeftInChapter.dy;
 
-  @override
-  int? getVerseForOffset(double yOffset) {
-    // Convert the Chapter Y offset back to Text widget local Y
-    final textRenderBox =
-        _hebrewGreekTextKey.currentContext?.findRenderObject() as RenderBox?;
-    final chapterRenderBox = context.findRenderObject() as RenderBox?;
+    final translated = textGeometry.translated(dy);
 
-    if (textRenderBox != null && chapterRenderBox != null) {
-      final textTopLeftInChapter = textRenderBox.localToGlobal(
-        Offset.zero,
-        ancestor: chapterRenderBox,
-      );
-
-      // Subtract the header height to get "y" relative to the Text widget
-      final localY = yOffset - textTopLeftInChapter.dy;
-
-      return _textController.getVerseForOffset(localY);
+    final headings = <HeadingRect>[];
+    final titleBox = _titleKey.currentContext?.findRenderObject() as RenderBox?;
+    if (titleBox != null && titleBox.attached && titleBox.hasSize) {
+      final top = titleBox
+          .localToGlobal(Offset.zero, ancestor: chapterRenderBox)
+          .dy;
+      headings.add(HeadingRect(top: top, bottom: top + titleBox.size.height));
     }
 
-    return _textController.getVerseForOffset(yOffset);
+    return buildGeometry(
+      spans: translated.spans,
+      headings: headings,
+      height: chapterRenderBox.size.height,
+    );
   }
 
   ValueNotifier<String?>? get _flashedWordIdNotifier {
@@ -265,6 +262,7 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter>
                     children: [
                       const SizedBox(height: 10),
                       Text(
+                        key: _titleKey,
                         '${bookNameForId(context, widget.bookId)} ${widget.chapter}',
                         style: TextStyle(fontSize: 30),
                       ),

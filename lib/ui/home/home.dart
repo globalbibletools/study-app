@@ -39,12 +39,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    manager.init();
-  }
-
-  @override
   void dispose() {
     WakelockPlus.disable();
     manager.dispose();
@@ -121,22 +115,35 @@ class _HomeScreenState extends State<HomeScreen> {
         valueListenable: manager.readingSessionViewModel.sessionNotifier,
         builder: (context, session, child) {
           final readingSessionStarted = session != null;
-          return ValueListenableBuilder<Reference>(
-            valueListenable: manager.currentReference,
-            builder: (context, ref, _) {
+          return ListenableBuilder(
+            listenable: manager.navigationViewModel,
+            builder: (context, _) {
+              final ref = manager.navigationViewModel.currentReference;
               return HomeAppBar(
                 referenceChooserKey: manager.chooserKey,
-                displayBookId: ref.bookId,
-                displayChapter: ref.chapter,
-                displayVerse: ref.verse,
+                displayBookId: ref?.bookId ?? 1,
+                displayChapter: ref?.chapter ?? 1,
+                displayVerse: ref?.verse ?? 1,
                 readingSessionStarted: readingSessionStarted,
-                onBookSelected: manager.onBookSelected,
-                onChapterSelected: manager.onChapterSelected,
+                onBookSelected: (bookId) =>
+                    manager.navigationViewModel.navigateTo(
+                      Reference(bookId: bookId, chapter: 1, verse: 1),
+                    ),
+                onChapterSelected: (chapter) =>
+                    manager.navigationViewModel.navigateTo(
+                      Reference(
+                        bookId: manager.currentBookId,
+                        chapter: chapter,
+                        verse: 1,
+                      ),
+                    ),
                 onVerseSelected: (verse) {
-                  manager.syncController.jumpToVerse(
-                    manager.currentBookId,
-                    manager.currentChapter,
-                    verse,
+                  manager.navigationViewModel.seekTo(
+                    Reference(
+                      bookId: ref?.bookId ?? 1,
+                      chapter: ref?.chapter ?? 1,
+                      verse: verse,
+                    ),
                   );
                 },
                 onInputModeChanged: manager.setInputMode,
