@@ -4,7 +4,7 @@ import 'package:gbt/l10n/book_names.dart';
 import 'package:gbt/services/reading_session/rs_model.dart';
 import 'package:gbt/ui/home/home_manager.dart';
 import 'package:gbt/ui/home/panel_area/common/calendar_view.dart';
-import 'package:gbt/ui/home/reading_plan/detailed_progress_panel.dart';
+import 'package:gbt/ui/home/reading_plan/day_activity_log_panel.dart';
 import 'package:gbt/ui/home/reading_plan/reading_plan_detail_view_model.dart';
 
 class ReadingPlanDetailPanel extends StatefulWidget {
@@ -400,14 +400,14 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
     );
   }
 
-  Future<void> _openDetailedProgress(DayProgress progress) async {
+  Future<void> _openDayActivityLog(DayProgress progress) async {
     if (progress.empty) {
       return;
     }
 
     await showDialog<void>(
       context: context,
-      builder: (context) => DetailedProgressPanel(
+      builder: (context) => DayActivityLogPanel(
         readingPlanId: widget.readingPlanDetails.readingPlan.id!,
         date: progress.day,
       ),
@@ -421,7 +421,7 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
   Widget _goalsContentByMonth() {
     return CalendarView(
       value: viewModel.monthProgress,
-      onTap: _openDetailedProgress,
+      onTap: _openDayActivityLog,
       isHighlighted: isHighlighted,
       onMonthChanged: (month) => viewModel.loadMonthData(month),
       padding: EdgeInsets.all(20),
