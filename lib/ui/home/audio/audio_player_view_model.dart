@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
+import 'package:gbt/asyncutils/cancellation.dart';
 import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/common/reference.dart';
 import 'package:gbt/l10n/app_localizations.dart';
@@ -362,6 +363,8 @@ class AudioPlayerViewModel extends ChangeNotifier {
         default:
           break;
       }
+    } on CancelledError {
+      return;
     } catch (error, stackTrace) {
       log.error(
         'Failed to handle audio player state change: $state',
@@ -371,7 +374,14 @@ class AudioPlayerViewModel extends ChangeNotifier {
     }
   }
 
+  static const int _interruptedErrorCode = 10000000;
+
   Future<void> _errorStreamHandler(Object error) async {
+    if (error is PlayerException && error.code == _interruptedErrorCode) {
+      log.info('Audio load interrupted by a newer one', error: error);
+      return;
+    }
+
     log.error('Audio player error', error: error);
     await _reset(
       reference: reference.value,
@@ -434,158 +444,192 @@ class AudioPlayerViewModel extends ChangeNotifier {
     _chapterReference = null;
   }
 
+  final _reloadScope = CancellationScope();
+
   Future<void> _reload({
     required SourceSetting source,
     required Reference? newReference,
     bool force = false,
-  }) async {
-    if (repeatMode.type == AudioRepeatModeType.verse) {
-      if (newReference == null) {
-        setRepeatMode(AudioRepeatMode.none);
-      } else {
-        setRepeatMode(AudioRepeatMode.verse(newReference.verse));
+  }) {
+    return _reloadScope.run((guard) async {
+      if (repeatMode.type == AudioRepeatModeType.verse) {
+        if (newReference == null) {
+          setRepeatMode(AudioRepeatMode.none);
+        } else {
+          setRepeatMode(AudioRepeatMode.verse(newReference.verse));
+        }
       }
-    }
 
-    if (newReference == null) {
+      if (newReference == null) {
+        setAudioSource(source);
+        return await guard(_reset());
+      }
+
+      final nextTestament = AudioService.testamentForBookId(
+        newReference.bookId,
+      );
+      final prevReference = reference.value;
+      final prevTestament = prevReference == null
+          ? null
+          : AudioService.testamentForBookId(prevReference.bookId);
+
+      if (nextTestament != prevTestament) {
+        try {
+          speakers = await guard(_audioService.getSpeakers(nextTestament));
+        } on CancelledError {
+          rethrow;
+        } catch (e, stackTrace) {
+          log.error(
+            'Failed to load audio speakers for ${nextTestament.key}',
+            error: e,
+            stackTrace: stackTrace,
+          );
+          await guard(
+            _reset(
+              reference: newReference,
+              error: AudioUnknownError(newReference),
+            ),
+          );
+          return;
+        }
+
+        if (speakers.isEmpty) {
+          log.warn('No audio speakers available for ${nextTestament.key}');
+          await guard(
+            _reset(
+              reference: newReference,
+              error: AudioFileMissingError(newReference),
+            ),
+          );
+          return;
+        }
+
+        String speakerKey(String speakerId) =>
+            speakerId.substring(speakerId.indexOf('/') + 1);
+        final sourceAvailable = speakers.any(
+          (s) => speakerKey(s.id) == source.forTestament(nextTestament),
+        );
+        if (!sourceAvailable) {
+          source = source.withTestament(
+            nextTestament,
+            speakerKey(speakers.first.id),
+          );
+        }
+      }
+
+      final oldSource = audioSource;
       setAudioSource(source);
-      return _reset();
-    }
 
-    final nextTestament = AudioService.testamentForBookId(newReference.bookId);
-    final prevReference = reference.value;
-    final prevTestament = prevReference == null
-        ? null
-        : AudioService.testamentForBookId(prevReference.bookId);
+      final activeSource = source.forTestament(nextTestament);
+      final needsReload =
+          prevReference?.bookId != newReference.bookId ||
+          prevReference?.chapter != newReference.chapter ||
+          activeSource != oldSource.forTestament(nextTestament);
+      if (!needsReload && !force) {
+        await guard(_seekToReference(newReference));
 
-    if (nextTestament != prevTestament) {
+        return;
+      }
+
+      String audioUrl;
+      List<AudioTiming> timings;
       try {
-        speakers = await _audioService.getSpeakers(nextTestament);
+        (:audioUrl, :timings) = await guard(
+          _audioService.getChapterData(
+            activeSource,
+            newReference.bookId,
+            newReference.chapter,
+          ),
+        );
+      } on AudioMissingException {
+        await guard(
+          _reset(
+            reference: newReference,
+            error: AudioFileMissingError(newReference),
+          ),
+        );
+        return;
+      } on CancelledError {
+        rethrow;
       } catch (e, stackTrace) {
         log.error(
-          'Failed to load audio speakers for ${nextTestament.key}',
+          'Failed to load audio chapter data for '
+          'source $activeSource, book ${newReference.bookId}, '
+          'chapter ${newReference.chapter}',
           error: e,
           stackTrace: stackTrace,
         );
-        await _reset(
-          reference: newReference,
-          error: AudioUnknownError(newReference),
+        await guard(
+          _reset(
+            reference: newReference,
+            error: AudioUnknownError(newReference),
+          ),
         );
         return;
       }
 
-      if (speakers.isEmpty) {
-        log.warn('No audio speakers available for ${nextTestament.key}');
-        await _reset(
-          reference: newReference,
-          error: AudioFileMissingError(newReference),
-        );
-        return;
-      }
-
-      String speakerKey(String speakerId) =>
-          speakerId.substring(speakerId.indexOf('/') + 1);
-      final sourceAvailable = speakers.any(
-        (s) => speakerKey(s.id) == source.forTestament(nextTestament),
+      setError(null);
+      _timings = timings;
+      _chapterReference = Reference(
+        bookId: newReference.bookId,
+        chapter: newReference.chapter,
+        verse: 1,
       );
-      if (!sourceAvailable) {
-        source = source.withTestament(
-          nextTestament,
-          speakerKey(speakers.first.id),
-        );
-      }
-    }
 
-    final oldSource = audioSource;
-    setAudioSource(source);
+      final l = _localizations;
+      final title = l == null
+          ? "Bible"
+          : "${bookNameFromLocalizations(l, newReference.bookId)} ${newReference.chapter}";
 
-    final activeSource = source.forTestament(nextTestament);
-    final needsReload =
-        prevReference?.bookId != newReference.bookId ||
-        prevReference?.chapter != newReference.chapter ||
-        activeSource != oldSource.forTestament(nextTestament);
-    if (!needsReload && !force) {
-      await _seekToReference(newReference);
-
-      return;
-    }
-
-    String audioUrl;
-    List<AudioTiming> timings;
-    try {
-      (:audioUrl, :timings) = await _audioService.getChapterData(
-        activeSource,
-        newReference.bookId,
-        newReference.chapter,
-      );
-    } on AudioMissingException {
-      await _reset(
-        reference: newReference,
-        error: AudioFileMissingError(newReference),
-      );
-      return;
-    } catch (e, stackTrace) {
-      log.error(
-        'Failed to load audio chapter data for '
-        'source $activeSource, book ${newReference.bookId}, '
-        'chapter ${newReference.chapter}',
-        error: e,
-        stackTrace: stackTrace,
-      );
-      await _reset(
-        reference: newReference,
-        error: AudioUnknownError(newReference),
-      );
-      return;
-    }
-
-    setError(null);
-    _timings = timings;
-    _chapterReference = Reference(
-      bookId: newReference.bookId,
-      chapter: newReference.chapter,
-      verse: 1,
-    );
-
-    final l = _localizations;
-    final title = l == null
-        ? "Bible"
-        : "${bookNameFromLocalizations(l, newReference.bookId)} ${newReference.chapter}";
-
-    final wasPlaying = player.playing;
-    try {
-      await player.setAudioSource(
-        AudioSource.uri(
-          Uri.parse(audioUrl),
-          tag: MediaItem(id: audioUrl, title: title),
-        ),
-      );
-    } catch (error, stackTrace) {
-      log.error(
-        'Failed to load audio from $audioUrl',
-        error: error,
-        stackTrace: stackTrace,
-      );
-      await _reset(
-        reference: newReference,
-        error: AudioUnknownError(newReference),
-      );
-    }
-
-    await _seekToReference(newReference);
-    setReference(newReference);
-
-    if (wasPlaying) {
+      final wasPlaying = player.playing;
       try {
-        await player.play();
+        // This cancels any existing audio files that are being loaded.
+        await guard(player.stop());
+        await guard(
+          player.setAudioSource(
+            AudioSource.uri(
+              Uri.parse(audioUrl),
+              tag: MediaItem(id: audioUrl, title: title),
+            ),
+          ),
+        );
+      } on CancelledError {
+        rethrow;
+      } on PlayerInterruptedException {
+        // A newer load superseded this one; it owns the player now.
+        return;
       } catch (error, stackTrace) {
         log.error(
-          'Failed to resume audio playback after reloading $audioUrl',
+          'Failed to load audio from $audioUrl',
           error: error,
           stackTrace: stackTrace,
         );
+        await guard(
+          _reset(
+            reference: newReference,
+            error: AudioUnknownError(newReference),
+          ),
+        );
+        return;
       }
-    }
+
+      await guard(_seekToReference(newReference));
+      setReference(newReference);
+
+      if (wasPlaying) {
+        try {
+          await guard(player.play());
+        } on CancelledError {
+          rethrow;
+        } catch (error, stackTrace) {
+          log.error(
+            'Failed to resume audio playback after reloading $audioUrl',
+            error: error,
+            stackTrace: stackTrace,
+          );
+        }
+      }
+    });
   }
 
   AudioTiming? _referenceToTiming(Reference reference) {
@@ -689,6 +733,7 @@ class AudioPlayerViewModel extends ChangeNotifier {
   @override
   Future<void> dispose() async {
     _audioService.removeResourceChangeListener(_onAudioResourceChanged);
+    _reloadScope.cancelAll();
 
     super.dispose();
 

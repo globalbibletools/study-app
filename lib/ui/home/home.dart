@@ -125,17 +125,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 displayChapter: ref?.chapter ?? 1,
                 displayVerse: ref?.verse ?? 1,
                 readingSessionStarted: readingSessionStarted,
-                onBookSelected: (bookId) =>
+                onChapterSelected: (bookId, chapter) =>
                     manager.navigationViewModel.navigateTo(
-                      Reference(bookId: bookId, chapter: 1, verse: 1),
-                    ),
-                onChapterSelected: (chapter) =>
-                    manager.navigationViewModel.navigateTo(
-                      Reference(
-                        bookId: manager.currentBookId,
-                        chapter: chapter,
-                        verse: 1,
-                      ),
+                      Reference(bookId: bookId, chapter: chapter, verse: 1),
                     ),
                 onVerseSelected: (verse) {
                   manager.navigationViewModel.seekTo(

@@ -1,5 +1,6 @@
 # Architecture Decision Records
 
+* 2026-11-18 [Cancel-and-Replace Cancellation](2026-11-18-cancel-and-replace.md) [In Review]
 * 2026-11-18 [Four-Layer Architecture](2026-11-18-four-layer-architecture.md) [Accepted]
 * 2026-11-18 [Reactivity Patterns](2026-11-18-reactivity-patterns.md) [Accepted]
 * 2026-11-18 [Dependency Injection](2026-11-18-dependency-injection.md) [Accepted]

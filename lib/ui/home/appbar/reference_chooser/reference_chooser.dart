@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:gbt/common/bible_navigation.dart';
+import 'package:gbt/l10n/book_names.dart';
 import 'package:gbt/services/service_locator.dart';
 
 import 'book_selector.dart';
@@ -13,8 +14,7 @@ class ReferenceChooser extends StatefulWidget {
   final int currentBookId;
   final int currentChapter;
   final int currentVerse;
-  final Function(int bookId) onBookSelected;
-  final Function(int chapter) onChapterSelected;
+  final Function(int bookId, int chapter) onChapterSelected;
   final Function(int verse) onVerseSelected;
   final ValueChanged<ReferenceInputMode> onInputModeChanged;
   final ValueChanged<Set<int>>? onAvailableDigitsChanged;
@@ -25,7 +25,6 @@ class ReferenceChooser extends StatefulWidget {
     required this.currentBookId,
     required this.currentChapter,
     required this.currentVerse,
-    required this.onBookSelected,
     required this.onChapterSelected,
     required this.onVerseSelected,
     required this.onInputModeChanged,
@@ -47,6 +46,9 @@ class ReferenceChooserState extends State<ReferenceChooser> {
   final _verseController = TextEditingController();
 
   ReferenceInputMode _currentMode = ReferenceInputMode.none;
+  int? _confirmedBookId;
+
+  int get _chapterBookId => _confirmedBookId ?? widget.currentBookId;
 
   @override
   void initState() {
@@ -155,6 +157,9 @@ class ReferenceChooserState extends State<ReferenceChooser> {
 
     setState(() {
       _currentMode = mode;
+      if (mode != ReferenceInputMode.chapter) {
+        _confirmedBookId = null;
+      }
     });
     widget.onInputModeChanged(mode);
 
@@ -176,6 +181,7 @@ class ReferenceChooserState extends State<ReferenceChooser> {
     if (!mounted) return;
     setState(() {
       _currentMode = ReferenceInputMode.none;
+      _confirmedBookId = null;
     });
     widget.onInputModeChanged(ReferenceInputMode.none);
     widget.onAvailableDigitsChanged?.call({0, 1, 2, 3, 4, 5, 6, 7, 8, 9});
@@ -195,11 +201,11 @@ class ReferenceChooserState extends State<ReferenceChooser> {
       String currentText;
 
       if (_currentMode == ReferenceInputMode.chapter) {
-        maxValue = _bibleNavigation.getChapterCount(widget.currentBookId);
+        maxValue = _bibleNavigation.getChapterCount(_chapterBookId);
         currentText = _chapterController.text;
       } else {
         maxValue = _bibleNavigation.getVerseCount(
-          widget.currentBookId,
+          _chapterBookId,
           widget.currentChapter,
         );
         currentText = _verseController.text;
@@ -246,11 +252,11 @@ class ReferenceChooserState extends State<ReferenceChooser> {
 
     if (_currentMode == ReferenceInputMode.chapter) {
       activeController = _chapterController;
-      maxValue = _bibleNavigation.getChapterCount(widget.currentBookId);
+      maxValue = _bibleNavigation.getChapterCount(_chapterBookId);
     } else if (_currentMode == ReferenceInputMode.verse) {
       activeController = _verseController;
       maxValue = _bibleNavigation.getVerseCount(
-        widget.currentBookId,
+        _chapterBookId,
         widget.currentChapter,
       );
     }
@@ -264,9 +270,7 @@ class ReferenceChooserState extends State<ReferenceChooser> {
           activeController!.text = newText;
         });
 
-        if (_currentMode == ReferenceInputMode.chapter) {
-          widget.onChapterSelected(newValue);
-        } else if (_currentMode == ReferenceInputMode.verse) {
+        if (_currentMode == ReferenceInputMode.verse) {
           widget.onVerseSelected(newValue);
         }
 
@@ -302,11 +306,9 @@ class ReferenceChooserState extends State<ReferenceChooser> {
         });
 
         if (activeController.text.isNotEmpty) {
-          int? val = int.tryParse(activeController.text);
-          if (val != null) {
-            if (_currentMode == ReferenceInputMode.chapter) {
-              widget.onChapterSelected(val);
-            } else if (_currentMode == ReferenceInputMode.verse) {
+          if (_currentMode == ReferenceInputMode.verse) {
+            int? val = int.tryParse(activeController.text);
+            if (val != null) {
               widget.onVerseSelected(val);
             }
           }
@@ -324,7 +326,9 @@ class ReferenceChooserState extends State<ReferenceChooser> {
   void handleSubmit() {
     if (_currentMode == ReferenceInputMode.chapter) {
       int val = int.tryParse(_chapterController.text) ?? 1;
-      widget.onChapterSelected(val);
+      final bookId = _chapterBookId;
+      _confirmedBookId = null;
+      widget.onChapterSelected(bookId, val);
       _activateMode(ReferenceInputMode.verse);
     } else if (_currentMode == ReferenceInputMode.verse) {
       int val = int.tryParse(_verseController.text) ?? 1;
@@ -342,20 +346,26 @@ class ReferenceChooserState extends State<ReferenceChooser> {
         Flexible(
           fit: FlexFit.loose,
           child: BookSelector(
-            currentBookName: widget.currentBookName,
-            currentBookId: widget.currentBookId,
+            currentBookName: _confirmedBookId == null
+                ? widget.currentBookName
+                : bookNameFromId(context, _confirmedBookId!),
+            currentBookId: _chapterBookId,
             isActive: _currentMode == ReferenceInputMode.book,
             focusNode: _bookFocus,
             onTap: () => _activateMode(ReferenceInputMode.book),
-            onChanged: widget.onBookSelected,
+            onChanged: (bookId) {
+              _confirmedBookId = null;
+              widget.onChapterSelected(bookId, 1);
+            },
             onSubmitted: (id) {
-              widget.onBookSelected(id);
-
               int chapterCount = _bibleNavigation.getChapterCount(id);
               if (chapterCount == 1) {
-                widget.onChapterSelected(1);
+                widget.onChapterSelected(id, 1);
                 _activateMode(ReferenceInputMode.verse);
               } else {
+                setState(() {
+                  _confirmedBookId = id;
+                });
                 _activateMode(ReferenceInputMode.chapter);
               }
             },
@@ -386,10 +396,12 @@ class ReferenceChooserState extends State<ReferenceChooser> {
               widget.currentBookId,
             );
             if (widget.currentChapter < maxChapters) {
-              widget.onChapterSelected(widget.currentChapter + 1);
+              widget.onChapterSelected(
+                widget.currentBookId,
+                widget.currentChapter + 1,
+              );
             } else if (widget.currentBookId < 66) {
-              widget.onBookSelected(widget.currentBookId + 1);
-              widget.onChapterSelected(1);
+              widget.onChapterSelected(widget.currentBookId + 1, 1);
             }
           },
           onPeekPrevious: () {
@@ -404,11 +416,16 @@ class ReferenceChooserState extends State<ReferenceChooser> {
           },
           onPreviousInvoked: () {
             if (widget.currentChapter > 1) {
-              widget.onChapterSelected(widget.currentChapter - 1);
+              widget.onChapterSelected(
+                widget.currentBookId,
+                widget.currentChapter - 1,
+              );
             } else if (widget.currentBookId > 1) {
               final prev = widget.currentBookId - 1;
-              widget.onBookSelected(prev);
-              widget.onChapterSelected(_bibleNavigation.getChapterCount(prev));
+              widget.onChapterSelected(
+                prev,
+                _bibleNavigation.getChapterCount(prev),
+              );
             }
           },
         ),

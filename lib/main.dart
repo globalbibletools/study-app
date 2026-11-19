@@ -1,5 +1,8 @@
+import 'dart:ui' show PlatformDispatcher;
+
 import 'package:material_ui/material_ui.dart';
 import 'package:just_audio_background/just_audio_background.dart';
+import 'package:gbt/asyncutils/cancellation.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/services/logging/log.dart';
 import 'package:gbt/services/resources/resource_service.dart';
@@ -11,6 +14,13 @@ import 'theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  PlatformDispatcher.instance.onError = (e, stackTrace) {
+    if (e is CancelledError) return true;
+    error('Unhandled error', error: e, stackTrace: stackTrace);
+    return true;
+  };
+
   setupServiceLocator();
   await getIt.allReady();
   info('App starting');
