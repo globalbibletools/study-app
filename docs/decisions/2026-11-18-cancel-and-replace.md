@@ -117,4 +117,4 @@ Future<void> dispose() async {
 
 - `lib/asyncutils/cancellation.dart`
 - `test/asyncutils/cancellation_test.dart`
-- `lib/ui/home/audio/audio_player_view_model.dart`
+- `lib/audio/audio_player_view_model.dart`
