@@ -2,9 +2,8 @@ import 'dart:math' as math;
 
 import 'package:material_ui/material_ui.dart';
 import 'package:gbt/l10n/app_localizations.dart';
-import 'package:gbt/services/reading_session/rs_model.dart'
-    show DailyGoal, GoalType;
-import 'package:gbt/ui/home/reading_plan/reading_session_view_model.dart';
+import 'package:gbt/reading_plan/rs_model.dart' show DailyGoal, GoalType;
+import 'package:gbt/reading_plan/reading_session_view_model.dart';
 
 class ReadingSessionOverlay extends StatelessWidget {
   const ReadingSessionOverlay({super.key, required this.viewModel});

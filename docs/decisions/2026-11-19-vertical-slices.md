@@ -103,3 +103,4 @@ not the boundary themselves.
 - `docs/ARCHITECTURE.md` — layer model and dependency rules
 - [Four-Layer Architecture](2026-11-18-four-layer-architecture.md)
 - `lib/audio/` — the first vertical slice
+- `lib/reading_plan/` — the reading plan slice, including reading sessions

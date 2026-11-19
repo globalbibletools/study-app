@@ -96,19 +96,18 @@ void main() {
               publishedGeometry = notification.geometry;
               return false;
             },
-            child: BibleChapter(
-              bookId: 1,
-              chapter: 1,
-              verseLayout: layout,
-            ),
+            child: BibleChapter(bookId: 1, chapter: 1, verseLayout: layout),
           ),
         ),
       ),
     );
     await tester.pumpAndSettle();
 
-    expect(publishedGeometry, isNotNull,
-        reason: 'chapter should publish its geometry via notification');
+    expect(
+      publishedGeometry,
+      isNotNull,
+      reason: 'chapter should publish its geometry via notification',
+    );
     return publishedGeometry!;
   }
 
