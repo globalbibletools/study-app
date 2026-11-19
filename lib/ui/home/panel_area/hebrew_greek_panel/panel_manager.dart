@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:gbt/ui/home/reading_plan/reading_session_view_model.dart';
+import 'package:gbt/reading_plan/reading_session_view_model.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/services/settings/user_settings.dart';
 

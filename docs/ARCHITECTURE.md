@@ -5,15 +5,6 @@ document governs how code *should* be written; the codebase does not fully
 conform yet. When making a change, move code toward this document, and when
 a rule here conflicts with reality, flag it and fix the doc or the code.
 
-This document is being written incrementally. The layer model, dependency
-injection, and the reactivity model below are the agreed foundation; later
-sections will cover vertical slices and the page model.
-
-The document is deliberately loose about file organization. Layers are about
-responsibilities and what each part is allowed to know, not about folder
-layout. When a module is described below, find it by what it does, not by
-where it lives.
-
 ## The four layers
 
 The app is built from four layers, each depending only on the layer below:
@@ -115,6 +106,75 @@ construct is a layering violation. Widgets subscribe with
 `ListenableBuilder` / `ValueListenableBuilder`, scoped as narrowly as
 possible, and never use `setState` to propagate data changes upward or
 sideways.
+
+## Vertical slices
+
+A vertical slice is everything needed to deliver one capability: its
+database and models, service, local view models, and widgets. Layers answer
+"what kind of code is this?"; slices answer "what does this code belong
+to?" A slice contains multiple layers, and every file still obeys the layer
+rules above.
+
+### Directories make slices visible
+
+Each slice owns a directory under `lib/<slice>/`, with tests under
+`test/<slice>/`. A file belongs where its capability belongs, not in a
+global `services/` or `ui/` tree. The directory is the visible expression of
+the boundary, not the boundary itself: moving files together without the
+ownership rules below is only cosmetic.
+
+Imports use `package:gbt/<slice>/...` so files do not depend on their
+physical depth. A slice directory is not a new layer. Keep database,
+service, view model, and widget files distinguishable by name and
+responsibility: widget files are named after their primary class without a
+`_widget` suffix; non-widget roles keep their `_service`, `_view_model`, and
+`_database` suffixes.
+
+### State ownership
+
+State that changes together and serves one capability lives inside that
+slice. Most state stays local. A local view model is paired with the widget
+that constructs, owns, disposes, and uses it; no other slice reaches into
+it.
+
+When state must be shared, promote it deliberately to a globally registered
+view model with a clear owning slice, rather than duplicating it or reaching
+into another slice's local state. `NavigationViewModel` is the canonical
+example: it is global by design and may be used from any slice. State
+changes still go through its methods, per [Who writes](#who-writes).
+
+### Cross-slice references
+
+Coupling is governed by ownership, not by forbidding references. A slice may:
+
+- render another slice's widgets, which is necessary to compose UIs. The
+  widget remains paired with its own local view model; callers do not pass
+  that view model around or call into it.
+- use globally registered view models, such as `NavigationViewModel`.
+- call into another slice's services.
+
+A slice may not:
+
+- reference another slice's database classes. The owning service is the only
+  entry point to that data.
+- talk to another slice's local view models outside their paired widgets.
+
+Infrastructure used by several slices (logging, downloads, resources,
+cancellation) remains shared rather than being copied into each slice.
+
+### Surface area
+
+Keep the surface area of a slice small. This is a design goal, not an
+enforcement rule yet. The first phase is organization and ownership;
+narrowing each slice's public interface so coupling can be controlled comes
+later. When in doubt, expose intent through the slice's service or global
+view model methods rather than widening what may cross the boundary.
+
+### Migration
+
+Slices move when they are being worked on; there is no big-bang
+reorganization. Tests mirror the slice path under `test/<slice>/`, the same
+convention as `lib/services` → `test/services` without a `lib/` segment.
 
 ## Dependency injection
 

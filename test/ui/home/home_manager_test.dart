@@ -4,7 +4,7 @@ import 'package:gbt/common/reference.dart';
 import 'package:gbt/services/app_guide/app_guide_manager.dart';
 import 'package:gbt/services/bible/bible_service.dart';
 import 'package:gbt/services/download/download.dart';
-import 'package:gbt/ui/home/reading_plan/reading_session_view_model.dart';
+import 'package:gbt/reading_plan/reading_session_view_model.dart';
 import 'package:gbt/services/resources/resource_service.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/services/settings/user_settings.dart';

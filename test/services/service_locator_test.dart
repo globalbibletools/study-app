@@ -15,38 +15,35 @@ void main() {
   // Mirrors the settings -> navigation view model chain registered in
   // `setupServiceLocator`. The full locator cannot be exercised in a unit
   // test because the database and logger factories need platform channels.
-  test(
-    'the settings and view model singletons initialize through the locator '
-    'and await in order',
-    () async {
-      SharedPreferences.setMockInitialValues({
-        'currentBookId': 19,
-        'currentChapter': 23,
-      });
+  test('the settings and view model singletons initialize through the locator '
+      'and await in order', () async {
+    SharedPreferences.setMockInitialValues({
+      'currentBookId': 19,
+      'currentChapter': 23,
+    });
 
-      getIt.registerSingletonAsync<UserSettings>(() async {
-        final settings = UserSettings();
-        await settings.init();
-        return settings;
-      });
-      getIt.registerSingletonAsync<NavigationViewModel>(
-        () async => NavigationViewModel(await getIt.getAsync<UserSettings>()),
-      );
+    getIt.registerSingletonAsync<UserSettings>(() async {
+      final settings = UserSettings();
+      await settings.init();
+      return settings;
+    });
+    getIt.registerSingletonAsync<NavigationViewModel>(
+      () async => NavigationViewModel(await getIt.getAsync<UserSettings>()),
+    );
 
-      await getIt.allReady();
+    await getIt.allReady();
 
-      expect(getIt<UserSettings>().currentBookChapter, (19, 23));
+    expect(getIt<UserSettings>().currentBookChapter, (19, 23));
 
-      final viewModel = getIt<NavigationViewModel>();
-      expect(
-        viewModel.anchor.value,
-        const Reference(bookId: 19, chapter: 23, verse: 1),
-      );
-      expect(
-        viewModel.displayReference,
-        const Reference(bookId: 19, chapter: 23, verse: 1),
-      );
-      expect(viewModel.position, isNotNull);
-    },
-  );
+    final viewModel = getIt<NavigationViewModel>();
+    expect(
+      viewModel.anchor.value,
+      const Reference(bookId: 19, chapter: 23, verse: 1),
+    );
+    expect(
+      viewModel.displayReference,
+      const Reference(bookId: 19, chapter: 23, verse: 1),
+    );
+    expect(viewModel.position, isNotNull);
+  });
 }

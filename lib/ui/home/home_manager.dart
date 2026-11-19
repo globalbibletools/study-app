@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:gbt/asyncutils/cancellation.dart';
-import 'package:gbt/ui/home/audio/audio_player_view_model.dart';
+import 'package:gbt/audio/audio_player_view_model.dart';
 import 'package:scripture/scripture.dart';
 import 'package:gbt/app_state.dart';
 import 'package:gbt/common/reference.dart';
@@ -14,7 +14,7 @@ import 'package:gbt/services/settings/user_settings.dart';
 import 'package:gbt/ui/common/bible_chooser.dart';
 import 'package:gbt/ui/home/appbar/reference_chooser/reference_chooser.dart';
 import 'package:gbt/ui/home/common/navigation_view_model.dart';
-import 'package:gbt/ui/home/reading_plan/reading_session_view_model.dart';
+import 'package:gbt/reading_plan/reading_session_view_model.dart';
 import 'package:gbt/ui/home/word_details_dialog/dialog_manager.dart';
 import 'package:gbt/ui/home/word_details_dialog/similar_verses/similar_verses_page.dart';
 

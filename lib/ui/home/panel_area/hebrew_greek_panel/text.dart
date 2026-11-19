@@ -5,7 +5,7 @@ import 'package:flutter/gestures.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/rendering.dart';
 import 'package:gbt/common/word.dart';
-import 'package:gbt/services/reading_session/rs_model.dart';
+import 'package:gbt/reading_plan/rs_model.dart';
 import 'package:gbt/services/settings/user_settings.dart';
 import 'package:gbt/ui/common/sparkle_icon.dart';
 import 'package:gbt/ui/common/word_popup.dart';
