@@ -11,8 +11,7 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
   final int displayChapter;
   final int displayVerse;
   final bool readingSessionStarted;
-  final Function(int bookId) onBookSelected;
-  final Function(int chapter) onChapterSelected;
+  final Function(int bookId, int chapter) onChapterSelected;
   final Function(int verse) onVerseSelected;
   final VoidCallback onTogglePanel;
   final VoidCallback onPlayAudio;
@@ -27,7 +26,6 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
     required this.displayBookId,
     required this.displayChapter,
     required this.displayVerse,
-    required this.onBookSelected,
     required this.onChapterSelected,
     required this.onVerseSelected,
     required this.onTogglePanel,
@@ -66,7 +64,6 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
         currentBookId: displayBookId,
         currentChapter: displayChapter,
         currentVerse: displayVerse,
-        onBookSelected: onBookSelected,
         onChapterSelected: onChapterSelected,
         onVerseSelected: onVerseSelected,
         onInputModeChanged: onInputModeChanged,
