@@ -583,13 +583,7 @@ class AudioPlayerViewModel extends ChangeNotifier {
 
       final wasPlaying = player.playing;
       try {
-        // Stop before loading so the new source starts from a clean player.
-        // just_audio's Android plugin aborts a pending connection (error code
-        // 10000000, "Connection aborted") when a load command arrives while
-        // the player is still in its loading state, so overlapping source
-        // switches fail without this. `stop()` releases the native player and
-        // the following `setAudioSource` rebuilds it from the idle state,
-        // which never aborts.
+        // This cancels any existing audio files that are being loaded.
         await guard(player.stop());
         await guard(
           player.setAudioSource(
