@@ -2,9 +2,9 @@ import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:gbt/common/reference.dart';
 import 'package:gbt/l10n/book_names.dart';
-import 'package:gbt/services/audio/audio_service.dart';
+import 'package:gbt/audio/audio_service.dart';
 import 'package:gbt/services/resources/resource.dart';
-import 'package:gbt/ui/home/audio/audio_player_view_model.dart';
+import 'package:gbt/audio/audio_player_view_model.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 
 class BottomAudioPlayer extends StatelessWidget {

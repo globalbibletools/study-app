@@ -1,7 +1,7 @@
 import 'dart:io';
 
-import 'package:gbt/services/audio/audio_timing.dart';
-import 'package:gbt/services/audio/audio_timing_database.dart';
+import 'package:gbt/audio/audio_timing.dart';
+import 'package:gbt/audio/audio_timing_database.dart';
 import 'package:gbt/services/download/download.dart';
 import 'package:gbt/services/logging/log.dart';
 import 'package:gbt/services/resources/resource_service.dart';
