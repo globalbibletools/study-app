@@ -363,6 +363,8 @@ class AudioPlayerViewModel extends ChangeNotifier {
         default:
           break;
       }
+    } on CancelledError {
+      return;
     } catch (error, stackTrace) {
       log.error(
         'Failed to handle audio player state change: $state',

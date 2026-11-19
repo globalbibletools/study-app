@@ -4,14 +4,40 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:gbt/asyncutils/cancellation.dart';
 
 void main() {
-  test('guard returns the awaited value when the run is current', () async {
+  test('run returns the action value when current', () async {
     final scope = CancellationScope();
-    Object? result;
-    await scope.run((guard) async {
-      result = await guard(Future.value(42));
-    });
-    expect(result, 42);
+    final value = await scope.run(
+      (guard) async => await guard(Future.value(42)),
+    );
+    expect(value, 42);
   });
+
+  test('run throws CancelledError when superseded', () async {
+    final scope = CancellationScope();
+    final chapterData = Completer<int>();
+
+    final superseded = scope.run(
+      (guard) async => await guard(chapterData.future),
+    );
+    await scope.run((_) async {});
+    chapterData.complete(42);
+
+    await expectLater(superseded, throwsA(isA<CancelledError>()));
+  });
+
+  test(
+    'a run cancelled before its first guard throws CancelledError',
+    () async {
+      final scope = CancellationScope();
+      await expectLater(
+        scope.run((guard) async {
+          scope.cancelAll();
+          await guard(Future.value(1));
+        }),
+        throwsA(isA<CancelledError>()),
+      );
+    },
+  );
 
   test('guard rethrows the original error when the run is current', () async {
     final scope = CancellationScope();
@@ -21,32 +47,6 @@ void main() {
       }),
       throwsStateError,
     );
-  });
-
-  test('guard throws when the run was already cancelled', () async {
-    final scope = CancellationScope();
-    var reached = false;
-    await scope.run((guard) async {
-      scope.cancelAll();
-      await guard(Future.value(1));
-      reached = true;
-    });
-    expect(reached, false);
-  });
-
-  test('guard cancels a stale success', () async {
-    final scope = CancellationScope();
-    final chapterData = Completer<int>();
-    var result = -1;
-
-    final superseded = scope.run((guard) async {
-      result = await guard(chapterData.future);
-    });
-    await scope.run((_) async {});
-    chapterData.complete(42);
-
-    await superseded;
-    expect(result, -1, reason: 'a stale result must not be consumed');
   });
 
   test('a stale failure is reported as cancellation, not an error', () async {
@@ -62,28 +62,27 @@ void main() {
       } catch (e) {
         handledRealError = true;
       }
+      return 0;
     });
     await scope.run((_) async {});
     chapterData.completeError(StateError('boom'));
 
-    await superseded;
+    await expectLater(superseded, throwsA(isA<CancelledError>()));
     expect(handledRealError, false);
   });
 
   test('a guard captured by a superseded run keeps throwing', () async {
     final scope = CancellationScope();
     final gate = Completer<void>();
-    var result = -1;
 
     final superseded = scope.run((guard) async {
       await gate.future;
-      result = await guard(Future.value(42));
+      return await guard(Future.value(42));
     });
     await scope.run((_) async {});
     gate.complete();
 
-    await superseded;
-    expect(result, -1);
+    await expectLater(superseded, throwsA(isA<CancelledError>()));
   });
 
   test('errors from the current run propagate', () async {
@@ -120,14 +119,14 @@ void main() {
 
   test('a completed run does not cancel the next', () async {
     final scope = CancellationScope();
-    var result = 0;
-    await scope.run((guard) async {
-      result = await guard(Future.value(1));
+    final first = await scope.run((guard) async {
+      return await guard(Future.value(1));
     });
-    await scope.run((guard) async {
-      result = await guard(Future.value(2));
+    final second = await scope.run((guard) async {
+      return await guard(Future.value(2));
     });
-    expect(result, 2);
+    expect(first, 1);
+    expect(second, 2);
   });
 
   test('cancel is idempotent', () async {

@@ -42,15 +42,13 @@ class CancellationToken {
 class CancellationScope {
   CancellationToken? _current;
 
-  Future<void> run(Future<void> Function(Guard guard) action) async {
+  Future<T> run<T>(Future<T> Function(Guard guard) action) async {
     final token = CancellationToken();
     _current?.cancel();
     _current = token;
 
     try {
-      await action(token.guard);
-    } on CancelledError catch (error) {
-      if (!identical(error.source, token)) rethrow;
+      return await action(token.guard);
     } finally {
       if (identical(_current, token)) _current = null;
     }
