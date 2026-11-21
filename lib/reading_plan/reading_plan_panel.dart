@@ -5,6 +5,7 @@ import 'package:gbt/common/reference.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/l10n/book_names.dart';
 import 'package:gbt/reading_plan/edit_reading_plan_panel.dart';
+import 'package:gbt/reading_plan/reading_plan_detail_panel.dart';
 import 'package:gbt/reading_plan/reading_plan_panel_view_model.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
 
@@ -174,13 +175,35 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
               spacing: 8,
               children: [
                 Expanded(
-                  child: Text(
-                    planDet.readingPlan.planName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
+                  child: TextButton(
+                    style: TextButton.styleFrom(
+                      foregroundColor: colorScheme.primary,
+                      padding: EdgeInsets.zero,
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      alignment: Alignment.centerLeft,
+                    ),
+                    onPressed: () => _openPlanDetails(planDet),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            planDet.readingPlan.planName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        Icon(
+                          Icons.chevron_right,
+                          color: colorScheme.primary,
+                          size: 20,
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -247,7 +270,7 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
                         Icon(
                           Icons.chevron_right,
                           color: colorScheme.primary,
-                          size: 20,
+                          size: 14,
                         ),
                       ],
                     ),
@@ -279,6 +302,20 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
   String _referenceLabel(Reference reference) {
     final bookName = bookNameFromId(context, reference.bookId);
     return '$bookName ${reference.chapter}:${reference.verse}';
+  }
+
+  Future<void> _openPlanDetails(ReadingPlanDetails planDet) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ReadingPlanDetailPanel(
+          readingPlanDetails: planDet,
+          onClose: () => Navigator.of(context).pop(),
+        ),
+      ),
+    );
+
+    if (!mounted) return;
+    await viewModel.refresh();
   }
 
   Future<void> _editPlan(ReadingPlanDetails planDet) async {
