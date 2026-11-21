@@ -21,10 +21,14 @@ class FakeDetailPlanService extends Fake implements ReadingPlanService {
   List<RsBookStats> bookStats;
   Reference? resumePosition;
   List<DayProgress> monthProgress;
+  ReadingPlanDetails? plan;
 
   bool queueStatsRequests = false;
   final statsRequests = <Completer<List<RsBookStats>>>[];
   final bookmarkedValues = <bool>[];
+
+  @override
+  Future<ReadingPlanDetails?> getReadingPlanById(int planId) async => plan;
 
   @override
   Future<List<RsBookStats>> getBooksStats(int readingPlanId) {
@@ -37,8 +41,20 @@ class FakeDetailPlanService extends Fake implements ReadingPlanService {
   }
 
   @override
-  Future<Reference?> getResumeReference(int planId, {Reference? after}) async {
-    return resumePosition ?? after;
+  Future<Reference?> getResumeReference(int planId) async {
+    return resumePosition;
+  }
+
+  @override
+  Future<DayProgress> getDayProgress(int readingPlanId, DateTime date) async {
+    for (final progress in monthProgress) {
+      if (progress.day.year == date.year &&
+          progress.day.month == date.month &&
+          progress.day.day == date.day) {
+        return progress;
+      }
+    }
+    return DayProgress.empty(date);
   }
 
   @override
@@ -72,8 +88,9 @@ void main() {
     ReadingPlanDetails plan,
     FakeDetailPlanService service,
   ) {
+    service.plan = plan;
     return ReadingPlanDetailViewModel.withDependencies(
-      plan: plan,
+      planId: plan.readingPlan.id!,
       planService: service,
       sessionViewModel: sessionViewModel,
     );

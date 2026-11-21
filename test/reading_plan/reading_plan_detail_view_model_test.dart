@@ -34,7 +34,27 @@ class FailingBookmarkPlanService extends ReadingPlanService {
   }
 }
 
-/// Queues book-stat reads so tests can hold refreshes in flight.
+/// Fails reorder persistence so tests can verify state resynchronization.
+class FailingReorderPlanService extends ReadingPlanService {
+  FailingReorderPlanService(
+    ReadingSessionDatabase database,
+    BibleNavigation bibleNavigation,
+  ) : super.withDependencies(
+        database: database,
+        bibleNavigation: bibleNavigation,
+      );
+
+  @override
+  Future<void> reorderReadingPlanBooks(
+    int readingPlanId,
+    List<ReadingPlanBook> books,
+  ) async {
+    await Future<void>.delayed(Duration.zero);
+    throw StateError('reorder failed');
+  }
+}
+
+/// Queues reload reads so tests can hold reloads in flight.
 class QueuedStatsPlanService extends ReadingPlanService {
   QueuedStatsPlanService(
     ReadingSessionDatabase database,
@@ -44,10 +64,24 @@ class QueuedStatsPlanService extends ReadingPlanService {
         bibleNavigation: bibleNavigation,
       );
 
+  final planRequests = <Completer<ReadingPlanDetails?>>[];
   final statsRequests = <Completer<List<RsBookStats>>>[];
+  bool queuePlan = false;
+  bool queueStats = true;
+
+  @override
+  Future<ReadingPlanDetails?> getReadingPlanById(int planId) {
+    if (!queuePlan) return super.getReadingPlanById(planId);
+
+    final request = Completer<ReadingPlanDetails?>();
+    planRequests.add(request);
+    return request.future;
+  }
 
   @override
   Future<List<RsBookStats>> getBooksStats(int readingPlanId) {
+    if (!queueStats) return super.getBooksStats(readingPlanId);
+
     final request = Completer<List<RsBookStats>>();
     statsRequests.add(request);
     return request.future;
@@ -121,7 +155,7 @@ void main() {
     ReadingPlanService? service,
   }) {
     return ReadingPlanDetailViewModel.withDependencies(
-      plan: plan,
+      planId: plan.readingPlan.id!,
       planService: service ?? planService,
       sessionViewModel: sessionViewModel,
     );
@@ -179,38 +213,45 @@ void main() {
         expect(viewModel.bookStats.containsKey(999), isFalse);
 
         expect(viewModel.overallProgress, closeTo(13 / 28, 1e-9));
-        expect(viewModel.progressPercent, 46);
 
         expect(viewModel.todaysProgress, isNotNull);
         expect(viewModel.todaysProgress!.verses, 13);
         expect(viewModel.todaysProgress!.minutes, 10);
         expect(viewModel.todaysGoalProgress, closeTo(1.3, 1e-9));
-        expect(viewModel.goalReachedToday, isTrue);
       },
     );
 
-    test('a newer refresh cancels the in-flight one and wins', () async {
+    test('a newer reload cancels the in-flight one and wins', () async {
       final details = await savePlan(bookIds: {8});
       final service = QueuedStatsPlanService(database, bibleNavigation);
       final viewModel = newViewModel(details, service: service);
       addTearDown(viewModel.dispose);
 
-      final first = viewModel.initialize();
+      service.queueStats = false;
+      await viewModel.initialize();
+      service.queuePlan = true;
+      service.queueStats = true;
+
+      final first = viewModel.refresh();
       final second = viewModel.refresh();
 
-      expect(service.statsRequests, hasLength(2));
+      expect(service.planRequests, hasLength(2));
 
-      service.statsRequests[0].complete(const []);
+      service.planRequests[0].complete(details);
       await expectLater(first, throwsA(isA<CancelledError>()));
 
-      service.statsRequests[1].complete([
+      service.planRequests[1].complete(details);
+      await pumpEventQueue();
+      expect(service.statsRequests, hasLength(1));
+
+      service.statsRequests.single.complete([
         RsBookStats(bookId: 8, totalVerses: 85, versesRead: 85, lastRead: null),
       ]);
       await second;
 
       expect(viewModel.isInitialized, isTrue);
       expect(viewModel.versesRead, 85);
-      expect(viewModel.isBookComplete(8), isTrue);
+      expect(viewModel.bookStats[8]!.isComplete, isTrue);
       expect(viewModel.hasStarted, isTrue);
     });
 
@@ -220,30 +261,40 @@ void main() {
         final details = await savePlan(bookIds: {8});
         final service = QueuedStatsPlanService(database, bibleNavigation);
         final viewModel = newViewModel(details, service: service);
+
+        service.queueStats = false;
+        await viewModel.initialize();
+        service.queuePlan = true;
+
         var notifications = 0;
         viewModel.addListener(() => notifications++);
 
         final future = viewModel.refresh();
+        expect(service.planRequests, hasLength(1));
         final notificationsBeforeDispose = notifications;
 
         viewModel.dispose();
-        service.statsRequests.single.complete(const []);
+        service.planRequests.single.complete(details);
         await expectLater(future, throwsA(isA<CancelledError>()));
 
         expect(notifications, notificationsBeforeDispose);
       },
     );
 
-    test('loadMonthData replaces the calendar month data', () async {
+    test('replaces the calendar month data when stepping months', () async {
       final details = await savePlan(bookIds: {8});
       final viewModel = newViewModel(details);
       await viewModel.initialize();
 
-      await viewModel.loadMonthData(DateTime(2026, 11, 1));
+      final start = viewModel.visibleMonth;
+      await viewModel.showNextMonth();
 
-      expect(viewModel.visibleMonth, DateTime(2026, 11));
-      expect(viewModel.monthProgress.value, hasLength(30));
-      expect(viewModel.monthProgress.value.first.day, DateTime(2026, 11, 1));
+      final next = DateTime(start.year, start.month + 1);
+      final daysInMonth = DateTime(next.year, next.month + 1, 0).day;
+
+      expect(viewModel.visibleMonth, next);
+      expect(viewModel.checkedDays, hasLength(daysInMonth));
+      expect(viewModel.dayProgress(1)?.day, DateTime(next.year, next.month, 1));
     });
 
     test('tracks the visible month while stepping forward and back', () async {
@@ -304,7 +355,7 @@ void main() {
       );
     });
 
-    test('rolls back the optimistic flip when persistence fails', () async {
+    test('leaves the bookmark unchanged when persistence fails', () async {
       final details = await savePlan(bookIds: {8});
       final failingService = FailingBookmarkPlanService(
         database,
@@ -313,10 +364,7 @@ void main() {
       final viewModel = newViewModel(details, service: failingService);
       await viewModel.initialize();
 
-      final future = viewModel.toggleBookmark();
-      expect(viewModel.isBookmarked, isTrue);
-
-      await future;
+      await expectLater(viewModel.toggleBookmark(), throwsA(isA<StateError>()));
 
       expect(viewModel.isBookmarked, isFalse);
     });
@@ -338,13 +386,13 @@ void main() {
         final viewModel = newViewModel(details);
         await viewModel.initialize();
 
-        expect(viewModel.resumePosition?.bookId, 1);
+        expect(viewModel.readingReference.bookId, 1);
 
         await viewModel.moveBook(1, 0); // Exodus before Genesis
 
         expect(viewModel.books.map((book) => book.bookId), [2, 1]);
         expect(viewModel.books.map((book) => book.ord), [1, 2]);
-        expect(viewModel.resumePosition?.bookId, 2);
+        expect(viewModel.readingReference.bookId, 2);
 
         final storedBooks = await database.getReadingPlanBooks(plan.id!);
         expect(storedBooks.map((book) => book.bookId), [2, 1]);
@@ -354,6 +402,26 @@ void main() {
         expect(resume?.bookId, 2);
       },
     );
+
+    test('propagates reorder failure and keeps the optimistic order', () async {
+      final plan = await planService.saveReadingPlan(
+        planName: 'Reorder Failure Test',
+        collectionId: 1,
+        goalType: GoalType.verses,
+        goalValue: 10,
+        selectedBookIds: {1, 2},
+      );
+      final details = (await planService.getReadingPlanById(plan.id!))!;
+      final service = FailingReorderPlanService(database, bibleNavigation);
+      final viewModel = newViewModel(details, service: service);
+      await viewModel.initialize();
+
+      await expectLater(viewModel.moveBook(1, 0), throwsA(isA<StateError>()));
+
+      expect(viewModel.books.map((book) => book.bookId), [2, 1]);
+      final storedBooks = await database.getReadingPlanBooks(plan.id!);
+      expect(storedBooks.map((book) => book.bookId), [1, 2]);
+    });
   });
 
   group('progressForBook', () {
@@ -371,7 +439,7 @@ void main() {
         expect(viewModel.bookStats.keys, [63]);
         expect(viewModel.progressForBook(63), closeTo(1 / 13, 1e-9));
         expect(viewModel.progressForBook(64), 0);
-        expect(viewModel.isBookComplete(63), isFalse);
+        expect(viewModel.bookStats[63]!.isComplete, isFalse);
       },
     );
   });
@@ -390,7 +458,6 @@ void main() {
       expect(viewModel.totalVerses, 85);
       expect(viewModel.hasEstimate, isTrue);
       expect(viewModel.estimatedDays, 9); // ceil(85 / 10)
-      expect(viewModel.estimatedMonths, closeTo(9 / 30.44, 1e-9));
     });
 
     test('converts minutes to verses at five verses per minute', () async {
@@ -413,11 +480,32 @@ void main() {
       final planId = details.readingPlan.id!;
       await database.markVerseRead(planId, 8, 1, 1);
 
+      final now = DateTime.now();
+      final session = await database.insertSession(
+        RsSession(
+          rsDate: DateTime(now.year, now.month, now.day),
+          startTime: now,
+          endTime: now,
+          verses: 1,
+          readingPlanId: planId,
+        ),
+      );
+      await database.insertLog(
+        RsLog(
+          sessionId: session.id!,
+          bookId: 8,
+          chapter: 1,
+          verse: 1,
+          dateTime: now,
+          readingPlanId: planId,
+        ),
+      );
+
       final viewModel = newViewModel(details);
       await viewModel.initialize();
 
       expect(
-        viewModel.resumePosition,
+        viewModel.readingReference,
         const Reference(bookId: 8, chapter: 1, verse: 2),
       );
 

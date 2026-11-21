@@ -151,7 +151,7 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
       MaterialPageRoute(
         builder: (context) =>
             widget.planDetailsRouteBuilder?.call(context, plan) ??
-            ReadingPlanDetailPanel(readingPlanDetails: plan),
+            ReadingPlanDetailPanel(planId: plan.readingPlan.id!),
       ),
     );
 

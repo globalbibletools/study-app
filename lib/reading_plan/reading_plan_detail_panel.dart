@@ -11,18 +11,16 @@ import 'package:gbt/reading_plan/progress_circle.dart';
 import 'package:gbt/reading_plan/reading_plan_detail_view_model.dart';
 
 class ReadingPlanDetailPanel extends StatefulWidget {
-  final ReadingPlanDetails? readingPlanDetails;
+  final int planId;
   final ReadingPlanDetailViewModel? viewModel;
 
-  const ReadingPlanDetailPanel({
-    super.key,
-    required ReadingPlanDetails this.readingPlanDetails,
-  }) : viewModel = null;
+  const ReadingPlanDetailPanel({super.key, required this.planId})
+    : viewModel = null;
 
   const ReadingPlanDetailPanel.withDependencies({
     super.key,
     required this.viewModel,
-  }) : readingPlanDetails = null;
+  }) : planId = 0;
 
   @override
   State<ReadingPlanDetailPanel> createState() => ReadingPlanDetailPanelState();
@@ -35,8 +33,7 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
   void initState() {
     super.initState();
     viewModel =
-        widget.viewModel ??
-        ReadingPlanDetailViewModel(plan: widget.readingPlanDetails!);
+        widget.viewModel ?? ReadingPlanDetailViewModel(planId: widget.planId);
     unawaited(viewModel.initialize());
   }
 
@@ -160,7 +157,7 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
     );
 
     if (!mounted) return;
-    await viewModel.reloadPlan();
+    await viewModel.refresh();
   }
 
   Widget _totalProgress() {
@@ -174,8 +171,7 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
 
     return _progressSummary(
       title: l10n.totalProgress,
-      value: viewModel.overallProgress,
-      percent: viewModel.progressPercent,
+      percent: viewModel.overallProgress,
       secondLine: l10n.booksReadOfTotal(
         viewModel.booksRead,
         viewModel.books.length,
@@ -230,8 +226,7 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
 
     return _progressSummary(
       title: l10n.todaysProgress,
-      value: viewModel.todaysGoalProgress,
-      percent: viewModel.todaysGoalPercent,
+      percent: viewModel.todaysGoalProgress,
       secondLine: versesText,
       thirdLine: minutesText,
     );
@@ -239,8 +234,7 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
 
   Widget _progressSummary({
     required String title,
-    required double value,
-    required int percent,
+    required double percent,
     required String secondLine,
     required String thirdLine,
   }) {
@@ -248,7 +242,7 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
       crossAxisAlignment: CrossAxisAlignment.center,
       spacing: 16,
       children: [
-        ProgressCircle(value: value, percent: percent),
+        ProgressCircle(percent: percent),
         Expanded(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -372,8 +366,7 @@ class _BookRow extends StatelessWidget {
             ),
           ),
           ProgressCircle(
-            value: progress,
-            percent: (progress * 100).toInt(),
+            percent: progress,
             size: 36,
             strokeWidth: 4,
             fontSize: 10,

@@ -620,101 +620,49 @@ class ReadingSessionDatabase {
 
   Future<Reference?> getResumeReference(
     int readingPlanId, {
-    Reference? after,
     DatabaseExecutor? executor,
   }) async {
     final db = executor ?? _database;
-    final List<Map<String, Object?>> rows;
-
-    if (after == null) {
-      rows = await db.rawQuery(
-        'WITH last_read AS ('
-        '  SELECT l.book_id AS book_id, '
-        '         l.chapter AS chapter, '
-        '         l.verse AS verse '
-        '  FROM rs_log l '
-        '  JOIN reading_plan_book b '
-        '    ON b.reading_plan_id = l.reading_plan_id '
-        '   AND b.book_id = l.book_id '
-        '  WHERE l.reading_plan_id = ? '
-        '  ORDER BY l.date_time DESC, l.id DESC '
-        '  LIMIT 1'
-        '),'
-        'current_book AS ('
-        '  SELECT b.ord AS ord '
-        '  FROM reading_plan_book b '
-        '  JOIN last_read l ON l.book_id = b.book_id '
-        '  WHERE b.reading_plan_id = ?'
-        '),'
-        'resume AS ('
-        '  SELECT v.book_id AS book_id, '
-        '         v.chapter AS chapter, '
-        '         v.verse AS verse '
-        '  FROM rs_verse_state v '
-        '  JOIN reading_plan_book b '
-        '    ON b.reading_plan_id = v.reading_plan_id '
-        '   AND b.book_id = v.book_id '
-        '  WHERE v.reading_plan_id = ? '
-        '    AND v.read_count = 0 '
-        '    AND ('
-        '      NOT EXISTS (SELECT 1 FROM last_read) '
-        '      OR ('
-        '        b.ord >= (SELECT ord FROM current_book) '
-        '        AND ('
-        '          v.book_id <> (SELECT book_id FROM last_read) '
-        '          OR v.chapter > (SELECT chapter FROM last_read) '
-        '          OR ('
-        '            v.chapter = (SELECT chapter FROM last_read) '
-        '            AND v.verse > (SELECT verse FROM last_read)'
-        '          )'
-        '        )'
-        '      )'
-        '    )'
-        '  ORDER BY b.ord, v.chapter, v.verse '
-        '  LIMIT 1'
-        ')'
-        'SELECT book_id, chapter, verse FROM resume '
-        'UNION ALL '
-        'SELECT book_id, chapter, verse FROM last_read '
-        'WHERE NOT EXISTS (SELECT 1 FROM resume) '
-        'LIMIT 1',
-        [readingPlanId, readingPlanId, readingPlanId],
-      );
-    } else {
-      rows = await db.rawQuery(
-        'WITH current_book AS ('
-        '  SELECT b.ord AS ord '
-        '  FROM reading_plan_book b '
-        '  WHERE b.reading_plan_id = ? AND b.book_id = ?'
-        ') '
-        'SELECT v.book_id AS book_id, '
-        '       v.chapter AS chapter, '
-        '       v.verse AS verse '
-        'FROM rs_verse_state v '
-        'JOIN reading_plan_book b '
-        '  ON b.reading_plan_id = v.reading_plan_id '
-        ' AND b.book_id = v.book_id '
-        'WHERE v.reading_plan_id = ? '
-        '  AND v.read_count = 0 '
-        '  AND b.ord >= (SELECT ord FROM current_book) '
-        '  AND ('
-        '    v.book_id <> ? '
-        '    OR v.chapter > ? '
-        '    OR (v.chapter = ? AND v.verse > ?)'
-        '  ) '
-        'ORDER BY b.ord, v.chapter, v.verse '
-        'LIMIT 1',
-        [
-          readingPlanId,
-          after.bookId,
-          readingPlanId,
-          after.bookId,
-          after.chapter,
-          after.chapter,
-          after.verse,
-        ],
-      );
-    }
+    final rows = await db.rawQuery(
+      'WITH last_read AS ('
+      '  SELECT l.book_id AS book_id, '
+      '         l.chapter AS chapter, '
+      '         l.verse AS verse, '
+      '         b.ord AS ord '
+      '  FROM rs_log l '
+      '  JOIN reading_plan_book b '
+      '    ON b.reading_plan_id = l.reading_plan_id '
+      '   AND b.book_id = l.book_id '
+      '  WHERE l.reading_plan_id = ? '
+      '  ORDER BY l.date_time DESC, l.id DESC '
+      '  LIMIT 1'
+      ') '
+      'SELECT v.book_id AS book_id, '
+      '       v.chapter AS chapter, '
+      '       v.verse AS verse '
+      'FROM reading_plan_book b '
+      'JOIN rs_verse_state v '
+      '  ON v.reading_plan_id = b.reading_plan_id '
+      ' AND v.book_id = b.book_id '
+      'WHERE b.reading_plan_id = ? '
+      '  AND ('
+      '    NOT EXISTS (SELECT 1 FROM last_read) '
+      '    OR b.ord > (SELECT ord FROM last_read) '
+      '    OR ('
+      '      b.ord = (SELECT ord FROM last_read) '
+      '      AND ('
+      '        v.chapter > (SELECT chapter FROM last_read) '
+      '        OR ('
+      '          v.chapter = (SELECT chapter FROM last_read) '
+      '          AND v.verse > (SELECT verse FROM last_read)'
+      '        )'
+      '      )'
+      '    )'
+      '  ) '
+      'ORDER BY b.ord, v.chapter, v.verse '
+      'LIMIT 1',
+      [readingPlanId, readingPlanId],
+    );
 
     if (rows.isEmpty) return null;
 
@@ -973,7 +921,21 @@ class ReadingSessionDatabase {
       'SELECT v.book_id AS book_id, '
       '       COUNT(*) AS total_verses, '
       '       SUM(CASE WHEN v.read_count > 0 THEN 1 ELSE 0 END) AS verses_read, '
-      '       MAX(v.last_read) AS last_read '
+      '       MAX(v.last_read) AS last_read, '
+      '       (SELECT v2.chapter '
+      '        FROM rs_verse_state v2 '
+      '        WHERE v2.reading_plan_id = v.reading_plan_id '
+      '          AND v2.book_id = v.book_id '
+      '          AND v2.read_count = 0 '
+      '        ORDER BY v2.chapter, v2.verse '
+      '        LIMIT 1) AS resume_chapter, '
+      '       (SELECT v2.verse '
+      '        FROM rs_verse_state v2 '
+      '        WHERE v2.reading_plan_id = v.reading_plan_id '
+      '          AND v2.book_id = v.book_id '
+      '          AND v2.read_count = 0 '
+      '        ORDER BY v2.chapter, v2.verse '
+      '        LIMIT 1) AS resume_verse '
       'FROM rs_verse_state v '
       'JOIN reading_plan_book b '
       '  ON b.reading_plan_id = v.reading_plan_id '
@@ -992,6 +954,13 @@ class ReadingSessionDatabase {
           lastRead: row['last_read'] != null
               ? DateTime.parse(row['last_read'] as String)
               : null,
+          resumePosition: row['resume_chapter'] == null
+              ? null
+              : Reference(
+                  bookId: row['book_id'] as int,
+                  chapter: row['resume_chapter'] as int,
+                  verse: row['resume_verse'] as int,
+                ),
         ),
     };
   }

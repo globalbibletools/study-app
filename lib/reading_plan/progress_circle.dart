@@ -5,15 +5,13 @@ class ProgressCircle extends StatelessWidget {
 
   const ProgressCircle({
     super.key,
-    required this.value,
     required this.percent,
     this.size = defaultSize,
     this.strokeWidth = 6,
     this.fontSize = 16,
   });
 
-  final double value;
-  final int percent;
+  final double percent;
   final double size;
   final double strokeWidth;
   final double fontSize;
@@ -21,6 +19,7 @@ class ProgressCircle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final normalizedPercent = percent.clamp(0.0, 1.0);
     return SizedBox(
       width: size,
       height: size,
@@ -31,7 +30,7 @@ class ProgressCircle extends StatelessWidget {
             width: size,
             height: size,
             child: CircularProgressIndicator(
-              value: value.clamp(0.0, 1.0).toDouble(),
+              value: normalizedPercent,
               strokeWidth: strokeWidth,
               strokeAlign: CircularProgressIndicator.strokeAlignInside,
               color: colorScheme.primary,
@@ -43,7 +42,7 @@ class ProgressCircle extends StatelessWidget {
             child: FittedBox(
               fit: BoxFit.scaleDown,
               child: Text(
-                '$percent%',
+                '${(normalizedPercent * 100).round()}%',
                 style: TextStyle(
                   fontSize: fontSize,
                   fontWeight: FontWeight.bold,
