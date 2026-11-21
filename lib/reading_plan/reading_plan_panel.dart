@@ -88,15 +88,27 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
       return const Center(child: CircularProgressIndicator());
     }
 
+    final l10n = AppLocalizations.of(context)!;
     return Stack(
       children: [
-        // Scrollable list, padded at the bottom so the last
-        // card isn't hidden behind the floating button.
-        ListView(
-          padding: const EdgeInsets.only(bottom: 76),
-          children: viewModel.plans.map(_readingPlan).toList(),
-        ),
-        // Floating "Create New Plan" button.
+        if (viewModel.plans.isEmpty)
+          Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(l10n.noReadingPlans, textAlign: TextAlign.center),
+                Text(
+                  l10n.createYourFirstPlanBelow,
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          )
+        else
+          ListView(
+            padding: const EdgeInsets.only(bottom: 76),
+            children: viewModel.plans.map(_readingPlan).toList(),
+          ),
         Positioned(left: 0, right: 0, bottom: 0, child: _createNewPlanButton()),
       ],
     );

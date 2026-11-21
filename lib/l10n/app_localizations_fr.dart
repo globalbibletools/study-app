@@ -510,6 +510,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get createNewPlan => 'Créer un nouveau plan';
 
   @override
+  String get noReadingPlans => 'Aucun plan de lecture.';
+
+  @override
+  String get createYourFirstPlanBelow => 'Créez votre premier plan ci-dessous.';
+
+  @override
   String get current => 'Actuel';
 
   @override

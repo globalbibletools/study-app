@@ -139,6 +139,8 @@
     "yourReadingPlans": "Tus planes de lectura",
     "edit": "Editar",
     "createNewPlan": "Crear nuevo plan",
+    "noReadingPlans": "No hay planes de lectura.",
+    "createYourFirstPlanBelow": "Crea tu primer plan a continuación.",
     "current": "Actual",
     "startReading": "Iniciar lectura",
     "resumeReading": "Reanudar lectura",

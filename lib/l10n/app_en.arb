@@ -653,6 +653,14 @@
   "@createNewPlan": {
     "description": "Button label for creating a new reading plan"
   },
+  "noReadingPlans": "No reading plans.",
+  "@noReadingPlans": {
+    "description": "Empty-state message when there are no reading plans"
+  },
+  "createYourFirstPlanBelow": "Create your first plan below.",
+  "@createYourFirstPlanBelow": {
+    "description": "Empty-state instruction pointing at the create button below"
+  },
   "current": "Current",
   "@current": {
     "description": "Label for the current reading position"

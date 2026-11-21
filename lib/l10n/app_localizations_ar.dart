@@ -507,6 +507,12 @@ class AppLocalizationsAr extends AppLocalizations {
   String get createNewPlan => 'إنشاء خطة جديدة';
 
   @override
+  String get noReadingPlans => 'لا توجد خطط قراءة.';
+
+  @override
+  String get createYourFirstPlanBelow => 'أنشئ خطتك الأولى أدناه.';
+
+  @override
   String get current => 'الحالي';
 
   @override
