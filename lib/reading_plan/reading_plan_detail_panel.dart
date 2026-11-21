@@ -13,13 +13,23 @@ import 'package:gbt/reading_plan/reading_plan_detail_view_model.dart';
 class ReadingPlanDetailPanel extends StatefulWidget {
   final int planId;
   final ReadingPlanDetailViewModel? viewModel;
+  final Widget Function(BuildContext context, ReadingPlanDetails plan)?
+  editPlanBuilder;
+  final Widget Function(BuildContext context, DateTime date)?
+  dayActivityLogBuilder;
 
-  const ReadingPlanDetailPanel({super.key, required this.planId})
-    : viewModel = null;
+  const ReadingPlanDetailPanel({
+    super.key,
+    required this.planId,
+    this.editPlanBuilder,
+    this.dayActivityLogBuilder,
+  }) : viewModel = null;
 
   const ReadingPlanDetailPanel.withDependencies({
     super.key,
     required this.viewModel,
+    this.editPlanBuilder,
+    this.dayActivityLogBuilder,
   }) : planId = 0;
 
   @override
@@ -49,15 +59,15 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
       listenable: viewModel,
       builder: (context, _) {
         final Widget content;
-        if (!viewModel.isInitialized) {
-          content = viewModel.loadError != null
-              ? Center(
-                  child: Text(
-                    AppLocalizations.of(context)!.errorLoadingContent,
-                    textAlign: TextAlign.center,
-                  ),
-                )
-              : const Center(child: CircularProgressIndicator());
+        if (viewModel.loadError != null) {
+          content = Center(
+            child: Text(
+              AppLocalizations.of(context)!.errorLoadingContent,
+              textAlign: TextAlign.center,
+            ),
+          );
+        } else if (!viewModel.isInitialized) {
+          content = const Center(child: CircularProgressIndicator());
         } else {
           content = Column(
             spacing: 16,
@@ -150,9 +160,12 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
   }
 
   Future<void> _editPlan() async {
+    final plan = viewModel.planDetails;
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => EditReadingPlanPanel.existing(viewModel.planDetails),
+        builder: (context) =>
+            widget.editPlanBuilder?.call(context, plan) ??
+            EditReadingPlanPanel.existing(plan),
       ),
     );
 
@@ -301,10 +314,12 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
 
     await showDialog<void>(
       context: context,
-      builder: (context) => DayActivityLogPanel(
-        readingPlanId: viewModel.planId,
-        date: progress.day,
-      ),
+      builder: (context) =>
+          widget.dayActivityLogBuilder?.call(context, progress.day) ??
+          DayActivityLogPanel(
+            readingPlanId: viewModel.planId,
+            date: progress.day,
+          ),
     );
   }
 
