@@ -69,7 +69,22 @@ class ReadingPlanDetailViewModel extends ChangeNotifier {
   final ValueNotifier<List<DayProgress>> _monthProgress = ValueNotifier([]);
   ValueListenable<List<DayProgress>> get monthProgress => _monthProgress;
 
+  DateTime _visibleMonth = _monthStart(DateTime.now());
+  DateTime get visibleMonth => _visibleMonth;
+
+  /// Day-of-month to checked state for [visibleMonth].
+  Map<int, bool> get checkedDays => {
+    for (final progress in _monthProgress.value)
+      progress.day.day: progress.goalReached,
+  };
+
   bool _disposed = false;
+
+  static DateTime _monthStart(DateTime value) =>
+      DateTime(value.year, value.month);
+
+  static bool _isSameMonth(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month;
 
   void _setState(VoidCallback fn) {
     if (_disposed) return;
@@ -194,12 +209,13 @@ class ReadingPlanDetailViewModel extends ChangeNotifier {
         _planService.getResumeReference(_planId),
       );
 
-      final month = await guard(
-        _planService.getMonthProgress(
-          _planId,
-          DateTime(now.year, now.month, 1),
-        ),
+      final currentMonth = _monthStart(now);
+      final currentMonthData = await guard(
+        _planService.getMonthProgress(_planId, currentMonth),
       );
+      final visibleMonthData = _isSameMonth(_visibleMonth, currentMonth)
+          ? currentMonthData
+          : await guard(_planService.getMonthProgress(_planId, _visibleMonth));
 
       var totalVerses = 0;
       var versesRead = 0;
@@ -219,8 +235,10 @@ class ReadingPlanDetailViewModel extends ChangeNotifier {
         _versesRead = versesRead;
         _booksRead = booksRead;
         _resumePosition = resumePosition;
-        _monthProgress.value = month;
-        _todaysProgress = now.day <= month.length ? month[now.day - 1] : null;
+        _monthProgress.value = visibleMonthData;
+        _todaysProgress = now.day <= currentMonthData.length
+            ? currentMonthData[now.day - 1]
+            : null;
         _isInitialized = true;
       });
     } on CancelledError {
@@ -267,13 +285,46 @@ class ReadingPlanDetailViewModel extends ChangeNotifier {
     }
   }
 
+  Future<void> showPreviousMonth() => _showMonth(-1);
+
+  Future<void> showNextMonth() => _showMonth(1);
+
+  Future<void> _showMonth(int delta) async {
+    try {
+      await loadMonthData(
+        DateTime(_visibleMonth.year, _visibleMonth.month + delta),
+      );
+    } on CancelledError {
+      // A newer month request superseded this one.
+    }
+  }
+
   Future<void> loadMonthData(DateTime month) {
+    final normalized = _monthStart(month);
+    _setState(() {
+      _visibleMonth = normalized;
+      _monthProgress.value = const [];
+    });
+
     return _monthScope.run((guard) async {
-      final data = await guard(_planService.getMonthProgress(_planId, month));
+      final data = await guard(
+        _planService.getMonthProgress(_planId, normalized),
+      );
       _setState(() {
         _monthProgress.value = data;
       });
     });
+  }
+
+  DayProgress? dayProgress(int day) {
+    for (final progress in _monthProgress.value) {
+      if (progress.day.year == _visibleMonth.year &&
+          progress.day.month == _visibleMonth.month &&
+          progress.day.day == day) {
+        return progress;
+      }
+    }
+    return null;
   }
 
   Future<void> startReadingSession() {

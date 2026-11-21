@@ -302,8 +302,9 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
     );
   }
 
-  Future<void> _openDayActivityLog(DayProgress progress) async {
-    if (progress.empty) {
+  Future<void> _openDayActivityLog(int day) async {
+    final progress = viewModel.dayProgress(day);
+    if (progress == null || progress.empty) {
       return;
     }
 
@@ -316,19 +317,16 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
     );
   }
 
-  bool isHighlighted(DayProgress progress) {
-    return progress.goalReached;
-  }
-
   Widget _goalsContentByMonth() {
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 420),
         child: CalendarView(
-          value: viewModel.monthProgress,
-          onTap: _openDayActivityLog,
-          isHighlighted: isHighlighted,
-          onMonthChanged: (month) => viewModel.loadMonthData(month),
+          month: viewModel.visibleMonth,
+          checkedDays: viewModel.checkedDays,
+          onPreviousMonth: () => unawaited(viewModel.showPreviousMonth()),
+          onNextMonth: () => unawaited(viewModel.showNextMonth()),
+          onDayTap: _openDayActivityLog,
         ),
       ),
     );

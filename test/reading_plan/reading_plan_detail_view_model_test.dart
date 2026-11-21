@@ -241,8 +241,37 @@ void main() {
 
       await viewModel.loadMonthData(DateTime(2026, 11, 1));
 
+      expect(viewModel.visibleMonth, DateTime(2026, 11));
       expect(viewModel.monthProgress.value, hasLength(30));
       expect(viewModel.monthProgress.value.first.day, DateTime(2026, 11, 1));
+    });
+
+    test('tracks the visible month while stepping forward and back', () async {
+      final details = await savePlan(bookIds: {8});
+      final viewModel = newViewModel(details);
+      await viewModel.initialize();
+
+      final start = viewModel.visibleMonth;
+
+      await viewModel.showNextMonth();
+      expect(viewModel.visibleMonth, DateTime(start.year, start.month + 1));
+
+      await viewModel.showPreviousMonth();
+      expect(viewModel.visibleMonth, start);
+    });
+
+    test('exposes checked days for the visible month', () async {
+      final details = await savePlan(bookIds: {8});
+      final viewModel = newViewModel(details);
+      await viewModel.initialize();
+
+      expect(viewModel.checkedDays.values, everyElement(isFalse));
+
+      final month = viewModel.visibleMonth;
+      final daysInMonth = DateTime(month.year, month.month + 1, 0).day;
+
+      expect(viewModel.checkedDays, hasLength(daysInMonth));
+      expect(viewModel.dayProgress(1), isNotNull);
     });
   });
 
