@@ -653,6 +653,14 @@
   "@createNewPlan": {
     "description": "Button label for creating a new reading plan"
   },
+  "noReadingPlans": "No reading plans.",
+  "@noReadingPlans": {
+    "description": "Empty-state message when there are no reading plans"
+  },
+  "createYourFirstPlanBelow": "Create your first plan below.",
+  "@createYourFirstPlanBelow": {
+    "description": "Empty-state instruction pointing at the create button below"
+  },
   "current": "Current",
   "@current": {
     "description": "Label for the current reading position"
@@ -664,6 +672,15 @@
   "resumeReading": "Resume Reading",
   "@resumeReading": {
     "description": "Button label to continue reading a plan"
+  },
+  "resumeAtReference": "Resume at {reference}",
+  "@resumeAtReference": {
+    "description": "Link label to resume a reading plan at a scripture reference",
+    "placeholders": {
+      "reference": {
+        "type": "String"
+      }
+    }
   },
   "booksReadOfTotal": "{read} of {total} books",
   "@booksReadOfTotal": {

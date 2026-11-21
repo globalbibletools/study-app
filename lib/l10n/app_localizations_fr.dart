@@ -510,6 +510,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get createNewPlan => 'Créer un nouveau plan';
 
   @override
+  String get noReadingPlans => 'Aucun plan de lecture.';
+
+  @override
+  String get createYourFirstPlanBelow => 'Créez votre premier plan ci-dessous.';
+
+  @override
   String get current => 'Actuel';
 
   @override
@@ -517,6 +523,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get resumeReading => 'Reprendre la lecture';
+
+  @override
+  String resumeAtReference(String reference) {
+    return 'Reprendre à $reference';
+  }
 
   @override
   String booksReadOfTotal(int read, int total) {

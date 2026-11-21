@@ -291,7 +291,7 @@ class _HomeScreenState extends State<HomeScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (context) {
-        return ReadingSheet(homeManager: manager);
+        return const ReadingSheet();
       },
     );
   }

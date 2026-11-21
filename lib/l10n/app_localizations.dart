@@ -938,6 +938,18 @@ abstract class AppLocalizations {
   /// **'Create New Plan'**
   String get createNewPlan;
 
+  /// Empty-state message when there are no reading plans
+  ///
+  /// In en, this message translates to:
+  /// **'No reading plans.'**
+  String get noReadingPlans;
+
+  /// Empty-state instruction pointing at the create button below
+  ///
+  /// In en, this message translates to:
+  /// **'Create your first plan below.'**
+  String get createYourFirstPlanBelow;
+
   /// Label for the current reading position
   ///
   /// In en, this message translates to:
@@ -955,6 +967,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Resume Reading'**
   String get resumeReading;
+
+  /// Link label to resume a reading plan at a scripture reference
+  ///
+  /// In en, this message translates to:
+  /// **'Resume at {reference}'**
+  String resumeAtReference(String reference);
 
   /// Reading-plan progress count for completed books out of total books
   ///

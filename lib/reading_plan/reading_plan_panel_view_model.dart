@@ -1,116 +1,78 @@
 import 'package:flutter/foundation.dart';
-import 'package:gbt/common/reference.dart';
+import 'package:gbt/asyncutils/cancellation.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
-import 'package:gbt/reading_plan/rs_model.dart';
-import 'package:gbt/ui/home/home_manager.dart';
-import 'package:gbt/reading_plan/reading_plan_estimates.dart';
 import 'package:gbt/reading_plan/reading_session_view_model.dart';
+import 'package:gbt/reading_plan/rs_model.dart';
 import 'package:gbt/services/service_locator.dart';
 
 class ReadingPlanPanelViewModel extends ChangeNotifier {
-  factory ReadingPlanPanelViewModel({HomeManager? homeManager}) {
-    final viewModel = ReadingPlanPanelViewModel.withDependencies(
-      planService: getIt<ReadingPlanService>(),
-      sessionViewModel: getIt<ReadingSessionViewModel>(),
-      homeManager: homeManager ?? getIt<HomeManager>(),
-    );
-    viewModel._initFuture = viewModel.refresh();
-    return viewModel;
-  }
+  ReadingPlanPanelViewModel()
+    : this.withDependencies(
+        planService: getIt<ReadingPlanService>(),
+        sessionViewModel: getIt<ReadingSessionViewModel>(),
+      );
 
   ReadingPlanPanelViewModel.withDependencies({
     required ReadingPlanService planService,
     required ReadingSessionViewModel sessionViewModel,
-    required HomeManager homeManager,
   }) : _planService = planService,
-       _sessionViewModel = sessionViewModel,
-       _homeManager = homeManager;
+       _sessionViewModel = sessionViewModel;
+
+  void _setState(VoidCallback fn) {
+    if (_disposed) return;
+    fn();
+    notifyListeners();
+  }
 
   final ReadingPlanService _planService;
   final ReadingSessionViewModel _sessionViewModel;
-  final HomeManager _homeManager;
 
   List<ReadingPlanDetails> _plans = const [];
   List<ReadingPlanDetails> get plans => _plans;
 
-  bool _isEditing = false;
-  bool get isEditing => _isEditing;
+  bool _isInitialized = false;
+  bool get isInitialized => _isInitialized;
 
-  bool _isRefreshing = false;
-  bool get isRefreshing => _isRefreshing;
-
-  bool _disposed = false;
-
-  Future<void>? _initFuture;
-  Future<void> get ready => _initFuture ??= refresh();
-
-  Future<void>? _refreshFuture;
-
-  void toggleEditMode() {
-    _isEditing = !_isEditing;
-    notifyListeners();
+  Future<void>? _initialization;
+  Future<void> initialize() {
+    return _initialization ??= _initialize();
   }
 
-  void exitEditMode() {
-    if (!_isEditing) return;
-    _isEditing = false;
-    notifyListeners();
-  }
-
-  Future<void> refresh() {
-    final inFlight = _refreshFuture;
-    if (inFlight != null) return inFlight;
-
-    final future = _refresh();
-    _refreshFuture = future;
-    return future;
-  }
-
-  Future<void> _refresh() async {
-    _isRefreshing = true;
-    notifyListeners();
-
-    try {
-      final plans = await _planService.getReadingPlansWithProgress();
-      if (_disposed) return;
+  Future<void> _initialize() async {
+    final plans = await _planService.getReadingPlansWithProgress();
+    _setState(() {
       _plans = plans;
-    } finally {
-      _isRefreshing = false;
-      _refreshFuture = null;
-      if (!_disposed) notifyListeners();
-    }
+      _isInitialized = true;
+    });
   }
 
-  Future<void> deletePlan(ReadingPlanDetails plan) async {
-    final planId = plan.readingPlan.id;
-    if (planId == null) return;
+  final _refreshScope = CancellationScope();
+  Future<void> refresh() {
+    return _refreshScope.run((guard) async {
+      final plans = await guard(_planService.getReadingPlansWithProgress());
+      _setState(() {
+        _plans = plans;
+      });
+    });
+  }
 
-    _plans = [
-      for (final existing in _plans)
-        if (existing.readingPlan.id != planId) existing,
-    ];
-    notifyListeners();
-
-    try {
-      await _planService.deleteReadingPlan(planId);
-    } catch (_) {
-      await refresh();
-      rethrow;
-    }
+  Future<void> deletePlan(int planId) async {
+    await _planService.deleteReadingPlan(planId);
+    await refresh();
   }
 
   Future<void> startReadingSession(ReadingPlanDetails plan) async {
-    await _sessionViewModel.startSession(plan.readingPlan.id!);
-    _homeManager.jumpToReference(resumeTargetFor(plan));
+    final planId = plan.readingPlan.id;
+    if (planId == null) return;
+
+    await _sessionViewModel.startSession(planId);
   }
 
-  Reference resumeTargetFor(ReadingPlanDetails plan) {
-    return ReadingPlanEstimates.resumeTargetFor(plan);
-  }
-
+  bool _disposed = false;
   @override
   void dispose() {
     _disposed = true;
+    _refreshScope.cancelAll();
     super.dispose();
   }
 }

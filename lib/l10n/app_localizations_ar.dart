@@ -507,6 +507,12 @@ class AppLocalizationsAr extends AppLocalizations {
   String get createNewPlan => 'إنشاء خطة جديدة';
 
   @override
+  String get noReadingPlans => 'لا توجد خطط قراءة.';
+
+  @override
+  String get createYourFirstPlanBelow => 'أنشئ خطتك الأولى أدناه.';
+
+  @override
   String get current => 'الحالي';
 
   @override
@@ -514,6 +520,11 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get resumeReading => 'متابعة القراءة';
+
+  @override
+  String resumeAtReference(String reference) {
+    return 'متابعة عند $reference';
+  }
 
   @override
   String booksReadOfTotal(int read, int total) {

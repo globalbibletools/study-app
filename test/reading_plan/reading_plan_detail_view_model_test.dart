@@ -4,31 +4,11 @@ import 'package:gbt/common/reference.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
 import 'package:gbt/reading_plan/rs_database.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
-import 'package:gbt/ui/home/home_manager.dart';
 import 'package:gbt/reading_plan/reading_plan_detail_view_model.dart';
-import 'package:gbt/reading_plan/reading_session_view_model.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import '../fixtures/bible_navigation_fixture.dart';
-
-class FakeReadingSessionViewModel extends Fake
-    implements ReadingSessionViewModel {
-  final startedPlanIds = <int>[];
-
-  @override
-  Future<void> startSession(int planId) async {
-    startedPlanIds.add(planId);
-  }
-}
-
-class FakeHomeManager extends Fake implements HomeManager {
-  Reference? jumpedTo;
-
-  @override
-  void jumpToReference(Reference reference) {
-    jumpedTo = reference;
-  }
-}
+import 'fake_reading_session_view_model.dart';
 
 /// Fails bookmark persistence after yielding once, so tests can observe the
 /// optimistic flip before the rollback.
@@ -82,7 +62,6 @@ void main() {
   late ReadingPlanService planService;
   late BibleNavigation bibleNavigation;
   late FakeReadingSessionViewModel sessionViewModel;
-  late FakeHomeManager homeManager;
 
   setUpAll(() {
     sqfliteFfiInit();
@@ -102,7 +81,6 @@ void main() {
       bibleNavigation: bibleNavigation,
     );
     sessionViewModel = FakeReadingSessionViewModel();
-    homeManager = FakeHomeManager();
 
     // The schema ships with a default "Whole Bible" plan (id 1). Remove it so
     // each test starts from a clean slate.
@@ -124,7 +102,6 @@ void main() {
       planService: service ?? planService,
       sessionViewModel: sessionViewModel,
       bibleNavigation: bibleNavigation,
-      homeManager: homeManager,
     );
   }
 
@@ -144,29 +121,6 @@ void main() {
     );
     final details = await planService.getReadingPlanById(saved.id!);
     return details!;
-  }
-
-  ReadingPlanDetails unsavedDetails({
-    Reference? resumePosition,
-    List<int> bookIds = const [8, 32],
-  }) {
-    final details = ReadingPlanDetails(
-      ReadingPlan(
-        id: 1,
-        planName: 'Unsaved Seed',
-        createdAt: DateTime.now(),
-        collectionId: 1,
-        goalType: GoalType.verses.name,
-        goalValue: 10,
-        isBookmarked: false,
-      ),
-      [
-        for (int i = 0; i < bookIds.length; i++)
-          ReadingPlanBook(readingPlanId: 1, bookId: bookIds[i], ord: i + 1),
-      ],
-    );
-    details.resumePosition = resumePosition;
-    return details;
   }
 
   group('refresh', () {
@@ -299,7 +253,7 @@ void main() {
         final viewModel = newViewModel(details);
         await viewModel.ready;
 
-        expect(viewModel.resumeTarget.bookId, 1);
+        expect(viewModel.resumePosition?.bookId, 1);
 
         await viewModel.toggleReorderMode();
         expect(viewModel.isReorderMode, isTrue);
@@ -311,7 +265,7 @@ void main() {
 
         expect(viewModel.books.map((book) => book.bookId), [2, 1]);
         expect(viewModel.books.map((book) => book.ord), [1, 2]);
-        expect(viewModel.resumeTarget.bookId, 2);
+        expect(viewModel.resumePosition?.bookId, 2);
 
         final storedBooks = await database.getReadingPlanBooks(plan.id!);
         expect(storedBooks.map((book) => book.bookId), [2, 1]);
@@ -341,38 +295,6 @@ void main() {
         expect(viewModel.isBookComplete(63), isFalse);
       },
     );
-  });
-
-  group('resumeTarget', () {
-    test('uses the resume position when present', () {
-      const resumePosition = Reference(bookId: 8, chapter: 2, verse: 3);
-      final viewModel = newViewModel(
-        unsavedDetails(resumePosition: resumePosition),
-      );
-      addTearDown(viewModel.dispose);
-
-      expect(viewModel.resumeTarget, resumePosition);
-    });
-
-    test('falls back to the first book at 1:1:1 when resume is null', () {
-      final viewModel = newViewModel(unsavedDetails(bookIds: const [32, 8]));
-      addTearDown(viewModel.dispose);
-
-      expect(
-        viewModel.resumeTarget,
-        const Reference(bookId: 32, chapter: 1, verse: 1),
-      );
-    });
-
-    test('falls back to Bible start when the plan has no books', () {
-      final viewModel = newViewModel(unsavedDetails(bookIds: const []));
-      addTearDown(viewModel.dispose);
-
-      expect(
-        viewModel.resumeTarget,
-        const Reference(bookId: 1, chapter: 1, verse: 1),
-      );
-    });
   });
 
   group('estimated completion', () {
@@ -407,7 +329,7 @@ void main() {
   });
 
   group('startReadingSession', () {
-    test('starts the session and navigates to the resume target', () async {
+    test('starts the session for the plan', () async {
       final details = await savePlan(bookIds: {8});
       final planId = details.readingPlan.id!;
       await database.markVerseRead(planId, 8, 1, 1);
@@ -415,13 +337,14 @@ void main() {
       final viewModel = newViewModel(details);
       await viewModel.ready;
 
-      const expectedResume = Reference(bookId: 8, chapter: 1, verse: 2);
-      expect(viewModel.resumeTarget, expectedResume);
+      expect(
+        viewModel.resumePosition,
+        const Reference(bookId: 8, chapter: 1, verse: 2),
+      );
 
       await viewModel.startReadingSession();
 
       expect(sessionViewModel.startedPlanIds, [planId]);
-      expect(homeManager.jumpedTo, expectedResume);
     });
   });
 }

@@ -3,9 +3,9 @@ import 'package:gbt/common/bible_collection.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/l10n/book_names.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
+import 'package:gbt/reading_plan/delete_reading_plan_confirm_dialog.dart';
 import 'package:gbt/reading_plan/edit_reading_plan_view_model.dart';
 import 'package:gbt/reading_plan/goal_value_editor.dart';
-import 'package:gbt/reading_plan/reading_plan_panel.dart';
 
 class EditReadingPlanPanel extends StatefulWidget {
   final ReadingPlanDetails planDetails;
@@ -52,43 +52,14 @@ class _EditReadingPlanPanelState extends State<EditReadingPlanPanel> {
     return ListenableBuilder(
       listenable: viewModel,
       builder: (context, _) {
-        final panel = Container(
-          padding: const EdgeInsets.all(16),
-          decoration: const BoxDecoration(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          child: Column(
-            children: [
-              _handle(),
-              const SizedBox(height: 16),
-              _topTitle(),
-              const SizedBox(height: 12),
-              Expanded(child: _content()),
-            ],
-          ),
-        );
-
-        return SizedBox.expand(
-          child: SafeArea(
-            top: false,
-            child: Material(
-              color: Theme.of(context).colorScheme.surface,
-              child: panel,
-            ),
-          ),
+        return Column(
+          children: [
+            _topTitle(),
+            const SizedBox(height: 12),
+            Expanded(child: _content()),
+          ],
         );
       },
-    );
-  }
-
-  Widget _handle() {
-    return Container(
-      width: 40,
-      height: 4,
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primary,
-        borderRadius: BorderRadius.circular(10),
-      ),
     );
   }
 
@@ -118,11 +89,13 @@ class _EditReadingPlanPanelState extends State<EditReadingPlanPanel> {
               ),
               tooltip: l10n.deleteReadingPlan,
               onPressed: () async {
-                final confirmed = await confirmDeleteReadingPlan(
-                  context,
-                  widget.planDetails.readingPlan.planName,
+                final confirmed = await showDialog<bool>(
+                  context: context,
+                  builder: (_) => DeleteReadingPlanConfirmDialog(
+                    planName: widget.planDetails.readingPlan.planName,
+                  ),
                 );
-                if (confirmed) {
+                if (confirmed == true) {
                   await viewModel.delete();
                   if (!mounted) return;
                   Navigator.of(context).pop();

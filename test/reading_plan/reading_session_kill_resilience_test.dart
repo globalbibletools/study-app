@@ -9,6 +9,7 @@ import 'package:gbt/reading_plan/reading_session_view_model.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import '../fixtures/bible_navigation_fixture.dart';
+import '../fixtures/fake_navigation_view_model.dart';
 
 VerseReadOptions _readOptions(
   int bookId,
@@ -31,6 +32,7 @@ void main() {
   late ReadingPlanService planService;
   late ReadingSessionService sessionService;
   late ReadingSessionViewModel viewModel;
+  late FakeNavigationViewModel navigationViewModel;
 
   setUpAll(() {
     sqfliteFfiInit();
@@ -56,7 +58,11 @@ void main() {
       bibleNavigation: createTestBibleNavigation(),
     );
     sessionService = ReadingSessionService.withDatabase(rsDb);
-    viewModel = ReadingSessionViewModel.withService(sessionService);
+    navigationViewModel = FakeNavigationViewModel();
+    viewModel = ReadingSessionViewModel.withDependencies(
+      service: sessionService,
+      navigationViewModel: navigationViewModel,
+    );
   });
 
   tearDown(() async {

@@ -2,20 +2,17 @@ import 'package:material_ui/material_ui.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/l10n/book_names.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
-import 'package:gbt/ui/home/home_manager.dart';
 import 'package:gbt/ui/home/panel_area/common/calendar_view.dart';
 import 'package:gbt/reading_plan/day_activity_log_panel.dart';
 import 'package:gbt/reading_plan/reading_plan_detail_view_model.dart';
 
 class ReadingPlanDetailPanel extends StatefulWidget {
   final ReadingPlanDetails readingPlanDetails;
-  final HomeManager homeManager;
   final Function onClose;
 
   const ReadingPlanDetailPanel({
     super.key,
     required this.readingPlanDetails,
-    required this.homeManager,
     required this.onClose,
   });
 
@@ -29,10 +26,7 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
   @override
   void initState() {
     super.initState();
-    viewModel = ReadingPlanDetailViewModel(
-      plan: widget.readingPlanDetails,
-      homeManager: widget.homeManager,
-    );
+    viewModel = ReadingPlanDetailViewModel(plan: widget.readingPlanDetails);
   }
 
   @override
@@ -43,44 +37,17 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Theme.of(context).colorScheme.surface,
-      child: SizedBox.expand(
-        child: SafeArea(
-          top: false,
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: const BoxDecoration(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-            ),
-            child: ListenableBuilder(
-              listenable: viewModel,
-              builder: (context, _) {
-                return Column(
-                  children: [
-                    _handle(),
-                    const SizedBox(height: 16),
-                    _topTitle(),
-                    const SizedBox(height: 12),
-                    Expanded(child: _content()),
-                  ],
-                );
-              },
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _handle() {
-    return Container(
-      width: 40,
-      height: 4,
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primary,
-        borderRadius: BorderRadius.circular(10),
-      ),
+    return ListenableBuilder(
+      listenable: viewModel,
+      builder: (context, _) {
+        return Column(
+          children: [
+            _topTitle(),
+            const SizedBox(height: 12),
+            Expanded(child: _content()),
+          ],
+        );
+      },
     );
   }
 

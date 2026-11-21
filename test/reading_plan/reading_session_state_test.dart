@@ -14,11 +14,9 @@ import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/home/panel_area/common/book_completed_overlay.dart';
 import 'package:gbt/ui/home/panel_area/common/calendar_view.dart';
 import 'package:gbt/reading_plan/reading_sheet.dart';
-import 'package:gbt/ui/home/home_manager.dart';
 
 import '../fixtures/bible_navigation_fixture.dart';
-
-class FakeHomeManager extends Fake implements HomeManager {}
+import '../fixtures/fake_navigation_view_model.dart';
 
 VerseReadOptions _readOptions(
   int bookId,
@@ -41,6 +39,7 @@ void main() {
   late ReadingPlanService planService;
   late ReadingSessionService sessionService;
   late ReadingSessionViewModel viewModel;
+  late FakeNavigationViewModel navigationViewModel;
 
   setUpAll(() {
     sqfliteFfiInit();
@@ -77,7 +76,11 @@ void main() {
     getIt.registerSingleton<ReadingPlanService>(planService);
 
     sessionService = ReadingSessionService.withDatabase(rsDb);
-    viewModel = ReadingSessionViewModel.withService(sessionService);
+    navigationViewModel = FakeNavigationViewModel();
+    viewModel = ReadingSessionViewModel.withDependencies(
+      service: sessionService,
+      navigationViewModel: navigationViewModel,
+    );
     getIt.registerSingleton<ReadingSessionViewModel>(viewModel);
   });
 
@@ -569,9 +572,7 @@ void main() {
             supportedLocales: const [Locale('en')],
             home: MediaQuery(
               data: const MediaQueryData(size: Size(400, 1000)),
-              child: Scaffold(
-                body: ReadingSheet(homeManager: FakeHomeManager()),
-              ),
+              child: Scaffold(body: const ReadingSheet()),
             ),
           ),
         );
