@@ -114,7 +114,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Ruth Plan'), findsOneWidget);
-      expect(find.text('Start Reading'), findsOneWidget);
+      expect(find.text('Start at Ruth 1:1'), findsOneWidget);
+      expect(find.text('Total Progress'), findsOneWidget);
+      expect(find.text("Today's Progress"), findsOneWidget);
+      expect(find.textContaining('days remaining'), findsOneWidget);
     });
 
     testWidgets('shows resume wording after reading has started', (
@@ -129,7 +132,43 @@ void main() {
       await openDetail(tester, viewModel);
       await tester.pumpAndSettle();
 
-      expect(find.text('Resume Reading'), findsOneWidget);
+      expect(find.text('Resume at Ruth 1:1'), findsOneWidget);
+    });
+
+    testWidgets('shows verse and time progress with the applicable target', (
+      tester,
+    ) async {
+      final service = FakeDetailPlanService(
+        bookStats: bookStats(),
+        monthProgress: currentMonthProgress(verses: 3, minutes: 7),
+      );
+      final plan = planDetails();
+      final viewModel = newViewModel(plan, service);
+
+      await openDetail(tester, viewModel);
+      await tester.pumpAndSettle();
+
+      expect(find.text('3/10 verses'), findsOneWidget);
+      expect(find.text('7 minutes'), findsOneWidget);
+      expect(find.text('30%'), findsOneWidget);
+    });
+
+    testWidgets('omits the target for the non-goal reading unit', (
+      tester,
+    ) async {
+      final service = FakeDetailPlanService(
+        bookStats: bookStats(),
+        monthProgress: currentMonthProgress(verses: 3, minutes: 7),
+      );
+      final plan = planDetails(goalType: GoalType.minutes, goalValue: 20);
+      final viewModel = newViewModel(plan, service);
+
+      await openDetail(tester, viewModel);
+      await tester.pumpAndSettle();
+
+      expect(find.text('3 verses'), findsOneWidget);
+      expect(find.text('7/20 minutes'), findsOneWidget);
+      expect(find.text('35%'), findsOneWidget);
     });
   });
 
@@ -159,7 +198,7 @@ void main() {
       await openDetail(tester, viewModel);
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Start Reading'));
+      await tester.tap(find.text('Start at Ruth 1:1'));
       await tester.pumpAndSettle();
 
       expect(sessionViewModel.startedPlanIds, [7]);
@@ -212,19 +251,38 @@ class _DetailLauncher extends StatelessWidget {
   }
 }
 
-ReadingPlanDetails planDetails({int id = 1}) {
+ReadingPlanDetails planDetails({
+  int id = 1,
+  GoalType goalType = GoalType.verses,
+  int goalValue = 10,
+}) {
   return ReadingPlanDetails(
     ReadingPlan(
       id: id,
       planName: 'Ruth Plan',
       createdAt: DateTime(2026, 1, 1),
       collectionId: 1,
-      goalType: GoalType.verses.name,
-      goalValue: 10,
+      goalType: goalType.name,
+      goalValue: goalValue,
       isBookmarked: false,
     ),
     [ReadingPlanBook(readingPlanId: id, bookId: 8, ord: 1)],
   );
+}
+
+List<DayProgress> currentMonthProgress({
+  required int verses,
+  required int minutes,
+}) {
+  final now = DateTime.now();
+  final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
+  return [
+    for (int day = 1; day <= daysInMonth; day++)
+      if (day == now.day)
+        DayProgress(DateTime(now.year, now.month, day), minutes, verses, false)
+      else
+        DayProgress.empty(DateTime(now.year, now.month, day)),
+  ];
 }
 
 List<RsBookStats> bookStats({int versesRead = 0}) {

@@ -682,6 +682,15 @@
       }
     }
   },
+  "startAtReference": "Start at {reference}",
+  "@startAtReference": {
+    "description": "Button label to begin reading a plan at a scripture reference",
+    "placeholders": {
+      "reference": {
+        "type": "String"
+      }
+    }
+  },
   "booksReadOfTotal": "{read} of {total} books",
   "@booksReadOfTotal": {
     "description": "Reading-plan progress count for completed books out of total books",
@@ -698,6 +707,14 @@
   "@todaysGoal": {
     "description": "Title for today's reading goal card"
   },
+  "totalProgress": "Total Progress",
+  "@totalProgress": {
+    "description": "Title for overall reading-plan progress"
+  },
+  "todaysProgress": "Today's Progress",
+  "@todaysProgress": {
+    "description": "Title for today's reading progress"
+  },
   "completedToday": "Completed today",
   "@completedToday": {
     "description": "Message shown when today's goal is complete"
@@ -706,6 +723,10 @@
   "@estimatedCompletion": {
     "description": "Section title for an estimated reading-plan completion date"
   },
+  "completion": "Completion",
+  "@completion": {
+    "description": "Label for the estimated reading-plan completion summary"
+  },
   "planComplete": "Plan complete!",
   "@planComplete": {
     "description": "Message shown when a reading plan is complete"
@@ -713,6 +734,15 @@
   "daysCount": "{count, plural, =1{1 day} other{{count} days}}",
   "@daysCount": {
     "description": "Duration in days",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "daysRemaining": "{count, plural, =1{1 day remaining} other{{count} days remaining}}",
+  "@daysRemaining": {
+    "description": "Remaining duration in days",
     "placeholders": {
       "count": {
         "type": "int"

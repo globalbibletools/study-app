@@ -96,6 +96,17 @@ class ReadingPlanDetailViewModel extends ChangeNotifier {
   Reference? get resumePosition => _resumePosition;
   bool get hasStarted => _versesRead > 0;
 
+  Reference get readingReference {
+    final resumePosition = _resumePosition;
+    if (resumePosition != null) return resumePosition;
+
+    return Reference(
+      bookId: _books.isNotEmpty ? _books.first.bookId : 1,
+      chapter: 1,
+      verse: 1,
+    );
+  }
+
   double get overallProgress =>
       _totalVerses > 0 ? _versesRead / _totalVerses : 0.0;
 
@@ -113,6 +124,9 @@ class ReadingPlanDetailViewModel extends ChangeNotifier {
   }
 
   bool get goalReachedToday => todaysGoalProgress >= 1;
+
+  int get todaysGoalPercent =>
+      (todaysGoalProgress.clamp(0.0, 1.0) * 100).round();
 
   int get _remainingVerses => _totalVerses - _versesRead;
 

@@ -6,6 +6,7 @@ import 'package:gbt/l10n/book_names.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
 import 'package:gbt/ui/home/panel_area/common/calendar_view.dart';
 import 'package:gbt/reading_plan/day_activity_log_panel.dart';
+import 'package:gbt/reading_plan/progress_circle.dart';
 import 'package:gbt/reading_plan/reading_plan_detail_view_model.dart';
 
 class ReadingPlanDetailPanel extends StatefulWidget {
@@ -51,7 +52,7 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
       builder: (context, _) {
         return Column(
           children: [
-            _topTitle(),
+            _topBar(),
             const SizedBox(height: 12),
             Expanded(child: _content()),
           ],
@@ -60,20 +61,29 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
     );
   }
 
-  Widget _topTitle() {
-    return Stack(
-      alignment: Alignment.center,
+  Widget _topBar() {
+    return Row(
       children: [
-        Align(
-          alignment: Alignment.centerLeft,
-          child: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () => Navigator.of(context).pop(),
+        IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        Expanded(
+          child: Text(
+            viewModel.planName,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
           ),
         ),
-        Text(
-          viewModel.planName,
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+        IconButton(
+          icon: Icon(
+            viewModel.isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+          ),
+          onPressed: () {
+            viewModel.toggleBookmark();
+          },
         ),
       ],
     );
@@ -103,11 +113,11 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _progressHeader(),
-                const SizedBox(height: 16),
                 _startResumeButton(),
-                const SizedBox(height: 16),
-                _statsRow(),
+                const SizedBox(height: 20),
+                _totalProgress(),
+                const SizedBox(height: 20),
+                _todaysProgress(),
                 const SizedBox(height: 30),
                 _goalsContentByMonth(),
                 const SizedBox(height: 20),
@@ -122,71 +132,35 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
     );
   }
 
-  Widget _progressHeader() {
-    final progressPercent = viewModel.progressPercent;
+  Widget _totalProgress() {
     final l10n = AppLocalizations.of(context)!;
-    final resumePosition = viewModel.resumePosition;
+    final completion = viewModel.hasEstimate
+        ? '${l10n.daysRemaining(viewModel.estimatedDays)} '
+              '(${_formatDate(viewModel.estimatedCompletionDate)})'
+        : l10n.planComplete;
 
-    final Widget progressWidget = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          l10n.booksReadOfTotal(viewModel.booksRead, viewModel.books.length),
-        ),
-        const SizedBox(height: 4),
-        if (resumePosition != null) ...[
-          Text(
-            l10n.current,
-            style: TextStyle(color: Theme.of(context).colorScheme.primary),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            '${bookNameFromId(context, resumePosition.bookId)} ${resumePosition.chapter}',
-          ),
-        ],
-      ],
-    );
-
-    return Row(
-      children: [
-        Stack(
-          alignment: Alignment.center,
-          children: [
-            SizedBox(
-              width: 70,
-              height: 70,
-              child: CircularProgressIndicator(
-                value: viewModel.overallProgress,
-                strokeWidth: 6,
-                backgroundColor: Theme.of(
-                  context,
-                ).colorScheme.surfaceContainerHighest,
-              ),
-            ),
-            Text(
-              "$progressPercent%",
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
-        const SizedBox(width: 16),
-        Expanded(child: progressWidget),
-        IconButton(
-          icon: Icon(
-            viewModel.isBookmarked ? Icons.bookmark : Icons.bookmark_border,
-          ),
-          onPressed: () {
-            viewModel.toggleBookmark();
-          },
-        ),
-      ],
+    return _progressSummary(
+      title: l10n.totalProgress,
+      value: viewModel.overallProgress,
+      percent: viewModel.progressPercent,
+      secondLine: l10n.booksReadOfTotal(
+        viewModel.booksRead,
+        viewModel.books.length,
+      ),
+      thirdLine: completion,
     );
   }
 
   Widget _startResumeButton() {
     final l10n = AppLocalizations.of(context)!;
+    final reference = viewModel.readingReference;
+    final referenceText =
+        '${bookNameFromId(context, reference.bookId)} '
+        '${reference.chapter}:${reference.verse}';
 
-    final txt = viewModel.hasStarted ? l10n.resumeReading : l10n.startReading;
+    final txt = viewModel.hasStarted
+        ? l10n.resumeAtReference(referenceText)
+        : l10n.startAtReference(referenceText);
 
     return SizedBox(
       width: double.infinity,
@@ -216,69 +190,52 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
     );
   }
 
-  Widget _statsRow() {
+  Widget _todaysProgress() {
     final l10n = AppLocalizations.of(context)!;
-
-    final goalType = viewModel.goalType;
-
-    String goalTxt = goalType == GoalType.minutes
-        ? l10n.minutesPerDay.toLowerCase()
-        : l10n.versesPerDay.toLowerCase();
-
-    final target = viewModel.goalValue;
     final progress = viewModel.todaysProgress;
+    final verses = progress?.verses ?? 0;
+    final minutes = progress?.minutes ?? 0;
+    final target = viewModel.goalValue;
+    final isVersesGoal = viewModel.goalType == GoalType.verses;
 
-    String progressStr;
-    if (progress == null) {
-      progressStr = '0/$target';
-    } else if (goalType == GoalType.verses) {
-      progressStr = '${progress.verses}/$target';
-    } else {
-      progressStr = '${progress.minutes}/$target';
-    }
+    final versesText = isVersesGoal
+        ? '$verses/$target ${l10n.verses}'
+        : '$verses ${l10n.verses}';
+    final minutesText = isVersesGoal
+        ? '$minutes ${l10n.minutes}'
+        : '$minutes/$target ${l10n.minutes}';
 
-    final progressValue = viewModel.todaysGoalProgress
-        .clamp(0.0, 1.0)
-        .toDouble();
-
-    final todaysProgress = Column(
-      children: [
-        Text('$target $goalTxt'),
-        SizedBox(height: 8),
-
-        Stack(
-          alignment: Alignment.center,
-          children: [
-            SizedBox(
-              width: 40,
-              height: 40,
-              child: CircularProgressIndicator(
-                value: progressValue,
-                strokeWidth: 6,
-                backgroundColor: Theme.of(
-                  context,
-                ).colorScheme.surfaceContainerHighest,
-              ),
-            ),
-            Text(progressStr, style: const TextStyle(fontSize: 10)),
-          ],
-        ),
-
-        const SizedBox(height: 4),
-        if (viewModel.goalReachedToday) Text(l10n.completedToday),
-      ],
+    return _progressSummary(
+      title: l10n.todaysProgress,
+      value: viewModel.todaysGoalProgress,
+      percent: viewModel.todaysGoalPercent,
+      secondLine: versesText,
+      thirdLine: minutesText,
     );
+  }
 
+  Widget _progressSummary({
+    required String title,
+    required double value,
+    required int percent,
+    required String secondLine,
+    required String thirdLine,
+  }) {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      spacing: 16,
       children: [
+        ProgressCircle(value: value, percent: percent),
         Expanded(
-          child: _statCard(title: l10n.todaysGoal, child: todaysProgress),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _statCard(
-            title: l10n.estimatedCompletion,
-            child: _estimatedCompletionContent(),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            spacing: 4,
+            children: [
+              Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+              Text(secondLine),
+              Text(thirdLine),
+            ],
           ),
         ),
       ],
@@ -288,52 +245,6 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
   String _formatDate(DateTime date) {
     final l10n = AppLocalizations.of(context)!;
     return '${l10n.months(date.month.toString())} ${date.day}, ${date.year}';
-  }
-
-  Widget _estimatedCompletionContent() {
-    final l10n = AppLocalizations.of(context)!;
-
-    if (!viewModel.hasEstimate) {
-      return Text(l10n.planComplete, style: const TextStyle(fontSize: 16));
-    }
-
-    return Column(
-      children: [
-        Text(
-          l10n.daysCount(viewModel.estimatedDays),
-          style: const TextStyle(fontSize: 18),
-        ),
-        const SizedBox(height: 4),
-        Text(l10n.monthsCount(viewModel.estimatedMonths.toStringAsFixed(1))),
-        const SizedBox(height: 4),
-        Text(_formatDate(viewModel.estimatedCompletionDate)),
-      ],
-    );
-  }
-
-  Widget _statCard({required String title, required Widget child}) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        children: [
-          Text(
-            title,
-            style: TextStyle(
-              color: colorScheme.onSurfaceVariant,
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 8),
-          child,
-        ],
-      ),
-    );
   }
 
   Widget _booksHeader() {
