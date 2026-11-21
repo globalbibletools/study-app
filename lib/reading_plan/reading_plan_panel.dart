@@ -8,11 +8,33 @@ import 'package:gbt/reading_plan/reading_plan_detail_panel.dart';
 import 'package:gbt/reading_plan/reading_plan_panel_view_model.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
 
+typedef ReadingPlanRouteBuilder =
+    Widget Function(BuildContext context, ReadingPlanDetails plan);
+
 class ReadingPlanPanel extends StatefulWidget {
-  const ReadingPlanPanel({super.key});
+  const ReadingPlanPanel({
+    super.key,
+    this.viewModel,
+    this.createPlanRouteBuilder,
+    this.planDetailsRouteBuilder,
+    this.editPlanRouteBuilder,
+  });
+
+  const ReadingPlanPanel.withDependencies({
+    super.key,
+    required this.viewModel,
+    this.createPlanRouteBuilder,
+    this.planDetailsRouteBuilder,
+    this.editPlanRouteBuilder,
+  });
+
+  final ReadingPlanPanelViewModel? viewModel;
+  final WidgetBuilder? createPlanRouteBuilder;
+  final ReadingPlanRouteBuilder? planDetailsRouteBuilder;
+  final ReadingPlanRouteBuilder? editPlanRouteBuilder;
 
   @override
-  State<ReadingPlanPanel> createState() => ReadingPlanPanelState();
+  ReadingPlanPanelState createState() => ReadingPlanPanelState();
 }
 
 class ReadingPlanPanelState extends State<ReadingPlanPanel> {
@@ -21,7 +43,7 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
   @override
   void initState() {
     super.initState();
-    viewModel = ReadingPlanPanelViewModel();
+    viewModel = widget.viewModel ?? ReadingPlanPanelViewModel();
     unawaited(viewModel.initialize());
   }
 
@@ -111,11 +133,14 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
         onPressed: () async {
           await Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (_) =>
-                  EditReadingPlanPanel.newPlan(l10n.defaultReadingPlanName),
+              builder:
+                  widget.createPlanRouteBuilder ??
+                  (_) =>
+                      EditReadingPlanPanel.newPlan(l10n.defaultReadingPlanName),
             ),
           );
 
+          if (!mounted) return;
           await viewModel.refresh();
         },
         child: Text(
@@ -129,10 +154,12 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
   Future<void> _openPlanDetails(ReadingPlanDetails plan) async {
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => ReadingPlanDetailPanel(
-          readingPlanDetails: plan,
-          onClose: () => Navigator.of(context).pop(),
-        ),
+        builder: (context) =>
+            widget.planDetailsRouteBuilder?.call(context, plan) ??
+            ReadingPlanDetailPanel(
+              readingPlanDetails: plan,
+              onClose: () => Navigator.of(context).pop(),
+            ),
       ),
     );
 
@@ -142,7 +169,11 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
 
   Future<void> _editPlan(ReadingPlanDetails plan) async {
     await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => EditReadingPlanPanel.existing(plan)),
+      MaterialPageRoute(
+        builder: (context) =>
+            widget.editPlanRouteBuilder?.call(context, plan) ??
+            EditReadingPlanPanel.existing(plan),
+      ),
     );
 
     if (!mounted) return;
