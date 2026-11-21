@@ -2,20 +2,17 @@ import 'package:material_ui/material_ui.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/l10n/book_names.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
-import 'package:gbt/ui/home/home_manager.dart';
 import 'package:gbt/ui/home/panel_area/common/calendar_view.dart';
 import 'package:gbt/reading_plan/day_activity_log_panel.dart';
 import 'package:gbt/reading_plan/reading_plan_detail_view_model.dart';
 
 class ReadingPlanDetailPanel extends StatefulWidget {
   final ReadingPlanDetails readingPlanDetails;
-  final HomeManager homeManager;
   final Function onClose;
 
   const ReadingPlanDetailPanel({
     super.key,
     required this.readingPlanDetails,
-    required this.homeManager,
     required this.onClose,
   });
 
@@ -29,10 +26,7 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
   @override
   void initState() {
     super.initState();
-    viewModel = ReadingPlanDetailViewModel(
-      plan: widget.readingPlanDetails,
-      homeManager: widget.homeManager,
-    );
+    viewModel = ReadingPlanDetailViewModel(plan: widget.readingPlanDetails);
   }
 
   @override

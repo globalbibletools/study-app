@@ -4,7 +4,6 @@ import 'package:material_ui/material_ui.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/l10n/book_names.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
-import 'package:gbt/ui/home/home_manager.dart';
 import 'package:gbt/reading_plan/edit_reading_plan_panel.dart';
 import 'package:gbt/reading_plan/reading_plan_detail_panel.dart';
 import 'package:gbt/reading_plan/reading_plan_panel_view_model.dart';
@@ -40,14 +39,9 @@ Future<bool> confirmDeleteReadingPlan(
 }
 
 class ReadingPlanPanel extends StatefulWidget {
-  final HomeManager homeManager;
   final Function onClose;
 
-  const ReadingPlanPanel({
-    super.key,
-    required this.homeManager,
-    required this.onClose,
-  });
+  const ReadingPlanPanel({super.key, required this.onClose});
 
   @override
   State<ReadingPlanPanel> createState() => ReadingPlanPanelState();
@@ -59,7 +53,7 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
   @override
   void initState() {
     super.initState();
-    viewModel = ReadingPlanPanelViewModel(homeManager: widget.homeManager);
+    viewModel = ReadingPlanPanelViewModel();
   }
 
   @override
@@ -291,7 +285,6 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
                 MaterialPageRoute(
                   builder: (_) => ReadingPlanDetailPanel(
                     readingPlanDetails: planDet,
-                    homeManager: widget.homeManager,
                     onClose: widget.onClose,
                   ),
                 ),

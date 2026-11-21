@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gbt/common/bible_navigation.dart';
+import 'package:gbt/common/reference.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
 import 'package:gbt/reading_plan/reading_session_service.dart';
 import 'package:gbt/reading_plan/rs_database.dart';
@@ -9,6 +10,7 @@ import 'package:gbt/reading_plan/reading_session_view_model.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import '../fixtures/bible_navigation_fixture.dart';
+import '../fixtures/fake_navigation_view_model.dart';
 
 VerseReadOptions _readOptions(
   int bookId,
@@ -30,6 +32,7 @@ void main() {
   late ReadingSessionDatabase database;
   late ReadingPlanService planService;
   late ReadingSessionService sessionService;
+  late FakeNavigationViewModel navigationViewModel;
 
   setUpAll(() {
     sqfliteFfiInit();
@@ -54,7 +57,15 @@ void main() {
       bibleNavigation: createTestBibleNavigation(),
     );
     sessionService = ReadingSessionService.withDatabase(database);
+    navigationViewModel = FakeNavigationViewModel();
   });
+
+  ReadingSessionViewModel newViewModel() {
+    return ReadingSessionViewModel.withDependencies(
+      service: sessionService,
+      navigationViewModel: navigationViewModel,
+    );
+  }
 
   tearDown(() {
     database.dispose();
@@ -119,7 +130,7 @@ void main() {
       selectedBookIds: {19},
     );
 
-    final viewModel = ReadingSessionViewModel.withService(sessionService);
+    final viewModel = newViewModel();
 
     expect(viewModel.planConfig, isNull);
     expect(viewModel.hasActiveSession, isFalse);
@@ -130,6 +141,9 @@ void main() {
     expect(viewModel.planConfig?.planId, plan.id);
     expect(viewModel.planConfig?.dailyGoal.type, GoalType.minutes);
     expect(viewModel.planConfig?.dailyGoal.value, 20);
+    expect(navigationViewModel.navigatedReferences, [
+      const Reference(bookId: 19, chapter: 1, verse: 1),
+    ]);
 
     await viewModel.endSession();
 
@@ -140,10 +154,31 @@ void main() {
   });
 
   test('throws when starting a session for an unknown plan', () async {
-    final viewModel = ReadingSessionViewModel.withService(sessionService);
+    final viewModel = newViewModel();
 
     await expectLater(viewModel.startSession(999), throwsA(isA<StateError>()));
     expect(viewModel.hasActiveSession, isFalse);
+    expect(navigationViewModel.navigatedReferences, isEmpty);
+
+    viewModel.dispose();
+  });
+
+  test('navigates to the plan resume reference', () async {
+    final plan = await planService.saveReadingPlan(
+      planName: 'Resume Navigation Test',
+      collectionId: 1,
+      goalType: GoalType.verses,
+      goalValue: 10,
+      selectedBookIds: {19},
+    );
+    await database.markVerseRead(plan.id!, 19, 1, 1);
+
+    final viewModel = newViewModel();
+    await viewModel.startSession(plan.id!);
+
+    expect(navigationViewModel.navigatedReferences, [
+      const Reference(bookId: 19, chapter: 1, verse: 2),
+    ]);
 
     viewModel.dispose();
   });
@@ -159,7 +194,7 @@ void main() {
         selectedBookIds: {63},
       );
 
-      final viewModel = ReadingSessionViewModel.withService(sessionService);
+      final viewModel = newViewModel();
 
       await viewModel.startSession(plan.id!);
       final firstSessionId = viewModel.sessionId;
@@ -472,7 +507,7 @@ void main() {
         selectedBookIds: {63},
       );
 
-      final viewModel = ReadingSessionViewModel.withService(sessionService);
+      final viewModel = newViewModel();
       await viewModel.startSession(plan.id!);
 
       await viewModel.setVerseRead(_readOptions(63, 1, 1, read: true));

@@ -4,22 +4,16 @@ import 'package:gbt/common/reference.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
 import 'package:gbt/services/service_locator.dart';
-import 'package:gbt/ui/home/home_manager.dart';
 import 'package:gbt/reading_plan/reading_plan_estimates.dart';
 import 'package:gbt/reading_plan/reading_session_view_model.dart';
 
 class ReadingPlanDetailViewModel extends ChangeNotifier {
-  factory ReadingPlanDetailViewModel({
-    required ReadingPlanDetails plan,
-    // TODO: why is this optional?
-    HomeManager? homeManager,
-  }) {
+  factory ReadingPlanDetailViewModel({required ReadingPlanDetails plan}) {
     final viewModel = ReadingPlanDetailViewModel.withDependencies(
       plan: plan,
       planService: getIt<ReadingPlanService>(),
       sessionViewModel: getIt<ReadingSessionViewModel>(),
       bibleNavigation: getIt<BibleNavigation>(),
-      homeManager: homeManager ?? getIt<HomeManager>(),
     );
     viewModel._initFuture = viewModel.refresh();
     return viewModel;
@@ -30,7 +24,6 @@ class ReadingPlanDetailViewModel extends ChangeNotifier {
     required ReadingPlanService planService,
     required ReadingSessionViewModel sessionViewModel,
     required BibleNavigation bibleNavigation,
-    required HomeManager homeManager,
   }) : _planId = plan.readingPlan.id!,
        _readingPlan = plan.readingPlan,
        _planName = plan.readingPlan.planName,
@@ -41,14 +34,12 @@ class ReadingPlanDetailViewModel extends ChangeNotifier {
        _resumePosition = plan.resumePosition,
        _planService = planService,
        _sessionViewModel = sessionViewModel,
-       _bibleNavigation = bibleNavigation,
-       _homeManager = homeManager;
+       _bibleNavigation = bibleNavigation;
 
   final int _planId;
   final ReadingPlanService _planService;
   final ReadingSessionViewModel _sessionViewModel;
   final BibleNavigation _bibleNavigation;
-  final HomeManager _homeManager;
 
   ReadingPlan _readingPlan;
   String _planName;
@@ -146,12 +137,6 @@ class ReadingPlanDetailViewModel extends ChangeNotifier {
 
   bool isBookComplete(int bookId) => progressForBook(bookId) >= 1;
 
-  Reference get resumeTarget =>
-      _resumePosition ??
-      (_books.isNotEmpty
-          ? Reference(bookId: _books.first.bookId, chapter: 1, verse: 1)
-          : const Reference(bookId: 1, chapter: 1, verse: 1));
-
   Future<void> refresh() {
     final inFlight = _refreshFuture;
     if (inFlight != null) return inFlight;
@@ -245,10 +230,8 @@ class ReadingPlanDetailViewModel extends ChangeNotifier {
     monthProgress.value = data;
   }
 
-  Future<void> startReadingSession() async {
-    await _sessionViewModel.startSession(_planId);
-    if (_disposed) return;
-    _homeManager.jumpToReference(resumeTarget);
+  Future<void> startReadingSession() {
+    return _sessionViewModel.startSession(_planId);
   }
 
   Future<void> toggleReorderMode() async {

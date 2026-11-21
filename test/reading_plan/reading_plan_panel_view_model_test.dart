@@ -6,21 +6,12 @@ import 'package:gbt/reading_plan/reading_session_service.dart';
 import 'package:gbt/reading_plan/rs_database.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
 import 'package:gbt/services/service_locator.dart';
-import 'package:gbt/ui/home/home_manager.dart';
 import 'package:gbt/reading_plan/reading_plan_panel_view_model.dart';
 import 'package:gbt/reading_plan/reading_session_view_model.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import '../fixtures/bible_navigation_fixture.dart';
-
-class FakeHomeManager extends Fake implements HomeManager {
-  final jumpedReferences = <Reference>[];
-
-  @override
-  void jumpToReference(Reference reference) {
-    jumpedReferences.add(reference);
-  }
-}
+import '../fixtures/fake_navigation_view_model.dart';
 
 /// Integration tests for [ReadingPlanPanelViewModel] running against a real
 /// in-memory SQLite database, the real [ReadingPlanService] and
@@ -37,14 +28,13 @@ void main() {
   late ReadingSessionDatabase database;
   late ReadingPlanService planService;
   late ReadingSessionViewModel sessionViewModel;
-  late FakeHomeManager homeManager;
+  late FakeNavigationViewModel navigationViewModel;
   late ReadingPlanPanelViewModel viewModel;
 
   ReadingPlanPanelViewModel newViewModel() {
     return ReadingPlanPanelViewModel.withDependencies(
       planService: planService,
       sessionViewModel: sessionViewModel,
-      homeManager: homeManager,
     );
   }
 
@@ -88,10 +78,11 @@ void main() {
       database: database,
       bibleNavigation: bibleNavigation,
     );
-    sessionViewModel = ReadingSessionViewModel.withService(
-      ReadingSessionService.withDatabase(database),
+    navigationViewModel = FakeNavigationViewModel();
+    sessionViewModel = ReadingSessionViewModel.withDependencies(
+      service: ReadingSessionService.withDatabase(database),
+      navigationViewModel: navigationViewModel,
     );
-    homeManager = FakeHomeManager();
     viewModel = newViewModel();
 
     // The schema ships with a default "Whole Bible" plan (id 1). Remove it so
@@ -259,7 +250,7 @@ void main() {
   });
 
   group('startReadingSession', () {
-    test('starts the session and jumps to the plan resume position', () async {
+    test('starts the session and navigates to the resume position', () async {
       await savePlan(bookIds: {8});
       await viewModel.refresh();
       final plan = viewModel.plans.single;
@@ -269,7 +260,7 @@ void main() {
       await viewModel.startReadingSession(plan);
 
       expect(sessionViewModel.hasActiveSession, isTrue);
-      expect(homeManager.jumpedReferences, [plan.resumePosition]);
+      expect(navigationViewModel.navigatedReferences, [plan.resumePosition]);
     });
 
     test(
@@ -282,49 +273,9 @@ void main() {
         await viewModel.startReadingSession(plan);
 
         expect(sessionViewModel.hasActiveSession, isTrue);
-        expect(homeManager.jumpedReferences, [
+        expect(navigationViewModel.navigatedReferences, [
           const Reference(bookId: 8, chapter: 1, verse: 1),
         ]);
-      },
-    );
-  });
-
-  group('resumeTargetFor', () {
-    ReadingPlanDetails detailsWith({Reference? resumePosition}) {
-      final details = ReadingPlanDetails(
-        ReadingPlan(
-          planName: 'Test Plan',
-          createdAt: DateTime.now(),
-          collectionId: 1,
-          goalType: GoalType.verses.name,
-          goalValue: 10,
-          isBookmarked: false,
-        ),
-        [
-          ReadingPlanBook(readingPlanId: 0, bookId: 8, ord: 1),
-          ReadingPlanBook(readingPlanId: 0, bookId: 32, ord: 2),
-        ],
-      );
-      details.resumePosition = resumePosition;
-      return details;
-    }
-
-    test('uses the plan resume position when present', () {
-      const resumePosition = Reference(bookId: 8, chapter: 2, verse: 3);
-
-      expect(
-        viewModel.resumeTargetFor(detailsWith(resumePosition: resumePosition)),
-        resumePosition,
-      );
-    });
-
-    test(
-      'falls back to the first book at 1:1 when resume position is null',
-      () {
-        expect(
-          viewModel.resumeTargetFor(detailsWith()),
-          const Reference(bookId: 8, chapter: 1, verse: 1),
-        );
       },
     );
   });

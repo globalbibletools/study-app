@@ -8,6 +8,7 @@ import 'package:gbt/reading_plan/reading_session_service.dart';
 import 'package:gbt/services/logging/log.dart' as log;
 import 'package:gbt/reading_plan/rs_model.dart';
 import 'package:gbt/services/service_locator.dart';
+import 'package:gbt/ui/home/common/navigation_view_model.dart';
 
 class ReadingSessionUiState {
   const ReadingSessionUiState({
@@ -53,15 +54,24 @@ class ReadingSessionUiState {
 }
 
 class ReadingSessionViewModel with WidgetsBindingObserver {
-  ReadingSessionViewModel() : this.withService(getIt<ReadingSessionService>());
+  ReadingSessionViewModel()
+    : this.withDependencies(
+        service: getIt<ReadingSessionService>(),
+        navigationViewModel: getIt<NavigationViewModel>(),
+      );
 
-  ReadingSessionViewModel.withService(this._service) {
+  ReadingSessionViewModel.withDependencies({
+    required ReadingSessionService service,
+    required NavigationViewModel navigationViewModel,
+  }) : _service = service,
+       _navigationViewModel = navigationViewModel {
     WidgetsBinding.instance.addObserver(this);
   }
 
   static Duration heartbeatInterval = const Duration(seconds: 60);
 
   final ReadingSessionService _service;
+  final NavigationViewModel _navigationViewModel;
 
   final sessionNotifier = ValueNotifier<ReadingSessionUiState?>(null);
   final secondsTodayNotifier = ValueNotifier<int>(0);
@@ -132,6 +142,8 @@ class ReadingSessionViewModel with WidgetsBindingObserver {
       goalReachedNotifier.value = false;
       bookCompletedNotifier.value = null;
       hudVisible.value = true;
+
+      _navigationViewModel.navigateTo(snapshot.resumePosition);
 
       _scheduleNextTick();
     } finally {

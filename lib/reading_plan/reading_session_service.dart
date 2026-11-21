@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/common/reference.dart';
 import 'package:gbt/reading_plan/reading_plan_config.dart';
+import 'package:gbt/reading_plan/reading_plan_estimates.dart';
 import 'package:gbt/reading_plan/rs_database.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
 import 'package:gbt/services/service_locator.dart';
@@ -30,10 +31,15 @@ class SessionProgress {
 }
 
 class ActiveSessionSnapshot {
-  const ActiveSessionSnapshot({required this.config, required this.progress});
+  const ActiveSessionSnapshot({
+    required this.config,
+    required this.progress,
+    required this.resumePosition,
+  });
 
   final ReadingPlanConfig config;
   final SessionProgress progress;
+  final Reference resumePosition;
 }
 
 class BookCompletedEvent {
@@ -88,7 +94,13 @@ class ReadingSessionService {
     );
 
     final progress = await _readProgress(session, now);
-    return ActiveSessionSnapshot(config: config, progress: progress);
+    final resumePosition = await _database.getResumeReference(planId);
+    return ActiveSessionSnapshot(
+      config: config,
+      progress: progress,
+      resumePosition:
+          resumePosition ?? ReadingPlanEstimates.resumeTargetFor(details),
+    );
   }
 
   Future<void> endSession(
