@@ -519,6 +519,11 @@ class AppLocalizationsFr extends AppLocalizations {
   String get resumeReading => 'Reprendre la lecture';
 
   @override
+  String resumeAtReference(String reference) {
+    return 'Reprendre à $reference';
+  }
+
+  @override
   String booksReadOfTotal(int read, int total) {
     return '$read sur $total livres';
   }

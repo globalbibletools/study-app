@@ -956,6 +956,12 @@ abstract class AppLocalizations {
   /// **'Resume Reading'**
   String get resumeReading;
 
+  /// Link label to resume a reading plan at a scripture reference
+  ///
+  /// In en, this message translates to:
+  /// **'Resume at {reference}'**
+  String resumeAtReference(String reference);
+
   /// Reading-plan progress count for completed books out of total books
   ///
   /// In en, this message translates to:

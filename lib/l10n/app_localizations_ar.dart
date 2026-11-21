@@ -516,6 +516,11 @@ class AppLocalizationsAr extends AppLocalizations {
   String get resumeReading => 'متابعة القراءة';
 
   @override
+  String resumeAtReference(String reference) {
+    return 'متابعة عند $reference';
+  }
+
+  @override
   String booksReadOfTotal(int read, int total) {
     return 'الكتب: $read من $total';
   }

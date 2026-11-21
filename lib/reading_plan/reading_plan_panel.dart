@@ -1,42 +1,12 @@
-import 'dart:developer';
+import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
+import 'package:gbt/common/reference.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/l10n/book_names.dart';
-import 'package:gbt/reading_plan/rs_model.dart';
 import 'package:gbt/reading_plan/edit_reading_plan_panel.dart';
-import 'package:gbt/reading_plan/reading_plan_detail_panel.dart';
 import 'package:gbt/reading_plan/reading_plan_panel_view_model.dart';
-
-Future<bool> confirmDeleteReadingPlan(
-  BuildContext context,
-  String planName,
-) async {
-  final l10n = AppLocalizations.of(context)!;
-  final result = await showDialog<bool>(
-    context: context,
-    builder: (dialogContext) {
-      return AlertDialog(
-        title: Text(l10n.deleteReadingPlanConfirmTitle),
-        content: Text(l10n.deleteReadingPlanConfirmMessage(planName)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: Text(l10n.cancel),
-          ),
-          TextButton(
-            style: TextButton.styleFrom(
-              foregroundColor: Theme.of(context).colorScheme.error,
-            ),
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: Text(l10n.delete),
-          ),
-        ],
-      );
-    },
-  );
-  return result ?? false;
-}
+import 'package:gbt/reading_plan/rs_model.dart';
 
 class ReadingPlanPanel extends StatefulWidget {
   final Function onClose;
@@ -54,6 +24,7 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
   void initState() {
     super.initState();
     viewModel = ReadingPlanPanelViewModel();
+    unawaited(viewModel.initialize());
   }
 
   @override
@@ -104,7 +75,6 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
 
   Widget _topTitle() {
     final l10n = AppLocalizations.of(context)!;
-    // Centered, larger serif-style title per mockup.
     return Center(
       child: Text(
         l10n.readingPlans,
@@ -114,114 +84,42 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
   }
 
   Widget _content() {
-    final l10n = AppLocalizations.of(context)!;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    if (!viewModel.isInitialized) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    return Stack(
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 0),
-          child: Row(
-            children: [
-              Text(
-                l10n.yourReadingPlans,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 16,
-                ),
-              ),
-              const Spacer(),
-              TextButton(
-                style: TextButton.styleFrom(
-                  padding: EdgeInsets.zero,
-                  minimumSize: const Size(40, 30),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                onPressed: viewModel.toggleEditMode,
-                child: Text(
-                  viewModel.isEditing ? l10n.done : l10n.edit,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.primary,
-                    fontWeight: FontWeight.w500,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-            ],
-          ),
+        // Scrollable list, padded at the bottom so the last
+        // card isn't hidden behind the floating button.
+        ListView(
+          padding: const EdgeInsets.only(bottom: 76),
+          children: viewModel.plans.map(_readingPlan).toList(),
         ),
-        const SizedBox(height: 12),
-        Expanded(
-          child: Stack(
-            children: [
-              // Scrollable list, padded at the bottom so the last
-              // card isn't hidden behind the floating button.
-              ListView(
-                padding: const EdgeInsets.only(bottom: 76),
-                children: viewModel.plans.map((plan) {
-                  return _readingPlan(plan);
-                }).toList(),
-              ),
-              // Floating "Create New Plan" button.
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: _createNewPlanButton(),
-              ),
-            ],
-          ),
-        ),
+        // Floating "Create New Plan" button.
+        Positioned(left: 0, right: 0, bottom: 0, child: _createNewPlanButton()),
       ],
     );
   }
 
   Widget _createNewPlanButton() {
-    final colorScheme = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context)!;
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.25),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Material(
-        color: colorScheme.primary,
-        borderRadius: BorderRadius.circular(16),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: () async {
-            await Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) =>
-                    EditReadingPlanPanel.newPlan(l10n.defaultReadingPlanName),
-              ),
-            );
-
-            await viewModel.refresh();
-          },
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.add, color: colorScheme.onPrimary),
-                const SizedBox(width: 8),
-                Text(
-                  AppLocalizations.of(context)!.createNewPlan,
-                  style: TextStyle(
-                    color: colorScheme.onPrimary,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 16,
-                  ),
-                ),
-              ],
+    return SizedBox(
+      width: double.infinity,
+      child: FilledButton(
+        onPressed: () async {
+          await Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) =>
+                  EditReadingPlanPanel.newPlan(l10n.defaultReadingPlanName),
             ),
-          ),
+          );
+
+          await viewModel.refresh();
+        },
+        child: Text(
+          l10n.createNewPlan,
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
       ),
     );
@@ -229,205 +127,204 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
 
   Widget _readingPlan(ReadingPlanDetails planDet) {
     final l10n = AppLocalizations.of(context)!;
-
-    final plan = planDet.readingPlan;
-
-    final action = planDet.versesRead == 0 ? l10n.start : l10n.resume;
-
-    int versesCount = planDet.totalVerses;
-
-    if (versesCount == 0) {
-      versesCount = 1;
-    }
-
-    return _readingPlanGeneric(
-      planDet,
-      plan.planName,
-      planDet.versesRead / versesCount,
-      "${planDet.versesRead}/$versesCount",
-      " ${l10n.verses}",
-      action,
+    final colorScheme = Theme.of(context).colorScheme;
+    final cardColor = Color.alphaBlend(
+      colorScheme.onSurface.withValues(alpha: 0.09),
+      colorScheme.surface,
     );
-  }
 
-  Widget _readingPlanGeneric(
-    ReadingPlanDetails planDet,
-    String title,
-    double progress,
-    String progressLabel,
-    String progressSuffix,
-    String action,
-  ) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final l10n = AppLocalizations.of(context)!;
+    final totalVerses = planDet.totalVerses > 0 ? planDet.totalVerses : 1;
+    final progress = planDet.versesRead / totalVerses;
+    final percent = (progress * 100).toInt();
+    final resumeTarget = _resumeTargetFor(planDet);
+    final resumeReference = _referenceLabel(resumeTarget);
+    final progressText =
+        '${planDet.versesRead}/$totalVerses ${l10n.verses} · $percent%';
+    const progressStyle = TextStyle(fontSize: 14, fontWeight: FontWeight.w500);
+    final resumeStyle = TextStyle(
+      color: colorScheme.primary,
+      fontWeight: FontWeight.w600,
+      fontSize: 14,
+    );
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerLow,
+        color: cardColor,
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(20),
-          onTap: () async {
-            if (viewModel.isEditing) {
-              await Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => EditReadingPlanPanel.existing(planDet),
-                ),
-              );
-              viewModel.exitEditMode();
-            } else {
-              await Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => ReadingPlanDetailPanel(
-                    readingPlanDetails: planDet,
-                    onClose: widget.onClose,
-                  ),
-                ),
-              );
-            }
-
-            await viewModel.refresh();
-          },
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              spacing: 8,
               children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        title,
-                        style: const TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                Expanded(
+                  child: Text(
+                    planDet.readingPlan.planName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
                     ),
-                    Text(
-                      "${(progress * 100).toInt()}%",
-                      style: TextStyle(
-                        color: colorScheme.primary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                // Progress bar
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: LinearProgressIndicator(
-                    value: progress,
-                    minHeight: 8,
-                    backgroundColor: colorScheme.surfaceContainerLowest,
-                    valueColor: AlwaysStoppedAnimation(colorScheme.primary),
                   ),
                 ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Text(
-                      "$progressLabel$progressSuffix",
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    RichText(
-                      text: TextSpan(
-                        style: theme.textTheme.bodyMedium,
-                        children: [
-                          if (planDet.resumePosition != null) ...[
-                            TextSpan(
-                              text:
-                                  "${AppLocalizations.of(context)!.current}: ",
-                              style: TextStyle(
-                                color: colorScheme.primary,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            TextSpan(
-                              text: bookNameFromId(
-                                context,
-                                planDet.resumePosition!.bookId,
-                              ), // Placeholder, replace as needed
-                              style: TextStyle(
-                                color: theme.textTheme.bodyMedium?.color,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                    const Spacer(),
-                    if (!viewModel.isEditing)
-                      GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: () async {
-                          log("starting reading session");
-
-                          await viewModel.startReadingSession(planDet);
-
-                          if (!mounted) return;
-                          widget.onClose();
-                        },
-                        child: Row(
-                          children: [
-                            Text(
-                              action,
-                              style: TextStyle(
-                                color: colorScheme.primary,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                            ),
-                            const SizedBox(width: 2),
-                            Icon(
-                              Icons.chevron_right,
-                              color: colorScheme.primary,
-                            ),
-                          ],
-                        ),
-                      )
-                    else
+                Transform.translate(
+                  offset: const Offset(8, 0),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
                       IconButton(
+                        style: IconButton.styleFrom(
+                          padding: EdgeInsets.fromLTRB(8, 4, 8, 8),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        onPressed: () => _editPlan(planDet),
+                        tooltip: l10n.edit,
+                        icon: const Icon(Icons.edit_outlined),
+                      ),
+                      IconButton(
+                        style: IconButton.styleFrom(
+                          padding: EdgeInsets.fromLTRB(8, 4, 8, 8),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        onPressed: () => _deletePlan(planDet),
+                        tooltip: l10n.deleteReadingPlan,
                         icon: Icon(
                           Icons.delete_outline_rounded,
                           color: colorScheme.error,
                         ),
-                        tooltip: l10n.deleteReadingPlan,
-                        onPressed: () async {
-                          final confirmed = await confirmDeleteReadingPlan(
-                            context,
-                            planDet.readingPlan.planName,
-                          );
-                          if (confirmed) {
-                            await viewModel.deletePlan(planDet);
-                          }
-                        },
                       ),
-                  ],
+                    ],
+                  ),
                 ),
               ],
             ),
-          ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              spacing: 16,
+              children: [
+                Text(progressText, style: progressStyle),
+                Flexible(
+                  child: TextButton(
+                    onPressed: () => _startReadingSession(planDet),
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.symmetric(vertical: 8, horizontal: 0),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            l10n.resumeAtReference(resumeReference),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.end,
+                            style: resumeStyle,
+                          ),
+                        ),
+                        Icon(
+                          Icons.chevron_right,
+                          color: colorScheme.primary,
+                          size: 20,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
   }
+
+  Reference _resumeTargetFor(ReadingPlanDetails planDet) {
+    final resumePosition = planDet.resumePosition;
+    if (resumePosition != null) return resumePosition;
+
+    if (planDet.books.isNotEmpty) {
+      return Reference(
+        bookId: planDet.books.first.bookId,
+        chapter: 1,
+        verse: 1,
+      );
+    }
+
+    return const Reference(bookId: 1, chapter: 1, verse: 1);
+  }
+
+  String _referenceLabel(Reference reference) {
+    final bookName = bookNameFromId(context, reference.bookId);
+    return '$bookName ${reference.chapter}:${reference.verse}';
+  }
+
+  Future<void> _editPlan(ReadingPlanDetails planDet) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => EditReadingPlanPanel.existing(planDet)),
+    );
+
+    if (!mounted) return;
+    await viewModel.refresh();
+  }
+
+  Future<void> _deletePlan(ReadingPlanDetails planDet) async {
+    final planId = planDet.readingPlan.id;
+    if (planId == null) return;
+
+    final confirmed = await confirmDeleteReadingPlan(
+      context,
+      planDet.readingPlan.planName,
+    );
+    if (!confirmed) return;
+
+    await viewModel.deletePlan(planId);
+  }
+
+  Future<void> _startReadingSession(ReadingPlanDetails planDet) async {
+    await viewModel.startReadingSession(planDet);
+
+    if (!mounted) return;
+    widget.onClose();
+  }
+}
+
+Future<bool> confirmDeleteReadingPlan(
+  BuildContext context,
+  String planName,
+) async {
+  final l10n = AppLocalizations.of(context)!;
+  final result = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) {
+      return AlertDialog(
+        title: Text(l10n.deleteReadingPlanConfirmTitle),
+        content: Text(l10n.deleteReadingPlanConfirmMessage(planName)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.error,
+            ),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l10n.delete),
+          ),
+        ],
+      );
+    },
+  );
+  return result ?? false;
 }

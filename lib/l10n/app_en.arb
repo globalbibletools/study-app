@@ -665,6 +665,15 @@
   "@resumeReading": {
     "description": "Button label to continue reading a plan"
   },
+  "resumeAtReference": "Resume at {reference}",
+  "@resumeAtReference": {
+    "description": "Link label to resume a reading plan at a scripture reference",
+    "placeholders": {
+      "reference": {
+        "type": "String"
+      }
+    }
+  },
   "booksReadOfTotal": "{read} of {total} books",
   "@booksReadOfTotal": {
     "description": "Reading-plan progress count for completed books out of total books",

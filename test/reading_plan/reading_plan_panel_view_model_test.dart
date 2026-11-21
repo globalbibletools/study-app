@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gbt/asyncutils/cancellation.dart';
 import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/common/reference.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
@@ -12,6 +15,31 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import '../fixtures/bible_navigation_fixture.dart';
 import '../fixtures/fake_navigation_view_model.dart';
+
+class QueuedPlanService extends Fake implements ReadingPlanService {
+  final requests = <Completer<List<ReadingPlanDetails>>>[];
+
+  @override
+  Future<List<ReadingPlanDetails>> getReadingPlansWithProgress() {
+    final request = Completer<List<ReadingPlanDetails>>();
+    requests.add(request);
+    return request.future;
+  }
+}
+
+ReadingPlanDetails planDetails(String name) {
+  return ReadingPlanDetails(
+    ReadingPlan(
+      planName: name,
+      createdAt: DateTime.now(),
+      collectionId: 1,
+      goalType: GoalType.verses.name,
+      goalValue: 10,
+      isBookmarked: false,
+    ),
+    const [],
+  );
+}
 
 /// Integration tests for [ReadingPlanPanelViewModel] running against a real
 /// in-memory SQLite database, the real [ReadingPlanService] and
@@ -103,11 +131,12 @@ void main() {
   });
 
   group('initialization', () {
-    test('ready loads plans with progress fields populated', () async {
+    test('initialize loads plans with progress fields populated', () async {
       await savePlan(name: 'Ruth', bookIds: {8}); // Ruth has 85 verses.
 
-      await viewModel.ready;
+      await viewModel.initialize();
 
+      expect(viewModel.isInitialized, isTrue);
       expect(viewModel.plans, hasLength(1));
 
       final plan = viewModel.plans.single;
@@ -118,7 +147,6 @@ void main() {
         plan.resumePosition,
         const Reference(bookId: 8, chapter: 1, verse: 1),
       );
-      expect(viewModel.isRefreshing, isFalse);
     });
 
     test(
@@ -130,92 +158,38 @@ void main() {
         await savePlan(name: 'First', bookIds: {1});
         await viewModel.refresh();
 
+        expect(viewModel.isInitialized, isTrue);
         expect(viewModel.plans, hasLength(1));
         expect(viewModel.plans.single.readingPlan.planName, 'First');
       },
     );
 
-    test('concurrent refreshes share one in-flight future', () async {
-      await savePlan(bookIds: {1});
+    test('a newer refresh cancels the in-flight one and wins', () async {
+      final service = QueuedPlanService();
+      final localViewModel = ReadingPlanPanelViewModel.withDependencies(
+        planService: service,
+        sessionViewModel: sessionViewModel,
+      );
+      addTearDown(localViewModel.dispose);
 
-      final refreshingStates = <bool>[];
-      viewModel.addListener(() {
-        refreshingStates.add(viewModel.isRefreshing);
-      });
+      final first = localViewModel.refresh();
+      final second = localViewModel.refresh();
 
-      final first = viewModel.refresh();
-      final second = viewModel.refresh();
+      expect(service.requests, hasLength(2));
 
-      expect(identical(first, second), isTrue);
-      expect(viewModel.isRefreshing, isTrue);
+      service.requests[0].complete([planDetails('Stale')]);
+      await expectLater(first, throwsA(isA<CancelledError>()));
 
-      await first;
+      service.requests[1].complete([planDetails('Fresh')]);
+      await second;
 
-      expect(viewModel.isRefreshing, isFalse);
-      expect(refreshingStates, [true, false]);
+      expect(localViewModel.plans.single.readingPlan.planName, 'Fresh');
     });
-  });
-
-  group('edit mode', () {
-    test('toggleEditMode flips edit mode and notifies each change', () {
-      var notifications = 0;
-      viewModel.addListener(() => notifications++);
-
-      viewModel.toggleEditMode();
-
-      expect(viewModel.isEditing, isTrue);
-      expect(notifications, 1);
-
-      viewModel.toggleEditMode();
-
-      expect(viewModel.isEditing, isFalse);
-      expect(notifications, 2);
-    });
-
-    test(
-      'exitEditMode turns edit mode off and is a no-op when already off',
-      () {
-        var notifications = 0;
-        viewModel.addListener(() => notifications++);
-
-        viewModel.exitEditMode();
-
-        expect(viewModel.isEditing, isFalse);
-        expect(notifications, 0);
-
-        viewModel.toggleEditMode();
-        viewModel.exitEditMode();
-
-        expect(viewModel.isEditing, isFalse);
-        expect(notifications, 2);
-      },
-    );
   });
 
   group('deletePlan', () {
-    test('is a no-op for an unsaved plan', () async {
-      final unsaved = ReadingPlanDetails(
-        ReadingPlan(
-          planName: 'Unsaved',
-          createdAt: DateTime.now(),
-          collectionId: 1,
-          goalType: GoalType.verses.name,
-          goalValue: 10,
-          isBookmarked: false,
-        ),
-        [],
-      );
-      var notifications = 0;
-      viewModel.addListener(() => notifications++);
-
-      await viewModel.deletePlan(unsaved);
-
-      expect(viewModel.plans, isEmpty);
-      expect(notifications, 0);
-    });
-
     test(
-      'removes the plan immediately, persists it, and keeps other plans',
+      'removes the plan after it is persisted and keeps other plans',
       () async {
         await savePlan(name: 'Keep', bookIds: {1});
         await savePlan(name: 'Doomed', bookIds: {2});
@@ -228,17 +202,20 @@ void main() {
         final doomed = viewModel.plans.firstWhere(
           (plan) => plan.readingPlan.planName == 'Doomed',
         );
-        final doomedId = doomed.readingPlan.id;
+        final doomedId = doomed.readingPlan.id!;
 
-        final future = viewModel.deletePlan(doomed);
+        final future = viewModel.deletePlan(doomedId);
 
-        // Optimistic removal happens before the database call is awaited.
-        expect(viewModel.plans.map((plan) => plan.readingPlan.id), [keepId]);
+        // Removal happens after the database delete completes.
+        expect(viewModel.plans.map((plan) => plan.readingPlan.id).toSet(), {
+          keepId,
+          doomedId,
+        });
 
         await future;
 
         expect(viewModel.plans.map((plan) => plan.readingPlan.id), [keepId]);
-        expect(await planService.getReadingPlanById(doomedId!), isNull);
+        expect(await planService.getReadingPlanById(doomedId), isNull);
         expect(
           (await planService.getReadingPlans()).map(
             (plan) => plan.readingPlan.id,
@@ -289,11 +266,10 @@ void main() {
         localViewModel.addListener(() => notifications++);
 
         final future = localViewModel.refresh();
-        expect(localViewModel.isRefreshing, isTrue);
         final notificationsBeforeDispose = notifications;
 
         localViewModel.dispose();
-        await future;
+        await expectLater(future, throwsA(isA<CancelledError>()));
 
         expect(notifications, notificationsBeforeDispose);
       },

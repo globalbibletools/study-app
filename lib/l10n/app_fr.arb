@@ -142,6 +142,7 @@
     "current": "Actuel",
     "startReading": "Démarrer la lecture",
     "resumeReading": "Reprendre la lecture",
+    "resumeAtReference": "Reprendre à {reference}",
     "booksReadOfTotal": "{read} sur {total} livres",
     "todaysGoal": "Objectif du jour",
     "completedToday": "Terminé aujourd'hui",

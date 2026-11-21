@@ -142,6 +142,7 @@
     "current": "الحالي",
     "startReading": "بدء القراءة",
     "resumeReading": "متابعة القراءة",
+    "resumeAtReference": "متابعة عند {reference}",
     "booksReadOfTotal": "الكتب: {read} من {total}",
     "todaysGoal": "هدف اليوم",
     "completedToday": "اكتمل اليوم",

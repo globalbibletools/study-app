@@ -518,6 +518,11 @@ class AppLocalizationsPt extends AppLocalizations {
   String get resumeReading => 'Retomar leitura';
 
   @override
+  String resumeAtReference(String reference) {
+    return 'Retomar em $reference';
+  }
+
+  @override
   String booksReadOfTotal(int read, int total) {
     return '$read de $total livros';
   }
