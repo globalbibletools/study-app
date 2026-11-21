@@ -26,9 +26,12 @@ class ReadingSheet extends StatelessWidget {
                   Expanded(
                     child: Navigator(
                       onGenerateRoute: (_) => MaterialPageRoute(
-                        builder: (innerContext) => ReadingPlanPanel(
-                          onClose: () =>
-                              Navigator.of(context).pop(), // outer context
+                        builder: (_) => PopScope(
+                          canPop: false,
+                          onPopInvokedWithResult: (didPop, result) {
+                            Navigator.of(context).pop();
+                          },
+                          child: const ReadingPlanPanel(),
                         ),
                       ),
                     ),

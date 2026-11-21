@@ -9,9 +9,7 @@ import 'package:gbt/reading_plan/reading_plan_panel_view_model.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
 
 class ReadingPlanPanel extends StatefulWidget {
-  final VoidCallback onClose;
-
-  const ReadingPlanPanel({super.key, required this.onClose});
+  const ReadingPlanPanel({super.key});
 
   @override
   State<ReadingPlanPanel> createState() => ReadingPlanPanelState();
@@ -162,6 +160,6 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
     await viewModel.startReadingSession(plan);
 
     if (!mounted) return;
-    widget.onClose();
+    Navigator.of(context).pop();
   }
 }
