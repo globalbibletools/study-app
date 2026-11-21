@@ -10,14 +10,45 @@ class ReadingSheet extends StatelessWidget {
       height: MediaQuery.sizeOf(context).height * 0.85,
       child: ClipRRect(
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-        child: Navigator(
-          onGenerateRoute: (_) => MaterialPageRoute(
-            builder: (innerContext) => ReadingPlanPanel(
-              onClose: () =>
-                  Navigator.of(context).pop(), // outer context, captured here
+        child: Material(
+          color: Theme.of(context).colorScheme.surface,
+          child: SafeArea(
+            top: false,
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: const BoxDecoration(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              child: Column(
+                children: [
+                  _handle(context),
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: Navigator(
+                      onGenerateRoute: (_) => MaterialPageRoute(
+                        builder: (innerContext) => ReadingPlanPanel(
+                          onClose: () =>
+                              Navigator.of(context).pop(), // outer context
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _handle(BuildContext context) {
+    return Container(
+      width: 40,
+      height: 4,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.primary,
+        borderRadius: BorderRadius.circular(10),
       ),
     );
   }

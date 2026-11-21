@@ -37,44 +37,17 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Theme.of(context).colorScheme.surface,
-      child: SizedBox.expand(
-        child: SafeArea(
-          top: false,
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: const BoxDecoration(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-            ),
-            child: ListenableBuilder(
-              listenable: viewModel,
-              builder: (context, _) {
-                return Column(
-                  children: [
-                    _handle(),
-                    const SizedBox(height: 16),
-                    _topTitle(),
-                    const SizedBox(height: 12),
-                    Expanded(child: _content()),
-                  ],
-                );
-              },
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _handle() {
-    return Container(
-      width: 40,
-      height: 4,
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primary,
-        borderRadius: BorderRadius.circular(10),
-      ),
+    return ListenableBuilder(
+      listenable: viewModel,
+      builder: (context, _) {
+        return Column(
+          children: [
+            _topTitle(),
+            const SizedBox(height: 12),
+            Expanded(child: _content()),
+          ],
+        );
+      },
     );
   }
 

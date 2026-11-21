@@ -38,38 +38,26 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
     return ListenableBuilder(
       listenable: viewModel,
       builder: (context, _) {
-        return SizedBox.expand(
-          child: SafeArea(
-            top: false,
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: const BoxDecoration(
-                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-              ),
-              child: Column(
+        return Column(
+          spacing: 16,
+          children: [
+            _topTitle(),
+            Expanded(
+              child: Stack(
                 children: [
-                  _handle(),
-                  const SizedBox(height: 16),
-                  _topTitle(),
-                  const SizedBox(height: 12),
-                  Expanded(child: _content()),
+                  _planList(),
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: _createNewPlanButton(),
+                  ),
                 ],
               ),
             ),
-          ),
+          ],
         );
       },
-    );
-  }
-
-  Widget _handle() {
-    return Container(
-      width: 40,
-      height: 4,
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primary,
-        borderRadius: BorderRadius.circular(10),
-      ),
     );
   }
 
@@ -83,44 +71,37 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
     );
   }
 
-  Widget _content() {
+  Widget _planList() {
     if (!viewModel.isInitialized) {
       return const Center(child: CircularProgressIndicator());
     }
 
     final l10n = AppLocalizations.of(context)!;
-    return Stack(
-      children: [
-        if (viewModel.plans.isEmpty)
-          Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(l10n.noReadingPlans, textAlign: TextAlign.center),
-                Text(
-                  l10n.createYourFirstPlanBelow,
-                  textAlign: TextAlign.center,
-                ),
-              ],
+    if (viewModel.plans.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(l10n.noReadingPlans, textAlign: TextAlign.center),
+            Text(l10n.createYourFirstPlanBelow, textAlign: TextAlign.center),
+          ],
+        ),
+      );
+    }
+
+    return ListView(
+      padding: const EdgeInsets.only(bottom: 76),
+      children: viewModel.plans
+          .map(
+            (plan) => ReadingPlanCard(
+              plan: plan,
+              onOpenDetails: () => _openPlanDetails(plan),
+              onEdit: () => _editPlan(plan),
+              onDelete: () => _deletePlan(plan),
+              onStartSession: () => _startReadingSession(plan),
             ),
           )
-        else
-          ListView(
-            padding: const EdgeInsets.only(bottom: 76),
-            children: viewModel.plans
-                .map(
-                  (plan) => ReadingPlanCard(
-                    plan: plan,
-                    onOpenDetails: () => _openPlanDetails(plan),
-                    onEdit: () => _editPlan(plan),
-                    onDelete: () => _deletePlan(plan),
-                    onStartSession: () => _startReadingSession(plan),
-                  ),
-                )
-                .toList(),
-          ),
-        Positioned(left: 0, right: 0, bottom: 0, child: _createNewPlanButton()),
-      ],
+          .toList(),
     );
   }
 
