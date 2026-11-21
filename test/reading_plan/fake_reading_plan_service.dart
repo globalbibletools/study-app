@@ -20,10 +20,21 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
   final bookmarkedValues = <bool>[];
   final reorderedBooks = <List<ReadingPlanBook>>[];
 
+  /// When set, bookmark writes throw this instead of persisting.
+  Object? bookmarkError;
+
+  /// When set, reorder writes throw this instead of persisting.
+  Object? reorderError;
+
   /// When true, calls to [getReadingPlansWithProgress] wait until the
   /// corresponding completer in [getRequests] is completed.
   bool queueGetRequests = false;
   final getRequests = <Completer<List<ReadingPlanDetails>>>[];
+
+  /// When true, calls to [getReadingPlanById] wait until the corresponding
+  /// completer in [planRequests] is completed.
+  bool queuePlanRequests = false;
+  final planRequests = <Completer<ReadingPlanDetails?>>[];
 
   /// When true, calls to [getBooksStats] wait until the corresponding
   /// completer in [statsRequests] is completed.
@@ -47,8 +58,13 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
   }
 
   @override
-  Future<ReadingPlanDetails?> getReadingPlanById(int planId) async {
-    return _detailsFor(planId);
+  Future<ReadingPlanDetails?> getReadingPlanById(int planId) {
+    if (queuePlanRequests) {
+      final request = Completer<ReadingPlanDetails?>();
+      planRequests.add(request);
+      return request.future;
+    }
+    return Future.value(_detailsFor(planId));
   }
 
   @override
@@ -97,6 +113,9 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
     ReadingPlan readingPlan,
     bool isBookmarked,
   ) async {
+    final error = bookmarkError;
+    if (error != null) throw error;
+
     bookmarkedValues.add(isBookmarked);
     final updated = readingPlan.copyWith(isBookmarked: isBookmarked);
     _detailsFor(readingPlan.id!)?.readingPlan = updated;
@@ -108,6 +127,9 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
     int readingPlanId,
     List<ReadingPlanBook> books,
   ) async {
+    final error = reorderError;
+    if (error != null) throw error;
+
     final ordered = List<ReadingPlanBook>.of(books);
     reorderedBooks.add(ordered);
     final details = _detailsFor(readingPlanId);

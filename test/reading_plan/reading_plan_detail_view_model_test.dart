@@ -1,236 +1,108 @@
-import 'dart:async';
-
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gbt/asyncutils/cancellation.dart';
-import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/common/reference.dart';
-import 'package:gbt/reading_plan/reading_plan_service.dart';
-import 'package:gbt/reading_plan/rs_database.dart';
-import 'package:gbt/reading_plan/rs_model.dart';
 import 'package:gbt/reading_plan/reading_plan_detail_view_model.dart';
-import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:gbt/reading_plan/rs_model.dart';
 
-import '../fixtures/bible_navigation_fixture.dart';
+import 'fake_reading_plan_service.dart';
 import 'fake_reading_session_view_model.dart';
 
-/// Fails bookmark persistence after yielding once, so tests can observe the
-/// optimistic flip before the rollback.
-class FailingBookmarkPlanService extends ReadingPlanService {
-  FailingBookmarkPlanService(
-    ReadingSessionDatabase database,
-    BibleNavigation bibleNavigation,
-  ) : super.withDependencies(
-        database: database,
-        bibleNavigation: bibleNavigation,
-      );
-
-  @override
-  Future<ReadingPlan> setReadingPlanBookmark(
-    ReadingPlan readingPlan,
-    bool isBookmarked,
-  ) async {
-    await Future<void>.delayed(Duration.zero);
-    throw StateError('bookmark write failed');
-  }
-}
-
-/// Fails reorder persistence so tests can verify state resynchronization.
-class FailingReorderPlanService extends ReadingPlanService {
-  FailingReorderPlanService(
-    ReadingSessionDatabase database,
-    BibleNavigation bibleNavigation,
-  ) : super.withDependencies(
-        database: database,
-        bibleNavigation: bibleNavigation,
-      );
-
-  @override
-  Future<void> reorderReadingPlanBooks(
-    int readingPlanId,
-    List<ReadingPlanBook> books,
-  ) async {
-    await Future<void>.delayed(Duration.zero);
-    throw StateError('reorder failed');
-  }
-}
-
-/// Queues reload reads so tests can hold reloads in flight.
-class QueuedStatsPlanService extends ReadingPlanService {
-  QueuedStatsPlanService(
-    ReadingSessionDatabase database,
-    BibleNavigation bibleNavigation,
-  ) : super.withDependencies(
-        database: database,
-        bibleNavigation: bibleNavigation,
-      );
-
-  final planRequests = <Completer<ReadingPlanDetails?>>[];
-  final statsRequests = <Completer<List<RsBookStats>>>[];
-  bool queuePlan = false;
-  bool queueStats = true;
-
-  @override
-  Future<ReadingPlanDetails?> getReadingPlanById(int planId) {
-    if (!queuePlan) return super.getReadingPlanById(planId);
-
-    final request = Completer<ReadingPlanDetails?>();
-    planRequests.add(request);
-    return request.future;
-  }
-
-  @override
-  Future<List<RsBookStats>> getBooksStats(int readingPlanId) {
-    if (!queueStats) return super.getBooksStats(readingPlanId);
-
-    final request = Completer<List<RsBookStats>>();
-    statsRequests.add(request);
-    return request.future;
-  }
-}
-
-/// Returns only the stats row that exists, exercising sparse-stat handling.
-class SparseStatsPlanService extends ReadingPlanService {
-  SparseStatsPlanService(
-    ReadingSessionDatabase database,
-    BibleNavigation bibleNavigation,
-  ) : super.withDependencies(
-        database: database,
-        bibleNavigation: bibleNavigation,
-      );
-
-  @override
-  Future<List<RsBookStats>> getBooksStats(int readingPlanId) async {
-    final stats = await super.getBooksStats(readingPlanId);
-    return stats.where((stat) => stat.bookId == 63).toList();
-  }
-}
-
-/// Integration tests for [ReadingPlanDetailViewModel] running against a real
-/// in-memory SQLite database, the real [ReadingPlanService], and a
-/// [BibleNavigation] backed by the versification fixture.
-///
-/// Everything is injected through `withDependencies`; the service locator is
-/// never used. Session start and reader navigation are faked because their
-/// concerns are covered by the sibling panel view model tests.
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
-
-  late ReadingSessionDatabase database;
-  late ReadingPlanService planService;
-  late BibleNavigation bibleNavigation;
   late FakeReadingSessionViewModel sessionViewModel;
 
-  setUpAll(() {
-    sqfliteFfiInit();
-    databaseFactory = databaseFactoryFfi;
-  });
-
-  setUp(() async {
-    bibleNavigation = createTestBibleNavigation();
-    database = ReadingSessionDatabase.withDependencies(
-      databasePath: inMemoryDatabasePath,
-      verseInventoryProvider: (bookIds) async =>
-          createTestVerseInventory(bookIds: bookIds),
-    );
-    await database.init();
-    planService = ReadingPlanService.withDependencies(
-      database: database,
-      bibleNavigation: bibleNavigation,
-    );
+  setUp(() {
     sessionViewModel = FakeReadingSessionViewModel();
-
-    // The schema ships with a default "Whole Bible" plan (id 1). Remove it so
-    // each test starts from a clean slate.
-    for (final plan in await planService.getReadingPlans()) {
-      await planService.deleteReadingPlan(plan.readingPlan.id!);
-    }
-  });
-
-  tearDown(() {
-    database.dispose();
   });
 
   ReadingPlanDetailViewModel newViewModel(
-    ReadingPlanDetails plan, {
-    ReadingPlanService? service,
+    FakeReadingPlanService service, {
+    int planId = 7,
   }) {
-    return ReadingPlanDetailViewModel.withDependencies(
-      planId: plan.readingPlan.id!,
-      planService: service ?? planService,
+    final viewModel = ReadingPlanDetailViewModel.withDependencies(
+      planId: planId,
+      planService: service,
       sessionViewModel: sessionViewModel,
     );
+    addTearDown(viewModel.dispose);
+    return viewModel;
   }
 
-  Future<ReadingPlanDetails> savePlan({
-    String name = 'Saved Plan',
-    int collectionId = 1,
-    GoalType goalType = GoalType.verses,
-    int goalValue = 10,
-    Set<int> bookIds = const {1, 2},
-  }) async {
-    final saved = await planService.saveReadingPlan(
-      planName: name,
-      collectionId: collectionId,
-      goalType: goalType,
-      goalValue: goalValue,
-      selectedBookIds: bookIds,
-    );
-    final details = await planService.getReadingPlanById(saved.id!);
-    return details!;
-  }
-
-  group('refresh', () {
+  group('initialization', () {
     test(
-      'aggregates progress by book stats and derives today\'s goal progress',
+      'loads plan details, stats, and today\'s and month progress',
       () async {
-        final details = await savePlan(bookIds: {63, 64}); // 13 + 15 verses
-        final planId = details.readingPlan.id!;
+        final today = dateOnly(DateTime.now());
+        final service =
+            FakeReadingPlanService([
+                planDetails(
+                  bookIds: const [63, 64],
+                  resumePosition: const Reference(
+                    bookId: 63,
+                    chapter: 1,
+                    verse: 1,
+                  ),
+                ),
+              ])
+              ..bookStats = [
+                bookStats(63, totalVerses: 13, versesRead: 13),
+                bookStats(64, totalVerses: 15, versesRead: 0),
+              ]
+              ..monthProgress = [DayProgress(today, 10, 13, true)];
+        final viewModel = newViewModel(service);
 
-        for (int verse = 1; verse <= 13; verse++) {
-          await database.markVerseRead(planId, 63, 1, verse);
-        }
-
-        final now = DateTime.now();
-        await database.insertSession(
-          RsSession(
-            rsDate: DateTime(now.year, now.month, now.day),
-            startTime: now.subtract(const Duration(minutes: 10)),
-            endTime: now,
-            readSeconds: 600,
-            verses: 13,
-            readingPlanId: planId,
-          ),
-        );
-        await database.upsertDaySummary(planId, now);
-
-        final viewModel = newViewModel(details);
         await viewModel.initialize();
 
+        expect(viewModel.isInitialized, isTrue);
+        expect(viewModel.loadError, isNull);
+        expect(viewModel.planId, 7);
+        expect(viewModel.planName, 'Ruth Plan');
+        expect(viewModel.isBookmarked, isFalse);
+        expect(viewModel.books.map((book) => book.bookId), [63, 64]);
+        expect(viewModel.bookStats.keys, [63, 64]);
         expect(viewModel.totalVerses, 28);
         expect(viewModel.versesRead, 13);
         expect(viewModel.booksRead, 1);
-        expect(viewModel.bookStats[63]!.versesRead, 13);
-        expect(viewModel.bookStats.containsKey(999), isFalse);
-
+        expect(viewModel.hasStarted, isTrue);
         expect(viewModel.overallProgress, closeTo(13 / 28, 1e-9));
-
-        expect(viewModel.todaysProgress, isNotNull);
         expect(viewModel.todaysProgress!.verses, 13);
         expect(viewModel.todaysProgress!.minutes, 10);
-        expect(viewModel.todaysGoalProgress, closeTo(1.3, 1e-9));
+        expect(viewModel.checkedDays[today.day], isTrue);
+        expect(viewModel.dayProgress(today.day)!.day, today);
       },
     );
 
-    test('a newer reload cancels the in-flight one and wins', () async {
-      final details = await savePlan(bookIds: {8});
-      final service = QueuedStatsPlanService(database, bibleNavigation);
-      final viewModel = newViewModel(details, service: service);
-      addTearDown(viewModel.dispose);
+    test('reports an error and finishes initialization when missing', () async {
+      final service = FakeReadingPlanService();
+      final viewModel = newViewModel(service);
 
-      service.queueStats = false;
       await viewModel.initialize();
-      service.queuePlan = true;
-      service.queueStats = true;
+
+      expect(viewModel.isInitialized, isTrue);
+      expect(viewModel.loadError, isA<StateError>());
+      expect(viewModel.planName, isEmpty);
+    });
+
+    test('refresh clears the load error once the plan exists', () async {
+      final service = FakeReadingPlanService();
+      final viewModel = newViewModel(service);
+      await viewModel.initialize();
+      expect(viewModel.loadError, isA<StateError>());
+
+      service.plans = [planDetails()];
+      await viewModel.refresh();
+
+      expect(viewModel.loadError, isNull);
+      expect(viewModel.planName, 'Ruth Plan');
+    });
+
+    test('a newer refresh cancels the in-flight one and wins', () async {
+      final details = planDetails(bookIds: const [8]);
+      final service = FakeReadingPlanService([details]);
+      final viewModel = newViewModel(service);
+      await viewModel.initialize();
+
+      service.queuePlanRequests = true;
+      service.queueStatsRequests = true;
 
       final first = viewModel.refresh();
       final second = viewModel.refresh();
@@ -245,7 +117,7 @@ void main() {
       expect(service.statsRequests, hasLength(1));
 
       service.statsRequests.single.complete([
-        RsBookStats(bookId: 8, totalVerses: 85, versesRead: 85, lastRead: null),
+        bookStats(8, totalVerses: 85, versesRead: 85),
       ]);
       await second;
 
@@ -254,17 +126,20 @@ void main() {
       expect(viewModel.bookStats[8]!.isComplete, isTrue);
       expect(viewModel.hasStarted, isTrue);
     });
+  });
 
+  group('dispose', () {
     test(
       'does not notify after dispose while a refresh is in flight',
       () async {
-        final details = await savePlan(bookIds: {8});
-        final service = QueuedStatsPlanService(database, bibleNavigation);
-        final viewModel = newViewModel(details, service: service);
-
-        service.queueStats = false;
-        await viewModel.initialize();
-        service.queuePlan = true;
+        final details = planDetails(bookIds: const [8]);
+        final service = FakeReadingPlanService([details])
+          ..queuePlanRequests = true;
+        final viewModel = ReadingPlanDetailViewModel.withDependencies(
+          planId: 7,
+          planService: service,
+          sessionViewModel: sessionViewModel,
+        );
 
         var notifications = 0;
         viewModel.addListener(() => notifications++);
@@ -280,56 +155,12 @@ void main() {
         expect(notifications, notificationsBeforeDispose);
       },
     );
-
-    test('replaces the calendar month data when stepping months', () async {
-      final details = await savePlan(bookIds: {8});
-      final viewModel = newViewModel(details);
-      await viewModel.initialize();
-
-      final start = viewModel.visibleMonth;
-      await viewModel.showNextMonth();
-
-      final next = DateTime(start.year, start.month + 1);
-      final daysInMonth = DateTime(next.year, next.month + 1, 0).day;
-
-      expect(viewModel.visibleMonth, next);
-      expect(viewModel.checkedDays, hasLength(daysInMonth));
-      expect(viewModel.dayProgress(1)?.day, DateTime(next.year, next.month, 1));
-    });
-
-    test('tracks the visible month while stepping forward and back', () async {
-      final details = await savePlan(bookIds: {8});
-      final viewModel = newViewModel(details);
-      await viewModel.initialize();
-
-      final start = viewModel.visibleMonth;
-
-      await viewModel.showNextMonth();
-      expect(viewModel.visibleMonth, DateTime(start.year, start.month + 1));
-
-      await viewModel.showPreviousMonth();
-      expect(viewModel.visibleMonth, start);
-    });
-
-    test('exposes checked days for the visible month', () async {
-      final details = await savePlan(bookIds: {8});
-      final viewModel = newViewModel(details);
-      await viewModel.initialize();
-
-      expect(viewModel.checkedDays.values, everyElement(isFalse));
-
-      final month = viewModel.visibleMonth;
-      final daysInMonth = DateTime(month.year, month.month + 1, 0).day;
-
-      expect(viewModel.checkedDays, hasLength(daysInMonth));
-      expect(viewModel.dayProgress(1), isNotNull);
-    });
   });
 
-  group('bookmark', () {
-    test('toggles optimistically and persists the new state', () async {
-      final details = await savePlan(bookIds: {8});
-      final viewModel = newViewModel(details);
+  group('bookmarks', () {
+    test('toggles on and off and persists each new state', () async {
+      final service = FakeReadingPlanService([planDetails()]);
+      final viewModel = newViewModel(service);
       await viewModel.initialize();
 
       expect(viewModel.isBookmarked, isFalse);
@@ -337,31 +168,28 @@ void main() {
       await viewModel.toggleBookmark();
 
       expect(viewModel.isBookmarked, isTrue);
-      expect(
-        (await planService.getReadingPlanById(
-          details.readingPlan.id!,
-        ))!.readingPlan.isBookmarked,
-        isTrue,
-      );
+      expect(service.bookmarkedValues, [true]);
 
       await viewModel.toggleBookmark();
 
       expect(viewModel.isBookmarked, isFalse);
-      expect(
-        (await planService.getReadingPlanById(
-          details.readingPlan.id!,
-        ))!.readingPlan.isBookmarked,
-        isFalse,
-      );
+      expect(service.bookmarkedValues, [true, false]);
     });
 
-    test('leaves the bookmark unchanged when persistence fails', () async {
-      final details = await savePlan(bookIds: {8});
-      final failingService = FailingBookmarkPlanService(
-        database,
-        bibleNavigation,
-      );
-      final viewModel = newViewModel(details, service: failingService);
+    test('does nothing before the plan has loaded', () async {
+      final service = FakeReadingPlanService([planDetails()]);
+      final viewModel = newViewModel(service);
+
+      await viewModel.toggleBookmark();
+
+      expect(viewModel.isBookmarked, isFalse);
+      expect(service.bookmarkedValues, isEmpty);
+    });
+
+    test('keeps the old state when persistence fails', () async {
+      final service = FakeReadingPlanService([planDetails()])
+        ..bookmarkError = StateError('bookmark write failed');
+      final viewModel = newViewModel(service);
       await viewModel.initialize();
 
       await expectLater(viewModel.toggleBookmark(), throwsA(isA<StateError>()));
@@ -370,148 +198,360 @@ void main() {
     });
   });
 
-  group('reorder', () {
-    test(
-      'persists 1-indexed ord values and reloads the resume position after a move',
-      () async {
-        final plan = await planService.saveReadingPlan(
-          planName: 'Exodus First Test',
-          collectionId: 1,
-          goalType: GoalType.verses,
-          goalValue: 10,
-          selectedBookIds: {1, 2}, // Genesis (1), Exodus (2)
-        );
-        final details = (await planService.getReadingPlanById(plan.id!))!;
+  group('book reordering', () {
+    test('moves a book and persists 1-indexed ordering', () async {
+      final service = FakeReadingPlanService([
+        planDetails(bookIds: const [1, 2]),
+      ]);
+      final viewModel = newViewModel(service);
+      await viewModel.initialize();
 
-        final viewModel = newViewModel(details);
+      await viewModel.moveBook(1, 0);
+
+      expect(viewModel.books.map((book) => book.bookId), [2, 1]);
+      expect(viewModel.books.map((book) => book.ord), [1, 2]);
+      expect(service.reorderedBooks, hasLength(1));
+      expect(service.reorderedBooks.single.map((book) => book.bookId), [2, 1]);
+      expect(service.reorderedBooks.single.map((book) => book.ord), [1, 2]);
+    });
+
+    test('reloads the resume reference after a reorder', () async {
+      final service = FakeReadingPlanService([
+        planDetails(bookIds: const [1, 2]),
+      ])..resumePosition = const Reference(bookId: 2, chapter: 1, verse: 1);
+      final viewModel = newViewModel(service);
+      await viewModel.initialize();
+      expect(viewModel.readingReference.bookId, 1);
+
+      await viewModel.moveBook(1, 0);
+
+      expect(
+        viewModel.readingReference,
+        const Reference(bookId: 2, chapter: 1, verse: 1),
+      );
+    });
+
+    test(
+      'propagates a reorder failure and keeps the optimistic order',
+      () async {
+        final service = FakeReadingPlanService([
+          planDetails(bookIds: const [1, 2]),
+        ])..reorderError = StateError('reorder failed');
+        final viewModel = newViewModel(service);
         await viewModel.initialize();
 
-        expect(viewModel.readingReference.bookId, 1);
-
-        await viewModel.moveBook(1, 0); // Exodus before Genesis
+        await expectLater(viewModel.moveBook(1, 0), throwsA(isA<StateError>()));
 
         expect(viewModel.books.map((book) => book.bookId), [2, 1]);
         expect(viewModel.books.map((book) => book.ord), [1, 2]);
-        expect(viewModel.readingReference.bookId, 2);
-
-        final storedBooks = await database.getReadingPlanBooks(plan.id!);
-        expect(storedBooks.map((book) => book.bookId), [2, 1]);
-        expect(storedBooks.map((book) => book.ord), [1, 2]);
-
-        final resume = await planService.getResumeReference(plan.id!);
-        expect(resume?.bookId, 2);
       },
     );
 
-    test('propagates reorder failure and keeps the optimistic order', () async {
-      final plan = await planService.saveReadingPlan(
-        planName: 'Reorder Failure Test',
-        collectionId: 1,
-        goalType: GoalType.verses,
-        goalValue: 10,
-        selectedBookIds: {1, 2},
-      );
-      final details = (await planService.getReadingPlanById(plan.id!))!;
-      final service = FailingReorderPlanService(database, bibleNavigation);
-      final viewModel = newViewModel(details, service: service);
+    test('ignores moves outside the book list', () async {
+      final service = FakeReadingPlanService([
+        planDetails(bookIds: const [1, 2]),
+      ]);
+      final viewModel = newViewModel(service);
       await viewModel.initialize();
 
-      await expectLater(viewModel.moveBook(1, 0), throwsA(isA<StateError>()));
+      await viewModel.moveBook(-1, 0);
+      await viewModel.moveBook(0, -1);
+      await viewModel.moveBook(2, 0);
+      await viewModel.moveBook(0, 2);
 
-      expect(viewModel.books.map((book) => book.bookId), [2, 1]);
-      final storedBooks = await database.getReadingPlanBooks(plan.id!);
-      expect(storedBooks.map((book) => book.bookId), [1, 2]);
+      expect(viewModel.books.map((book) => book.bookId), [1, 2]);
+      expect(service.reorderedBooks, isEmpty);
     });
   });
 
-  group('progressForBook', () {
-    test(
-      'keys stats by bookId so sparse stats do not index positionally',
-      () async {
-        final details = await savePlan(bookIds: {63, 64});
-        final planId = details.readingPlan.id!;
-        await database.markVerseRead(planId, 63, 1, 1);
+  group('progress', () {
+    test('aggregates only the books in the plan', () async {
+      final service =
+          FakeReadingPlanService([
+              planDetails(bookIds: const [63, 64]),
+            ])
+            ..bookStats = [
+              bookStats(63, totalVerses: 13, versesRead: 13),
+              bookStats(64, totalVerses: 15, versesRead: 5),
+              bookStats(99, totalVerses: 100, versesRead: 100),
+            ];
+      final viewModel = newViewModel(service);
+      await viewModel.initialize();
 
-        final sparseService = SparseStatsPlanService(database, bibleNavigation);
-        final viewModel = newViewModel(details, service: sparseService);
-        await viewModel.initialize();
+      expect(viewModel.totalVerses, 28);
+      expect(viewModel.versesRead, 18);
+      expect(viewModel.booksRead, 1);
+      expect(viewModel.overallProgress, closeTo(18 / 28, 1e-9));
+      expect(viewModel.progressForBook(63), 1);
+      expect(viewModel.progressForBook(64), closeTo(5 / 15, 1e-9));
+      expect(viewModel.progressForBook(999), 0);
+    });
 
-        expect(viewModel.bookStats.keys, [63]);
-        expect(viewModel.progressForBook(63), closeTo(1 / 13, 1e-9));
-        expect(viewModel.progressForBook(64), 0);
-        expect(viewModel.bookStats[63]!.isComplete, isFalse);
-      },
-    );
+    test('keys stats by book id when the stats are sparse', () async {
+      final service = FakeReadingPlanService([
+        planDetails(bookIds: const [63, 64]),
+      ])..bookStats = [bookStats(63, totalVerses: 13, versesRead: 1)];
+      final viewModel = newViewModel(service);
+      await viewModel.initialize();
+
+      expect(viewModel.bookStats.keys, [63]);
+      expect(viewModel.progressForBook(63), closeTo(1 / 13, 1e-9));
+      expect(viewModel.progressForBook(64), 0);
+      expect(viewModel.totalVerses, 13);
+      expect(viewModel.versesRead, 1);
+    });
+
+    test('uses verses toward a verse goal', () async {
+      final today = dateOnly(DateTime.now());
+      final service = FakeReadingPlanService([
+        planDetails(goalType: GoalType.verses, goalValue: 10),
+      ])..monthProgress = [DayProgress(today, 7, 3, false)];
+      final viewModel = newViewModel(service);
+      await viewModel.initialize();
+
+      expect(viewModel.goalType, GoalType.verses);
+      expect(viewModel.goalValue, 10);
+      expect(viewModel.todaysProgress!.verses, 3);
+      expect(viewModel.todaysProgress!.minutes, 7);
+      expect(viewModel.todaysGoalProgress, closeTo(0.3, 1e-9));
+    });
+
+    test('uses minutes toward a minutes goal', () async {
+      final today = dateOnly(DateTime.now());
+      final service = FakeReadingPlanService([
+        planDetails(goalType: GoalType.minutes, goalValue: 20),
+      ])..monthProgress = [DayProgress(today, 7, 3, false)];
+      final viewModel = newViewModel(service);
+      await viewModel.initialize();
+
+      expect(viewModel.goalType, GoalType.minutes);
+      expect(viewModel.goalValue, 20);
+      expect(viewModel.todaysProgress!.minutes, 7);
+      expect(viewModel.todaysGoalProgress, closeTo(0.35, 1e-9));
+    });
+
+    test('reports no goal progress when the goal is zero', () async {
+      final today = dateOnly(DateTime.now());
+      final service = FakeReadingPlanService([
+        planDetails(goalType: GoalType.verses, goalValue: 0),
+      ])..monthProgress = [DayProgress(today, 7, 3, false)];
+      final viewModel = newViewModel(service);
+      await viewModel.initialize();
+
+      expect(viewModel.todaysGoalProgress, 0);
+    });
   });
 
-  group('estimated completion', () {
-    test('projects days and months for a verses goal', () async {
-      // Ruth (book 8) has 85 verses in the versification fixture.
-      final details = await savePlan(
-        bookIds: {8},
-        goalType: GoalType.verses,
-        goalValue: 10,
-      );
-      final viewModel = newViewModel(details);
+  group('plan estimates', () {
+    test('projects days for a verse goal', () async {
+      final service = FakeReadingPlanService([
+        planDetails(bookIds: const [8], goalValue: 10),
+      ])..bookStats = [bookStats(8, totalVerses: 85, versesRead: 0)];
+      final viewModel = newViewModel(service);
       await viewModel.initialize();
 
       expect(viewModel.totalVerses, 85);
       expect(viewModel.hasEstimate, isTrue);
-      expect(viewModel.estimatedDays, 9); // ceil(85 / 10)
+      expect(viewModel.estimatedDays, 9);
     });
 
-    test('converts minutes to verses at five verses per minute', () async {
-      final details = await savePlan(
-        bookIds: {8},
-        goalType: GoalType.minutes,
-        goalValue: 5,
-      );
-      final viewModel = newViewModel(details);
+    test('converts minutes to verses for a minutes goal', () async {
+      final service = FakeReadingPlanService([
+        planDetails(
+          bookIds: const [8],
+          goalType: GoalType.minutes,
+          goalValue: 5,
+        ),
+      ])..bookStats = [bookStats(8, totalVerses: 85, versesRead: 0)];
+      final viewModel = newViewModel(service);
       await viewModel.initialize();
 
-      // ceil(85 / (5 minutes * 5 verses/minute)) = ceil(85 / 25) = 4
+      // ceil(85 / (5 minutes * 5 verses/minute)) = 4
       expect(viewModel.estimatedDays, 4);
+    });
+
+    test('has no estimate when the plan is complete', () async {
+      final service = FakeReadingPlanService([
+        planDetails(bookIds: const [8], goalValue: 10),
+      ])..bookStats = [bookStats(8, totalVerses: 85, versesRead: 85)];
+      final viewModel = newViewModel(service);
+      await viewModel.initialize();
+
+      expect(viewModel.hasEstimate, isFalse);
+      expect(viewModel.estimatedDays, 0);
+    });
+
+    test('has no estimate when the goal cannot make progress', () async {
+      final service = FakeReadingPlanService([
+        planDetails(bookIds: const [8], goalValue: 0),
+      ])..bookStats = [bookStats(8, totalVerses: 85, versesRead: 0)];
+      final viewModel = newViewModel(service);
+      await viewModel.initialize();
+
+      expect(viewModel.hasEstimate, isFalse);
+      expect(viewModel.estimatedDays, 0);
     });
   });
 
-  group('startReadingSession', () {
-    test('starts the session for the plan', () async {
-      final details = await savePlan(bookIds: {8});
-      final planId = details.readingPlan.id!;
-      await database.markVerseRead(planId, 8, 1, 1);
-
-      final now = DateTime.now();
-      final session = await database.insertSession(
-        RsSession(
-          rsDate: DateTime(now.year, now.month, now.day),
-          startTime: now,
-          endTime: now,
-          verses: 1,
-          readingPlanId: planId,
+  group('reading reference', () {
+    test('uses the resume position loaded with the plan', () async {
+      final service = FakeReadingPlanService([
+        planDetails(
+          bookIds: const [8, 20],
+          resumePosition: const Reference(bookId: 20, chapter: 3, verse: 4),
         ),
-      );
-      await database.insertLog(
-        RsLog(
-          sessionId: session.id!,
-          bookId: 8,
-          chapter: 1,
-          verse: 1,
-          dateTime: now,
-          readingPlanId: planId,
-        ),
-      );
-
-      final viewModel = newViewModel(details);
+      ]);
+      final viewModel = newViewModel(service);
       await viewModel.initialize();
 
       expect(
         viewModel.readingReference,
-        const Reference(bookId: 8, chapter: 1, verse: 2),
+        const Reference(bookId: 20, chapter: 3, verse: 4),
       );
+    });
+
+    test('falls back to the first book without a resume position', () async {
+      final service = FakeReadingPlanService([
+        planDetails(bookIds: const [8, 20]),
+      ]);
+      final viewModel = newViewModel(service);
+      await viewModel.initialize();
+
+      expect(
+        viewModel.readingReference,
+        const Reference(bookId: 8, chapter: 1, verse: 1),
+      );
+    });
+
+    test('falls back to Genesis when the plan has no books', () async {
+      final service = FakeReadingPlanService([planDetails(bookIds: const [])]);
+      final viewModel = newViewModel(service);
+      await viewModel.initialize();
+
+      expect(
+        viewModel.readingReference,
+        const Reference(bookId: 1, chapter: 1, verse: 1),
+      );
+    });
+  });
+
+  group('session start', () {
+    test('starts a session for the plan', () async {
+      final service = FakeReadingPlanService([planDetails()]);
+      final viewModel = newViewModel(service);
+      await viewModel.initialize();
 
       await viewModel.startReadingSession();
 
-      expect(sessionViewModel.startedPlanIds, [planId]);
+      expect(sessionViewModel.startedPlanIds, [7]);
+    });
+  });
+
+  group('month progress', () {
+    test('exposes checked days for the visible month', () async {
+      final month = monthStart(DateTime.now());
+      final service = FakeReadingPlanService([planDetails()]);
+      service.monthProgressByMonth[month] = [
+        DayProgress(DateTime(month.year, month.month, 1), 10, 10, true),
+        DayProgress.empty(DateTime(month.year, month.month, 2)),
+        DayProgress(DateTime(month.year, month.month, 3), 0, 0, false),
+      ];
+      final viewModel = newViewModel(service);
+      await viewModel.initialize();
+
+      expect(viewModel.visibleMonth, month);
+      expect(viewModel.checkedDays[1], isTrue);
+      expect(viewModel.checkedDays[2], isFalse);
+      expect(viewModel.checkedDays[3], isFalse);
+      expect(viewModel.dayProgress(1)!.goalReached, isTrue);
+      expect(viewModel.dayProgress(2)!.empty, isTrue);
+    });
+
+    test(
+      'navigating to the next month requests and replaces its data',
+      () async {
+        final current = monthStart(DateTime.now());
+        final next = DateTime(current.year, current.month + 1);
+        final service = FakeReadingPlanService([planDetails()]);
+        service.monthProgressByMonth[current] = const [];
+        service.monthProgressByMonth[next] = [
+          DayProgress(DateTime(next.year, next.month, 1), 5, 5, true),
+        ];
+        final viewModel = newViewModel(service);
+        await viewModel.initialize();
+
+        await viewModel.showNextMonth();
+
+        expect(viewModel.visibleMonth, next);
+        expect(service.requestedMonths.last, next);
+        expect(viewModel.checkedDays[1], isTrue);
+        expect(
+          viewModel.dayProgress(1)!.day,
+          DateTime(next.year, next.month, 1),
+        );
+      },
+    );
+
+    test('navigating back restores the previous month', () async {
+      final current = monthStart(DateTime.now());
+      final next = DateTime(current.year, current.month + 1);
+      final service = FakeReadingPlanService([planDetails()]);
+      service.monthProgressByMonth[current] = const [];
+      service.monthProgressByMonth[next] = const [];
+      final viewModel = newViewModel(service);
+      await viewModel.initialize();
+
+      await viewModel.showNextMonth();
+      await viewModel.showPreviousMonth();
+
+      expect(viewModel.visibleMonth, current);
+      expect(service.requestedMonths.last, current);
     });
   });
 }
+
+ReadingPlanDetails planDetails({
+  int id = 7,
+  String name = 'Ruth Plan',
+  GoalType goalType = GoalType.verses,
+  int goalValue = 10,
+  List<int> bookIds = const [8],
+  Reference? resumePosition,
+  bool isBookmarked = false,
+}) {
+  final details = ReadingPlanDetails(
+    ReadingPlan(
+      id: id,
+      planName: name,
+      createdAt: DateTime(2026, 1, 1),
+      collectionId: 1,
+      goalType: goalType.name,
+      goalValue: goalValue,
+      isBookmarked: isBookmarked,
+    ),
+    [
+      for (var i = 0; i < bookIds.length; i++)
+        ReadingPlanBook(readingPlanId: id, bookId: bookIds[i], ord: i + 1),
+    ],
+  );
+  details.resumePosition = resumePosition;
+  return details;
+}
+
+RsBookStats bookStats(
+  int bookId, {
+  required int totalVerses,
+  required int versesRead,
+}) {
+  return RsBookStats(
+    bookId: bookId,
+    totalVerses: totalVerses,
+    versesRead: versesRead,
+    lastRead: null,
+  );
+}
+
+DateTime dateOnly(DateTime value) =>
+    DateTime(value.year, value.month, value.day);
+
+DateTime monthStart(DateTime value) => DateTime(value.year, value.month);
