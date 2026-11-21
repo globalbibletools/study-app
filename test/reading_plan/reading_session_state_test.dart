@@ -12,7 +12,7 @@ import 'package:gbt/reading_plan/rs_model.dart';
 import 'package:gbt/reading_plan/reading_session_view_model.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/home/panel_area/common/book_completed_overlay.dart';
-import 'package:gbt/ui/home/panel_area/common/calendar_view.dart';
+import 'package:gbt/reading_plan/calendar_view.dart';
 import 'package:gbt/reading_plan/reading_sheet.dart';
 
 import '../fixtures/bible_navigation_fixture.dart';

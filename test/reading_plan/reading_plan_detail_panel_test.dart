@@ -115,6 +115,7 @@ void main() {
 
       expect(find.text('Ruth Plan'), findsOneWidget);
       expect(find.text('Start at Ruth 1:1'), findsOneWidget);
+      expect(find.byIcon(Icons.edit_outlined), findsOneWidget);
       expect(find.text('Total Progress'), findsOneWidget);
       expect(find.text("Today's Progress"), findsOneWidget);
       expect(find.textContaining('days remaining'), findsOneWidget);

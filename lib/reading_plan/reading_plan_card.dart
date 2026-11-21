@@ -24,15 +24,11 @@ class ReadingPlanCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final cardColor = Color.alphaBlend(
-      colorScheme.onSurface.withValues(alpha: 0.09),
-      colorScheme.surface,
-    );
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: cardColor,
+        color: colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(24),
       ),
       child: Padding(

@@ -51,7 +51,7 @@ class _CalendarViewState<E, T extends List<E>>
   Widget build(BuildContext context) {
     return Column(
       mainAxisSize: MainAxisSize.min,
-      spacing: 12,
+      spacing: 8,
       children: [_monthHeader(context), _buildCalendar()],
     );
   }
@@ -144,7 +144,7 @@ class _CalendarViewState<E, T extends List<E>>
           color: isHighlighted ? color : colorScheme.surfaceContainerLow,
           borderRadius: BorderRadius.circular(14),
           border: isToday
-              ? Border.all(color: color, width: 2)
+              ? Border.all(color: colorScheme.onSurface, width: 2)
               : Border.all(color: Colors.transparent, width: 2),
         ),
         child: Stack(

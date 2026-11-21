@@ -4,8 +4,9 @@ import 'package:material_ui/material_ui.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/l10n/book_names.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
-import 'package:gbt/ui/home/panel_area/common/calendar_view.dart';
+import 'package:gbt/reading_plan/calendar_view.dart';
 import 'package:gbt/reading_plan/day_activity_log_panel.dart';
+import 'package:gbt/reading_plan/edit_reading_plan_panel.dart';
 import 'package:gbt/reading_plan/progress_circle.dart';
 import 'package:gbt/reading_plan/reading_plan_detail_view_model.dart';
 
@@ -100,11 +101,16 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
   }
 
   Widget _topBar() {
+    const iconInset = 6.0;
+    final iconStyle = IconButton.styleFrom(
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    );
     return Row(
       children: [
         Transform.translate(
-          offset: const Offset(-12, 0),
+          offset: const Offset(-iconInset, 0),
           child: IconButton(
+            style: iconStyle,
             icon: const Icon(Icons.arrow_back),
             onPressed: () => Navigator.of(context).pop(),
           ),
@@ -114,23 +120,47 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
             viewModel.planName,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
             style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
           ),
         ),
         Transform.translate(
-          offset: const Offset(12, 0),
-          child: IconButton(
-            icon: Icon(
-              viewModel.isBookmarked ? Icons.bookmark : Icons.bookmark_border,
-            ),
-            onPressed: () {
-              viewModel.toggleBookmark();
-            },
+          offset: const Offset(iconInset, 0),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                style: iconStyle,
+                icon: const Icon(Icons.edit_outlined),
+                tooltip: AppLocalizations.of(context)!.edit,
+                onPressed: _editPlan,
+              ),
+              IconButton(
+                style: iconStyle,
+                icon: Icon(
+                  viewModel.isBookmarked
+                      ? Icons.bookmark
+                      : Icons.bookmark_border,
+                ),
+                onPressed: () {
+                  viewModel.toggleBookmark();
+                },
+              ),
+            ],
           ),
         ),
       ],
     );
+  }
+
+  Future<void> _editPlan() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => EditReadingPlanPanel.existing(viewModel.planDetails),
+      ),
+    );
+
+    if (!mounted) return;
+    await viewModel.reloadPlan();
   }
 
   Widget _totalProgress() {
@@ -223,7 +253,13 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
             crossAxisAlignment: CrossAxisAlignment.start,
             spacing: 4,
             children: [
-              Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
               Text(secondLine),
               Text(thirdLine),
             ],

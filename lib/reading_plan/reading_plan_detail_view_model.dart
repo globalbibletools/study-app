@@ -86,6 +86,8 @@ class ReadingPlanDetailViewModel extends ChangeNotifier {
 
   String get planName => _planName;
   int get planId => _planId;
+  ReadingPlanDetails get planDetails =>
+      ReadingPlanDetails(_readingPlan, List.of(_books));
   bool get isBookmarked => _isBookmarked;
   List<ReadingPlanBook> get books => _books;
   GoalType get goalType => _goalType;
@@ -153,6 +155,23 @@ class ReadingPlanDetailViewModel extends ChangeNotifier {
   }
 
   bool isBookComplete(int bookId) => _bookStats[bookId]?.isComplete ?? false;
+
+  Future<void> reloadPlan() async {
+    final details = await _planService.getReadingPlanById(_planId);
+    if (_disposed || details == null) return;
+
+    _setState(() {
+      _readingPlan = details.readingPlan;
+      _planName = details.readingPlan.planName;
+      _isBookmarked = details.readingPlan.isBookmarked;
+      _books = List.of(details.books);
+      _goalType = details.dailyGoal.type;
+      _goalValue = details.dailyGoal.value;
+      _resumePosition = details.resumePosition;
+    });
+
+    await refresh();
+  }
 
   Future<void> refresh() {
     return _refreshScope.run(_refresh);
