@@ -170,6 +170,34 @@ void main() {
       expect(find.text('7/20 minutes'), findsOneWidget);
       expect(find.text('35%'), findsOneWidget);
     });
+
+    testWidgets('shows a drag handle instead of an edit-order toggle', (
+      tester,
+    ) async {
+      final service = FakeDetailPlanService(bookStats: bookStats());
+      final plan = planDetails();
+      final viewModel = newViewModel(plan, service);
+
+      await openDetail(tester, viewModel);
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.drag_handle_rounded), findsOneWidget);
+      expect(find.text('Edit Order'), findsNothing);
+      expect(
+        find.ancestor(
+          of: find.byIcon(Icons.drag_handle_rounded),
+          matching: find.byType(ReorderableDragStartListener),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.ancestor(
+          of: find.text('Ruth'),
+          matching: find.byType(ReorderableDragStartListener),
+        ),
+        findsNothing,
+      );
+    });
   });
 
   group('navigation', () {

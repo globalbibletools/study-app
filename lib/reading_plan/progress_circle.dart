@@ -33,6 +33,7 @@ class ProgressCircle extends StatelessWidget {
             child: CircularProgressIndicator(
               value: value.clamp(0.0, 1.0).toDouble(),
               strokeWidth: strokeWidth,
+              strokeAlign: CircularProgressIndicator.strokeAlignInside,
               color: colorScheme.primary,
               backgroundColor: colorScheme.primary.withValues(alpha: 0.16),
             ),

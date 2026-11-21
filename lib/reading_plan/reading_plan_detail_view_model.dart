@@ -66,9 +66,6 @@ class ReadingPlanDetailViewModel extends ChangeNotifier {
   bool _isRefreshing = false;
   bool get isRefreshing => _isRefreshing;
 
-  bool _isReorderMode = false;
-  bool get isReorderMode => _isReorderMode;
-
   final ValueNotifier<List<DayProgress>> _monthProgress = ValueNotifier([]);
   ValueListenable<List<DayProgress>> get monthProgress => _monthProgress;
 
@@ -264,23 +261,16 @@ class ReadingPlanDetailViewModel extends ChangeNotifier {
     return _sessionViewModel.startSession(_planId);
   }
 
-  Future<void> toggleReorderMode() async {
-    _setState(() {
-      _isReorderMode = !_isReorderMode;
-    });
-
-    // Persist the new order once the user finishes reordering.
-    if (!_isReorderMode) {
-      await _persistBookOrder();
-    }
-  }
-
-  void moveBook(int oldIndex, int newIndex) {
+  Future<void> moveBook(int oldIndex, int newIndex) async {
     if (oldIndex < 0 || oldIndex >= _books.length) return;
+    if (newIndex < 0 || newIndex >= _books.length) return;
+
     _setState(() {
       final book = _books.removeAt(oldIndex);
       _books.insert(newIndex, book);
     });
+
+    await _persistBookOrder();
   }
 
   Future<void> _persistBookOrder() {

@@ -295,7 +295,7 @@ void main() {
 
   group('reorder', () {
     test(
-      'persists 1-indexed ord values and reloads the resume position on exit',
+      'persists 1-indexed ord values and reloads the resume position after a move',
       () async {
         final plan = await planService.saveReadingPlan(
           planName: 'Exodus First Test',
@@ -311,13 +311,7 @@ void main() {
 
         expect(viewModel.resumePosition?.bookId, 1);
 
-        await viewModel.toggleReorderMode();
-        expect(viewModel.isReorderMode, isTrue);
-
-        viewModel.moveBook(1, 0); // Exodus before Genesis
-
-        await viewModel.toggleReorderMode();
-        expect(viewModel.isReorderMode, isFalse);
+        await viewModel.moveBook(1, 0); // Exodus before Genesis
 
         expect(viewModel.books.map((book) => book.bookId), [2, 1]);
         expect(viewModel.books.map((book) => book.ord), [1, 2]);
