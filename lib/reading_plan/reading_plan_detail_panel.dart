@@ -165,9 +165,11 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
 
   Widget _totalProgress() {
     final l10n = AppLocalizations.of(context)!;
+    final completionDate = viewModel.estimatedCompletionDate;
     final completion = viewModel.hasEstimate
         ? '${l10n.daysRemaining(viewModel.estimatedDays)} '
-              '(${_formatDate(viewModel.estimatedCompletionDate)})'
+              '(${l10n.months(completionDate.month.toString())} '
+              '${completionDate.day}, ${completionDate.year})'
         : l10n.planComplete;
 
     return _progressSummary(
@@ -267,11 +269,6 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
         ),
       ],
     );
-  }
-
-  String _formatDate(DateTime date) {
-    final l10n = AppLocalizations.of(context)!;
-    return '${l10n.months(date.month.toString())} ${date.day}, ${date.year}';
   }
 
   Widget _booksList() {
