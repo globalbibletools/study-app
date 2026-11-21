@@ -49,16 +49,10 @@ class _CalendarViewState<E, T extends List<E>>
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: widget.padding,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _monthHeader(context),
-          const SizedBox(height: 12),
-          _buildCalendar(),
-        ],
-      ),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      spacing: 12,
+      children: [_monthHeader(context), _buildCalendar()],
     );
   }
 
@@ -72,7 +66,7 @@ class _CalendarViewState<E, T extends List<E>>
         ),
         Text(
           MaterialLocalizations.of(context).formatMonthYear(_displayedMonth),
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         IconButton(
           icon: const Icon(Icons.chevron_right),
@@ -103,9 +97,8 @@ class _CalendarViewState<E, T extends List<E>>
 
         final firstWeekday = firstDay.weekday; // 1 = Mon
 
+        // Pad cells for the first week up to the first day.
         final totalCells = daysInMonth + (firstWeekday - 1);
-
-        final now = DateTime.now();
 
         return GridView.builder(
           itemCount: totalCells,
@@ -116,85 +109,73 @@ class _CalendarViewState<E, T extends List<E>>
             childAspectRatio: 1,
           ),
           itemBuilder: (context, index) {
-            if (index < firstWeekday - 1) {
+            final day = index - (firstWeekday - 2);
+            if (day <= 0 || day - 1 >= data.length) {
               return const SizedBox.shrink();
             }
 
-            final dayNumber = index - (firstWeekday - 2);
+            final entry = data[day - 1];
 
-            // Guard against `data` having fewer entries than days in the
-            // displayed month (e.g. future days not yet populated).
-            if (dayNumber - 1 >= data.length) {
-              return const SizedBox.shrink();
-            }
-
-            final date = DateTime(
-              _displayedMonth.year,
-              _displayedMonth.month,
-              dayNumber,
-            );
-            final entry = data[dayNumber - 1];
-
-            final isToday =
-                date.year == now.year &&
-                date.month == now.month &&
-                date.day == now.day;
-
-            return _dayCalendar(date, isToday, entry);
+            return _dayCalendar(day, entry);
           },
         );
       },
     );
   }
 
-  Widget _dayCalendar(DateTime date, bool isToday, E entry) {
+  Widget _dayCalendar(int day, E entry) {
     final colorScheme = Theme.of(context).colorScheme;
     final color = colorScheme.primary;
     final bool isHighlighted = widget.isHighlighted(entry);
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: () => widget.onTap(entry),
-        child: Container(
-          margin: const EdgeInsets.all(2),
-          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 4),
-          decoration: BoxDecoration(
-            color: isHighlighted ? color : colorScheme.surfaceContainerLow,
-            borderRadius: BorderRadius.circular(14),
-            border: isToday ? Border.all(color: color, width: 2) : null,
-          ),
-          child: Stack(
-            children: [
-              Positioned(
-                top: 0,
-                left: 0,
-                child: Text(
-                  "${date.day}",
-                  style: TextStyle(
-                    fontSize: 12,
-                    height: 1.0,
-                    fontWeight: FontWeight.w600,
-                    color: isHighlighted
-                        ? colorScheme.onPrimary
-                        : colorScheme.onSurface,
-                  ),
+    final now = DateTime.now();
+    final isToday =
+        _displayedMonth.year == now.year &&
+        _displayedMonth.month == now.month &&
+        day == now.day;
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => widget.onTap(entry),
+      child: Container(
+        margin: const EdgeInsets.all(2),
+        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 4),
+        decoration: BoxDecoration(
+          color: isHighlighted ? color : colorScheme.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(14),
+          border: isToday
+              ? Border.all(color: color, width: 2)
+              : Border.all(color: Colors.transparent, width: 2),
+        ),
+        child: Stack(
+          children: [
+            Positioned(
+              top: 0,
+              left: 0,
+              child: Text(
+                "$day",
+                style: TextStyle(
+                  fontSize: 12,
+                  height: 1.0,
+                  fontWeight: FontWeight.w600,
+                  color: isHighlighted
+                      ? colorScheme.onPrimary
+                      : colorScheme.onSurface,
                 ),
               ),
-              if (isHighlighted)
-                Positioned(
-                  bottom: 0,
-                  right: 0,
-                  child: Icon(
-                    Icons.check_rounded,
-                    color: colorScheme.onPrimary,
-                    size: 18,
-                    weight: 700,
-                  ),
+            ),
+            if (isHighlighted)
+              Positioned(
+                bottom: 0,
+                right: 0,
+                child: Icon(
+                  Icons.check_rounded,
+                  color: colorScheme.onPrimary,
+                  size: 18,
+                  weight: 700,
                 ),
-            ],
-          ),
+              ),
+          ],
         ),
       ),
     );

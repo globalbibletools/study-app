@@ -285,11 +285,16 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
   }
 
   Widget _goalsContentByMonth() {
-    return CalendarView(
-      value: viewModel.monthProgress,
-      onTap: _openDayActivityLog,
-      isHighlighted: isHighlighted,
-      onMonthChanged: (month) => viewModel.loadMonthData(month),
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
+        child: CalendarView(
+          value: viewModel.monthProgress,
+          onTap: _openDayActivityLog,
+          isHighlighted: isHighlighted,
+          onMonthChanged: (month) => viewModel.loadMonthData(month),
+        ),
+      ),
     );
   }
 }
