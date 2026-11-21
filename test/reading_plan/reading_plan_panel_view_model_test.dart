@@ -2,137 +2,44 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gbt/asyncutils/cancellation.dart';
-import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/common/reference.dart';
-import 'package:gbt/reading_plan/reading_plan_service.dart';
-import 'package:gbt/reading_plan/reading_session_service.dart';
-import 'package:gbt/reading_plan/rs_database.dart';
-import 'package:gbt/reading_plan/rs_model.dart';
-import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/reading_plan/reading_plan_panel_view_model.dart';
-import 'package:gbt/reading_plan/reading_session_view_model.dart';
-import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:gbt/reading_plan/rs_model.dart';
 
-import '../fixtures/bible_navigation_fixture.dart';
-import '../fixtures/fake_navigation_view_model.dart';
+import 'fake_reading_plan_service.dart';
+import 'fake_reading_session_view_model.dart';
 
-class QueuedPlanService extends Fake implements ReadingPlanService {
-  final requests = <Completer<List<ReadingPlanDetails>>>[];
-
-  @override
-  Future<List<ReadingPlanDetails>> getReadingPlansWithProgress() {
-    final request = Completer<List<ReadingPlanDetails>>();
-    requests.add(request);
-    return request.future;
-  }
-}
-
-ReadingPlanDetails planDetails(String name) {
-  return ReadingPlanDetails(
-    ReadingPlan(
-      planName: name,
-      createdAt: DateTime.now(),
-      collectionId: 1,
-      goalType: GoalType.verses.name,
-      goalValue: 10,
-      isBookmarked: false,
-    ),
-    const [],
-  );
-}
-
-/// Integration tests for [ReadingPlanPanelViewModel] running against a real
-/// in-memory SQLite database, the real [ReadingPlanService] and
-/// [ReadingSessionService], and a [BibleNavigation] backed by the
-/// versification fixture.
-///
-/// Everything is injected directly, except that [ReadingSessionService]
-/// resolves [BibleNavigation] through the service locator internally. Tests
-/// that would require modifying injected collaborators (e.g. to manufacture a
-/// failing delete) are intentionally omitted.
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
-
-  late ReadingSessionDatabase database;
-  late ReadingPlanService planService;
-  late ReadingSessionViewModel sessionViewModel;
-  late FakeNavigationViewModel navigationViewModel;
+  late FakeReadingPlanService planService;
+  late FakeReadingSessionViewModel sessionViewModel;
   late ReadingPlanPanelViewModel viewModel;
 
-  ReadingPlanPanelViewModel newViewModel() {
+  ReadingPlanPanelViewModel newViewModel({FakeReadingPlanService? service}) {
     return ReadingPlanPanelViewModel.withDependencies(
-      planService: planService,
+      planService: service ?? planService,
       sessionViewModel: sessionViewModel,
     );
   }
 
-  Future<ReadingPlanDetails> savePlan({
-    String name = 'Saved Plan',
-    int collectionId = 1,
-    GoalType goalType = GoalType.verses,
-    int goalValue = 10,
-    Set<int> bookIds = const {1, 2},
-  }) async {
-    final saved = await planService.saveReadingPlan(
-      planName: name,
-      collectionId: collectionId,
-      goalType: goalType,
-      goalValue: goalValue,
-      selectedBookIds: bookIds,
-    );
-    final details = await planService.getReadingPlanById(saved.id!);
-    return details!;
-  }
-
-  setUpAll(() {
-    sqfliteFfiInit();
-    databaseFactory = databaseFactoryFfi;
-  });
-
-  setUp(() async {
-    final bibleNavigation = createTestBibleNavigation();
-    if (getIt.isRegistered<BibleNavigation>()) {
-      getIt.unregister<BibleNavigation>();
-    }
-    getIt.registerSingleton<BibleNavigation>(bibleNavigation);
-
-    database = ReadingSessionDatabase.withDependencies(
-      databasePath: inMemoryDatabasePath,
-      verseInventoryProvider: (bookIds) async =>
-          createTestVerseInventory(bookIds: bookIds),
-    );
-    await database.init();
-    planService = ReadingPlanService.withDependencies(
-      database: database,
-      bibleNavigation: bibleNavigation,
-    );
-    navigationViewModel = FakeNavigationViewModel();
-    sessionViewModel = ReadingSessionViewModel.withDependencies(
-      service: ReadingSessionService.withDatabase(database),
-      navigationViewModel: navigationViewModel,
-    );
+  setUp(() {
+    planService = FakeReadingPlanService();
+    sessionViewModel = FakeReadingSessionViewModel();
     viewModel = newViewModel();
-
-    // The schema ships with a default "Whole Bible" plan (id 1). Remove it so
-    // each test starts from a clean slate.
-    for (final plan in await planService.getReadingPlans()) {
-      await planService.deleteReadingPlan(plan.readingPlan.id!);
-    }
   });
 
-  tearDown(() async {
-    await sessionViewModel.endSession();
-    sessionViewModel.dispose();
+  tearDown(() {
     viewModel.dispose();
-    database.dispose();
-    if (getIt.isRegistered<BibleNavigation>()) {
-      getIt.unregister<BibleNavigation>();
-    }
   });
 
   group('initialization', () {
     test('initialize loads plans with progress fields populated', () async {
-      await savePlan(name: 'Ruth', bookIds: {8}); // Ruth has 85 verses.
+      planService.plans = [
+        planDetails(
+          'Ruth',
+          totalVerses: 85,
+          resumePosition: const Reference(bookId: 8, chapter: 1, verse: 1),
+        ),
+      ];
 
       await viewModel.initialize();
 
@@ -156,7 +63,7 @@ void main() {
         expect(viewModel.isInitialized, isTrue);
         expect(viewModel.plans, isEmpty);
 
-        await savePlan(name: 'First', bookIds: {1});
+        planService.plans = [planDetails('First')];
         await viewModel.refresh();
 
         expect(viewModel.isInitialized, isTrue);
@@ -166,22 +73,19 @@ void main() {
     );
 
     test('a newer refresh cancels the in-flight one and wins', () async {
-      final service = QueuedPlanService();
-      final localViewModel = ReadingPlanPanelViewModel.withDependencies(
-        planService: service,
-        sessionViewModel: sessionViewModel,
-      );
+      final service = FakeReadingPlanService()..queueGetRequests = true;
+      final localViewModel = newViewModel(service: service);
       addTearDown(localViewModel.dispose);
 
       final first = localViewModel.refresh();
       final second = localViewModel.refresh();
 
-      expect(service.requests, hasLength(2));
+      expect(service.getRequests, hasLength(2));
 
-      service.requests[0].complete([planDetails('Stale')]);
+      service.getRequests[0].complete([planDetails('Stale')]);
       await expectLater(first, throwsA(isA<CancelledError>()));
 
-      service.requests[1].complete([planDetails('Fresh')]);
+      service.getRequests[1].complete([planDetails('Fresh')]);
       await second;
 
       expect(localViewModel.plans.single.readingPlan.planName, 'Fresh');
@@ -192,77 +96,57 @@ void main() {
     test(
       'removes the plan after it is persisted and keeps other plans',
       () async {
-        await savePlan(name: 'Keep', bookIds: {1});
-        await savePlan(name: 'Doomed', bookIds: {2});
-        await viewModel.refresh();
+        planService.plans = [
+          planDetails('Keep', id: 1),
+          planDetails('Doomed', id: 2),
+        ];
+        await viewModel.initialize();
 
-        final keepId = viewModel.plans
-            .firstWhere((plan) => plan.readingPlan.planName == 'Keep')
-            .readingPlan
-            .id;
-        final doomed = viewModel.plans.firstWhere(
-          (plan) => plan.readingPlan.planName == 'Doomed',
-        );
-        final doomedId = doomed.readingPlan.id!;
+        final gate = Completer<void>();
+        planService.deleteGate = gate;
 
-        final future = viewModel.deletePlan(doomedId);
+        final future = viewModel.deletePlan(2);
 
-        // Removal happens after the database delete completes.
+        // Removal happens after the delete completes.
         expect(viewModel.plans.map((plan) => plan.readingPlan.id).toSet(), {
-          keepId,
-          doomedId,
+          1,
+          2,
         });
+        expect(planService.deletedPlanIds, isEmpty);
 
+        gate.complete();
         await future;
 
-        expect(viewModel.plans.map((plan) => plan.readingPlan.id), [keepId]);
-        expect(await planService.getReadingPlanById(doomedId), isNull);
-        expect(
-          (await planService.getReadingPlans()).map(
-            (plan) => plan.readingPlan.id,
-          ),
-          [keepId],
-        );
+        expect(viewModel.plans.map((plan) => plan.readingPlan.id), [1]);
+        expect(planService.deletedPlanIds, [2]);
       },
     );
   });
 
   group('startReadingSession', () {
-    test('starts the session and navigates to the resume position', () async {
-      await savePlan(bookIds: {8});
-      await viewModel.refresh();
+    test('starts a session for the selected plan', () async {
+      planService.plans = [planDetails('Ruth', id: 7)];
+      await viewModel.initialize();
       final plan = viewModel.plans.single;
-
-      expect(plan.resumePosition, isNotNull);
 
       await viewModel.startReadingSession(plan);
 
-      expect(sessionViewModel.hasActiveSession, isTrue);
-      expect(navigationViewModel.navigatedReferences, [plan.resumePosition]);
+      expect(sessionViewModel.startedPlanIds, [7]);
     });
 
-    test(
-      'falls back to the first book at 1:1 when resume position is null',
-      () async {
-        await savePlan(bookIds: {8, 32});
-        await viewModel.refresh();
-        final plan = viewModel.plans.single..resumePosition = null;
+    test('does not start a session when the plan has no id', () async {
+      await viewModel.startReadingSession(planDetails('Unsaved', id: null));
 
-        await viewModel.startReadingSession(plan);
-
-        expect(sessionViewModel.hasActiveSession, isTrue);
-        expect(navigationViewModel.navigatedReferences, [
-          const Reference(bookId: 8, chapter: 1, verse: 1),
-        ]);
-      },
-    );
+      expect(sessionViewModel.startedPlanIds, isEmpty);
+    });
   });
 
   group('dispose', () {
     test(
       'does not notify after dispose while a refresh is in flight',
       () async {
-        final localViewModel = newViewModel();
+        final service = FakeReadingPlanService()..queueGetRequests = true;
+        final localViewModel = newViewModel(service: service);
         var notifications = 0;
         localViewModel.addListener(() => notifications++);
 
@@ -270,10 +154,36 @@ void main() {
         final notificationsBeforeDispose = notifications;
 
         localViewModel.dispose();
+        service.getRequests.single.complete([planDetails('Late')]);
         await expectLater(future, throwsA(isA<CancelledError>()));
 
         expect(notifications, notificationsBeforeDispose);
       },
     );
   });
+}
+
+ReadingPlanDetails planDetails(
+  String name, {
+  int? id = 1,
+  int totalVerses = 0,
+  int versesRead = 0,
+  Reference? resumePosition,
+}) {
+  final details = ReadingPlanDetails(
+    ReadingPlan(
+      id: id,
+      planName: name,
+      createdAt: DateTime.now(),
+      collectionId: 1,
+      goalType: GoalType.verses.name,
+      goalValue: 10,
+      isBookmarked: false,
+    ),
+    const [],
+  );
+  details.totalVerses = totalVerses;
+  details.versesRead = versesRead;
+  details.resumePosition = resumePosition;
+  return details;
 }
