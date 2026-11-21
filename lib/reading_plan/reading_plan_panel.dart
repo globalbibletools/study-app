@@ -63,15 +63,11 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
           children: [
             _topTitle(),
             Expanded(
-              child: Stack(
+              child: Column(
+                spacing: 16,
                 children: [
-                  _planList(),
-                  Positioned(
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    child: _createNewPlanButton(),
-                  ),
+                  Expanded(child: _planList()),
+                  _createNewPlanButton(),
                 ],
               ),
             ),
@@ -110,7 +106,6 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
     }
 
     return ListView(
-      padding: const EdgeInsets.only(bottom: 76),
       children: viewModel.plans
           .map(
             (plan) => ReadingPlanCard(
@@ -156,10 +151,7 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
       MaterialPageRoute(
         builder: (context) =>
             widget.planDetailsRouteBuilder?.call(context, plan) ??
-            ReadingPlanDetailPanel(
-              readingPlanDetails: plan,
-              onClose: () => Navigator.of(context).pop(),
-            ),
+            ReadingPlanDetailPanel(planId: plan.readingPlan.id!),
       ),
     );
 

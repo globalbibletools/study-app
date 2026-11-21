@@ -1,20 +1,36 @@
+import 'dart:async';
+
 import 'package:material_ui/material_ui.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/l10n/book_names.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
-import 'package:gbt/ui/home/panel_area/common/calendar_view.dart';
+import 'package:gbt/reading_plan/calendar_view.dart';
 import 'package:gbt/reading_plan/day_activity_log_panel.dart';
+import 'package:gbt/reading_plan/edit_reading_plan_panel.dart';
+import 'package:gbt/reading_plan/progress_circle.dart';
 import 'package:gbt/reading_plan/reading_plan_detail_view_model.dart';
 
 class ReadingPlanDetailPanel extends StatefulWidget {
-  final ReadingPlanDetails readingPlanDetails;
-  final Function onClose;
+  final int planId;
+  final ReadingPlanDetailViewModel? viewModel;
+  final Widget Function(BuildContext context, ReadingPlanDetails plan)?
+  editPlanBuilder;
+  final Widget Function(BuildContext context, DateTime date)?
+  dayActivityLogBuilder;
 
   const ReadingPlanDetailPanel({
     super.key,
-    required this.readingPlanDetails,
-    required this.onClose,
-  });
+    required this.planId,
+    this.editPlanBuilder,
+    this.dayActivityLogBuilder,
+  }) : viewModel = null;
+
+  const ReadingPlanDetailPanel.withDependencies({
+    super.key,
+    required this.viewModel,
+    this.editPlanBuilder,
+    this.dayActivityLogBuilder,
+  }) : planId = 0;
 
   @override
   State<ReadingPlanDetailPanel> createState() => ReadingPlanDetailPanelState();
@@ -26,7 +42,9 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
   @override
   void initState() {
     super.initState();
-    viewModel = ReadingPlanDetailViewModel(plan: widget.readingPlanDetails);
+    viewModel =
+        widget.viewModel ?? ReadingPlanDetailViewModel(planId: widget.planId);
+    unawaited(viewModel.initialize());
   }
 
   @override
@@ -40,287 +58,220 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
     return ListenableBuilder(
       listenable: viewModel,
       builder: (context, _) {
+        final Widget content;
+        if (viewModel.loadError != null) {
+          content = Center(
+            child: Text(
+              AppLocalizations.of(context)!.errorLoadingContent,
+              textAlign: TextAlign.center,
+            ),
+          );
+        } else if (!viewModel.isInitialized) {
+          content = const Center(child: CircularProgressIndicator());
+        } else {
+          content = Column(
+            spacing: 16,
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    spacing: 24,
+                    children: [
+                      _todaysProgress(),
+                      _goalsContentByMonth(),
+                      Divider(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.12),
+                      ),
+                      _totalProgress(),
+                      _booksList(),
+                    ],
+                  ),
+                ),
+              ),
+              _startResumeButton(),
+            ],
+          );
+        }
+
         return Column(
+          spacing: 16,
           children: [
-            _topTitle(),
-            const SizedBox(height: 12),
-            Expanded(child: _content()),
+            _topBar(),
+            Expanded(child: content),
           ],
         );
       },
     );
   }
 
-  Widget _topTitle() {
-    return Stack(
-      alignment: Alignment.center,
+  Widget _topBar() {
+    const iconInset = 6.0;
+    final iconStyle = IconButton.styleFrom(
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    );
+    return Row(
       children: [
-        Align(
-          alignment: Alignment.centerLeft,
+        Transform.translate(
+          offset: const Offset(-iconInset, 0),
           child: IconButton(
+            style: iconStyle,
             icon: const Icon(Icons.arrow_back),
             onPressed: () => Navigator.of(context).pop(),
           ),
         ),
-        Text(
-          viewModel.planName,
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+        Expanded(
+          child: Text(
+            viewModel.planName,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+          ),
+        ),
+        Transform.translate(
+          offset: const Offset(iconInset, 0),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                style: iconStyle,
+                icon: const Icon(Icons.edit_outlined),
+                tooltip: AppLocalizations.of(context)!.edit,
+                onPressed: _editPlan,
+              ),
+              IconButton(
+                style: iconStyle,
+                icon: Icon(
+                  viewModel.isBookmarked
+                      ? Icons.bookmark
+                      : Icons.bookmark_border,
+                ),
+                onPressed: () {
+                  viewModel.toggleBookmark();
+                },
+              ),
+            ],
+          ),
         ),
       ],
     );
   }
 
-  Widget _content() {
-    return SingleChildScrollView(
-      // While reordering, the ReorderableListView drives its own scrolling
-      // via its shrink-wrapped, non-scrollable physics below.
-      padding: EdgeInsets.all(8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _progressHeader(),
-          const SizedBox(height: 16),
-          _startResumeButton(),
-          const SizedBox(height: 16),
-          _statsRow(),
-          const SizedBox(height: 30),
-          _goalsContentByMonth(),
-          const SizedBox(height: 20),
-          _booksHeader(),
-          const SizedBox(height: 12),
-          _booksList(),
-        ],
+  Future<void> _editPlan() async {
+    final plan = viewModel.planDetails;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) =>
+            widget.editPlanBuilder?.call(context, plan) ??
+            EditReadingPlanPanel.existing(plan),
       ),
     );
+
+    if (!mounted) return;
+    await viewModel.refresh();
   }
 
-  Widget _progressHeader() {
-    final progressPercent = viewModel.progressPercent;
+  Widget _totalProgress() {
     final l10n = AppLocalizations.of(context)!;
-    final resumePosition = viewModel.resumePosition;
+    final completionDate = viewModel.estimatedCompletionDate;
+    final completion = viewModel.hasEstimate
+        ? '${l10n.daysRemaining(viewModel.estimatedDays)} '
+              '(${l10n.months(completionDate.month.toString())} '
+              '${completionDate.day}, ${completionDate.year})'
+        : l10n.planComplete;
 
-    final Widget progressWidget = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          l10n.booksReadOfTotal(viewModel.booksRead, viewModel.books.length),
-        ),
-        const SizedBox(height: 4),
-        if (resumePosition != null) ...[
-          Text(
-            l10n.current,
-            style: TextStyle(color: Theme.of(context).colorScheme.primary),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            '${bookNameFromId(context, resumePosition.bookId)} ${resumePosition.chapter}',
-          ),
-        ],
-      ],
-    );
-
-    return Row(
-      children: [
-        Stack(
-          alignment: Alignment.center,
-          children: [
-            SizedBox(
-              width: 70,
-              height: 70,
-              child: CircularProgressIndicator(
-                value: viewModel.overallProgress,
-                strokeWidth: 6,
-                backgroundColor: Theme.of(
-                  context,
-                ).colorScheme.surfaceContainerHighest,
-              ),
-            ),
-            Text(
-              "$progressPercent%",
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
-        const SizedBox(width: 16),
-        Expanded(child: progressWidget),
-        IconButton(
-          icon: Icon(
-            viewModel.isBookmarked ? Icons.bookmark : Icons.bookmark_border,
-          ),
-          onPressed: () {
-            viewModel.toggleBookmark();
-          },
-        ),
-      ],
+    return _progressSummary(
+      title: l10n.totalProgress,
+      percent: viewModel.overallProgress,
+      secondLine: l10n.booksReadOfTotal(
+        viewModel.booksRead,
+        viewModel.books.length,
+      ),
+      thirdLine: completion,
     );
   }
 
   Widget _startResumeButton() {
     final l10n = AppLocalizations.of(context)!;
+    final reference = viewModel.readingReference;
+    final referenceText =
+        '${bookNameFromId(context, reference.bookId)} '
+        '${reference.chapter}:${reference.verse}';
 
-    final txt = viewModel.versesRead == 0
-        ? l10n.startReading
-        : l10n.resumeReading;
+    final txt = viewModel.hasStarted
+        ? l10n.resumeAtReference(referenceText)
+        : l10n.startAtReference(referenceText);
 
     return SizedBox(
       width: double.infinity,
-      child: ElevatedButton.icon(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Theme.of(context).colorScheme.primary,
-          foregroundColor: Theme.of(context).colorScheme.onPrimary,
-          side: BorderSide.none,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30),
-          ),
-        ),
+      child: FilledButton(
         onPressed: () async {
           await viewModel.startReadingSession();
 
           if (!mounted) return;
 
-          widget.onClose();
+          Navigator.of(
+            context,
+            rootNavigator: true,
+          ).popUntil((route) => route.isFirst);
         },
-        icon: const Icon(Icons.play_arrow),
-        label: Text(txt),
+        child: Text(txt, style: const TextStyle(fontWeight: FontWeight.bold)),
       ),
     );
   }
 
-  Widget _statsRow() {
+  Widget _todaysProgress() {
     final l10n = AppLocalizations.of(context)!;
-
-    final goalType = viewModel.goalType;
-
-    String goalTxt = goalType == GoalType.minutes
-        ? l10n.minutesPerDay.toLowerCase()
-        : l10n.versesPerDay.toLowerCase();
-
-    final target = viewModel.goalValue;
     final progress = viewModel.todaysProgress;
+    final verses = progress?.verses ?? 0;
+    final minutes = progress?.minutes ?? 0;
+    final target = viewModel.goalValue;
+    final isVersesGoal = viewModel.goalType == GoalType.verses;
 
-    String progressStr;
-    if (progress == null) {
-      progressStr = '0/$target';
-    } else if (goalType == GoalType.verses) {
-      progressStr = '${progress.verses}/$target';
-    } else {
-      progressStr = '${progress.minutes}/$target';
-    }
+    final versesText = isVersesGoal
+        ? '$verses/$target ${l10n.verses}'
+        : '$verses ${l10n.verses}';
+    final minutesText = isVersesGoal
+        ? '$minutes ${l10n.minutes}'
+        : '$minutes/$target ${l10n.minutes}';
 
-    final progressValue = viewModel.todaysGoalProgress
-        .clamp(0.0, 1.0)
-        .toDouble();
+    return _progressSummary(
+      title: l10n.todaysProgress,
+      percent: viewModel.todaysGoalProgress,
+      secondLine: versesText,
+      thirdLine: minutesText,
+    );
+  }
 
-    final todaysProgress = Column(
+  Widget _progressSummary({
+    required String title,
+    required double percent,
+    required String secondLine,
+    required String thirdLine,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      spacing: 16,
       children: [
-        Text('$target $goalTxt'),
-        SizedBox(height: 8),
-
-        Stack(
-          alignment: Alignment.center,
-          children: [
-            SizedBox(
-              width: 40,
-              height: 40,
-              child: CircularProgressIndicator(
-                value: progressValue,
-                strokeWidth: 6,
-                backgroundColor: Theme.of(
-                  context,
-                ).colorScheme.surfaceContainerHighest,
+        ProgressCircle(percent: percent),
+        Expanded(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            spacing: 4,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
               ),
-            ),
-            Text(progressStr, style: const TextStyle(fontSize: 10)),
-          ],
-        ),
-
-        const SizedBox(height: 4),
-        if (viewModel.goalReachedToday) Text(l10n.completedToday),
-      ],
-    );
-
-    return Row(
-      children: [
-        Expanded(
-          child: _statCard(title: l10n.todaysGoal, child: todaysProgress),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _statCard(
-            title: l10n.estimatedCompletion,
-            child: _estimatedCompletionContent(),
-          ),
-        ),
-      ],
-    );
-  }
-
-  String _formatDate(DateTime date) {
-    final l10n = AppLocalizations.of(context)!;
-    return '${l10n.months(date.month.toString())} ${date.day}, ${date.year}';
-  }
-
-  Widget _estimatedCompletionContent() {
-    final l10n = AppLocalizations.of(context)!;
-
-    if (!viewModel.hasEstimate) {
-      return Text(l10n.planComplete, style: const TextStyle(fontSize: 16));
-    }
-
-    return Column(
-      children: [
-        Text(
-          l10n.daysCount(viewModel.estimatedDays),
-          style: const TextStyle(fontSize: 18),
-        ),
-        const SizedBox(height: 4),
-        Text(l10n.monthsCount(viewModel.estimatedMonths.toStringAsFixed(1))),
-        const SizedBox(height: 4),
-        Text(_formatDate(viewModel.estimatedCompletionDate)),
-      ],
-    );
-  }
-
-  Widget _statCard({required String title, required Widget child}) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        children: [
-          Text(
-            title,
-            style: TextStyle(
-              color: colorScheme.onSurfaceVariant,
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 8),
-          child,
-        ],
-      ),
-    );
-  }
-
-  Widget _booksHeader() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(AppLocalizations.of(context)!.booksInThisPlan),
-        GestureDetector(
-          onTap: () {
-            viewModel.toggleReorderMode();
-          },
-          child: Text(
-            viewModel.isReorderMode
-                ? AppLocalizations.of(context)!.done
-                : AppLocalizations.of(context)!.editOrder,
-            style: TextStyle(color: Theme.of(context).colorScheme.primary),
+              Text(secondLine),
+              Text(thirdLine),
+            ],
           ),
         ),
       ],
@@ -333,130 +284,108 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
     }
 
     final books = viewModel.books;
+    return ReorderableListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      buildDefaultDragHandles: false,
+      itemCount: books.length,
+      onReorderItem: viewModel.moveBook,
+      proxyDecorator: (Widget child, int index, Animation<double> animation) {
+        return Material(color: Colors.transparent, elevation: 0, child: child);
+      },
+      itemBuilder: (context, index) {
+        final book = books[index];
 
-    if (viewModel.isReorderMode) {
-      return ReorderableListView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        buildDefaultDragHandles: false,
-        itemCount: books.length,
-        onReorderItem: viewModel.moveBook,
-        itemBuilder: (context, index) {
-          final book = books[index];
-
-          return ReorderableDragStartListener(
-            key: ValueKey(book.bookId),
-            index: index,
-            child: _BookRow(
-              name: bookNameFromId(context, book.bookId),
-              progress: viewModel.progressForBook(book.bookId),
-              reorderable: true,
-            ),
-          );
-        },
-      );
-    }
-
-    return Column(
-      children: books.map((book) {
         return _BookRow(
+          key: ValueKey(book.bookId),
+          index: index,
           name: bookNameFromId(context, book.bookId),
           progress: viewModel.progressForBook(book.bookId),
         );
-      }).toList(),
+      },
     );
   }
 
-  Future<void> _openDayActivityLog(DayProgress progress) async {
-    if (progress.empty) {
+  Future<void> _openDayActivityLog(int day) async {
+    final progress = viewModel.dayProgress(day);
+    if (progress == null || progress.empty) {
       return;
     }
 
     await showDialog<void>(
       context: context,
-      builder: (context) => DayActivityLogPanel(
-        readingPlanId: widget.readingPlanDetails.readingPlan.id!,
-        date: progress.day,
-      ),
+      builder: (context) =>
+          widget.dayActivityLogBuilder?.call(context, progress.day) ??
+          DayActivityLogPanel(
+            readingPlanId: viewModel.planId,
+            date: progress.day,
+          ),
     );
   }
 
-  bool isHighlighted(DayProgress progress) {
-    return progress.goalReached;
-  }
-
   Widget _goalsContentByMonth() {
-    return CalendarView(
-      value: viewModel.monthProgress,
-      onTap: _openDayActivityLog,
-      isHighlighted: isHighlighted,
-      onMonthChanged: (month) => viewModel.loadMonthData(month),
-      padding: EdgeInsets.all(20),
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
+        child: CalendarView(
+          month: viewModel.visibleMonth,
+          checkedDays: viewModel.checkedDays,
+          onPreviousMonth: () => unawaited(viewModel.showPreviousMonth()),
+          onNextMonth: () => unawaited(viewModel.showNextMonth()),
+          onDayTap: _openDayActivityLog,
+        ),
+      ),
     );
   }
 }
 
 class _BookRow extends StatelessWidget {
+  final int index;
   final String name;
   final double progress;
-  final bool reorderable;
 
   const _BookRow({
+    super.key,
+    required this.index,
     required this.name,
     required this.progress,
-    this.reorderable = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 6),
-      padding: const EdgeInsets.all(12),
+      margin: EdgeInsets.symmetric(vertical: 4),
+      padding: EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(32),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        spacing: 8,
         children: [
-          Icon(
-            progress == 1.0 ? Icons.check_circle : Icons.circle_outlined,
-            color: progress == 1.0 ? colorScheme.primary : colorScheme.outline,
+          ReorderableDragStartListener(
+            index: index,
+            child: Icon(Icons.drag_handle_rounded),
           ),
-          const SizedBox(width: 12),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name,
-                  style: TextStyle(
-                    color: colorScheme.onSurface,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                LinearProgressIndicator(
-                  value: progress,
-                  minHeight: 6,
-                  color: colorScheme.primary,
-                  backgroundColor: colorScheme.surfaceContainerHighest,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          if (reorderable)
-            Icon(Icons.drag_handle, color: colorScheme.onSurfaceVariant)
-          else ...[
-            Text(
-              '${(progress * 100).toInt()}%',
+            child: Text(
+              name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                color: colorScheme.onSurfaceVariant,
-                fontSize: 14,
+                color: colorScheme.onSurface,
+                fontWeight: FontWeight.bold,
               ),
             ),
-          ],
+          ),
+          ProgressCircle(
+            percent: progress,
+            size: 36,
+            strokeWidth: 4,
+            fontSize: 10,
+          ),
         ],
       ),
     );

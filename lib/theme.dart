@@ -62,6 +62,11 @@ final darkTheme = ThemeData(
     onPrimary: Colors.black,
     surface: Color.fromARGB(255, 30, 30, 30),
     onSurface: Colors.white,
+    surfaceContainerLowest: Color(0xFF151515),
+    surfaceContainerLow: Color(0xFF2A2A2A),
+    surfaceContainer: Color(0xFF333333),
+    surfaceContainerHigh: Color(0xFF3D3D3D),
+    surfaceContainerHighest: Color(0xFF484848),
   ),
 );
 
@@ -119,5 +124,10 @@ final lightTheme = ThemeData(
     onSurface: Colors.black,
     // Secondary can be used for accents
     secondary: _primaryColorLight,
+    surfaceContainerLowest: Colors.white,
+    surfaceContainerLow: Color(0xFFECECEC),
+    surfaceContainer: Color(0xFFE4E4E4),
+    surfaceContainerHigh: Color(0xFFDCDCDC),
+    surfaceContainerHighest: Color(0xFFD4D4D4),
   ),
 );

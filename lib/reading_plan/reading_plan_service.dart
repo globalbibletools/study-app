@@ -24,8 +24,12 @@ class ReadingPlanService {
     return _database.getReadingPlans();
   }
 
-  Future<ReadingPlanDetails?> getReadingPlanById(int planId) {
-    return _database.getReadingPlanById(planId);
+  Future<ReadingPlanDetails?> getReadingPlanById(int planId) async {
+    final details = await _database.getReadingPlanById(planId);
+    if (details == null) return null;
+
+    details.resumePosition = await _database.getResumeReference(planId);
+    return details;
   }
 
   Future<List<RsBookStats>> getBooksStats(int readingPlanId) async {
@@ -37,9 +41,22 @@ class ReadingPlanService {
     ];
   }
 
-  Future<Reference?> getResumeReference(int planId, {Reference? after}) async {
-    final resume = await _database.getResumeReference(planId, after: after);
-    return resume ?? after;
+  Future<Reference?> getResumeReference(int planId) {
+    return _database.getResumeReference(planId);
+  }
+
+  Future<DayProgress> getDayProgress(int readingPlanId, DateTime date) async {
+    final day = DateTime(date.year, date.month, date.day);
+    final summary = await _database.getDaySummary(readingPlanId, day);
+
+    if (summary == null) return DayProgress.empty(day);
+
+    return DayProgress(
+      day,
+      summary.rsSeconds ~/ 60,
+      summary.rsVerses,
+      summary.goalReached,
+    );
   }
 
   Future<List<DayProgress>> getMonthProgress(
@@ -140,6 +157,7 @@ class ReadingPlanService {
       totalVerses: 0,
       versesRead: 0,
       lastRead: null,
+      resumePosition: null,
     );
   }
 

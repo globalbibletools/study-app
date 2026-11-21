@@ -406,12 +406,14 @@ class RsBookStats {
   final int totalVerses;
   final int versesRead;
   final DateTime? lastRead;
+  final Reference? resumePosition;
 
   const RsBookStats({
     required this.bookId,
     required this.totalVerses,
     required this.versesRead,
     required this.lastRead,
+    this.resumePosition,
   });
 
   bool get isComplete => totalVerses > 0 && versesRead == totalVerses;

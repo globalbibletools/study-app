@@ -12,7 +12,7 @@ import 'package:gbt/reading_plan/rs_model.dart';
 import 'package:gbt/reading_plan/reading_session_view_model.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/home/panel_area/common/book_completed_overlay.dart';
-import 'package:gbt/ui/home/panel_area/common/calendar_view.dart';
+import 'package:gbt/reading_plan/calendar_view.dart';
 import 'package:gbt/reading_plan/reading_sheet.dart';
 
 import '../fixtures/bible_navigation_fixture.dart';
@@ -486,21 +486,12 @@ void main() {
               body: SizedBox(
                 width: 400,
                 height: 500,
-                child: CalendarView<DayProgress, List<DayProgress>>(
-                  initialMonth: DateTime(2026, 11, 1),
-                  value: ValueNotifier<List<DayProgress>>(
-                    List.generate(
-                      30,
-                      (i) => DayProgress(
-                        DateTime(2026, 11, i + 1),
-                        10,
-                        20,
-                        i + 1 == 5,
-                      ),
-                    ),
-                  ),
-                  isHighlighted: (entry) => entry.goalReached,
-                  onTap: (_) {},
+                child: CalendarView(
+                  month: DateTime(2026, 11, 1),
+                  checkedDays: {5: true},
+                  onPreviousMonth: () {},
+                  onNextMonth: () {},
+                  onDayTap: (_) {},
                 ),
               ),
             ),
@@ -614,21 +605,12 @@ void main() {
               body: SizedBox(
                 width: 400,
                 height: 500,
-                child: CalendarView<DayProgress, List<DayProgress>>(
-                  initialMonth: DateTime(2026, 11, 1),
-                  value: ValueNotifier<List<DayProgress>>(
-                    List.generate(
-                      30,
-                      (i) => DayProgress(
-                        DateTime(2026, 11, i + 1),
-                        10,
-                        20,
-                        i == 4, // Day 5 is highlighted
-                      ),
-                    ),
-                  ),
-                  onTap: (_) {},
-                  isHighlighted: (p) => p.goalReached,
+                child: CalendarView(
+                  month: DateTime(2026, 11, 1),
+                  checkedDays: {5: true},
+                  onPreviousMonth: () {},
+                  onNextMonth: () {},
+                  onDayTap: (_) {},
                 ),
               ),
             ),

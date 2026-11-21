@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:gbt/common/bible_navigation.dart';
+import 'package:gbt/asyncutils/cancellation.dart';
 import 'package:gbt/common/reference.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
@@ -8,271 +8,301 @@ import 'package:gbt/reading_plan/reading_plan_estimates.dart';
 import 'package:gbt/reading_plan/reading_session_view_model.dart';
 
 class ReadingPlanDetailViewModel extends ChangeNotifier {
-  factory ReadingPlanDetailViewModel({required ReadingPlanDetails plan}) {
-    final viewModel = ReadingPlanDetailViewModel.withDependencies(
-      plan: plan,
-      planService: getIt<ReadingPlanService>(),
-      sessionViewModel: getIt<ReadingSessionViewModel>(),
-      bibleNavigation: getIt<BibleNavigation>(),
-    );
-    viewModel._initFuture = viewModel.refresh();
-    return viewModel;
-  }
+  ReadingPlanDetailViewModel({required int planId})
+    : this.withDependencies(
+        planId: planId,
+        planService: getIt<ReadingPlanService>(),
+        sessionViewModel: getIt<ReadingSessionViewModel>(),
+      );
 
   ReadingPlanDetailViewModel.withDependencies({
-    required ReadingPlanDetails plan,
+    required int planId,
     required ReadingPlanService planService,
     required ReadingSessionViewModel sessionViewModel,
-    required BibleNavigation bibleNavigation,
-  }) : _planId = plan.readingPlan.id!,
-       _readingPlan = plan.readingPlan,
-       _planName = plan.readingPlan.planName,
-       _isBookmarked = plan.readingPlan.isBookmarked,
-       _books = List.of(plan.books),
-       _goalType = plan.dailyGoal.type,
-       _goalValue = plan.dailyGoal.value,
-       _resumePosition = plan.resumePosition,
+  }) : _planId = planId,
        _planService = planService,
-       _sessionViewModel = sessionViewModel,
-       _bibleNavigation = bibleNavigation;
+       _sessionViewModel = sessionViewModel;
 
-  final int _planId;
   final ReadingPlanService _planService;
   final ReadingSessionViewModel _sessionViewModel;
-  final BibleNavigation _bibleNavigation;
 
-  ReadingPlan _readingPlan;
-  String _planName;
-  bool _isBookmarked;
-  List<ReadingPlanBook> _books;
-  GoalType _goalType;
-  int _goalValue;
-  Reference? _resumePosition;
+  Object? _loadError;
+  Object? get loadError => _loadError;
+
+  bool _isInitialized = false;
+  bool get isInitialized => _isInitialized;
+  Future<void>? _initialization;
+  Future<void> initialize() => _initialization ??= refresh();
+
+  final _refreshScope = CancellationScope();
+
+  Future<void> refresh() {
+    return _refreshScope.run((guard) async {
+      if (_loadError != null) {
+        _setState(() {
+          _loadError = null;
+        });
+      }
+
+      try {
+        final details = await guard(_planService.getReadingPlanById(_planId));
+        if (_disposed) return;
+        if (details == null) {
+          _setState(() {
+            _loadError = StateError('Reading plan not found');
+            _isInitialized = true;
+          });
+          return;
+        }
+
+        final stats = await guard(_planService.getBooksStats(_planId));
+        final statsByBook = {for (final stat in stats) stat.bookId: stat};
+
+        final todaysProgress = await guard(
+          _planService.getDayProgress(_planId, DateTime.now()),
+        );
+        final monthProgress = await guard(
+          _planService.getMonthProgress(_planId, _visibleMonth),
+        );
+
+        _setState(() {
+          _planDetails = details;
+          _bookStats = statsByBook;
+          _monthProgress = monthProgress;
+          _todaysProgress = todaysProgress;
+          _isInitialized = true;
+        });
+      } on CancelledError {
+        rethrow;
+      } catch (error) {
+        _setState(() {
+          _loadError = error;
+        });
+      }
+    });
+  }
+
+  // Plan basics
+
+  final int _planId;
+  int get planId => _planId;
+
+  ReadingPlanDetails? _planDetails;
+  String get planName => _planDetails?.readingPlan.planName ?? '';
+
+  ReadingPlanDetails get planDetails {
+    final details = _planDetails;
+    if (details == null) {
+      throw StateError('Reading plan details have not been loaded');
+    }
+    return details;
+  }
+
+  bool get isBookmarked => _planDetails?.readingPlan.isBookmarked ?? false;
+  Future<void> toggleBookmark() async {
+    final plan = _planDetails;
+    if (plan == null) return;
+
+    final updatedPlan = await _planService.setReadingPlanBookmark(
+      plan.readingPlan,
+      !plan.readingPlan.isBookmarked,
+    );
+    _setState(() {
+      plan.readingPlan = updatedPlan;
+    });
+  }
+
+  // Book progress
 
   Map<int, RsBookStats> _bookStats = const {};
   Map<int, RsBookStats> get bookStats => _bookStats;
 
-  int _totalVerses = 0;
-  int get totalVerses => _totalVerses;
-
-  int _versesRead = 0;
-  int get versesRead => _versesRead;
-
-  int _booksRead = 0;
-  int get booksRead => _booksRead;
-
-  DayProgress? _todaysProgress;
-  DayProgress? get todaysProgress => _todaysProgress;
-
-  bool _isRefreshing = false;
-  bool get isRefreshing => _isRefreshing;
-
-  bool _isReorderMode = false;
-  bool get isReorderMode => _isReorderMode;
-
-  /// The one public notifier: `CalendarView` requires a `ValueListenable`.
-  final ValueNotifier<List<DayProgress>> monthProgress = ValueNotifier([]);
-
-  bool _disposed = false;
-
-  Future<void>? _initFuture;
-  Future<void> get ready => _initFuture ??= refresh();
-
-  Future<void>? _refreshFuture;
-
-  String get planName => _planName;
-  bool get isBookmarked => _isBookmarked;
-  List<ReadingPlanBook> get books => _books;
-  GoalType get goalType => _goalType;
-  int get goalValue => _goalValue;
-  Reference? get resumePosition => _resumePosition;
-
-  double get overallProgress =>
-      _totalVerses > 0 ? _versesRead / _totalVerses : 0.0;
-
-  int get progressPercent => (overallProgress * 100).round();
-
-  double get todaysGoalProgress {
-    if (_goalValue <= 0) return 0;
-    final progress = _todaysProgress;
-    final read = progress == null
-        ? 0
-        : _goalType == GoalType.verses
-        ? progress.verses
-        : progress.minutes;
-    return read / _goalValue;
-  }
-
-  bool get goalReachedToday => todaysGoalProgress >= 1;
-
-  int get _remainingVerses => _totalVerses - _versesRead;
-
-  bool get hasEstimate => ReadingPlanEstimates.hasEstimate(
-    remainingVerses: _remainingVerses,
-    goalType: _goalType,
-    goalValue: _goalValue,
-  );
-
-  int get estimatedDays => ReadingPlanEstimates.daysFor(
-    remainingVerses: _remainingVerses,
-    goalType: _goalType,
-    goalValue: _goalValue,
-  );
-
-  double get estimatedMonths =>
-      ReadingPlanEstimates.monthsForDays(estimatedDays);
-
-  DateTime get estimatedCompletionDate =>
-      DateTime.now().add(Duration(days: estimatedDays));
+  List<ReadingPlanBook> get books => _planDetails?.books ?? const [];
 
   double progressForBook(int bookId) {
     final stats = _bookStats[bookId];
-    if (stats == null) return 0;
+    if (stats == null || stats.totalVerses <= 0) return 0;
 
-    final totalVerses = _bibleNavigation.getTotalVerseCount(bookId);
-    if (totalVerses <= 0) return 0;
-
-    return stats.versesRead / totalVerses;
+    return (stats.versesRead / stats.totalVerses).clamp(0.0, 1.0);
   }
 
-  bool isBookComplete(int bookId) => progressForBook(bookId) >= 1;
+  // Start session
 
-  Future<void> refresh() {
-    final inFlight = _refreshFuture;
-    if (inFlight != null) return inFlight;
+  Reference get readingReference {
+    final resumePosition = _planDetails?.resumePosition;
+    if (resumePosition != null) return resumePosition;
 
-    final future = _refresh();
-    _refreshFuture = future;
-    return future;
-  }
-
-  Future<void> _refresh() async {
-    _isRefreshing = true;
-    notifyListeners();
-
-    try {
-      final now = DateTime.now();
-
-      final loaded = await _planService.getBooksStats(_planId);
-      if (_disposed) return;
-
-      final statsByBook = {for (final stat in loaded) stat.bookId: stat};
-      var totalVerses = 0;
-      var versesRead = 0;
-      var booksRead = 0;
-      for (final book in _books) {
-        final stat = statsByBook[book.bookId];
-        totalVerses += stat?.totalVerses ?? 0;
-        versesRead += stat?.versesRead ?? 0;
-        if (stat != null && stat.isComplete) {
-          booksRead += 1;
-        }
-      }
-
-      final resumePosition = await _planService.getResumeReference(_planId);
-      if (_disposed) return;
-
-      final month = await _planService.getMonthProgress(
-        _planId,
-        DateTime(now.year, now.month, 1),
-      );
-      if (_disposed) return;
-
-      _bookStats = statsByBook;
-      _totalVerses = totalVerses;
-      _versesRead = versesRead;
-      _booksRead = booksRead;
-      _resumePosition = resumePosition;
-      monthProgress.value = month;
-      _todaysProgress = now.day <= month.length ? month[now.day - 1] : null;
-    } finally {
-      _isRefreshing = false;
-      _refreshFuture = null;
-      if (!_disposed) notifyListeners();
-    }
-  }
-
-  Future<void> toggleBookmark() async {
-    final wasBookmarked = _isBookmarked;
-    _isBookmarked = !wasBookmarked;
-    _readingPlan = _readingPlan.copyWith(isBookmarked: _isBookmarked);
-    notifyListeners();
-
-    try {
-      final updatedPlan = await _planService.setReadingPlanBookmark(
-        _readingPlan,
-        _isBookmarked,
-      );
-      if (_disposed) return;
-
-      _readingPlan = updatedPlan;
-      _isBookmarked = updatedPlan.isBookmarked;
-      notifyListeners();
-    } catch (_) {
-      if (_disposed) return;
-
-      _isBookmarked = wasBookmarked;
-      _readingPlan = _readingPlan.copyWith(isBookmarked: wasBookmarked);
-      notifyListeners();
-
-      try {
-        await refresh();
-      } catch (_) {
-        // Keep the rollback state; surfacing persistence errors is a separate
-        // UX decision.
-      }
-    }
-  }
-
-  Future<void> loadMonthData(DateTime month) async {
-    final data = await _planService.getMonthProgress(_planId, month);
-    if (_disposed) return;
-    monthProgress.value = data;
+    return Reference(
+      bookId: books.isNotEmpty ? books.first.bookId : 1,
+      chapter: 1,
+      verse: 1,
+    );
   }
 
   Future<void> startReadingSession() {
     return _sessionViewModel.startSession(_planId);
   }
 
-  Future<void> toggleReorderMode() async {
-    _isReorderMode = !_isReorderMode;
-    notifyListeners();
+  // Total Progress
 
-    // Persist the new order once the user finishes reordering.
-    if (!_isReorderMode) {
-      await _persistBookOrder();
+  bool get hasStarted => versesRead > 0;
+
+  int get totalVerses {
+    var total = 0;
+    for (final book in books) {
+      total += _bookStats[book.bookId]?.totalVerses ?? 0;
     }
+    return total;
   }
 
-  void moveBook(int oldIndex, int newIndex) {
-    if (oldIndex < 0 || oldIndex >= _books.length) return;
-    final book = _books.removeAt(oldIndex);
-    _books.insert(newIndex, book);
-    notifyListeners();
+  int get versesRead {
+    var read = 0;
+    for (final book in books) {
+      read += _bookStats[book.bookId]?.versesRead ?? 0;
+    }
+    return read;
   }
 
-  Future<void> _persistBookOrder() async {
-    final orderedBooks = [
-      for (int i = 0; i < _books.length; i++)
-        _books[i].copyWith(readingPlanId: _planId, ord: i + 1),
-    ];
-    _books = orderedBooks;
-    notifyListeners();
+  int get booksRead {
+    var read = 0;
+    for (final book in books) {
+      if (_bookStats[book.bookId]?.isComplete ?? false) read += 1;
+    }
+    return read;
+  }
 
-    await _planService.reorderReadingPlanBooks(_planId, orderedBooks);
+  double get overallProgress =>
+      totalVerses > 0 ? versesRead / totalVerses : 0.0;
+
+  bool get hasEstimate => ReadingPlanEstimates.hasEstimate(
+    remainingVerses: totalVerses - versesRead,
+    goalType: goalType,
+    goalValue: goalValue,
+  );
+  int get estimatedDays => ReadingPlanEstimates.daysFor(
+    remainingVerses: totalVerses - versesRead,
+    goalType: goalType,
+    goalValue: goalValue,
+  );
+  DateTime get estimatedCompletionDate =>
+      DateTime.now().add(Duration(days: estimatedDays));
+
+  // Day Progress
+
+  GoalType get goalType => _planDetails?.dailyGoal.type ?? GoalType.verses;
+  int get goalValue => _planDetails?.dailyGoal.value ?? 0;
+
+  DayProgress? _todaysProgress;
+  DayProgress? get todaysProgress => _todaysProgress;
+
+  double get todaysGoalProgress {
+    if (goalValue <= 0) return 0;
+    final progress = _todaysProgress;
+    final read = progress == null
+        ? 0
+        : goalType == GoalType.verses
+        ? progress.verses
+        : progress.minutes;
+    return read / goalValue;
+  }
+
+  DayProgress? dayProgress(int day) {
+    for (final progress in _monthProgress) {
+      if (progress.day.year == _visibleMonth.year &&
+          progress.day.month == _visibleMonth.month &&
+          progress.day.day == day) {
+        return progress;
+      }
+    }
+    return null;
+  }
+
+  // Calendar data and navigation
+
+  static DateTime _monthStart(DateTime value) =>
+      DateTime(value.year, value.month);
+
+  DateTime _visibleMonth = _monthStart(DateTime.now());
+  DateTime get visibleMonth => _visibleMonth;
+
+  List<DayProgress> _monthProgress = const [];
+  Map<int, bool> get checkedDays => {
+    for (final progress in _monthProgress)
+      progress.day.day: progress.goalReached,
+  };
+
+  Future<void> showPreviousMonth() => _loadMonthStats(-1);
+  Future<void> showNextMonth() => _loadMonthStats(1);
+
+  final _monthScope = CancellationScope();
+  Future<void> _loadMonthStats(int delta) async {
+    return _monthScope.run((guard) async {
+      final month = DateTime(_visibleMonth.year, _visibleMonth.month + delta);
+      final data = await guard(_planService.getMonthProgress(_planId, month));
+      _setState(() {
+        _visibleMonth = month;
+        _monthProgress = data;
+      });
+    });
+  }
+
+  // Book reordering
+
+  final _reorderScope = CancellationScope();
+  Future<void> moveBook(int oldIndex, int newIndex) async {
+    final plan = _planDetails;
+    if (plan == null) return;
+    if (oldIndex < 0 || oldIndex >= plan.books.length) return;
+    if (newIndex < 0 || newIndex >= plan.books.length) return;
+
+    final reorderedBooks = List<ReadingPlanBook>.of(plan.books);
+    final book = reorderedBooks.removeAt(oldIndex);
+    reorderedBooks.insert(newIndex, book);
+    for (var i = 0; i < reorderedBooks.length; i++) {
+      reorderedBooks[i] = reorderedBooks[i].copyWith(
+        readingPlanId: _planId,
+        ord: i + 1,
+      );
+    }
+
+    _setState(() {
+      _planDetails = ReadingPlanDetails(plan.readingPlan, reorderedBooks)
+        ..resumePosition = plan.resumePosition;
+    });
+
+    await _reorderScope.run((guard) async {
+      await guard(
+        _planService.reorderReadingPlanBooks(_planId, reorderedBooks),
+      );
+
+      final resumePosition = await guard(
+        _planService.getResumeReference(_planId),
+      );
+      final current = _planDetails;
+      if (current != null) {
+        _setState(() {
+          _planDetails = ReadingPlanDetails(current.readingPlan, reorderedBooks)
+            ..resumePosition = resumePosition;
+        });
+      }
+    });
+  }
+
+  // Lifecycle utils
+
+  bool _disposed = false;
+  void _setState(VoidCallback fn) {
     if (_disposed) return;
-
-    final resumePosition = await _planService.getResumeReference(_planId);
-    if (_disposed) return;
-
-    _resumePosition = resumePosition;
+    fn();
     notifyListeners();
   }
 
   @override
   void dispose() {
     _disposed = true;
-    monthProgress.dispose();
+    _refreshScope.cancelAll();
+    _monthScope.cancelAll();
+    _reorderScope.cancelAll();
     super.dispose();
   }
 }

@@ -49,6 +49,9 @@ void main() {
     expect(fetchedPlan!.readingPlan.planName, 'Service Test');
     expect(fetchedPlan.readingPlan.goalValue, 15);
     expect(fetchedPlan.books.map((b) => b.bookId), [1, 2, 3]);
+    expect(fetchedPlan.resumePosition?.bookId, 1);
+    expect(fetchedPlan.resumePosition?.chapter, 1);
+    expect(fetchedPlan.resumePosition?.verse, 1);
 
     final bookmarkedPlan = await planService.setReadingPlanBookmark(
       fetchedPlan.readingPlan,
@@ -76,5 +79,42 @@ void main() {
 
     await planService.deleteReadingPlan(savedPlan.id!);
     expect(await planService.getReadingPlanById(savedPlan.id!), isNull);
+  });
+
+  test('loads a single day of progress independently of the month', () async {
+    final savedPlan = await planService.saveReadingPlan(
+      planName: 'Day Progress Test',
+      collectionId: 1,
+      goalType: GoalType.verses,
+      goalValue: 5,
+      selectedBookIds: {63},
+    );
+    final date = DateTime(2026, 11, 5, 13, 30);
+
+    await database.insertSession(
+      RsSession(
+        rsDate: DateTime(date.year, date.month, date.day),
+        startTime: date,
+        endTime: date.add(const Duration(minutes: 12)),
+        readSeconds: 750,
+        verses: 7,
+        readingPlanId: savedPlan.id!,
+      ),
+    );
+    await database.upsertDaySummary(savedPlan.id!, date);
+
+    final progress = await planService.getDayProgress(savedPlan.id!, date);
+    expect(progress.empty, isFalse);
+    expect(progress.day, DateTime(2026, 11, 5));
+    expect(progress.minutes, 12);
+    expect(progress.verses, 7);
+    expect(progress.goalReached, isTrue);
+
+    final empty = await planService.getDayProgress(
+      savedPlan.id!,
+      DateTime(2026, 11, 6),
+    );
+    expect(empty.empty, isTrue);
+    expect(empty.day, DateTime(2026, 11, 6));
   });
 }

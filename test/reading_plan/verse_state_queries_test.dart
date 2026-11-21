@@ -57,6 +57,9 @@ void main() {
       var aggregate = (await database.getBookStats(planId))[63]!;
       expect(aggregate.versesRead, 2);
       expect(aggregate.lastRead, isNotNull);
+      expect(aggregate.resumePosition?.bookId, 63);
+      expect(aggregate.resumePosition?.chapter, 1);
+      expect(aggregate.resumePosition?.verse, 3);
 
       await database.unmarkVerseRead(planId, 63, 1, 1);
       counts = await database.getVerseReadCountsForChapter(planId, 63, 1);
@@ -70,6 +73,7 @@ void main() {
       expect(counts[1], 0);
       aggregate = (await database.getBookStats(planId))[63]!;
       expect(aggregate.versesRead, 1);
+      expect(aggregate.resumePosition?.verse, 1);
     },
   );
 

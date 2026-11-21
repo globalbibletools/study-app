@@ -219,19 +219,19 @@ class ReadingSessionService {
 
         if (existingCount == 0 &&
             await _database.isBookComplete(planId, bookId, executor: txn)) {
-          final reference = Reference(
-            bookId: bookId,
-            chapter: chapter,
-            verse: verse,
+          final completedIndex = config.books.indexWhere(
+            (book) => book.bookId == bookId,
           );
-          final resumePosition = await _database.getResumeReference(
-            planId,
-            after: reference,
-            executor: txn,
-          );
+          final nextBookId =
+              completedIndex >= 0 && completedIndex + 1 < config.books.length
+              ? config.books[completedIndex + 1].bookId
+              : null;
+          final resumePosition = nextBookId == null
+              ? null
+              : Reference(bookId: nextBookId, chapter: 1, verse: 1);
           event = BookCompletedEvent(
             completedBookId: bookId,
-            nextBookId: resumePosition?.bookId,
+            nextBookId: nextBookId,
             resumePosition: resumePosition,
           );
         }

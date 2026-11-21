@@ -173,6 +173,27 @@ void main() {
     );
     await database.markVerseRead(plan.id!, 19, 1, 1);
 
+    final now = DateTime.now();
+    final session = await database.insertSession(
+      RsSession(
+        rsDate: DateTime(now.year, now.month, now.day),
+        startTime: now,
+        endTime: now,
+        verses: 1,
+        readingPlanId: plan.id!,
+      ),
+    );
+    await database.insertLog(
+      RsLog(
+        sessionId: session.id!,
+        bookId: 19,
+        chapter: 1,
+        verse: 1,
+        dateTime: now,
+        readingPlanId: plan.id!,
+      ),
+    );
+
     final viewModel = newViewModel();
     await viewModel.startSession(plan.id!);
 
