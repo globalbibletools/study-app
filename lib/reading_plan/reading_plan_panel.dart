@@ -156,10 +156,7 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
       MaterialPageRoute(
         builder: (context) =>
             widget.planDetailsRouteBuilder?.call(context, plan) ??
-            ReadingPlanDetailPanel(
-              readingPlanDetails: plan,
-              onClose: () => Navigator.of(context).pop(),
-            ),
+            ReadingPlanDetailPanel(readingPlanDetails: plan),
       ),
     );
 

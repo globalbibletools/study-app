@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:material_ui/material_ui.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/l10n/book_names.dart';
@@ -7,14 +9,18 @@ import 'package:gbt/reading_plan/day_activity_log_panel.dart';
 import 'package:gbt/reading_plan/reading_plan_detail_view_model.dart';
 
 class ReadingPlanDetailPanel extends StatefulWidget {
-  final ReadingPlanDetails readingPlanDetails;
-  final Function onClose;
+  final ReadingPlanDetails? readingPlanDetails;
+  final ReadingPlanDetailViewModel? viewModel;
 
   const ReadingPlanDetailPanel({
     super.key,
-    required this.readingPlanDetails,
-    required this.onClose,
-  });
+    required ReadingPlanDetails this.readingPlanDetails,
+  }) : viewModel = null;
+
+  const ReadingPlanDetailPanel.withDependencies({
+    super.key,
+    required this.viewModel,
+  }) : readingPlanDetails = null;
 
   @override
   State<ReadingPlanDetailPanel> createState() => ReadingPlanDetailPanelState();
@@ -26,7 +32,10 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
   @override
   void initState() {
     super.initState();
-    viewModel = ReadingPlanDetailViewModel(plan: widget.readingPlanDetails);
+    viewModel =
+        widget.viewModel ??
+        ReadingPlanDetailViewModel(plan: widget.readingPlanDetails!);
+    unawaited(viewModel.initialize());
   }
 
   @override
@@ -71,26 +80,45 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
   }
 
   Widget _content() {
-    return SingleChildScrollView(
-      // While reordering, the ReorderableListView drives its own scrolling
-      // via its shrink-wrapped, non-scrollable physics below.
-      padding: EdgeInsets.all(8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _progressHeader(),
-          const SizedBox(height: 16),
-          _startResumeButton(),
-          const SizedBox(height: 16),
-          _statsRow(),
-          const SizedBox(height: 30),
-          _goalsContentByMonth(),
-          const SizedBox(height: 20),
-          _booksHeader(),
-          const SizedBox(height: 12),
-          _booksList(),
-        ],
-      ),
+    if (!viewModel.isInitialized) {
+      if (viewModel.loadError != null) {
+        return Center(
+          child: Text(
+            AppLocalizations.of(context)!.errorLoadingContent,
+            textAlign: TextAlign.center,
+          ),
+        );
+      }
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    return Column(
+      children: [
+        if (viewModel.isRefreshing) const LinearProgressIndicator(minHeight: 2),
+        Expanded(
+          child: SingleChildScrollView(
+            // While reordering, the ReorderableListView drives its own
+            // scrolling via its shrink-wrapped, non-scrollable physics below.
+            padding: EdgeInsets.all(8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _progressHeader(),
+                const SizedBox(height: 16),
+                _startResumeButton(),
+                const SizedBox(height: 16),
+                _statsRow(),
+                const SizedBox(height: 30),
+                _goalsContentByMonth(),
+                const SizedBox(height: 20),
+                _booksHeader(),
+                const SizedBox(height: 12),
+                _booksList(),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -158,9 +186,7 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
   Widget _startResumeButton() {
     final l10n = AppLocalizations.of(context)!;
 
-    final txt = viewModel.versesRead == 0
-        ? l10n.startReading
-        : l10n.resumeReading;
+    final txt = viewModel.hasStarted ? l10n.resumeReading : l10n.startReading;
 
     return SizedBox(
       width: double.infinity,
@@ -179,7 +205,10 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
 
           if (!mounted) return;
 
-          widget.onClose();
+          Navigator.of(
+            context,
+            rootNavigator: true,
+          ).popUntil((route) => route.isFirst);
         },
         icon: const Icon(Icons.play_arrow),
         label: Text(txt),
@@ -350,6 +379,7 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
             child: _BookRow(
               name: bookNameFromId(context, book.bookId),
               progress: viewModel.progressForBook(book.bookId),
+              complete: viewModel.isBookComplete(book.bookId),
               reorderable: true,
             ),
           );
@@ -362,6 +392,7 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
         return _BookRow(
           name: bookNameFromId(context, book.bookId),
           progress: viewModel.progressForBook(book.bookId),
+          complete: viewModel.isBookComplete(book.bookId),
         );
       }).toList(),
     );
@@ -375,7 +406,7 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
     await showDialog<void>(
       context: context,
       builder: (context) => DayActivityLogPanel(
-        readingPlanId: widget.readingPlanDetails.readingPlan.id!,
+        readingPlanId: viewModel.planId,
         date: progress.day,
       ),
     );
@@ -399,11 +430,13 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
 class _BookRow extends StatelessWidget {
   final String name;
   final double progress;
+  final bool complete;
   final bool reorderable;
 
   const _BookRow({
     required this.name,
     required this.progress,
+    required this.complete,
     this.reorderable = false,
   });
 
@@ -420,8 +453,8 @@ class _BookRow extends StatelessWidget {
       child: Row(
         children: [
           Icon(
-            progress == 1.0 ? Icons.check_circle : Icons.circle_outlined,
-            color: progress == 1.0 ? colorScheme.primary : colorScheme.outline,
+            complete ? Icons.check_circle : Icons.circle_outlined,
+            color: complete ? colorScheme.primary : colorScheme.outline,
           ),
           const SizedBox(width: 12),
           Expanded(

@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gbt/asyncutils/cancellation.dart';
 import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/common/reference.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
@@ -28,6 +31,26 @@ class FailingBookmarkPlanService extends ReadingPlanService {
   ) async {
     await Future<void>.delayed(Duration.zero);
     throw StateError('bookmark write failed');
+  }
+}
+
+/// Queues book-stat reads so tests can hold refreshes in flight.
+class QueuedStatsPlanService extends ReadingPlanService {
+  QueuedStatsPlanService(
+    ReadingSessionDatabase database,
+    BibleNavigation bibleNavigation,
+  ) : super.withDependencies(
+        database: database,
+        bibleNavigation: bibleNavigation,
+      );
+
+  final statsRequests = <Completer<List<RsBookStats>>>[];
+
+  @override
+  Future<List<RsBookStats>> getBooksStats(int readingPlanId) {
+    final request = Completer<List<RsBookStats>>();
+    statsRequests.add(request);
+    return request.future;
   }
 }
 
@@ -101,7 +124,6 @@ void main() {
       plan: plan,
       planService: service ?? planService,
       sessionViewModel: sessionViewModel,
-      bibleNavigation: bibleNavigation,
     );
   }
 
@@ -148,7 +170,7 @@ void main() {
         await database.upsertDaySummary(planId, now);
 
         final viewModel = newViewModel(details);
-        await viewModel.ready;
+        await viewModel.initialize();
 
         expect(viewModel.totalVerses, 28);
         expect(viewModel.versesRead, 13);
@@ -167,21 +189,55 @@ void main() {
       },
     );
 
-    test('deduplicates concurrent refresh calls', () async {
+    test('a newer refresh cancels the in-flight one and wins', () async {
       final details = await savePlan(bookIds: {8});
-      final viewModel = newViewModel(details);
+      final service = QueuedStatsPlanService(database, bibleNavigation);
+      final viewModel = newViewModel(details, service: service);
+      addTearDown(viewModel.dispose);
 
-      final first = viewModel.refresh();
+      final first = viewModel.initialize();
       final second = viewModel.refresh();
 
-      expect(identical(first, second), isTrue);
-      await first;
+      expect(service.statsRequests, hasLength(2));
+
+      service.statsRequests[0].complete(const []);
+      await expectLater(first, throwsA(isA<CancelledError>()));
+
+      service.statsRequests[1].complete([
+        RsBookStats(bookId: 8, totalVerses: 85, versesRead: 85, lastRead: null),
+      ]);
+      await second;
+
+      expect(viewModel.isInitialized, isTrue);
+      expect(viewModel.versesRead, 85);
+      expect(viewModel.isBookComplete(8), isTrue);
+      expect(viewModel.hasStarted, isTrue);
     });
+
+    test(
+      'does not notify after dispose while a refresh is in flight',
+      () async {
+        final details = await savePlan(bookIds: {8});
+        final service = QueuedStatsPlanService(database, bibleNavigation);
+        final viewModel = newViewModel(details, service: service);
+        var notifications = 0;
+        viewModel.addListener(() => notifications++);
+
+        final future = viewModel.refresh();
+        final notificationsBeforeDispose = notifications;
+
+        viewModel.dispose();
+        service.statsRequests.single.complete(const []);
+        await expectLater(future, throwsA(isA<CancelledError>()));
+
+        expect(notifications, notificationsBeforeDispose);
+      },
+    );
 
     test('loadMonthData replaces the calendar month data', () async {
       final details = await savePlan(bookIds: {8});
       final viewModel = newViewModel(details);
-      await viewModel.ready;
+      await viewModel.initialize();
 
       await viewModel.loadMonthData(DateTime(2026, 11, 1));
 
@@ -194,7 +250,7 @@ void main() {
     test('toggles optimistically and persists the new state', () async {
       final details = await savePlan(bookIds: {8});
       final viewModel = newViewModel(details);
-      await viewModel.ready;
+      await viewModel.initialize();
 
       expect(viewModel.isBookmarked, isFalse);
 
@@ -226,7 +282,7 @@ void main() {
         bibleNavigation,
       );
       final viewModel = newViewModel(details, service: failingService);
-      await viewModel.ready;
+      await viewModel.initialize();
 
       final future = viewModel.toggleBookmark();
       expect(viewModel.isBookmarked, isTrue);
@@ -251,7 +307,7 @@ void main() {
         final details = (await planService.getReadingPlanById(plan.id!))!;
 
         final viewModel = newViewModel(details);
-        await viewModel.ready;
+        await viewModel.initialize();
 
         expect(viewModel.resumePosition?.bookId, 1);
 
@@ -287,7 +343,7 @@ void main() {
 
         final sparseService = SparseStatsPlanService(database, bibleNavigation);
         final viewModel = newViewModel(details, service: sparseService);
-        await viewModel.ready;
+        await viewModel.initialize();
 
         expect(viewModel.bookStats.keys, [63]);
         expect(viewModel.progressForBook(63), closeTo(1 / 13, 1e-9));
@@ -306,7 +362,7 @@ void main() {
         goalValue: 10,
       );
       final viewModel = newViewModel(details);
-      await viewModel.ready;
+      await viewModel.initialize();
 
       expect(viewModel.totalVerses, 85);
       expect(viewModel.hasEstimate, isTrue);
@@ -321,7 +377,7 @@ void main() {
         goalValue: 5,
       );
       final viewModel = newViewModel(details);
-      await viewModel.ready;
+      await viewModel.initialize();
 
       // ceil(85 / (5 minutes * 5 verses/minute)) = ceil(85 / 25) = 4
       expect(viewModel.estimatedDays, 4);
@@ -335,7 +391,7 @@ void main() {
       await database.markVerseRead(planId, 8, 1, 1);
 
       final viewModel = newViewModel(details);
-      await viewModel.ready;
+      await viewModel.initialize();
 
       expect(
         viewModel.resumePosition,
