@@ -47,7 +47,7 @@ class ReadingPlanPanelViewModel extends ChangeNotifier {
   }
 
   final _refreshScope = CancellationScope();
-  Future<void> refresh([int? planId]) {
+  Future<void> refresh() {
     return _refreshScope.run((guard) async {
       final plans = await guard(_planService.getReadingPlansWithProgress());
       _setState(() {
@@ -58,10 +58,7 @@ class ReadingPlanPanelViewModel extends ChangeNotifier {
 
   Future<void> deletePlan(int planId) async {
     await _planService.deleteReadingPlan(planId);
-
-    _setState(() {
-      _plans = _plans.where((plan) => plan.readingPlan.id != planId).toList();
-    });
+    await refresh();
   }
 
   Future<void> startReadingSession(ReadingPlanDetails plan) async {

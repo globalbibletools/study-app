@@ -152,7 +152,8 @@ void main() {
     test(
       'refresh replaces the plan list with the latest database state',
       () async {
-        await viewModel.refresh();
+        await viewModel.initialize();
+        expect(viewModel.isInitialized, isTrue);
         expect(viewModel.plans, isEmpty);
 
         await savePlan(name: 'First', bookIds: {1});
