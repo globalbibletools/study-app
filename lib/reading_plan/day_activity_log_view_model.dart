@@ -36,12 +36,15 @@ class DayActivityLogViewModel extends ChangeNotifier {
   int get totalSeconds =>
       _sessions.fold(0, (sum, session) => sum + session.rsSession.readSeconds);
 
-  int get totalMinutes => totalSeconds ~/ 60;
+  double get totalMinutes => _roundMinutes(totalSeconds / 60);
 
   int get totalVerses =>
       _sessions.fold(0, (sum, session) => sum + session.rsSession.verses);
 
-  int minutesFor(SessionDetails session) => session.rsSession.readSeconds ~/ 60;
+  double minutesFor(SessionDetails session) =>
+      _roundMinutes(session.rsSession.readSeconds / 60);
+
+  double _roundMinutes(num minutes) => (minutes * 10).round() / 10;
 
   bool _isRefreshing = false;
   bool get isRefreshing => _isRefreshing;

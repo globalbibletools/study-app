@@ -168,6 +168,28 @@ void main() {
     expect((progress[1].fromVerse, progress[1].toVerse), (4, 4));
   });
 
+  test('rounds session and total minutes to one decimal place', () async {
+    final planId = await createPlan();
+
+    final first = await insertSession(planId, readSeconds: 90, verses: 1);
+    await insertLog(first, 63, 1, 1);
+
+    final second = await insertSession(
+      planId,
+      readSeconds: 100,
+      verses: 1,
+      startTime: DateTime(2026, 11, 17, 14),
+    );
+    await insertLog(second, 63, 1, 2);
+
+    final viewModel = newViewModel(planId);
+    await viewModel.ready;
+
+    expect(viewModel.minutesFor(viewModel.sessions.first), 1.5);
+    expect(viewModel.minutesFor(viewModel.sessions.last), 1.7);
+    expect(viewModel.totalMinutes, 3.2);
+  });
+
   test('ignores sessions from other plans and days', () async {
     final planId = await createPlan();
     final otherPlan = await planService.saveReadingPlan(

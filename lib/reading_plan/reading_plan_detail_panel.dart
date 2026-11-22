@@ -312,14 +312,15 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
       return;
     }
 
-    await showDialog<void>(
-      context: context,
-      builder: (context) =>
-          widget.dayActivityLogBuilder?.call(context, progress.day) ??
-          DayActivityLogPanel(
-            readingPlanId: viewModel.planId,
-            date: progress.day,
-          ),
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (context) =>
+            widget.dayActivityLogBuilder?.call(context, progress.day) ??
+            DayActivityLogPanel(
+              readingPlanId: viewModel.planId,
+              date: progress.day,
+            ),
+      ),
     );
   }
 

@@ -382,6 +382,28 @@ void main() {
       expect(find.text('Activity for ${now.day}'), findsOneWidget);
     });
 
+    testWidgets('opens the log as a navigated page', (tester) async {
+      final now = DateTime.now();
+      final service = FakeReadingPlanService()
+        ..bookStats = bookStats()
+        ..monthProgress = currentMonthProgress(verses: 3, minutes: 7);
+      final viewModel = newViewModel(planDetails(), service);
+
+      await openDetail(
+        tester,
+        viewModel,
+        dayActivityLogBuilder: (context, date) =>
+            Text('Activity page for ${date.day}'),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('${now.day}'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Activity page for ${now.day}'), findsOneWidget);
+      expect(find.byType(Dialog), findsNothing);
+    });
+
     testWidgets('does not open the log for an empty day', (tester) async {
       final now = DateTime.now();
       final service = FakeReadingPlanService()
