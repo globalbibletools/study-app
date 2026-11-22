@@ -145,10 +145,14 @@ void main() {
     await insertLog(second, 63, 2, 2);
 
     final viewModel = newViewModel(planId);
-    await viewModel.ready;
+    expect(viewModel.sessions, isEmpty);
+    expect(viewModel.isInitialized, isFalse);
+
+    await viewModel.initialize();
 
     expect(viewModel.readingPlanId, planId);
     expect(viewModel.date, date);
+    expect(viewModel.isInitialized, isTrue);
     expect(viewModel.sessionCount, 2);
     expect(viewModel.sessions, hasLength(2));
     expect(viewModel.totalSeconds, 900);
@@ -183,7 +187,7 @@ void main() {
     await insertLog(second, 63, 1, 2);
 
     final viewModel = newViewModel(planId);
-    await viewModel.ready;
+    await viewModel.initialize();
 
     expect(viewModel.minutesFor(viewModel.sessions.first), 1.5);
     expect(viewModel.minutesFor(viewModel.sessions.last), 1.7);
@@ -222,7 +226,7 @@ void main() {
     );
 
     final viewModel = newViewModel(planId);
-    await viewModel.ready;
+    await viewModel.initialize();
 
     expect(viewModel.sessionCount, 1);
     expect(viewModel.totalSeconds, 60);
@@ -232,7 +236,7 @@ void main() {
   test('deduplicates concurrent refresh calls', () async {
     final planId = await createPlan();
     final viewModel = newViewModel(planId);
-    await viewModel.ready;
+    await viewModel.initialize();
 
     final first = viewModel.refresh();
     final second = viewModel.refresh();
@@ -241,7 +245,7 @@ void main() {
     await first;
   });
 
-  test('captures a load error instead of throwing from ready', () async {
+  test('captures a load error instead of throwing from initialize', () async {
     final planId = await createPlan();
     final flaky = FlakyPlanService(database, failures: 1);
     final viewModel = DayActivityLogViewModel.withDependencies(
@@ -250,7 +254,7 @@ void main() {
       planService: flaky,
     );
 
-    await viewModel.ready;
+    await viewModel.initialize();
 
     expect(viewModel.loadError, isA<StateError>());
     expect(viewModel.sessions, isEmpty);
@@ -268,7 +272,7 @@ void main() {
       date: date,
       planService: flaky,
     );
-    await viewModel.ready;
+    await viewModel.initialize();
     expect(viewModel.loadError, isNotNull);
 
     await viewModel.refresh();

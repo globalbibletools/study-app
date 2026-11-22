@@ -4,15 +4,40 @@ import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
 import 'package:gbt/reading_plan/day_activity_log_view_model.dart';
 
-class DayActivityLogPanel extends StatefulWidget {
-  final int readingPlanId;
-  final DateTime date;
+typedef DayActivityLogNavigator =
+    Future<void> Function(BuildContext context, DateTime date);
 
-  const DayActivityLogPanel({
-    super.key,
-    required this.readingPlanId,
-    required this.date,
-  });
+class DayActivityLogPanel extends StatefulWidget {
+  final DayActivityLogViewModel viewModel;
+
+  const DayActivityLogPanel({super.key, required this.viewModel});
+
+  static Future<void> navigateTo(
+    BuildContext context,
+    DateTime date, {
+    required int readingPlanId,
+  }) async {
+    final viewModel = DayActivityLogViewModel(
+      readingPlanId: readingPlanId,
+      date: date,
+    );
+    await viewModel.initialize();
+    if (!context.mounted) {
+      viewModel.dispose();
+      return;
+    }
+
+    try {
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          builder: (context) => DayActivityLogPanel(viewModel: viewModel),
+        ),
+      );
+    } catch (_) {
+      viewModel.dispose();
+      rethrow;
+    }
+  }
 
   @override
   State<DayActivityLogPanel> createState() => _DayActivityLogPanelState();
@@ -24,10 +49,7 @@ class _DayActivityLogPanelState extends State<DayActivityLogPanel> {
   @override
   void initState() {
     super.initState();
-    viewModel = DayActivityLogViewModel(
-      readingPlanId: widget.readingPlanId,
-      date: widget.date,
-    );
+    viewModel = widget.viewModel;
   }
 
   @override

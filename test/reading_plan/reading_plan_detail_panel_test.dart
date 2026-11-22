@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gbt/common/reference.dart';
 import 'package:gbt/l10n/app_localizations.dart';
+import 'package:gbt/reading_plan/day_activity_log_panel.dart';
 import 'package:gbt/reading_plan/reading_plan_detail_panel.dart';
 import 'package:gbt/reading_plan/reading_plan_detail_view_model.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
@@ -46,14 +47,14 @@ void main() {
     ReadingPlanDetailViewModel viewModel, {
     Widget Function(BuildContext context, ReadingPlanDetails plan)?
     editPlanBuilder,
-    Widget Function(BuildContext context, DateTime date)? dayActivityLogBuilder,
+    DayActivityLogNavigator? dayActivityLogNavigator,
   }) async {
     await tester.pumpWidget(
       buildApp(
         _DetailLauncher(
           viewModel: viewModel,
           editPlanBuilder: editPlanBuilder,
-          dayActivityLogBuilder: dayActivityLogBuilder,
+          dayActivityLogNavigator: dayActivityLogNavigator,
         ),
       ),
     );
@@ -371,8 +372,14 @@ void main() {
       await openDetail(
         tester,
         viewModel,
-        dayActivityLogBuilder: (context, date) =>
-            AlertDialog(content: Text('Activity for ${date.day}')),
+        dayActivityLogNavigator: (context, date) {
+          return Navigator.of(context).push<void>(
+            MaterialPageRoute(
+              builder: (_) =>
+                  AlertDialog(content: Text('Activity for ${date.day}')),
+            ),
+          );
+        },
       );
       await tester.pumpAndSettle();
 
@@ -382,7 +389,9 @@ void main() {
       expect(find.text('Activity for ${now.day}'), findsOneWidget);
     });
 
-    testWidgets('opens the log as a navigated page', (tester) async {
+    testWidgets('delegates day log navigation to the injected navigator', (
+      tester,
+    ) async {
       final now = DateTime.now();
       final service = FakeReadingPlanService()
         ..bookStats = bookStats()
@@ -392,8 +401,13 @@ void main() {
       await openDetail(
         tester,
         viewModel,
-        dayActivityLogBuilder: (context, date) =>
-            Text('Activity page for ${date.day}'),
+        dayActivityLogNavigator: (context, date) {
+          return Navigator.of(context).push<void>(
+            MaterialPageRoute(
+              builder: (_) => Text('Activity page for ${date.day}'),
+            ),
+          );
+        },
       );
       await tester.pumpAndSettle();
 
@@ -415,9 +429,8 @@ void main() {
       await openDetail(
         tester,
         viewModel,
-        dayActivityLogBuilder: (context, date) {
+        dayActivityLogNavigator: (context, date) async {
           opened = true;
-          return AlertDialog(content: Text('Activity for ${date.day}'));
         },
       );
       await tester.pumpAndSettle();
@@ -450,14 +463,13 @@ class _DetailLauncher extends StatelessWidget {
   const _DetailLauncher({
     required this.viewModel,
     this.editPlanBuilder,
-    this.dayActivityLogBuilder,
+    this.dayActivityLogNavigator,
   });
 
   final ReadingPlanDetailViewModel viewModel;
   final Widget Function(BuildContext context, ReadingPlanDetails plan)?
   editPlanBuilder;
-  final Widget Function(BuildContext context, DateTime date)?
-  dayActivityLogBuilder;
+  final DayActivityLogNavigator? dayActivityLogNavigator;
 
   @override
   Widget build(BuildContext context) {
@@ -470,7 +482,7 @@ class _DetailLauncher extends StatelessWidget {
                 builder: (_) => ReadingPlanDetailPanel.withDependencies(
                   viewModel: viewModel,
                   editPlanBuilder: editPlanBuilder,
-                  dayActivityLogBuilder: dayActivityLogBuilder,
+                  dayActivityLogNavigator: dayActivityLogNavigator,
                 ),
               ),
             );

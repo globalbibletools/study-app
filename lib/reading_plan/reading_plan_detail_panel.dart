@@ -15,21 +15,20 @@ class ReadingPlanDetailPanel extends StatefulWidget {
   final ReadingPlanDetailViewModel? viewModel;
   final Widget Function(BuildContext context, ReadingPlanDetails plan)?
   editPlanBuilder;
-  final Widget Function(BuildContext context, DateTime date)?
-  dayActivityLogBuilder;
+  final DayActivityLogNavigator? dayActivityLogNavigator;
 
   const ReadingPlanDetailPanel({
     super.key,
     required this.planId,
     this.editPlanBuilder,
-    this.dayActivityLogBuilder,
+    this.dayActivityLogNavigator,
   }) : viewModel = null;
 
   const ReadingPlanDetailPanel.withDependencies({
     super.key,
     required this.viewModel,
     this.editPlanBuilder,
-    this.dayActivityLogBuilder,
+    this.dayActivityLogNavigator,
   }) : planId = 0;
 
   @override
@@ -38,6 +37,7 @@ class ReadingPlanDetailPanel extends StatefulWidget {
 
 class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
   late final ReadingPlanDetailViewModel viewModel;
+  bool _openingActivityLog = false;
 
   @override
   void initState() {
@@ -308,20 +308,26 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
 
   Future<void> _openDayActivityLog(int day) async {
     final progress = viewModel.dayProgress(day);
-    if (progress == null || progress.empty) {
+    if (progress == null || progress.empty || _openingActivityLog) {
       return;
     }
 
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute(
-        builder: (context) =>
-            widget.dayActivityLogBuilder?.call(context, progress.day) ??
-            DayActivityLogPanel(
-              readingPlanId: viewModel.planId,
-              date: progress.day,
-            ),
-      ),
-    );
+    _openingActivityLog = true;
+    try {
+      final navigator = widget.dayActivityLogNavigator;
+      if (navigator != null) {
+        await navigator(context, progress.day);
+        return;
+      }
+
+      await DayActivityLogPanel.navigateTo(
+        context,
+        progress.day,
+        readingPlanId: viewModel.planId,
+      );
+    } finally {
+      _openingActivityLog = false;
+    }
   }
 
   Widget _goalsContentByMonth() {

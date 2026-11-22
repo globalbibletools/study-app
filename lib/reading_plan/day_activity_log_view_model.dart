@@ -4,18 +4,12 @@ import 'package:gbt/reading_plan/rs_model.dart';
 import 'package:gbt/services/service_locator.dart';
 
 class DayActivityLogViewModel extends ChangeNotifier {
-  factory DayActivityLogViewModel({
-    required int readingPlanId,
-    required DateTime date,
-  }) {
-    final viewModel = DayActivityLogViewModel.withDependencies(
-      readingPlanId: readingPlanId,
-      date: date,
-      planService: getIt<ReadingPlanService>(),
-    );
-    viewModel._initFuture = viewModel.refresh();
-    return viewModel;
-  }
+  DayActivityLogViewModel({required int readingPlanId, required DateTime date})
+    : this.withDependencies(
+        readingPlanId: readingPlanId,
+        date: date,
+        planService: getIt<ReadingPlanService>(),
+      );
 
   DayActivityLogViewModel.withDependencies({
     required this.readingPlanId,
@@ -46,6 +40,12 @@ class DayActivityLogViewModel extends ChangeNotifier {
 
   double _roundMinutes(num minutes) => (minutes * 10).round() / 10;
 
+  bool _isInitialized = false;
+  bool get isInitialized => _isInitialized;
+
+  Future<void>? _initialization;
+  Future<void> initialize() => _initialization ??= refresh();
+
   bool _isRefreshing = false;
   bool get isRefreshing => _isRefreshing;
 
@@ -53,9 +53,6 @@ class DayActivityLogViewModel extends ChangeNotifier {
   Object? get loadError => _loadError;
 
   bool _disposed = false;
-
-  Future<void>? _initFuture;
-  Future<void> get ready => _initFuture ??= refresh();
 
   Future<void>? _refreshFuture;
 
@@ -85,6 +82,7 @@ class DayActivityLogViewModel extends ChangeNotifier {
       _loadError = error;
     } finally {
       _isRefreshing = false;
+      _isInitialized = true;
       _refreshFuture = null;
       if (!_disposed) notifyListeners();
     }
