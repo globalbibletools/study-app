@@ -27,7 +27,7 @@ void main() {
     FakeReadingPlanService service,
   ) {
     service.plans = [plan];
-    return ReadingPlanDetailViewModel.createWithDependencies(
+    return ReadingPlanDetailViewModel.create(
       planId: plan.readingPlan.id!,
       planService: service,
       sessionViewModel: sessionViewModel,

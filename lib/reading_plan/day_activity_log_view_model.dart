@@ -14,27 +14,17 @@ class DayActivityLogViewModel extends ChangeNotifier {
   static Future<DayActivityLogViewModel> create({
     required int readingPlanId,
     required DateTime date,
-  }) {
-    return createWithDependencies(
-      readingPlanId: readingPlanId,
-      date: date,
-      planService: getIt<ReadingPlanService>(),
-    );
-  }
-
-  static Future<DayActivityLogViewModel> createWithDependencies({
-    required int readingPlanId,
-    required DateTime date,
-    required ReadingPlanService planService,
+    ReadingPlanService? planService,
   }) async {
+    final service = planService ?? getIt<ReadingPlanService>();
     final viewModel = DayActivityLogViewModel._(
       readingPlanId: readingPlanId,
       date: date,
-      planService: planService,
+      planService: service,
     );
 
     try {
-      viewModel._sessions = await planService.getDetailedProgressFor(
+      viewModel._sessions = await service.getDetailedProgressFor(
         date,
         readingPlanId,
       );

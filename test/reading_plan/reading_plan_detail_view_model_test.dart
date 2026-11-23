@@ -18,7 +18,7 @@ void main() {
     FakeReadingPlanService service, {
     int planId = 7,
   }) async {
-    final viewModel = await ReadingPlanDetailViewModel.createWithDependencies(
+    final viewModel = await ReadingPlanDetailViewModel.create(
       planId: planId,
       planService: service,
       sessionViewModel: sessionViewModel,
@@ -124,12 +124,11 @@ void main() {
       () async {
         final details = planDetails(bookIds: const [8]);
         final service = FakeReadingPlanService([details]);
-        final viewModel =
-            await ReadingPlanDetailViewModel.createWithDependencies(
-              planId: 7,
-              planService: service,
-              sessionViewModel: sessionViewModel,
-            );
+        final viewModel = await ReadingPlanDetailViewModel.create(
+          planId: 7,
+          planService: service,
+          sessionViewModel: sessionViewModel,
+        );
         service.queuePlanRequests = true;
 
         var notifications = 0;

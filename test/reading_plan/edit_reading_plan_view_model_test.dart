@@ -18,7 +18,7 @@ void main() {
   });
 
   Future<EditReadingPlanViewModel> newViewModel([String name = 'Test Plan']) {
-    return EditReadingPlanViewModel.createNewWithDependencies(
+    return EditReadingPlanViewModel.createNew(
       name,
       planService: planService,
       bibleNavigation: bibleNavigation,
@@ -29,7 +29,7 @@ void main() {
     ReadingPlanDetails details,
   ) {
     planService.plans = [details];
-    return EditReadingPlanViewModel.createExistingWithDependencies(
+    return EditReadingPlanViewModel.createExisting(
       details.readingPlan.id!,
       planService: planService,
       bibleNavigation: bibleNavigation,

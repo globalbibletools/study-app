@@ -17,7 +17,7 @@ void main() {
   });
 
   Future<DayActivityLogViewModel> newViewModel() async {
-    final viewModel = await DayActivityLogViewModel.createWithDependencies(
+    final viewModel = await DayActivityLogViewModel.create(
       readingPlanId: planId,
       date: date,
       planService: planService,
@@ -158,7 +158,7 @@ void main() {
       'does not notify after dispose while a refresh is in flight',
       () async {
         planService.detailedProgress = [session()];
-        final viewModel = await DayActivityLogViewModel.createWithDependencies(
+        final viewModel = await DayActivityLogViewModel.create(
           readingPlanId: planId,
           date: date,
           planService: planService,

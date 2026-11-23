@@ -49,48 +49,33 @@ class EditReadingPlanViewModel extends ChangeNotifier {
     _name = readingPlan.readingPlan.planName;
   }
 
-  static Future<EditReadingPlanViewModel> createNew(String name) {
-    return createNewWithDependencies(
-      name,
-      planService: getIt<ReadingPlanService>(),
-      bibleNavigation: getIt<BibleNavigation>(),
-    );
-  }
-
-  static Future<EditReadingPlanViewModel> createExisting(int planId) {
-    return createExistingWithDependencies(
-      planId,
-      planService: getIt<ReadingPlanService>(),
-      bibleNavigation: getIt<BibleNavigation>(),
-    );
-  }
-
-  static Future<EditReadingPlanViewModel> createNewWithDependencies(
+  static Future<EditReadingPlanViewModel> createNew(
     String name, {
-    required ReadingPlanService planService,
-    required BibleNavigation bibleNavigation,
+    ReadingPlanService? planService,
+    BibleNavigation? bibleNavigation,
   }) async {
     return EditReadingPlanViewModel._(
       defaultPlan(name),
-      planService: planService,
-      bibleNavigation: bibleNavigation,
+      planService: planService ?? getIt<ReadingPlanService>(),
+      bibleNavigation: bibleNavigation ?? getIt<BibleNavigation>(),
     );
   }
 
-  static Future<EditReadingPlanViewModel> createExistingWithDependencies(
+  static Future<EditReadingPlanViewModel> createExisting(
     int planId, {
-    required ReadingPlanService planService,
-    required BibleNavigation bibleNavigation,
+    ReadingPlanService? planService,
+    BibleNavigation? bibleNavigation,
   }) async {
-    final planDetails = await planService.getReadingPlanById(planId);
+    final service = planService ?? getIt<ReadingPlanService>();
+    final planDetails = await service.getReadingPlanById(planId);
     if (planDetails == null) {
       throw StateError('Reading plan not found');
     }
 
     return EditReadingPlanViewModel._(
       planDetails,
-      planService: planService,
-      bibleNavigation: bibleNavigation,
+      planService: service,
+      bibleNavigation: bibleNavigation ?? getIt<BibleNavigation>(),
     );
   }
 

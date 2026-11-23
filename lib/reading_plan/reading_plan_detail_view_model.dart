@@ -18,23 +18,15 @@ class ReadingPlanDetailViewModel extends ChangeNotifier {
        _planService = planService,
        _sessionViewModel = sessionViewModel;
 
-  static Future<ReadingPlanDetailViewModel> create({required int planId}) {
-    return createWithDependencies(
-      planId: planId,
-      planService: getIt<ReadingPlanService>(),
-      sessionViewModel: getIt<ReadingSessionViewModel>(),
-    );
-  }
-
-  static Future<ReadingPlanDetailViewModel> createWithDependencies({
+  static Future<ReadingPlanDetailViewModel> create({
     required int planId,
-    required ReadingPlanService planService,
-    required ReadingSessionViewModel sessionViewModel,
+    ReadingPlanService? planService,
+    ReadingSessionViewModel? sessionViewModel,
   }) async {
     final viewModel = ReadingPlanDetailViewModel._(
       planId: planId,
-      planService: planService,
-      sessionViewModel: sessionViewModel,
+      planService: planService ?? getIt<ReadingPlanService>(),
+      sessionViewModel: sessionViewModel ?? getIt<ReadingSessionViewModel>(),
     );
 
     try {

@@ -21,7 +21,7 @@ void main() {
   });
 
   Future<DayActivityLogViewModel> newViewModel() {
-    return DayActivityLogViewModel.createWithDependencies(
+    return DayActivityLogViewModel.create(
       readingPlanId: 1,
       date: date,
       planService: planService,
