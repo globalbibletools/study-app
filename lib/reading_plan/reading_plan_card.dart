@@ -29,7 +29,7 @@ class ReadingPlanCard extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 32),
       child: Stack(
         clipBehavior: Clip.none,
         children: [
@@ -67,8 +67,8 @@ class ReadingPlanCard extends StatelessWidget {
             ),
           ),
           if (plan.readingPlan.isBookmarked)
-            Positioned(left: -8, top: 14, child: _bookmarkRibbon(context)),
-          Positioned(left: 24, bottom: -12, child: _dailyGoalLabel(context)),
+            Positioned(left: -8, top: 16, child: _bookmarkRibbon(context)),
+          Positioned(left: 16, bottom: -12, child: _dailyGoalLabel(context)),
         ],
       ),
     );
@@ -77,26 +77,10 @@ class ReadingPlanCard extends StatelessWidget {
   Widget _bookmarkRibbon(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Container(
+    return Transform.rotate(
       key: ValueKey('plan-bookmark-ribbon-${plan.readingPlan.id}'),
-      width: 24,
-      height: 32,
-      decoration: BoxDecoration(
-        color: colorScheme.primary,
-        borderRadius: const BorderRadius.horizontal(right: Radius.circular(8)),
-        boxShadow: [
-          BoxShadow(
-            color: colorScheme.shadow.withValues(alpha: 0.2),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Icon(
-        Icons.bookmark_rounded,
-        color: colorScheme.onPrimary,
-        size: 16,
-      ),
+      angle: math.pi / 2,
+      child: Icon(Icons.bookmark, color: colorScheme.primary, size: 28),
     );
   }
 
@@ -118,10 +102,10 @@ class ReadingPlanCard extends StatelessWidget {
 
     return Container(
       key: ValueKey('plan-daily-goal-${plan.readingPlan.id}'),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: colorScheme.primary,
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
             color: colorScheme.shadow.withValues(alpha: 0.2),
@@ -135,12 +119,12 @@ class ReadingPlanCard extends StatelessWidget {
         spacing: 4,
         children: [
           if (goalReached)
-            Icon(Icons.check, color: colorScheme.onPrimary, size: 14),
+            Icon(Icons.check, color: colorScheme.onPrimary, size: 12),
           Text(
             label,
             style: TextStyle(
               color: colorScheme.onPrimary,
-              fontSize: 12,
+              fontSize: 11,
               fontWeight: FontWeight.w600,
             ),
           ),
