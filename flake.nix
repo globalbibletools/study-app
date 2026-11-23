@@ -45,7 +45,7 @@
         devShells.default = pkgs.mkShell {
 
           packages = with pkgs; [
-            flutter347
+            flutter350
             jdk21
             android-sdk
             gradle
