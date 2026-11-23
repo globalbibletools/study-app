@@ -134,6 +134,22 @@ void main() {
       expect(viewModel.totalVerses, 3);
     });
 
+    test('deletes a manual session and refreshes the session list', () async {
+      planService.detailedProgress = [
+        session(id: 1, readSeconds: 60, verses: 1),
+        session(id: 2, isManual: true, readSeconds: 300, verses: 2),
+      ];
+      final viewModel = newViewModel();
+      await viewModel.initialize();
+
+      await viewModel.deleteManualSession(2);
+
+      expect(planService.deletedManualSessionIds, [2]);
+      expect(viewModel.sessions.map((entry) => entry.rsSession.id), [1]);
+      expect(viewModel.totalMinutes, 1);
+      expect(viewModel.totalVerses, 1);
+    });
+
     test('propagates a load error from initialize', () async {
       planService.detailedProgressError = StateError(
         'detailed progress query failed',

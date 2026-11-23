@@ -49,6 +49,11 @@ class DayActivityLogViewModel extends ChangeNotifier {
     await refresh();
   }
 
+  Future<void> deleteManualSession(int sessionId) async {
+    await _planService.deleteManualSession(sessionId);
+    await refresh();
+  }
+
   final int readingPlanId;
   final DateTime date;
 

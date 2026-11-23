@@ -20,6 +20,7 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
   final detailedProgressDates = <DateTime>[];
   final detailedProgressPlanIds = <int>[];
   final addedManualSessions = <AddManualSessionCall>[];
+  final deletedManualSessionIds = <int>[];
   final deletedPlanIds = <int>[];
   final bookmarkedValues = <bool>[];
   final reorderedBooks = <List<ReadingPlanBook>>[];
@@ -173,6 +174,15 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
     );
     detailedProgress = [...detailedProgress, session];
     return session;
+  }
+
+  @override
+  Future<bool> deleteManualSession(int sessionId) async {
+    deletedManualSessionIds.add(sessionId);
+    detailedProgress = detailedProgress
+        .where((session) => session.rsSession.id != sessionId)
+        .toList();
+    return true;
   }
 
   @override

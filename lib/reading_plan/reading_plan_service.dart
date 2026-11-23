@@ -110,6 +110,40 @@ class ReadingPlanService {
     return SessionDetails(session, const []);
   }
 
+  Future<bool> deleteManualSession(int sessionId) async {
+    final session = await _database.getSessionById(sessionId);
+    if (session == null) return false;
+    if (!session.isManual) {
+      throw StateError('Only manual sessions can be deleted.');
+    }
+
+    await _database.transaction((txn) async {
+      await _database.deleteSession(sessionId, executor: txn);
+
+      final remaining = await _database.getSessionCountForDate(
+        session.rsDate,
+        session.readingPlanId,
+        executor: txn,
+      );
+      if (remaining == 0) {
+        await _database.deleteDaySummary(
+          session.readingPlanId,
+          session.rsDate,
+          executor: txn,
+        );
+      } else {
+        await _database.upsertDaySummary(
+          session.readingPlanId,
+          session.rsDate,
+          preserveStoredGoalSnapshot: !_sameDay(session.rsDate, DateTime.now()),
+          executor: txn,
+        );
+      }
+    });
+
+    return true;
+  }
+
   static bool _sameDay(DateTime a, DateTime b) {
     return a.year == b.year && a.month == b.month && a.day == b.day;
   }

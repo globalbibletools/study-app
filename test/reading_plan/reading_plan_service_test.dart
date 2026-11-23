@@ -242,6 +242,73 @@ void main() {
     );
   });
 
+  test('deletes manual sessions and recalculates the day summary', () async {
+    final savedPlan = await planService.saveReadingPlan(
+      planName: 'Manual Delete Test',
+      collectionId: 1,
+      goalType: GoalType.minutes,
+      goalValue: 10,
+      selectedBookIds: {63},
+    );
+    final date = DateTime(2026, 11, 20);
+
+    final first = await planService.addManualSession(
+      readingPlanId: savedPlan.id!,
+      date: date,
+      minutes: 6,
+      verses: 4,
+    );
+    final second = await planService.addManualSession(
+      readingPlanId: savedPlan.id!,
+      date: date,
+      minutes: 5,
+      verses: 2,
+    );
+
+    var day = await planService.getDayProgress(savedPlan.id!, date);
+    expect(day.minutes, 11);
+    expect(day.verses, 6);
+
+    expect(await planService.deleteManualSession(first.rsSession.id!), isTrue);
+
+    day = await planService.getDayProgress(savedPlan.id!, date);
+    expect(day.minutes, 5);
+    expect(day.verses, 2);
+
+    expect(await planService.deleteManualSession(second.rsSession.id!), isTrue);
+
+    day = await planService.getDayProgress(savedPlan.id!, date);
+    expect(day.empty, isTrue);
+    expect(await database.getDaySummary(savedPlan.id!, date), isNull);
+  });
+
+  test('rejects deleting a normal session', () async {
+    final savedPlan = await planService.saveReadingPlan(
+      planName: 'Normal Session Delete Test',
+      collectionId: 1,
+      goalType: GoalType.verses,
+      goalValue: 5,
+      selectedBookIds: {63},
+    );
+    final now = DateTime.now();
+    final normal = await database.insertSession(
+      RsSession(
+        rsDate: DateTime(now.year, now.month, now.day),
+        startTime: now,
+        endTime: now,
+        readSeconds: 60,
+        verses: 1,
+        readingPlanId: savedPlan.id!,
+      ),
+    );
+
+    await expectLater(
+      planService.deleteManualSession(normal.id!),
+      throwsA(isA<StateError>()),
+    );
+    expect(await database.getSessionById(normal.id!), isNotNull);
+  });
+
   test('rejects invalid manual session input', () async {
     final savedPlan = await planService.saveReadingPlan(
       planName: 'Manual Validation Test',

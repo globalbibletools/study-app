@@ -605,12 +605,9 @@ class ReadingSessionDatabase {
     );
   }
 
-  Future<int> deleteSession(int id) async {
-    return await _database.delete(
-      'rs_session',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+  Future<int> deleteSession(int id, {DatabaseExecutor? executor}) async {
+    final db = executor ?? _database;
+    return await db.delete('rs_session', where: 'id = ?', whereArgs: [id]);
   }
 
   /* RS LOG */
@@ -761,6 +758,19 @@ class ReadingSessionDatabase {
     );
 
     return rows.isEmpty ? null : RsDaySummary.fromMap(rows.first);
+  }
+
+  Future<int> deleteDaySummary(
+    int readingPlanId,
+    DateTime date, {
+    DatabaseExecutor? executor,
+  }) async {
+    final db = executor ?? _database;
+    return db.delete(
+      'rs_day_summary',
+      where: 'reading_plan_id = ? AND rs_date = ?',
+      whereArgs: [readingPlanId, RsDaySummary.dayString(date)],
+    );
   }
 
   Future<Map<int, RsDaySummary>> getDaySummariesForDate(DateTime date) async {
@@ -1031,6 +1041,21 @@ class ReadingSessionDatabase {
     );
 
     return result.map((e) => RsSession.fromMap(e)).toList();
+  }
+
+  Future<int> getSessionCountForDate(
+    DateTime date,
+    int readingPlanId, {
+    DatabaseExecutor? executor,
+  }) async {
+    final db = executor ?? _database;
+    final result = await db.rawQuery(
+      'SELECT COUNT(*) FROM rs_session '
+      'WHERE date(rs_date) = date(?) AND reading_plan_id = ?',
+      [date.toIso8601String(), readingPlanId],
+    );
+
+    return Sqflite.firstIntValue(result) ?? 0;
   }
 
   Future<List<RsLog>> getRsLogForSession(int sessionId) async {
