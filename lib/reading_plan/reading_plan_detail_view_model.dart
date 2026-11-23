@@ -7,8 +7,6 @@ import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/reading_plan/reading_plan_estimates.dart';
 import 'package:gbt/reading_plan/reading_session_view_model.dart';
 
-Future<T> _identityGuard<T>(Future<T> future) => future;
-
 class ReadingPlanDetailViewModel extends ChangeNotifier {
   ReadingPlanDetailViewModel._({
     required int planId,
@@ -30,7 +28,7 @@ class ReadingPlanDetailViewModel extends ChangeNotifier {
     );
 
     try {
-      await viewModel._load(_identityGuard);
+      await viewModel.refresh();
     } catch (_) {
       viewModel.dispose();
       rethrow;
@@ -42,50 +40,29 @@ class ReadingPlanDetailViewModel extends ChangeNotifier {
   final ReadingPlanService _planService;
   final ReadingSessionViewModel _sessionViewModel;
 
-  Object? _loadError;
-  Object? get loadError => _loadError;
-
   final _refreshScope = CancellationScope();
 
   Future<void> refresh() {
     return _refreshScope.run((guard) async {
-      if (_loadError != null) {
-        _setState(() {
-          _loadError = null;
-        });
-      }
+      final details = await guard(_planService.getReadingPlanById(_planId));
+      if (details == null) throw StateError('Reading plan not found');
 
-      try {
-        await _load(guard);
-      } on CancelledError {
-        rethrow;
-      } catch (error) {
-        _setState(() {
-          _loadError = error;
-        });
-      }
-    });
-  }
+      final stats = await guard(_planService.getBooksStats(_planId));
+      final statsByBook = {for (final stat in stats) stat.bookId: stat};
 
-  Future<void> _load(Guard guard) async {
-    final details = await guard(_planService.getReadingPlanById(_planId));
-    if (details == null) throw StateError('Reading plan not found');
+      final todaysProgress = await guard(
+        _planService.getDayProgress(_planId, DateTime.now()),
+      );
+      final monthProgress = await guard(
+        _planService.getMonthProgress(_planId, _visibleMonth),
+      );
 
-    final stats = await guard(_planService.getBooksStats(_planId));
-    final statsByBook = {for (final stat in stats) stat.bookId: stat};
-
-    final todaysProgress = await guard(
-      _planService.getDayProgress(_planId, DateTime.now()),
-    );
-    final monthProgress = await guard(
-      _planService.getMonthProgress(_planId, _visibleMonth),
-    );
-
-    _setState(() {
-      _planDetails = details;
-      _bookStats = statsByBook;
-      _monthProgress = monthProgress;
-      _todaysProgress = todaysProgress;
+      _setState(() {
+        _planDetails = details;
+        _bookStats = statsByBook;
+        _monthProgress = monthProgress;
+        _todaysProgress = todaysProgress;
+      });
     });
   }
 

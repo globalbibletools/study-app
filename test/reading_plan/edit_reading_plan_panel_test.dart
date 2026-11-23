@@ -59,11 +59,7 @@ void main() {
     EditReadingPlanViewModel viewModel,
   ) async {
     await tester.pumpWidget(
-      buildApp(
-        Scaffold(
-          body: EditReadingPlanPanel.withDependencies(viewModel: viewModel),
-        ),
-      ),
+      buildApp(Scaffold(body: EditReadingPlanPanel(viewModel: viewModel))),
     );
     await tester.pumpAndSettle();
   }
@@ -77,8 +73,7 @@ void main() {
         _EditorLauncher(
           onOpen: (context) => Navigator.of(context).push<void>(
             MaterialPageRoute(
-              builder: (_) =>
-                  EditReadingPlanPanel.withDependencies(viewModel: viewModel),
+              builder: (_) => EditReadingPlanPanel(viewModel: viewModel),
             ),
           ),
         ),

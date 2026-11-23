@@ -450,7 +450,7 @@ class _DetailLauncher extends StatelessWidget {
           onPressed: () {
             Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (_) => ReadingPlanDetailPanel.withDependencies(
+                builder: (_) => ReadingPlanDetailPanel(
                   viewModel: viewModel,
                   navigateToEditPlanRoute: navigateToEditPlanRoute,
                   navigateToDayActivityLogRoute: navigateToDayActivityLogRoute,

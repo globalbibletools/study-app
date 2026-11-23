@@ -20,6 +20,11 @@ class DayActivityLogPanel extends StatefulWidget {
         readingPlanId: readingPlanId,
         date: date,
       );
+
+      if (!context.mounted) {
+        viewModel.dispose();
+        return;
+      }
     } catch (_) {
       if (!context.mounted) return;
 
@@ -27,11 +32,6 @@ class DayActivityLogPanel extends StatefulWidget {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(l10n.errorLoadingContent)));
-      return;
-    }
-
-    if (!context.mounted) {
-      viewModel.dispose();
       return;
     }
 

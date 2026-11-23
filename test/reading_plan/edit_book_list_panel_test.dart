@@ -25,11 +25,7 @@ void main() {
     EditBookListViewModel viewModel,
   ) async {
     await tester.pumpWidget(
-      buildApp(
-        Scaffold(
-          body: EditBookListPanel.withDependencies(viewModel: viewModel),
-        ),
-      ),
+      buildApp(Scaffold(body: EditBookListPanel(viewModel: viewModel))),
     );
     await tester.pumpAndSettle();
   }
@@ -52,9 +48,7 @@ void main() {
                   onPressed: () async {
                     final result = await Navigator.of(context).push<List<int>>(
                       MaterialPageRoute(
-                        builder: (_) => EditBookListPanel.withDependencies(
-                          viewModel: viewModel,
-                        ),
+                        builder: (_) => EditBookListPanel(viewModel: viewModel),
                       ),
                     );
                     results.add(result);

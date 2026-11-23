@@ -6,9 +6,8 @@ import 'package:gbt/common/bible_collection.dart';
 class EditBookListViewModel extends ChangeNotifier {
   EditBookListViewModel(List<int> initialBookIds)
     : _bookIds = List.of(initialBookIds),
-      _initialBookIds = List.of(initialBookIds) {
-    _availableBookIds = _availableFor(_bookIds);
-  }
+      _initialBookIds = List.of(initialBookIds),
+      _availableBookIds = _availableFor(initialBookIds);
 
   static final List<int> allBookIds = List.unmodifiable(
     BibleCollections.allBooks,

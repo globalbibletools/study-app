@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
-import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/reading_plan/reading_plan_panel.dart';
 import 'package:gbt/reading_plan/reading_plan_panel_view_model.dart';
 
@@ -14,7 +13,6 @@ class ReadingSheet extends StatefulWidget {
 
 class _ReadingSheetState extends State<ReadingSheet> {
   ReadingPlanPanelViewModel? _viewModel;
-  Object? _loadError;
 
   @override
   void initState() {
@@ -23,23 +21,15 @@ class _ReadingSheetState extends State<ReadingSheet> {
   }
 
   Future<void> _loadPlanPanel() async {
-    try {
-      final viewModel = await ReadingPlanPanelViewModel.create();
-      if (!mounted) {
-        viewModel.dispose();
-        return;
-      }
-
-      setState(() {
-        _viewModel = viewModel;
-      });
-    } catch (error) {
-      if (!mounted) return;
-
-      setState(() {
-        _loadError = error;
-      });
+    final viewModel = await ReadingPlanPanelViewModel.create();
+    if (!mounted) {
+      viewModel.dispose();
+      return;
     }
+
+    setState(() {
+      _viewModel = viewModel;
+    });
   }
 
   @override
@@ -85,15 +75,6 @@ class _ReadingSheetState extends State<ReadingSheet> {
   }
 
   Widget _panel(BuildContext context) {
-    if (_loadError != null) {
-      return Center(
-        child: Text(
-          AppLocalizations.of(context)!.errorLoadingContent,
-          textAlign: TextAlign.center,
-        ),
-      );
-    }
-
     final viewModel = _viewModel;
     if (viewModel == null) {
       return const Center(child: CircularProgressIndicator());
@@ -106,7 +87,7 @@ class _ReadingSheetState extends State<ReadingSheet> {
           onPopInvokedWithResult: (didPop, result) {
             Navigator.of(context).pop();
           },
-          child: ReadingPlanPanel.withDependencies(viewModel: viewModel),
+          child: ReadingPlanPanel(viewModel: viewModel),
         ),
       ),
     );

@@ -5,7 +5,7 @@ import 'package:gbt/reading_plan/edit_book_list_view_model.dart';
 import 'package:material_ui/material_ui.dart';
 
 class EditBookListPanel extends StatefulWidget {
-  const EditBookListPanel.withDependencies({
+  const EditBookListPanel({
     super.key,
     required this.viewModel,
   });
@@ -18,16 +18,11 @@ class EditBookListPanel extends StatefulWidget {
   ) async {
     final viewModel = EditBookListViewModel(bookIds);
 
-    if (!context.mounted) {
-      viewModel.dispose();
-      return null;
-    }
-
     try {
       return await Navigator.of(context).push<List<int>>(
         MaterialPageRoute(
           builder: (_) =>
-              EditBookListPanel.withDependencies(viewModel: viewModel),
+              EditBookListPanel(viewModel: viewModel),
         ),
       );
     } catch (_) {

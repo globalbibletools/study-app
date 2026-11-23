@@ -17,32 +17,27 @@ class EditReadingPlanPanel extends StatefulWidget {
 
   const EditReadingPlanPanel({super.key, required this.viewModel});
 
-  const EditReadingPlanPanel.withDependencies({
-    super.key,
-    required this.viewModel,
-  });
-
   static Future<void> navigateToNew(BuildContext context, String name) {
-    return _createAndNavigate(
+    return _navigateTo(
       context,
-      () => EditReadingPlanViewModel.createNew(name),
+      EditReadingPlanViewModel.createNew(name),
     );
   }
 
   static Future<void> navigateToExisting(BuildContext context, int planId) {
-    return _createAndNavigate(
+    return _navigateTo(
       context,
-      () => EditReadingPlanViewModel.createExisting(planId),
+      EditReadingPlanViewModel.createExisting(planId),
     );
   }
 
-  static Future<void> _createAndNavigate(
+  static Future<void> _navigateTo(
     BuildContext context,
-    Future<EditReadingPlanViewModel> Function() create,
+    Future<EditReadingPlanViewModel> viewModelFuture,
   ) async {
     EditReadingPlanViewModel viewModel;
     try {
-      viewModel = await create();
+      viewModel = await viewModelFuture;
     } catch (_) {
       if (!context.mounted) return;
 
@@ -58,23 +53,11 @@ class EditReadingPlanPanel extends StatefulWidget {
       return;
     }
 
-    await _navigateTo(context, viewModel);
-  }
-
-  static Future<void> _navigateTo(
-    BuildContext context,
-    EditReadingPlanViewModel viewModel,
-  ) async {
-    if (!context.mounted) {
-      viewModel.dispose();
-      return;
-    }
-
     try {
       await Navigator.of(context).push<void>(
         MaterialPageRoute(
           builder: (_) =>
-              EditReadingPlanPanel.withDependencies(viewModel: viewModel),
+              EditReadingPlanPanel(viewModel: viewModel),
         ),
       );
     } catch (_) {

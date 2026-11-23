@@ -32,12 +32,6 @@ class ReadingPlanPanelViewModel extends ChangeNotifier {
     return viewModel;
   }
 
-  void _setState(VoidCallback fn) {
-    if (_disposed) return;
-    fn();
-    notifyListeners();
-  }
-
   final ReadingPlanService _planService;
   final ReadingSessionViewModel _sessionViewModel;
 
@@ -67,6 +61,13 @@ class ReadingPlanPanelViewModel extends ChangeNotifier {
   }
 
   bool _disposed = false;
+
+  void _setState(VoidCallback fn) {
+    if (_disposed) return;
+    fn();
+    notifyListeners();
+  }
+
   @override
   void dispose() {
     _disposed = true;

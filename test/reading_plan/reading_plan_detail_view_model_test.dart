@@ -49,7 +49,6 @@ void main() {
               ]
               ..monthProgress = [DayProgress(today, 10, 13, true)];
         final viewModel = await newViewModel(service);
-        expect(viewModel.loadError, isNull);
         expect(viewModel.planId, 7);
         expect(viewModel.planName, 'Ruth Plan');
         expect(viewModel.isBookmarked, isFalse);
@@ -73,18 +72,16 @@ void main() {
       await expectLater(newViewModel(service), throwsA(isA<StateError>()));
     });
 
-    test('refresh reports and clears a load error', () async {
+    test('refresh propagates a load error and recovers', () async {
       final service = FakeReadingPlanService([planDetails()]);
       final viewModel = await newViewModel(service);
 
       service.plans = [];
-      await viewModel.refresh();
-      expect(viewModel.loadError, isA<StateError>());
+      await expectLater(viewModel.refresh(), throwsA(isA<StateError>()));
 
       service.plans = [planDetails(name: 'Recovered Plan')];
       await viewModel.refresh();
 
-      expect(viewModel.loadError, isNull);
       expect(viewModel.planName, 'Recovered Plan');
     });
 

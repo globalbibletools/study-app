@@ -22,7 +22,7 @@ class ReadingPlanDetailPanel extends StatefulWidget {
   final NavigateToExistingReadingPlanRoute? navigateToEditPlanRoute;
   final NavigateToDayActivityLogRoute? navigateToDayActivityLogRoute;
 
-  const ReadingPlanDetailPanel.withDependencies({
+  const ReadingPlanDetailPanel({
     super.key,
     required this.viewModel,
     this.navigateToEditPlanRoute,
@@ -52,7 +52,7 @@ class ReadingPlanDetailPanel extends StatefulWidget {
       await Navigator.of(context).push<void>(
         MaterialPageRoute(
           builder: (_) =>
-              ReadingPlanDetailPanel.withDependencies(viewModel: viewModel),
+              ReadingPlanDetailPanel(viewModel: viewModel),
         ),
       );
     } catch (_) {
@@ -86,47 +86,30 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
     return ListenableBuilder(
       listenable: viewModel,
       builder: (context, _) {
-        final Widget content;
-        if (viewModel.loadError != null) {
-          content = Center(
-            child: Text(
-              AppLocalizations.of(context)!.errorLoadingContent,
-              textAlign: TextAlign.center,
-            ),
-          );
-        } else {
-          content = Column(
-            spacing: 16,
-            children: [
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    spacing: 24,
-                    children: [
-                      _todaysProgress(),
-                      _goalsContentByMonth(),
-                      Divider(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withValues(alpha: 0.12),
-                      ),
-                      _totalProgress(),
-                      _booksList(),
-                    ],
-                  ),
-                ),
-              ),
-              _startResumeButton(),
-            ],
-          );
-        }
-
         return Column(
           spacing: 16,
           children: [
             _topBar(),
-            Expanded(child: content),
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  spacing: 24,
+                  children: [
+                    _todaysProgress(),
+                    _goalsContentByMonth(),
+                    Divider(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.12),
+                    ),
+                    _totalProgress(),
+                    _booksList(),
+                  ],
+                ),
+              ),
+            ),
+            _startResumeButton(),
           ],
         );
       },
