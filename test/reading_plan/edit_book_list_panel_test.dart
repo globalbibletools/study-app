@@ -34,6 +34,55 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  /// Opens the editor on top of a host route and records every result the
+  /// editor pops with. The log stays empty until the editor is popped.
+  Future<List<List<int>?>> openEditor(
+    WidgetTester tester,
+    EditBookListViewModel viewModel,
+  ) async {
+    final results = <List<int>?>[];
+
+    await tester.pumpWidget(
+      buildApp(
+        Scaffold(
+          body: Builder(
+            builder: (context) {
+              return Center(
+                child: ElevatedButton(
+                  onPressed: () async {
+                    final result = await Navigator.of(context).push<List<int>>(
+                      MaterialPageRoute(
+                        builder: (_) => EditBookListPanel.withDependencies(
+                          viewModel: viewModel,
+                        ),
+                      ),
+                    );
+                    results.add(result);
+                  },
+                  child: const Text('Open editor'),
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Open editor'));
+    await tester.pumpAndSettle();
+    return results;
+  }
+
+  Future<void> removeBook(WidgetTester tester, int bookId) async {
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(ValueKey(bookId)),
+        matching: find.byIcon(Icons.close),
+      ),
+    );
+    await tester.pump();
+  }
+
   testWidgets('renders a row for each book in the view model', (tester) async {
     await pumpPanel(tester, newViewModel([2, 1]));
 
@@ -70,11 +119,7 @@ void main() {
   testWidgets('removing a book updates the displayed list', (tester) async {
     await pumpPanel(tester, newViewModel(const [1, 2]));
 
-    final genesisRow = find.byKey(const ValueKey(1));
-    await tester.tap(
-      find.descendant(of: genesisRow, matching: find.byIcon(Icons.close)),
-    );
-    await tester.pump();
+    await removeBook(tester, 1);
 
     expect(find.text('Genesis'), findsNothing);
     expect(find.text('Exodus'), findsOneWidget);
@@ -124,82 +169,82 @@ void main() {
     expect(find.text('Obadiah'), findsOneWidget);
   });
 
-  testWidgets('returns the view model book list when Save is tapped', (
+  testWidgets('clearing books empties the list and shows the empty state', (
     tester,
   ) async {
-    final viewModel = newViewModel(const [2, 1]);
-    List<int>? result;
+    await pumpPanel(tester, newViewModel(const [2, 1]));
 
-    await tester.pumpWidget(
-      buildApp(
-        Scaffold(
-          body: Builder(
-            builder: (context) {
-              return Center(
-                child: ElevatedButton(
-                  onPressed: () async {
-                    result = await Navigator.of(context).push<List<int>>(
-                      MaterialPageRoute(
-                        builder: (_) => EditBookListPanel.withDependencies(
-                          viewModel: viewModel,
-                        ),
-                      ),
-                    );
-                  },
-                  child: const Text('Open editor'),
-                ),
-              );
-            },
-          ),
-        ),
-      ),
-    );
+    await tester.tap(find.byKey(const Key('clear-books')));
+    await tester.pump();
 
-    await tester.tap(find.text('Open editor'));
-    await tester.pumpAndSettle();
+    expect(find.text('Select at least one book'), findsOneWidget);
+    expect(find.byIcon(Icons.close), findsNothing);
+    expect(find.text('Genesis'), findsNothing);
+    expect(find.text('Exodus'), findsNothing);
+  });
+
+  testWidgets('Save returns the edited book list', (tester) async {
+    final results = await openEditor(tester, newViewModel(const [2, 1]));
+
+    await removeBook(tester, 1);
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
 
-    expect(result, [2, 1]);
+    expect(results, [
+      [2],
+    ]);
   });
 
-  testWidgets(
-    'returns the view model book list when the back button is tapped',
-    (tester) async {
-      final viewModel = newViewModel(const [2, 1]);
-      List<int>? result;
+  testWidgets('back with no changes returns null without a dialog', (
+    tester,
+  ) async {
+    final results = await openEditor(tester, newViewModel(const [2, 1]));
 
-      await tester.pumpWidget(
-        buildApp(
-          Scaffold(
-            body: Builder(
-              builder: (context) {
-                return Center(
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      result = await Navigator.of(context).push<List<int>>(
-                        MaterialPageRoute(
-                          builder: (_) => EditBookListPanel.withDependencies(
-                            viewModel: viewModel,
-                          ),
-                        ),
-                      );
-                    },
-                    child: const Text('Open editor'),
-                  ),
-                );
-              },
-            ),
-          ),
-        ),
-      );
+    await tester.tap(find.byIcon(Icons.arrow_back));
+    await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Open editor'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byIcon(Icons.arrow_back));
-      await tester.pumpAndSettle();
+    expect(results, [null]);
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(find.text('Customize Books'), findsNothing);
+  });
 
-      expect(result, [2, 1]);
-    },
-  );
+  testWidgets('back with changes asks before discarding', (tester) async {
+    final results = await openEditor(tester, newViewModel(const [2, 1]));
+
+    await removeBook(tester, 1);
+    await tester.tap(find.byIcon(Icons.arrow_back));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Discard changes?'), findsOneWidget);
+    expect(results, isEmpty);
+  });
+
+  testWidgets('choosing keep editing after back stays on the editor', (
+    tester,
+  ) async {
+    final results = await openEditor(tester, newViewModel(const [2, 1]));
+
+    await removeBook(tester, 1);
+    await tester.tap(find.byIcon(Icons.arrow_back));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Keep editing'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Customize Books'), findsOneWidget);
+    expect(find.text('Discard changes?'), findsNothing);
+    expect(results, isEmpty);
+  });
+
+  testWidgets('discarding changes after back returns null', (tester) async {
+    final results = await openEditor(tester, newViewModel(const [2, 1]));
+
+    await removeBook(tester, 1);
+    await tester.tap(find.byIcon(Icons.arrow_back));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Discard changes'));
+    await tester.pumpAndSettle();
+
+    expect(results, [null]);
+    expect(find.text('Customize Books'), findsNothing);
+  });
 }

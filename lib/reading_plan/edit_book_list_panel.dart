@@ -1,5 +1,6 @@
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/l10n/book_names.dart';
+import 'package:gbt/reading_plan/discard_book_list_changes_dialog.dart';
 import 'package:gbt/reading_plan/edit_book_list_view_model.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -35,8 +36,23 @@ class _EditBookListPanelState extends State<EditBookListPanel> {
     super.dispose();
   }
 
-  void _close() {
+  void _save() {
     Navigator.of(context).pop(viewModel.bookIds);
+  }
+
+  Future<void> _cancel() async {
+    if (!viewModel.hasChanges) {
+      Navigator.of(context).pop(null);
+      return;
+    }
+
+    final discard = await showDialog<bool>(
+      context: context,
+      builder: (_) => const DiscardBookListChangesDialog(),
+    );
+    if (discard != true || !mounted) return;
+
+    Navigator.of(context).pop(null);
   }
 
   void _addBook(int? bookId) {
@@ -59,7 +75,7 @@ class _EditBookListPanelState extends State<EditBookListPanel> {
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
-        _close();
+        _cancel();
       },
       child: Material(
         color: Theme.of(context).colorScheme.surface,
@@ -96,8 +112,20 @@ class _EditBookListPanelState extends State<EditBookListPanel> {
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
               icon: const Icon(Icons.arrow_back),
-              onPressed: _close,
+              onPressed: _cancel,
             ),
+          ),
+        ),
+        Align(
+          alignment: Alignment.centerRight,
+          child: IconButton(
+            key: const Key('clear-books'),
+            style: IconButton.styleFrom(
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            icon: const Icon(Icons.clear_all),
+            tooltip: l10n.clearBooks,
+            onPressed: viewModel.clearBooks,
           ),
         ),
         Text(
@@ -192,7 +220,7 @@ class _EditBookListPanelState extends State<EditBookListPanel> {
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            onPressed: _close,
+            onPressed: _save,
             child: Text(
               l10n.save,
               style: const TextStyle(fontWeight: FontWeight.bold),

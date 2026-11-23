@@ -806,6 +806,26 @@
   "@removeBook": {
     "description": "Tooltip for removing a book from a plan"
   },
+  "clearBooks": "Clear all books",
+  "@clearBooks": {
+    "description": "Tooltip for the button that clears every book from the book list"
+  },
+  "discardBookListChangesTitle": "Discard changes?",
+  "@discardBookListChangesTitle": {
+    "description": "Title of the confirmation dialog shown when leaving the book list editor with unsaved changes"
+  },
+  "discardBookListChangesMessage": "You have unsaved changes to your book list. If you leave now, those changes will be lost.",
+  "@discardBookListChangesMessage": {
+    "description": "Message explaining that leaving the book list editor discards unsaved changes"
+  },
+  "keepEditing": "Keep editing",
+  "@keepEditing": {
+    "description": "Action that dismisses the discard-changes dialog and stays on the editor"
+  },
+  "discardChanges": "Discard changes",
+  "@discardChanges": {
+    "description": "Action that leaves the book list editor and discards unsaved changes"
+  },
   "goal": "Goal",
   "@goal": {
     "description": "Section label for setting a reading plan goal"

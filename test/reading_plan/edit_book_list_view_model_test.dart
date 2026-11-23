@@ -96,4 +96,86 @@ void main() {
     expect(viewModel.bookIds, [1, 2, 3]);
     expect(notifications, 0);
   });
+
+  test('clearing books empties the list and restores availability', () {
+    final viewModel = EditBookListViewModel([3, 1, 2]);
+    var notifications = 0;
+    viewModel.addListener(() => notifications++);
+
+    viewModel.clearBooks();
+
+    expect(viewModel.bookIds, isEmpty);
+    expect(viewModel.isEmpty, isTrue);
+    expect(viewModel.availableBookIds, availableExcept({}));
+    expect(notifications, 1);
+  });
+
+  test('clearing an empty list is a no-op', () {
+    final viewModel = EditBookListViewModel(const []);
+    var notifications = 0;
+    viewModel.addListener(() => notifications++);
+
+    viewModel.clearBooks();
+
+    expect(viewModel.bookIds, isEmpty);
+    expect(notifications, 0);
+  });
+
+  test('hasChanges is false initially', () {
+    final viewModel = EditBookListViewModel([3, 1, 2]);
+
+    expect(viewModel.hasChanges, isFalse);
+  });
+
+  test('adding a book is a change', () {
+    final viewModel = EditBookListViewModel([3, 1]);
+
+    viewModel.addBook(2);
+
+    expect(viewModel.hasChanges, isTrue);
+  });
+
+  test('removing a book is a change', () {
+    final viewModel = EditBookListViewModel([3, 1, 2]);
+
+    viewModel.removeBook(1);
+
+    expect(viewModel.hasChanges, isTrue);
+  });
+
+  test('reordering books is a change', () {
+    final viewModel = EditBookListViewModel([3, 1, 2]);
+
+    viewModel.moveBook(0, 2);
+
+    expect(viewModel.hasChanges, isTrue);
+  });
+
+  test('clearing books is a change', () {
+    final viewModel = EditBookListViewModel([3, 1, 2]);
+
+    viewModel.clearBooks();
+
+    expect(viewModel.hasChanges, isTrue);
+  });
+
+  test('reverting changes clears hasChanges', () {
+    final viewModel = EditBookListViewModel([1, 2, 3]);
+
+    viewModel.addBook(4);
+    viewModel.removeBook(4);
+    expect(viewModel.hasChanges, isFalse);
+
+    viewModel.moveBook(0, 1);
+    expect(viewModel.hasChanges, isTrue);
+    viewModel.moveBook(1, 0);
+    expect(viewModel.hasChanges, isFalse);
+
+    viewModel.clearBooks();
+    expect(viewModel.hasChanges, isTrue);
+    viewModel.addBook(1);
+    viewModel.addBook(2);
+    viewModel.addBook(3);
+    expect(viewModel.hasChanges, isFalse);
+  });
 }
