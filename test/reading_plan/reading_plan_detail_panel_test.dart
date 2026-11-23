@@ -318,11 +318,13 @@ void main() {
         ..bookStats = bookStats()
         ..monthProgress = currentMonthProgress(verses: 3, minutes: 7);
       final viewModel = newViewModel(planDetails(), service);
+      DateTime? openedDate;
 
       await openDetail(
         tester,
         viewModel,
         dayActivityLogNavigator: (context, date) {
+          openedDate = date;
           return Navigator.of(context).push<void>(
             MaterialPageRoute(
               builder: (_) =>
@@ -336,7 +338,66 @@ void main() {
       await tester.tap(find.text('${now.day}'));
       await tester.pumpAndSettle();
 
+      expect(openedDate, DateTime(now.year, now.month, now.day));
       expect(find.text('Activity for ${now.day}'), findsOneWidget);
+    });
+
+    testWidgets('opens the log for an empty day', (tester) async {
+      final now = DateTime.now();
+      final emptyDay = now.day == 1 ? 2 : 1;
+      final service = FakeReadingPlanService()
+        ..bookStats = bookStats()
+        ..monthProgress = const [];
+      final viewModel = newViewModel(planDetails(), service);
+      DateTime? openedDate;
+
+      await openDetail(
+        tester,
+        viewModel,
+        dayActivityLogNavigator: (context, date) async {
+          openedDate = date;
+        },
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(ValueKey('calendar-day-$emptyDay')));
+      await tester.pumpAndSettle();
+
+      expect(openedDate, DateTime(now.year, now.month, emptyDay));
+    });
+
+    testWidgets('opens the log for every rendered day in the visible month', (
+      tester,
+    ) async {
+      final now = DateTime.now();
+      final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
+      final service = FakeReadingPlanService()
+        ..bookStats = bookStats()
+        ..monthProgress = const [];
+      final viewModel = newViewModel(planDetails(), service);
+      final openedDates = <DateTime>[];
+
+      await openDetail(
+        tester,
+        viewModel,
+        dayActivityLogNavigator: (context, date) async {
+          openedDates.add(date);
+        },
+      );
+      await tester.pumpAndSettle();
+
+      for (var day = 1; day <= daysInMonth; day++) {
+        final dayFinder = find.byKey(ValueKey('calendar-day-$day'));
+        await tester.ensureVisible(dayFinder);
+        await tester.pumpAndSettle();
+        await tester.tap(dayFinder);
+        await tester.pumpAndSettle();
+      }
+
+      expect(openedDates, [
+        for (var day = 1; day <= daysInMonth; day++)
+          DateTime(now.year, now.month, day),
+      ]);
     });
 
     testWidgets('delegates day log navigation to the injected navigator', (
@@ -347,11 +408,13 @@ void main() {
         ..bookStats = bookStats()
         ..monthProgress = currentMonthProgress(verses: 3, minutes: 7);
       final viewModel = newViewModel(planDetails(), service);
+      DateTime? openedDate;
 
       await openDetail(
         tester,
         viewModel,
         dayActivityLogNavigator: (context, date) {
+          openedDate = date;
           return Navigator.of(context).push<void>(
             MaterialPageRoute(
               builder: (_) => Text('Activity page for ${date.day}'),
@@ -364,6 +427,7 @@ void main() {
       await tester.tap(find.text('${now.day}'));
       await tester.pumpAndSettle();
 
+      expect(openedDate, DateTime(now.year, now.month, now.day));
       expect(find.text('Activity page for ${now.day}'), findsOneWidget);
       expect(find.byType(Dialog), findsNothing);
     });
@@ -376,11 +440,13 @@ void main() {
         ..bookStats = bookStats()
         ..monthProgress = currentMonthProgress(verses: 3, minutes: 7);
       final viewModel = newViewModel(planDetails(), service);
+      DateTime? openedDate;
 
       await openDetail(
         tester,
         viewModel,
         dayActivityLogNavigator: (context, date) {
+          openedDate = date;
           return Navigator.of(context).push<void>(
             MaterialPageRoute(
               builder: (dialogContext) => AlertDialog(
@@ -401,6 +467,7 @@ void main() {
       final callsBefore = service.getPlanByIdCalls;
       await tester.tap(find.text('${now.day}'));
       await tester.pumpAndSettle();
+      expect(openedDate, DateTime(now.year, now.month, now.day));
       expect(find.text('Activity for ${now.day}'), findsOneWidget);
 
       service.plans = [planDetails(name: 'Refreshed Plan')];
@@ -409,29 +476,6 @@ void main() {
 
       expect(find.text('Refreshed Plan'), findsOneWidget);
       expect(service.getPlanByIdCalls, greaterThan(callsBefore));
-    });
-
-    testWidgets('does not open the log for an empty day', (tester) async {
-      final now = DateTime.now();
-      final service = FakeReadingPlanService()
-        ..bookStats = bookStats()
-        ..monthProgress = const [];
-      final viewModel = newViewModel(planDetails(), service);
-      var opened = false;
-
-      await openDetail(
-        tester,
-        viewModel,
-        dayActivityLogNavigator: (context, date) async {
-          opened = true;
-        },
-      );
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('${now.day}'));
-      await tester.pumpAndSettle();
-
-      expect(opened, isFalse);
     });
   });
 
