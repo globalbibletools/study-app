@@ -179,8 +179,8 @@ void main() {
     });
   });
 
-  group('book reorder', () {
-    testWidgets('reorders books by dragging the handle and persists them', (
+  group('books list', () {
+    testWidgets('renders books in order without reorder handles', (
       tester,
     ) async {
       final service = FakeReadingPlanService()..bookStats = bookStats();
@@ -192,75 +192,13 @@ void main() {
       await openDetail(tester, viewModel);
       await tester.pumpAndSettle();
 
+      expect(find.text('Ruth'), findsOneWidget);
+      expect(find.text('Proverbs'), findsOneWidget);
+      expect(find.byIcon(Icons.drag_handle_rounded), findsNothing);
+      expect(find.byType(ReorderableListView), findsNothing);
       expect(
         tester.getTopLeft(find.text('Ruth')).dy,
         lessThan(tester.getTopLeft(find.text('Proverbs')).dy),
-      );
-
-      await tester.ensureVisible(find.text('Proverbs'));
-      await tester.pumpAndSettle();
-
-      final handle = find.byIcon(Icons.drag_handle_rounded).last;
-      final gesture = await tester.startGesture(tester.getCenter(handle));
-      await tester.pump();
-      await gesture.moveBy(const Offset(0, -30));
-      await tester.pump(const Duration(milliseconds: 50));
-      await gesture.moveBy(const Offset(0, -60));
-      await tester.pump(const Duration(milliseconds: 50));
-      await gesture.moveBy(const Offset(0, -30));
-      await tester.pump(const Duration(milliseconds: 50));
-      await gesture.up();
-      await tester.pumpAndSettle();
-
-      expect(service.reorderedBooks, hasLength(1));
-      expect(service.reorderedBooks.single.map((book) => book.bookId), [20, 8]);
-      expect(service.reorderedBooks.single.map((book) => book.ord), [1, 2]);
-      expect(
-        tester.getTopLeft(find.text('Proverbs')).dy,
-        lessThan(tester.getTopLeft(find.text('Ruth')).dy),
-      );
-    });
-
-    testWidgets('reorders books when dragging a handle downwards', (
-      tester,
-    ) async {
-      final service = FakeReadingPlanService()..bookStats = bookStats();
-      final viewModel = newViewModel(
-        planDetails(bookIds: const [8, 20]),
-        service,
-      );
-
-      await openDetail(tester, viewModel);
-      await tester.pumpAndSettle();
-
-      expect(
-        tester.getTopLeft(find.text('Ruth')).dy,
-        lessThan(tester.getTopLeft(find.text('Proverbs')).dy),
-      );
-
-      await tester.ensureVisible(find.text('Ruth'));
-      await tester.pumpAndSettle();
-
-      final handle = find.byIcon(Icons.drag_handle_rounded).first;
-      final gesture = await tester.startGesture(tester.getCenter(handle));
-      await tester.pump();
-      await gesture.moveBy(const Offset(0, 60));
-      await tester.pump(const Duration(milliseconds: 50));
-      await gesture.moveBy(const Offset(0, 80));
-      await tester.pump(const Duration(milliseconds: 50));
-      await gesture.moveBy(const Offset(0, 80));
-      await tester.pump(const Duration(milliseconds: 50));
-      await gesture.moveBy(const Offset(0, 40));
-      await tester.pump(const Duration(milliseconds: 50));
-      await gesture.up();
-      await tester.pumpAndSettle();
-
-      expect(service.reorderedBooks, hasLength(1));
-      expect(service.reorderedBooks.single.map((book) => book.bookId), [20, 8]);
-      expect(service.reorderedBooks.single.map((book) => book.ord), [1, 2]);
-      expect(
-        tester.getTopLeft(find.text('Proverbs')).dy,
-        lessThan(tester.getTopLeft(find.text('Ruth')).dy),
       );
     });
   });
