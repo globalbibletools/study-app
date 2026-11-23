@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gbt/common/reference.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
 import 'package:gbt/reading_plan/rs_database.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
@@ -188,5 +189,97 @@ void main() {
     );
     expect(empty.empty, isTrue);
     expect(empty.day, DateTime(2026, 11, 6));
+  });
+
+  test('adds a manual session without touching verse progress', () async {
+    final savedPlan = await planService.saveReadingPlan(
+      planName: 'Manual Session Test',
+      collectionId: 1,
+      goalType: GoalType.minutes,
+      goalValue: 10,
+      selectedBookIds: {63},
+    );
+    final date = DateTime(2026, 11, 20);
+
+    final details = await planService.addManualSession(
+      readingPlanId: savedPlan.id!,
+      date: date,
+      minutes: 12.5,
+      verses: 8,
+    );
+
+    expect(details.rsSession.isManual, isTrue);
+    expect(details.rsSession.rsDate, date);
+    expect(details.rsSession.readSeconds, 750);
+    expect(details.rsSession.verses, 8);
+    expect(await database.getRsLogForSession(details.rsSession.id!), isEmpty);
+
+    final day = await planService.getDayProgress(savedPlan.id!, date);
+    expect(day.empty, isFalse);
+    expect(day.minutes, 12.5);
+    expect(day.verses, 8);
+    expect(day.goalReached, isTrue);
+
+    final month = await planService.getMonthProgress(savedPlan.id!, date);
+    final monthDay = month.singleWhere((entry) => entry.day.day == 20);
+    expect(monthDay.minutes, 12.5);
+    expect(monthDay.verses, 8);
+
+    final stats = await planService.getBooksStats(savedPlan.id!);
+    final ruth = stats.singleWhere((stat) => stat.bookId == 63);
+    expect(ruth.versesRead, 0);
+    expect(ruth.isComplete, isFalse);
+
+    final counts = await database.getVerseReadCountsForChapter(
+      savedPlan.id!,
+      63,
+      1,
+    );
+    expect(counts.values.every((count) => count == 0), isTrue);
+    expect(
+      await planService.getResumeReference(savedPlan.id!),
+      const Reference(bookId: 63, chapter: 1, verse: 1),
+    );
+  });
+
+  test('rejects invalid manual session input', () async {
+    final savedPlan = await planService.saveReadingPlan(
+      planName: 'Manual Validation Test',
+      collectionId: 1,
+      goalType: GoalType.verses,
+      goalValue: 5,
+      selectedBookIds: {63},
+    );
+    final date = DateTime(2026, 11, 21);
+
+    await expectLater(
+      planService.addManualSession(
+        readingPlanId: savedPlan.id!,
+        date: date,
+        minutes: -1,
+        verses: 1,
+      ),
+      throwsArgumentError,
+    );
+    await expectLater(
+      planService.addManualSession(
+        readingPlanId: savedPlan.id!,
+        date: date,
+        minutes: 1,
+        verses: -1,
+      ),
+      throwsArgumentError,
+    );
+    await expectLater(
+      planService.addManualSession(
+        readingPlanId: savedPlan.id!,
+        date: date,
+        minutes: 0,
+        verses: 0,
+      ),
+      throwsArgumentError,
+    );
+
+    expect(await database.getSessionsForDate(date, savedPlan.id!), isEmpty);
   });
 }

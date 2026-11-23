@@ -3,6 +3,7 @@ import 'package:gbt/common/book_name.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
 import 'package:gbt/reading_plan/day_activity_log_view_model.dart';
+import 'package:gbt/reading_plan/number_stepper.dart';
 
 typedef DayActivityLogNavigator =
     Future<void> Function(BuildContext context, DateTime date);
@@ -120,8 +121,42 @@ class _DayActivityLogPanelState extends State<DayActivityLogPanel> {
             ),
           ),
         ),
+        Align(
+          alignment: Alignment.centerRight,
+          child: Transform.translate(
+            offset: const Offset(iconInset, 0),
+            child: IconButton(
+              key: const ValueKey('addManualSessionButton'),
+              style: iconStyle,
+              icon: const Icon(Icons.add),
+              tooltip: AppLocalizations.of(context)!.addManualSession,
+              onPressed: _showAddManualSessionDialog,
+            ),
+          ),
+        ),
       ],
     );
+  }
+
+  Future<void> _showAddManualSessionDialog() async {
+    final l10n = AppLocalizations.of(context)!;
+    final input = await showDialog<_ManualSessionInput>(
+      context: context,
+      builder: (context) => const _AddManualSessionDialog(),
+    );
+    if (input == null || !mounted) return;
+
+    try {
+      await viewModel.addManualSession(
+        minutes: input.minutes,
+        verses: input.verses,
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.errorMessage(error.toString()))),
+      );
+    }
   }
 
   Widget _readingSection() {
@@ -136,6 +171,11 @@ class _DayActivityLogPanelState extends State<DayActivityLogPanel> {
       fontWeight: FontWeight.bold,
     );
     final references = _references(viewModel.referencesFor(session));
+    final description = session.rsSession.isManual
+        ? l10n.manuallyAdded
+        : references.isEmpty
+        ? l10n.noVersesRead
+        : references;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -149,20 +189,36 @@ class _DayActivityLogPanelState extends State<DayActivityLogPanel> {
         spacing: 8,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(_formatTime(session.rsSession.startTime), style: style),
+              Expanded(child: _sessionLabel(session, style)),
+              const SizedBox(width: 8),
               Text(
                 "${_formatMinutes(viewModel.minutesFor(session))} "
                 "${l10n.minutesShort} • "
                 "${session.rsSession.verses} ${l10n.verses}",
                 style: style,
+                textAlign: TextAlign.end,
               ),
             ],
           ),
-          if (references.isNotEmpty) Text(references),
+          Text(description),
         ],
       ),
+    );
+  }
+
+  Widget _sessionLabel(SessionDetails session, TextStyle style) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Flexible(
+          child: Text(
+            _formatTime(session.rsSession.startTime),
+            style: style,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
     );
   }
 
@@ -219,5 +275,135 @@ class _DayActivityLogPanelState extends State<DayActivityLogPanel> {
     return minutes == minutes.roundToDouble()
         ? minutes.toStringAsFixed(0)
         : minutes.toStringAsFixed(1);
+  }
+}
+
+class _ManualSessionInput {
+  const _ManualSessionInput({required this.minutes, required this.verses});
+
+  final double minutes;
+  final int verses;
+}
+
+class _AddManualSessionDialog extends StatefulWidget {
+  const _AddManualSessionDialog();
+
+  @override
+  State<_AddManualSessionDialog> createState() =>
+      _AddManualSessionDialogState();
+}
+
+class _AddManualSessionDialogState extends State<_AddManualSessionDialog> {
+  num _minutes = 0;
+  num _verses = 0;
+  String? _error;
+
+  void _setMinutes(num value) {
+    setState(() {
+      _minutes = value;
+      _error = null;
+    });
+  }
+
+  void _setVerses(num value) {
+    setState(() {
+      _verses = value;
+      _error = null;
+    });
+  }
+
+  void _submit() {
+    final l10n = AppLocalizations.of(context)!;
+    final minutes = _minutes.toDouble();
+    final verses = _verses.toInt();
+
+    final isValid =
+        minutes.isFinite &&
+        minutes >= 0 &&
+        verses >= 0 &&
+        !((minutes * 60).round() == 0 && verses == 0);
+
+    if (!isValid) {
+      setState(() {
+        _error = l10n.invalidManualSession;
+      });
+      return;
+    }
+
+    Navigator.of(
+      context,
+    ).pop(_ManualSessionInput(minutes: minutes, verses: verses));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final colorScheme = Theme.of(context).colorScheme;
+    const labelStyle = TextStyle(fontSize: 15, fontWeight: FontWeight.w500);
+    const actionStyle = TextStyle(fontWeight: FontWeight.bold);
+
+    return AlertDialog(
+      titlePadding: const EdgeInsets.fromLTRB(32, 24, 32, 0),
+      contentPadding: const EdgeInsets.fromLTRB(32, 24, 32, 0),
+      actionsPadding: const EdgeInsets.fromLTRB(32, 24, 32, 24),
+      title: Text(
+        l10n.addSession,
+        key: const ValueKey('manualSessionTitle'),
+        textAlign: TextAlign.center,
+      ),
+      content: Center(
+        heightFactor: 1,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          spacing: 16,
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              spacing: 8,
+              children: [
+                NumberStepper(
+                  key: const ValueKey('manualMinutesStepper'),
+                  keyPrefix: 'manual-minutes',
+                  initialValue: _minutes,
+                  minValue: 0,
+                  allowDecimal: true,
+                  onChanged: _setMinutes,
+                ),
+                Text(l10n.minutes, style: labelStyle),
+              ],
+            ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              spacing: 8,
+              children: [
+                NumberStepper(
+                  key: const ValueKey('manualVersesStepper'),
+                  keyPrefix: 'manual-verses',
+                  initialValue: _verses,
+                  minValue: 0,
+                  onChanged: _setVerses,
+                ),
+                Text(l10n.verses, style: labelStyle),
+              ],
+            ),
+            if (_error != null)
+              Text(_error!, style: TextStyle(color: colorScheme.error)),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          key: const ValueKey('manualSessionCancel'),
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(l10n.cancel, style: actionStyle),
+        ),
+        FilledButton(
+          key: const ValueKey('manualSessionSubmit'),
+          onPressed: _submit,
+          child: Text(l10n.addSession, style: actionStyle),
+        ),
+      ],
+    );
   }
 }

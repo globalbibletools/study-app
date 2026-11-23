@@ -1,4 +1,5 @@
 import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqlite3/sqlite3.dart';
 
@@ -80,7 +81,7 @@ CREATE UNIQUE INDEX hash_rs_book_progress ON rs_book_progress(book_id);
     });
 
     test(
-      'upgrades seamlessly from Schema 1 -> 2 -> 3 -> 4 -> 5 -> 6 preserving all progress',
+      'upgrades seamlessly from Schema 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 preserving all progress',
       () {
         // 1. Initialize with Schema 1
         createSchemaV1(db);
@@ -340,6 +341,32 @@ DELETE FROM reading_plan_book WHERE reading_plan_id = 1 AND book_id = 40;
         );
         expect(readTimes, hasLength(1));
         expect(readTimes[0]['read_seconds'], 930);
+
+        // 7. Run migration 7 (reading_session_7.sql): sessions gain the
+        // manual-session flag, defaulting existing sessions to normal.
+        executeSqlFile(db, 'assets/schemas/reading_session_7.sql');
+
+        final sessionColumnsAfterV7 = db
+            .select('PRAGMA table_info(rs_session)')
+            .map((r) => r['name'])
+            .toList();
+        expect(sessionColumnsAfterV7, contains('is_manual'));
+
+        final manualFlags = db.select(
+          'SELECT id, is_manual FROM rs_session ORDER BY id',
+        );
+        expect(manualFlags, hasLength(1));
+        expect(manualFlags[0]['is_manual'], 0);
+
+        db.execute('''
+INSERT INTO rs_session (rs_date, start_time, end_time, verses, reading_plan_id, read_seconds)
+VALUES ('2026-05-02', '2026-05-02T09:00:00.000', '2026-05-02T09:10:00.000', 2, 1, 600);
+''');
+        final newSessionFlag = db.select(
+          'SELECT is_manual FROM rs_session WHERE rs_date = ?',
+          ['2026-05-02'],
+        );
+        expect(newSessionFlag.single['is_manual'], 0);
 
         expect(db.select('PRAGMA foreign_key_check'), isEmpty);
       },

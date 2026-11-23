@@ -113,6 +113,27 @@ void main() {
       expect(viewModel.totalVerses, 5);
     });
 
+    test('adds a manual session and refreshes the session list', () async {
+      planService.detailedProgress = [
+        session(id: 1, readSeconds: 60, verses: 1),
+      ];
+      final viewModel = newViewModel();
+      await viewModel.initialize();
+
+      await viewModel.addManualSession(minutes: 5.5, verses: 2);
+
+      final call = planService.addedManualSessions.single;
+      expect(call.readingPlanId, planId);
+      expect(call.date, date);
+      expect(call.minutes, 5.5);
+      expect(call.verses, 2);
+      expect(viewModel.sessions, hasLength(2));
+      expect(viewModel.sessions.last.rsSession.isManual, isTrue);
+      expect(viewModel.sessions.last.rsSession.readSeconds, 330);
+      expect(viewModel.totalMinutes, 6.5);
+      expect(viewModel.totalVerses, 3);
+    });
+
     test('propagates a load error from initialize', () async {
       planService.detailedProgressError = StateError(
         'detailed progress query failed',
@@ -189,19 +210,23 @@ void main() {
 }
 
 SessionDetails session({
+  int? id,
   int readSeconds = 0,
   int verses = 0,
   DateTime? startTime,
+  bool isManual = false,
   List<DetailedProgess> progress = const [],
 }) {
   final day = DateTime(2026, 11, 17);
   return SessionDetails(
     RsSession(
+      id: id,
       rsDate: day,
       startTime: startTime ?? DateTime(2026, 11, 17, 9),
       readSeconds: readSeconds,
       verses: verses,
       readingPlanId: 1,
+      isManual: isManual,
     ),
     progress,
   );

@@ -71,6 +71,180 @@ void main() {
       expect(find.text('09:05'), findsOneWidget);
       expect(find.text('1.5 min • 3 verses'), findsNWidgets(2));
       expect(find.text('2 John 1:1-2, 1:4, 2:1-3, 3 John 1:1'), findsOneWidget);
+      expect(find.byIcon(Icons.delete_outline), findsNothing);
+    });
+
+    testWidgets('shows manual sessions with start time and description', (
+      tester,
+    ) async {
+      planService.detailedProgress = [
+        session(
+          id: 1,
+          startTime: DateTime(2026, 11, 17, 9, 5),
+          readSeconds: 300,
+          verses: 2,
+        ),
+        session(
+          id: 2,
+          isManual: true,
+          startTime: DateTime(2026, 11, 16, 22, 15),
+          readSeconds: 120,
+          verses: 1,
+        ),
+      ];
+      final viewModel = newViewModel();
+      await viewModel.initialize();
+
+      await tester.pumpWidget(
+        buildApp(DayActivityLogPanel(viewModel: viewModel)),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('09:05'), findsOneWidget);
+      expect(find.text('22:15'), findsOneWidget);
+      expect(find.text('No verses read'), findsOneWidget);
+      expect(find.text('Manually added'), findsOneWidget);
+      expect(find.byIcon(Icons.delete_outline), findsNothing);
+    });
+  });
+
+  group('manual sessions', () {
+    Finder manualMinutesField() => find.descendant(
+      of: find.byKey(const ValueKey('manualMinutesStepper')),
+      matching: find.byType(TextField),
+    );
+
+    Finder manualVersesField() => find.descendant(
+      of: find.byKey(const ValueKey('manualVersesStepper')),
+      matching: find.byType(TextField),
+    );
+
+    testWidgets('plus button opens the dialog and submits totals', (
+      tester,
+    ) async {
+      planService.detailedProgress = [];
+      final viewModel = newViewModel();
+      await viewModel.initialize();
+
+      await tester.pumpWidget(
+        buildApp(DayActivityLogPanel(viewModel: viewModel)),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('addManualSessionButton')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AlertDialog), findsOneWidget);
+      expect(find.text('Add Session'), findsNWidgets(2));
+
+      final title = tester.widget<Text>(
+        find.byKey(const ValueKey('manualSessionTitle')),
+      );
+      expect(title.textAlign, TextAlign.center);
+
+      final cancelLabel = tester.widget<Text>(
+        find.descendant(
+          of: find.byKey(const ValueKey('manualSessionCancel')),
+          matching: find.byType(Text),
+        ),
+      );
+      final submitLabel = tester.widget<Text>(
+        find.descendant(
+          of: find.byKey(const ValueKey('manualSessionSubmit')),
+          matching: find.byType(Text),
+        ),
+      );
+      expect(cancelLabel.style?.fontWeight, FontWeight.bold);
+      expect(submitLabel.style?.fontWeight, FontWeight.bold);
+
+      final minutesStepper = find.byKey(const ValueKey('manualMinutesStepper'));
+      final versesStepper = find.byKey(const ValueKey('manualVersesStepper'));
+      expect(
+        tester.getTopLeft(minutesStepper).dx,
+        closeTo(tester.getTopLeft(versesStepper).dx, 0.1),
+      );
+
+      expect(
+        tester.getTopLeft(find.text('minutes')).dx,
+        greaterThan(
+          tester
+              .getTopLeft(find.byKey(const Key('manual-minutes-increase')))
+              .dx,
+        ),
+      );
+      expect(
+        tester.getTopLeft(find.text('verses')).dx,
+        greaterThan(
+          tester.getTopLeft(find.byKey(const Key('manual-verses-increase'))).dx,
+        ),
+      );
+
+      await tester.enterText(manualMinutesField(), '5.5');
+      await tester.enterText(manualVersesField(), '2');
+      await tester.tap(find.byKey(const ValueKey('manualSessionSubmit')));
+      await tester.pumpAndSettle();
+
+      final call = planService.addedManualSessions.single;
+      expect(call.readingPlanId, 1);
+      expect(call.date, date);
+      expect(call.minutes, 5.5);
+      expect(call.verses, 2);
+      expect(find.byType(AlertDialog), findsNothing);
+      expect(find.text('Nov 17, 2026'), findsOneWidget);
+      expect(find.text('09:30'), findsOneWidget);
+      expect(find.text('Manually added'), findsOneWidget);
+      expect(viewModel.sessions.single.rsSession.isManual, isTrue);
+      expect(viewModel.totalMinutes, 5.5);
+      expect(viewModel.totalVerses, 2);
+    });
+
+    testWidgets('cancel closes the dialog without adding a session', (
+      tester,
+    ) async {
+      planService.detailedProgress = [];
+      final viewModel = newViewModel();
+      await viewModel.initialize();
+
+      await tester.pumpWidget(
+        buildApp(DayActivityLogPanel(viewModel: viewModel)),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('addManualSessionButton')));
+      await tester.pumpAndSettle();
+      await tester.enterText(manualMinutesField(), '5');
+      await tester.tap(find.byKey(const ValueKey('manualSessionCancel')));
+      await tester.pumpAndSettle();
+
+      expect(planService.addedManualSessions, isEmpty);
+      expect(find.byType(AlertDialog), findsNothing);
+      expect(viewModel.sessions, isEmpty);
+    });
+
+    testWidgets('rejects a submission with no minutes or verses', (
+      tester,
+    ) async {
+      planService.detailedProgress = [];
+      final viewModel = newViewModel();
+      await viewModel.initialize();
+
+      await tester.pumpWidget(
+        buildApp(DayActivityLogPanel(viewModel: viewModel)),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('addManualSessionButton')));
+      await tester.pumpAndSettle();
+
+      final l10n = AppLocalizations.of(
+        tester.element(find.byType(DayActivityLogPanel)),
+      )!;
+      await tester.tap(find.byKey(const ValueKey('manualSessionSubmit')));
+      await tester.pumpAndSettle();
+
+      expect(find.text(l10n.invalidManualSession), findsOneWidget);
+      expect(planService.addedManualSessions, isEmpty);
+      expect(find.byType(AlertDialog), findsOneWidget);
     });
   });
 
@@ -172,18 +346,22 @@ class _NavigateToLauncher extends StatelessWidget {
 }
 
 SessionDetails session({
+  int? id,
   DateTime? startTime,
   int readSeconds = 0,
   int verses = 0,
+  bool isManual = false,
   List<DetailedProgess> progress = const [],
 }) {
   return SessionDetails(
     RsSession(
+      id: id,
       rsDate: DateTime(2026, 11, 17),
       startTime: startTime ?? DateTime(2026, 11, 17, 9),
       readSeconds: readSeconds,
       verses: verses,
       readingPlanId: 1,
+      isManual: isManual,
     ),
     progress,
   );

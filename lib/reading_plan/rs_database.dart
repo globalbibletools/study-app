@@ -28,7 +28,7 @@ class ReadingSessionDatabase {
        _verseInventoryProvider = verseInventoryProvider;
 
   static const _defaultDatabaseName = 'reading_session.db';
-  static const _databaseVersion = 6;
+  static const _databaseVersion = 7;
 
   final String _databaseName;
   final String? _databasePath;
@@ -223,6 +223,7 @@ class ReadingSessionDatabase {
       for (final row in sessionRows) {
         row['reading_plan_id'] = 1;
         row['read_seconds'] = _readSecondsForSessionRow(row);
+        row['is_manual'] = 0;
         batch.insert('rs_session', row);
       }
       for (final row in logRows) {
@@ -341,6 +342,7 @@ class ReadingSessionDatabase {
       }
       for (final row in sessionRows) {
         row['read_seconds'] = _readSecondsForSessionRow(row);
+        row['is_manual'] ??= 0;
         batch.insert('rs_session', row);
       }
       for (final row in logRows) {

@@ -36,6 +36,19 @@ class DayActivityLogViewModel extends ChangeNotifier {
     });
   }
 
+  Future<void> addManualSession({
+    required double minutes,
+    required int verses,
+  }) async {
+    await _planService.addManualSession(
+      readingPlanId: readingPlanId,
+      date: date,
+      minutes: minutes,
+      verses: verses,
+    );
+    await refresh();
+  }
+
   final int readingPlanId;
   final DateTime date;
 

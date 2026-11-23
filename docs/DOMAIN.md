@@ -104,11 +104,15 @@ the book list, not the stored collection id, is the source of truth.
 **Daily goal** — either a number of verses or a number of minutes per day.
 Days are marked when the goal was met.
 
-**Reading session** — one sitting of timed reading on a given date: seconds
-read and verses read.
+**Reading session** — one sitting of reading on a given date: seconds read
+and verses read. A session is either timed (recorded while the user reads)
+or **manual** (totals entered by the user after the fact). Manual sessions
+count toward the day's activity totals and goal, but they do not mark
+individual verses read.
 
 **Read log** — one record per verse-read event, tied to both a session and a
-plan. The read log is the source of truth for all progress counters.
+plan. Reading sessions account for time and verse totals, while the read log
+accounts for which verses were read.
 
 **Book completion** — a book is complete when every verse in it has been read
 at least once, regardless of the order chapters and verses were read in.
