@@ -105,8 +105,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      tester.getTopLeft(find.byKey(const ValueKey(2))).dy,
-      lessThan(tester.getTopLeft(find.byKey(const ValueKey(1))).dy),
+      tester.getTopLeft(find.text('Exodus')).dy,
+      lessThan(tester.getTopLeft(find.text('Genesis')).dy),
     );
 
     await tester.tap(find.text('Save'));

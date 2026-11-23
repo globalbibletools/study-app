@@ -1,3 +1,4 @@
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/l10n/book_names.dart';
 import 'package:gbt/reading_plan/edit_book_list_view_model.dart';
@@ -34,33 +35,18 @@ class _EditBookListPanelState extends State<EditBookListPanel> {
     Navigator.of(context).pop(viewModel.bookIds);
   }
 
-  void _addBook(int bookId) {
+  void _addBook(int? bookId) {
+    if (bookId == null || viewModel.bookIds.contains(bookId)) return;
     viewModel.addBook(bookId);
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_scrollController.hasClients) return;
-      _scrollToBottom();
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOut,
+      );
     });
-  }
-
-  void _scrollToBottom() {
-    if (!mounted || !_scrollController.hasClients) return;
-    final position = _scrollController.position;
-    _scrollController
-        .animateTo(
-          position.maxScrollExtent,
-          duration: const Duration(milliseconds: 250),
-          curve: Curves.easeOut,
-        )
-        .then((_) {
-          if (!mounted || !_scrollController.hasClients) return;
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (!mounted || !_scrollController.hasClients) return;
-            final position = _scrollController.position;
-            if (position.pixels < position.maxScrollExtent) {
-              _scrollController.jumpTo(position.maxScrollExtent);
-            }
-          });
-        });
   }
 
   @override
@@ -79,9 +65,9 @@ class _EditBookListPanelState extends State<EditBookListPanel> {
             builder: (context, _) {
               final l10n = AppLocalizations.of(context)!;
               return Column(
+                spacing: 16,
                 children: [
                   _topBar(l10n),
-                  const SizedBox(height: 12),
                   Expanded(child: _bookList(l10n)),
                   _bottomBar(l10n),
                 ],
@@ -94,14 +80,13 @@ class _EditBookListPanelState extends State<EditBookListPanel> {
   }
 
   Widget _topBar(AppLocalizations l10n) {
-    const iconInset = 6.0;
     return Stack(
       alignment: Alignment.center,
       children: [
         Align(
           alignment: Alignment.centerLeft,
           child: Transform.translate(
-            offset: const Offset(-iconInset, 0),
+            offset: const Offset(-6, 0),
             child: IconButton(
               style: IconButton.styleFrom(
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -125,24 +110,55 @@ class _EditBookListPanelState extends State<EditBookListPanel> {
       return Center(child: Text(l10n.selectAtLeastOneBook));
     }
 
-    final colorScheme = Theme.of(context).colorScheme;
     final bookIds = viewModel.bookIds;
-    return ReorderableListView.builder(
+    return ReorderableListView(
       scrollController: _scrollController,
       buildDefaultDragHandles: false,
-      itemCount: bookIds.length,
+      // Allows us to scroll to the end of the list when adding a new book.
+      scrollCacheExtent: const ScrollCacheExtent.pixels(5000),
       onReorderItem: viewModel.moveBook,
       proxyDecorator: (Widget child, int index, Animation<double> animation) {
         return Material(color: Colors.transparent, elevation: 0, child: child);
       },
-      itemBuilder: (context, index) {
-        final bookId = bookIds[index];
-        return _BookRow(
-          key: ValueKey(bookId),
-          index: index,
-          name: bookNameFromId(context, bookId),
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          trailing: IconButton(
+      // We eager render so that we can scroll to the end when adding a new book.
+      children: [
+        for (var index = 0; index < bookIds.length; index++)
+          _bookRow(index, bookIds[index]),
+      ],
+    );
+  }
+
+  Widget _bookRow(int index, int bookId) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
+    return Container(
+      key: ValueKey(bookId),
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(32),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        spacing: 8,
+        children: [
+          ReorderableDragStartListener(
+            index: index,
+            child: const Icon(Icons.drag_handle_rounded),
+          ),
+          Expanded(
+            child: Text(
+              bookNameFromId(context, bookId),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: colorScheme.onSurface,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          IconButton(
             icon: Icon(Icons.close, color: colorScheme.error),
             tooltip: l10n.removeBook,
             style: IconButton.styleFrom(
@@ -152,8 +168,8 @@ class _EditBookListPanelState extends State<EditBookListPanel> {
             ),
             onPressed: () => viewModel.removeBook(bookId),
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 
@@ -161,9 +177,9 @@ class _EditBookListPanelState extends State<EditBookListPanel> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 16),
       child: Row(
+        spacing: 8,
         children: [
           Expanded(child: _addBookDropdown(l10n)),
-          const SizedBox(width: 8),
           FilledButton(
             style: FilledButton.styleFrom(
               minimumSize: const Size(0, 48),
@@ -214,63 +230,8 @@ class _EditBookListPanelState extends State<EditBookListPanel> {
                 child: Text(bookNameFromId(context, bookId)),
               ),
           ],
-          onChanged: availableBookIds.isEmpty
-              ? null
-              : (bookId) {
-                  if (bookId == null) return;
-                  _addBook(bookId);
-                },
+          onChanged: availableBookIds.isEmpty ? null : _addBook,
         ),
-      ),
-    );
-  }
-}
-
-class _BookRow extends StatelessWidget {
-  const _BookRow({
-    super.key,
-    required this.index,
-    required this.name,
-    required this.trailing,
-    this.padding = const EdgeInsets.symmetric(vertical: 4),
-  });
-
-  final int index;
-  final String name;
-  final Widget trailing;
-  final EdgeInsetsGeometry padding;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 4),
-      padding: padding,
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(32),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        spacing: 8,
-        children: [
-          ReorderableDragStartListener(
-            index: index,
-            child: const Icon(Icons.drag_handle_rounded),
-          ),
-          Expanded(
-            child: Text(
-              name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: colorScheme.onSurface,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          trailing,
-        ],
       ),
     );
   }

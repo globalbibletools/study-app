@@ -293,16 +293,47 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
       proxyDecorator: (Widget child, int index, Animation<double> animation) {
         return Material(color: Colors.transparent, elevation: 0, child: child);
       },
-      itemBuilder: (context, index) {
-        final book = books[index];
+      itemBuilder: (context, index) => _bookRow(index, books[index]),
+    );
+  }
 
-        return _BookRow(
-          key: ValueKey(book.bookId),
-          index: index,
-          name: bookNameFromId(context, book.bookId),
-          progress: viewModel.progressForBook(book.bookId),
-        );
-      },
+  Widget _bookRow(int index, ReadingPlanBook book) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      key: ValueKey(book.bookId),
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(32),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        spacing: 8,
+        children: [
+          ReorderableDragStartListener(
+            index: index,
+            child: const Icon(Icons.drag_handle_rounded),
+          ),
+          Expanded(
+            child: Text(
+              bookNameFromId(context, book.bookId),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: colorScheme.onSurface,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          ProgressCircle(
+            percent: viewModel.progressForBook(book.bookId),
+            size: 36,
+            strokeWidth: 4,
+            fontSize: 10,
+          ),
+        ],
+      ),
     );
   }
 
@@ -341,59 +372,6 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
           onNextMonth: () => unawaited(viewModel.showNextMonth()),
           onDayTap: _openDayActivityLog,
         ),
-      ),
-    );
-  }
-}
-
-class _BookRow extends StatelessWidget {
-  final int index;
-  final String name;
-  final double progress;
-
-  const _BookRow({
-    super.key,
-    required this.index,
-    required this.name,
-    required this.progress,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      margin: EdgeInsets.symmetric(vertical: 4),
-      padding: EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(32),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        spacing: 8,
-        children: [
-          ReorderableDragStartListener(
-            index: index,
-            child: Icon(Icons.drag_handle_rounded),
-          ),
-          Expanded(
-            child: Text(
-              name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: colorScheme.onSurface,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          ProgressCircle(
-            percent: progress,
-            size: 36,
-            strokeWidth: 4,
-            fontSize: 10,
-          ),
-        ],
       ),
     );
   }
