@@ -4,6 +4,7 @@ import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/reading_plan/reading_plan_card.dart';
 import 'package:gbt/reading_plan/reading_plan_panel.dart';
 import 'package:gbt/reading_plan/reading_plan_panel_view_model.dart';
+import 'package:gbt/reading_plan/progress_circle.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -108,6 +109,108 @@ void main() {
       expect(find.byType(ReadingPlanCard), findsNWidgets(2));
       expect(find.text('Ruth'), findsOneWidget);
       expect(find.text('Psalms'), findsOneWidget);
+    });
+  });
+
+  group('card overlays', () {
+    final day = DateTime(2026, 11, 23);
+
+    testWidgets('shows the bookmark ribbon only for bookmarked plans', (
+      tester,
+    ) async {
+      planService.plans = [
+        planDetails('Bookmarked', id: 1, isBookmarked: true),
+        planDetails('Plain', id: 2),
+      ];
+
+      await pumpPanel(tester);
+
+      expect(
+        find.byKey(const ValueKey('plan-bookmark-ribbon-1')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('plan-bookmark-ribbon-2')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('shows the remaining verses for today', (tester) async {
+      planService.plans = [
+        planDetails(
+          'Ruth',
+          id: 1,
+          goalType: GoalType.verses,
+          goalValue: 10,
+          todayProgress: DayProgress(day, 0, 3, false),
+        ),
+      ];
+
+      await pumpPanel(tester);
+
+      expect(find.text('7 verses left today'), findsOneWidget);
+    });
+
+    testWidgets('shows the remaining minutes for today', (tester) async {
+      planService.plans = [
+        planDetails(
+          'Ruth',
+          id: 1,
+          goalType: GoalType.minutes,
+          goalValue: 30,
+          todayProgress: DayProgress(day, 18, 0, false),
+        ),
+      ];
+
+      await pumpPanel(tester);
+
+      expect(find.text('12 minutes left today'), findsOneWidget);
+    });
+
+    testWidgets('shows a check and completion label when the goal is reached', (
+      tester,
+    ) async {
+      planService.plans = [
+        planDetails(
+          'Ruth',
+          id: 1,
+          goalType: GoalType.verses,
+          goalValue: 10,
+          todayProgress: DayProgress(day, 0, 12, true),
+        ),
+      ];
+
+      await pumpPanel(tester);
+
+      final label = find.byKey(const ValueKey('plan-daily-goal-1'));
+      expect(label, findsOneWidget);
+      expect(find.text('Daily Goal Reached'), findsOneWidget);
+      expect(
+        find.descendant(of: label, matching: find.byIcon(Icons.check)),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('shows overall progress circle and read over total verses', (
+      tester,
+    ) async {
+      planService.plans = [
+        planDetails(
+          'Ruth',
+          id: 1,
+          totalVerses: 100,
+          versesRead: 66,
+          todayProgress: DayProgress(day, 0, 0, false),
+        ),
+      ];
+
+      await pumpPanel(tester);
+
+      final circle = tester.widget<ProgressCircle>(find.byType(ProgressCircle));
+      expect(circle.percent, 0.66);
+      expect(circle.size, 32);
+      expect(find.text('66/100 verses'), findsOneWidget);
+      expect(find.text('66/100 verses · 66%'), findsNothing);
     });
   });
 
@@ -233,8 +336,22 @@ void main() {
       );
       await tester.tap(find.text('Open plans'));
       await tester.pumpAndSettle();
+      final resumeButton = find.byKey(const ValueKey('plan-resume-7'));
+      expect(resumeButton, findsOneWidget);
+      expect(
+        find.descendant(of: resumeButton, matching: find.text('Ruth 1:1')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: resumeButton,
+          matching: find.byIcon(Icons.chevron_right),
+        ),
+        findsOneWidget,
+      );
 
-      await tester.tap(find.textContaining('Resume at'));
+      final buttonRect = tester.getRect(resumeButton);
+      await tester.tapAt(Offset(buttonRect.center.dx, buttonRect.bottom - 2));
       await tester.pumpAndSettle();
 
       expect(sessionViewModel.startedPlanIds, [7]);
@@ -282,6 +399,10 @@ ReadingPlanDetails planDetails(
   int? id = 1,
   int totalVerses = 0,
   int versesRead = 0,
+  bool isBookmarked = false,
+  GoalType goalType = GoalType.verses,
+  int goalValue = 10,
+  DayProgress? todayProgress,
   Reference? resumePosition,
 }) {
   final details = ReadingPlanDetails(
@@ -290,14 +411,15 @@ ReadingPlanDetails planDetails(
       planName: name,
       createdAt: DateTime.now(),
       collectionId: 1,
-      goalType: GoalType.verses.name,
-      goalValue: 10,
-      isBookmarked: false,
+      goalType: goalType.name,
+      goalValue: goalValue,
+      isBookmarked: isBookmarked,
     ),
     const [],
   );
   details.totalVerses = totalVerses;
   details.versesRead = versesRead;
+  details.todayProgress = todayProgress;
   details.resumePosition = resumePosition;
   return details;
 }

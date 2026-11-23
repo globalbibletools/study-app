@@ -106,6 +106,7 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
     }
 
     return ListView(
+      padding: const EdgeInsets.only(top: 16),
       children: viewModel.plans
           .map(
             (plan) => ReadingPlanCard(

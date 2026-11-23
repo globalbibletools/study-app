@@ -81,6 +81,78 @@ void main() {
     expect(await planService.getReadingPlanById(savedPlan.id!), isNull);
   });
 
+  test('loads today\'s progress for each listed plan', () async {
+    final today = DateTime(2026, 11, 23);
+    final versePlan = await planService.saveReadingPlan(
+      planName: 'Verse Goal Plan',
+      collectionId: 1,
+      goalType: GoalType.verses,
+      goalValue: 5,
+      selectedBookIds: {63},
+    );
+    final minutePlan = await planService.saveReadingPlan(
+      planName: 'Minute Goal Plan',
+      collectionId: 1,
+      goalType: GoalType.minutes,
+      goalValue: 10,
+      selectedBookIds: {64},
+    );
+    final untouchedPlan = await planService.saveReadingPlan(
+      planName: 'Untouched Plan',
+      collectionId: 1,
+      goalType: GoalType.verses,
+      goalValue: 5,
+      selectedBookIds: {65},
+    );
+
+    await database.insertSession(
+      RsSession(
+        rsDate: today,
+        startTime: DateTime(2026, 11, 23, 8),
+        endTime: DateTime(2026, 11, 23, 8, 10),
+        readSeconds: 600,
+        verses: 7,
+        readingPlanId: versePlan.id!,
+      ),
+    );
+    await database.upsertDaySummary(versePlan.id!, today);
+
+    await database.insertSession(
+      RsSession(
+        rsDate: today,
+        startTime: DateTime(2026, 11, 23, 9),
+        endTime: DateTime(2026, 11, 23, 9, 5),
+        readSeconds: 300,
+        verses: 2,
+        readingPlanId: minutePlan.id!,
+      ),
+    );
+    await database.upsertDaySummary(minutePlan.id!, today);
+
+    final plans = await planService.getReadingPlansWithProgress(
+      today: DateTime(2026, 11, 23, 15, 30),
+    );
+
+    final verseDetails = plans.singleWhere(
+      (plan) => plan.readingPlan.id == versePlan.id,
+    );
+    expect(verseDetails.todayProgress?.day, today);
+    expect(verseDetails.todayProgress?.verses, 7);
+    expect(verseDetails.todayProgress?.goalReached, isTrue);
+
+    final minuteDetails = plans.singleWhere(
+      (plan) => plan.readingPlan.id == minutePlan.id,
+    );
+    expect(minuteDetails.todayProgress?.minutes, 5);
+    expect(minuteDetails.todayProgress?.goalReached, isFalse);
+
+    final untouchedDetails = plans.singleWhere(
+      (plan) => plan.readingPlan.id == untouchedPlan.id,
+    );
+    expect(untouchedDetails.todayProgress?.empty, isTrue);
+    expect(untouchedDetails.todayProgress?.day, today);
+  });
+
   test('loads a single day of progress independently of the month', () async {
     final savedPlan = await planService.saveReadingPlan(
       planName: 'Day Progress Test',

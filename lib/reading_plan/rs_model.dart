@@ -141,6 +141,7 @@ class ReadingPlanDetails {
   int versesRead;
   int booksRead;
   DailyGoal dailyGoal;
+  DayProgress? todayProgress;
   Reference? resumePosition;
 
   ReadingPlanDetails(this.readingPlan, this.books)

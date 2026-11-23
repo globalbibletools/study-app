@@ -134,9 +134,13 @@ class ReadingPlanService {
     return result;
   }
 
-  Future<List<ReadingPlanDetails>> getReadingPlansWithProgress() async {
+  Future<List<ReadingPlanDetails>> getReadingPlansWithProgress({
+    DateTime? today,
+  }) async {
     final plans = await getReadingPlans();
     final progress = await _database.getReadingPlanProgress();
+    final day = _dayOnly(today ?? DateTime.now());
+    final todaysSummary = await _database.getDaySummariesForDate(day);
 
     for (final plan in plans) {
       final planId = plan.readingPlan.id!;
@@ -145,11 +149,24 @@ class ReadingPlanService {
       plan.totalVerses = planProgress?.totalVerses ?? 0;
       plan.versesRead = planProgress?.versesRead ?? 0;
 
+      final summary = todaysSummary[planId];
+      plan.todayProgress = summary == null
+          ? DayProgress.empty(day)
+          : DayProgress(
+              day,
+              summary.rsSeconds ~/ 60,
+              summary.rsVerses,
+              summary.goalReached,
+            );
+
       plan.resumePosition = await getResumeReference(planId);
     }
 
     return plans;
   }
+
+  static DateTime _dayOnly(DateTime date) =>
+      DateTime(date.year, date.month, date.day);
 
   RsBookStats _emptyStats(int bookId) {
     return RsBookStats(
