@@ -76,7 +76,7 @@ class ReadingPlanCard extends StatelessWidget {
             ],
           ),
           if (plan.readingPlan.isBookmarked)
-            Positioned(left: 18, top: -28 / 3, child: _bookmarkRibbon(context)),
+            Positioned(left: 20, top: -8, child: _bookmarkRibbon(context)),
           Positioned(
             right: 16,
             bottom: -(resumeOverhang - buttonHitAreaExtension),
@@ -118,14 +118,11 @@ class ReadingPlanCard extends StatelessWidget {
       key: ValueKey('plan-daily-goal-${plan.readingPlan.id}'),
       mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.end,
-      crossAxisAlignment: CrossAxisAlignment.baseline,
-      textBaseline: TextBaseline.alphabetic,
       spacing: 4,
       children: [
         if (goalReached)
-          Baseline(
-            baseline: 16,
-            baselineType: TextBaseline.alphabetic,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(0, 0, 0, 4),
             child: Icon(Icons.check, color: colorScheme.primary, size: 16),
           ),
         Flexible(
