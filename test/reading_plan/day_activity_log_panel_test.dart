@@ -20,8 +20,8 @@ void main() {
     date = DateTime(2026, 11, 17);
   });
 
-  DayActivityLogViewModel newViewModel() {
-    return DayActivityLogViewModel.withDependencies(
+  Future<DayActivityLogViewModel> newViewModel() {
+    return DayActivityLogViewModel.createWithDependencies(
       readingPlanId: 1,
       date: date,
       planService: planService,
@@ -60,8 +60,7 @@ void main() {
           ],
         ),
       ];
-      final viewModel = newViewModel();
-      await viewModel.initialize();
+      final viewModel = await newViewModel();
 
       await tester.pumpWidget(
         buildApp(DayActivityLogPanel(viewModel: viewModel)),
@@ -106,8 +105,7 @@ void main() {
 
   testWidgets('back closes the panel', (tester) async {
     planService.detailedProgress = [session()];
-    final viewModel = newViewModel();
-    await viewModel.initialize();
+    final viewModel = await newViewModel();
 
     await tester.pumpWidget(
       buildApp(_ActivityLogLauncher(viewModel: viewModel)),

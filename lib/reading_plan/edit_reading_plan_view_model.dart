@@ -31,14 +31,7 @@ class EditReadingPlanViewModel extends ChangeNotifier {
     ]);
   }
 
-  EditReadingPlanViewModel(ReadingPlanDetails readingPlan)
-    : this.withDependencies(
-        readingPlan,
-        planService: getIt<ReadingPlanService>(),
-        bibleNavigation: getIt<BibleNavigation>(),
-      );
-
-  EditReadingPlanViewModel.withDependencies(
+  EditReadingPlanViewModel._(
     this.readingPlan, {
     required ReadingPlanService planService,
     required BibleNavigation bibleNavigation,
@@ -56,11 +49,53 @@ class EditReadingPlanViewModel extends ChangeNotifier {
     _name = readingPlan.readingPlan.planName;
   }
 
+  static Future<EditReadingPlanViewModel> createNew(String name) {
+    return createNewWithDependencies(
+      name,
+      planService: getIt<ReadingPlanService>(),
+      bibleNavigation: getIt<BibleNavigation>(),
+    );
+  }
+
+  static Future<EditReadingPlanViewModel> createExisting(int planId) {
+    return createExistingWithDependencies(
+      planId,
+      planService: getIt<ReadingPlanService>(),
+      bibleNavigation: getIt<BibleNavigation>(),
+    );
+  }
+
+  static Future<EditReadingPlanViewModel> createNewWithDependencies(
+    String name, {
+    required ReadingPlanService planService,
+    required BibleNavigation bibleNavigation,
+  }) async {
+    return EditReadingPlanViewModel._(
+      defaultPlan(name),
+      planService: planService,
+      bibleNavigation: bibleNavigation,
+    );
+  }
+
+  static Future<EditReadingPlanViewModel> createExistingWithDependencies(
+    int planId, {
+    required ReadingPlanService planService,
+    required BibleNavigation bibleNavigation,
+  }) async {
+    final planDetails = await planService.getReadingPlanById(planId);
+    if (planDetails == null) {
+      throw StateError('Reading plan not found');
+    }
+
+    return EditReadingPlanViewModel._(
+      planDetails,
+      planService: planService,
+      bibleNavigation: bibleNavigation,
+    );
+  }
+
   final ReadingPlanService _planService;
   final BibleNavigation _bibleNavigation;
-
-  Future<void>? _initialization;
-  Future<void> initialize() => _initialization ??= Future<void>.value();
 
   // Plan basics
 

@@ -10,40 +10,36 @@ import 'package:gbt/reading_plan/edit_reading_plan_panel.dart';
 import 'package:gbt/reading_plan/progress_circle.dart';
 import 'package:gbt/reading_plan/reading_plan_detail_view_model.dart';
 
-class ReadingPlanDetailPanel extends StatefulWidget {
-  final int planId;
-  final ReadingPlanDetailViewModel? viewModel;
-  final Widget Function(BuildContext context, ReadingPlanDetails plan)?
-  editPlanBuilder;
-  final DayActivityLogNavigator? dayActivityLogNavigator;
+typedef NavigateToDayActivityLogRoute =
+    Future<void> Function(
+      BuildContext context,
+      DateTime date, {
+      required int readingPlanId,
+    });
 
-  const ReadingPlanDetailPanel({
-    super.key,
-    required this.planId,
-    this.editPlanBuilder,
-    this.dayActivityLogNavigator,
-  }) : viewModel = null;
+class ReadingPlanDetailPanel extends StatefulWidget {
+  final ReadingPlanDetailViewModel viewModel;
+  final NavigateToExistingReadingPlanRoute? navigateToEditPlanRoute;
+  final NavigateToDayActivityLogRoute? navigateToDayActivityLogRoute;
 
   const ReadingPlanDetailPanel.withDependencies({
     super.key,
     required this.viewModel,
-    this.editPlanBuilder,
-    this.dayActivityLogNavigator,
-  }) : planId = 0;
+    this.navigateToEditPlanRoute,
+    this.navigateToDayActivityLogRoute,
+  });
 
-  static Future<void> navigateTo(
-    BuildContext context,
-    int planId, {
-    Widget Function(BuildContext context, ReadingPlanDetails plan)?
-    editPlanBuilder,
-    DayActivityLogNavigator? dayActivityLogNavigator,
-  }) async {
-    final viewModel = ReadingPlanDetailViewModel(planId: planId);
-
+  static Future<void> navigateTo(BuildContext context, int planId) async {
+    ReadingPlanDetailViewModel viewModel;
     try {
-      await viewModel.initialize();
+      viewModel = await ReadingPlanDetailViewModel.create(planId: planId);
     } catch (_) {
-      viewModel.dispose();
+      if (!context.mounted) return;
+
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.errorLoadingContent)));
       return;
     }
 
@@ -55,11 +51,8 @@ class ReadingPlanDetailPanel extends StatefulWidget {
     try {
       await Navigator.of(context).push<void>(
         MaterialPageRoute(
-          builder: (_) => ReadingPlanDetailPanel.withDependencies(
-            viewModel: viewModel,
-            editPlanBuilder: editPlanBuilder,
-            dayActivityLogNavigator: dayActivityLogNavigator,
-          ),
+          builder: (_) =>
+              ReadingPlanDetailPanel.withDependencies(viewModel: viewModel),
         ),
       );
     } catch (_) {
@@ -79,8 +72,7 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
   @override
   void initState() {
     super.initState();
-    viewModel =
-        widget.viewModel ?? ReadingPlanDetailViewModel(planId: widget.planId);
+    viewModel = widget.viewModel;
   }
 
   @override
@@ -102,8 +94,6 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
               textAlign: TextAlign.center,
             ),
           );
-        } else if (!viewModel.isInitialized) {
-          content = const Center(child: CircularProgressIndicator());
         } else {
           content = Column(
             spacing: 16,
@@ -196,15 +186,10 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
   }
 
   Future<void> _editPlan() async {
-    final plan = viewModel.planDetails;
-    final routeBuilder = widget.editPlanBuilder;
-    if (routeBuilder != null) {
-      await Navigator.of(context).push(
-        MaterialPageRoute(builder: (context) => routeBuilder(context, plan)),
-      );
-    } else {
-      await EditReadingPlanPanel.navigateToExisting(context, plan);
-    }
+    final navigate =
+        widget.navigateToEditPlanRoute ??
+        EditReadingPlanPanel.navigateToExisting;
+    await navigate(context, viewModel.planId);
 
     if (!mounted) return;
     await viewModel.refresh();
@@ -262,8 +247,8 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
   Widget _todaysProgress() {
     final l10n = AppLocalizations.of(context)!;
     final progress = viewModel.todaysProgress;
-    final verses = progress?.verses ?? 0;
-    final minutes = _formatMinutes(progress?.minutes ?? 0);
+    final verses = progress.verses;
+    final minutes = _formatMinutes(progress.minutes);
     final target = viewModel.goalValue;
     final isVersesGoal = viewModel.goalType == GoalType.verses;
 
@@ -380,17 +365,10 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
 
     _openingActivityLog = true;
     try {
-      final navigator = widget.dayActivityLogNavigator;
-      if (navigator != null) {
-        await navigator(context, progress.day);
-        return;
-      }
-
-      await DayActivityLogPanel.navigateTo(
-        context,
-        progress.day,
-        readingPlanId: viewModel.planId,
-      );
+      final navigate =
+          widget.navigateToDayActivityLogRoute ??
+          DayActivityLogPanel.navigateTo;
+      await navigate(context, progress.day, readingPlanId: viewModel.planId);
     } finally {
       _openingActivityLog = false;
     }

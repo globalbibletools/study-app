@@ -17,17 +17,20 @@ void main() {
     bibleNavigation = createTestBibleNavigation();
   });
 
-  EditReadingPlanViewModel newViewModel([String name = 'Test Plan']) {
-    return EditReadingPlanViewModel.withDependencies(
-      EditReadingPlanViewModel.defaultPlan(name),
+  Future<EditReadingPlanViewModel> newViewModel([String name = 'Test Plan']) {
+    return EditReadingPlanViewModel.createNewWithDependencies(
+      name,
       planService: planService,
       bibleNavigation: bibleNavigation,
     );
   }
 
-  EditReadingPlanViewModel existingViewModel(ReadingPlanDetails details) {
-    return EditReadingPlanViewModel.withDependencies(
-      details,
+  Future<EditReadingPlanViewModel> existingViewModel(
+    ReadingPlanDetails details,
+  ) {
+    planService.plans = [details];
+    return EditReadingPlanViewModel.createExistingWithDependencies(
+      details.readingPlan.id!,
       planService: planService,
       bibleNavigation: bibleNavigation,
     );
@@ -51,30 +54,33 @@ void main() {
   }
 
   group('defaultPlan', () {
-    test('creates an unsaved whole-Bible plan with a 10-verse daily goal', () {
-      final details = EditReadingPlanViewModel.defaultPlan('Morning Reading');
+    test(
+      'creates an unsaved whole-Bible plan with a 10-verse daily goal',
+      () async {
+        final details = EditReadingPlanViewModel.defaultPlan('Morning Reading');
 
-      final plan = details.readingPlan;
-      expect(plan.id, isNull);
-      expect(plan.planName, 'Morning Reading');
-      expect(plan.collectionId, 1);
-      expect(plan.goalType, GoalType.verses.name);
-      expect(plan.goalValue, 10);
+        final plan = details.readingPlan;
+        expect(plan.id, isNull);
+        expect(plan.planName, 'Morning Reading');
+        expect(plan.collectionId, 1);
+        expect(plan.goalType, GoalType.verses.name);
+        expect(plan.goalValue, 10);
 
-      expect(details.books.map((b) => b.bookId), [
-        for (int i = 1; i <= 66; i++) i,
-      ]);
-      expect(details.books.map((b) => b.ord), [
-        for (int i = 1; i <= 66; i++) i,
-      ]);
-      expect(details.dailyGoal.type, GoalType.verses);
-      expect(details.dailyGoal.value, 10);
-    });
+        expect(details.books.map((b) => b.bookId), [
+          for (int i = 1; i <= 66; i++) i,
+        ]);
+        expect(details.books.map((b) => b.ord), [
+          for (int i = 1; i <= 66; i++) i,
+        ]);
+        expect(details.dailyGoal.type, GoalType.verses);
+        expect(details.dailyGoal.value, 10);
+      },
+    );
   });
 
   group('initialization', () {
-    test('seeds a new-plan view model with whole-Bible defaults', () {
-      final vm = newViewModel('My Plan');
+    test('seeds a new-plan view model with whole-Bible defaults', () async {
+      final vm = await newViewModel('My Plan');
 
       expect(vm.isExisting, isFalse);
       expect(vm.name, 'My Plan');
@@ -97,7 +103,7 @@ void main() {
         bookIds: {45, 46},
       );
 
-      final vm = existingViewModel(details);
+      final vm = await existingViewModel(details);
 
       expect(vm.isExisting, isTrue);
       expect(vm.name, 'Epistles');
@@ -109,8 +115,8 @@ void main() {
       expect(vm.canSubmit, isTrue);
     });
 
-    test('always offers Custom as a collection option', () {
-      final vm = newViewModel();
+    test('always offers Custom as a collection option', () async {
+      final vm = await newViewModel();
       expect(vm.collectionOptions.last, same(BibleCollections.custom));
 
       vm.setBooks([2, 1]);
@@ -129,7 +135,7 @@ void main() {
       );
       final details = (await planService.getReadingPlanById(plan.id!))!;
 
-      final vm = existingViewModel(details);
+      final vm = await existingViewModel(details);
       expect(vm.selectedCollection, same(BibleCollections.custom));
       expect(vm.orderedBookIds, [46, 45]);
 
@@ -142,8 +148,8 @@ void main() {
   });
 
   group('setters', () {
-    test('setPlanName updates the name and notifies once per change', () {
-      final vm = newViewModel('My Plan');
+    test('setPlanName updates the name and notifies once per change', () async {
+      final vm = await newViewModel('My Plan');
       var notifications = 0;
       vm.addListener(() => notifications++);
 
@@ -160,8 +166,8 @@ void main() {
 
     test(
       'selectCollection switches the collection and resets book selection',
-      () {
-        final vm = newViewModel();
+      () async {
+        final vm = await newViewModel();
         var notifications = 0;
         vm.addListener(() => notifications++);
 
@@ -178,8 +184,8 @@ void main() {
       },
     );
 
-    test('selectCollection discards a partial book selection', () {
-      final vm = newViewModel();
+    test('selectCollection discards a partial book selection', () async {
+      final vm = await newViewModel();
       vm.setBooks([1, 5]);
 
       vm.selectCollection(BibleCollections.fromId(4)); // Torah
@@ -189,8 +195,8 @@ void main() {
 
     test(
       'selectCollection selects Custom with no books when no draft exists',
-      () {
-        final vm = newViewModel();
+      () async {
+        final vm = await newViewModel();
         var notifications = 0;
         vm.addListener(() => notifications++);
 
@@ -205,8 +211,8 @@ void main() {
       },
     );
 
-    test('setGoalType updates the goal type and notifies on change', () {
-      final vm = newViewModel();
+    test('setGoalType updates the goal type and notifies on change', () async {
+      final vm = await newViewModel();
       var notifications = 0;
       vm.addListener(() => notifications++);
 
@@ -219,8 +225,8 @@ void main() {
       expect(notifications, 1);
     });
 
-    test('setGoalValue rejects non-positive values', () {
-      final vm = newViewModel();
+    test('setGoalValue rejects non-positive values', () async {
+      final vm = await newViewModel();
       var notifications = 0;
       vm.addListener(() => notifications++);
 
@@ -231,8 +237,8 @@ void main() {
       expect(vm.goalValue, 10);
     });
 
-    test('setGoalValue updates positive values and notifies once', () {
-      final vm = newViewModel();
+    test('setGoalValue updates positive values and notifies once', () async {
+      final vm = await newViewModel();
       var notifications = 0;
       vm.addListener(() => notifications++);
 
@@ -247,8 +253,8 @@ void main() {
   });
 
   group('book order', () {
-    test('a preset order keeps its collection selected', () {
-      final vm = newViewModel();
+    test('a preset order keeps its collection selected', () async {
+      final vm = await newViewModel();
 
       vm.setBooks(BibleCollections.fromId(7).books);
 
@@ -256,8 +262,8 @@ void main() {
       expect(vm.orderedBookIds, [40, 41, 42, 43]);
     });
 
-    test('a reordered preset selects Custom', () {
-      final vm = newViewModel();
+    test('a reordered preset selects Custom', () async {
+      final vm = await newViewModel();
       final reversed = BibleCollections.fromId(4).books.reversed.toList();
 
       vm.setBooks(reversed);
@@ -266,8 +272,8 @@ void main() {
       expect(vm.orderedBookIds, reversed);
     });
 
-    test('a non-preset order selects Custom', () {
-      final vm = newViewModel();
+    test('a non-preset order selects Custom', () async {
+      final vm = await newViewModel();
       final notifications = <int>[];
       vm.addListener(() => notifications.add(1));
 
@@ -278,8 +284,8 @@ void main() {
       expect(notifications, hasLength(1));
     });
 
-    test('an identical order is ignored', () {
-      final vm = newViewModel();
+    test('an identical order is ignored', () async {
+      final vm = await newViewModel();
       vm.setBooks([2, 1]);
       var notifications = 0;
       vm.addListener(() => notifications++);
@@ -291,8 +297,8 @@ void main() {
   });
 
   group('custom draft', () {
-    test('retains a custom draft across preset switches', () {
-      final vm = newViewModel();
+    test('retains a custom draft across preset switches', () async {
+      final vm = await newViewModel();
       vm.selectCollection(BibleCollections.custom);
       vm.setBooks([8, 2, 1]);
 
@@ -308,44 +314,50 @@ void main() {
       expect(vm.orderedBookIds, [8, 2, 1]);
     });
 
-    test('editing to a preset order leaves the custom draft unchanged', () {
-      final vm = newViewModel();
-      vm.selectCollection(BibleCollections.custom);
-      vm.setBooks([2, 1]);
+    test(
+      'editing to a preset order leaves the custom draft unchanged',
+      () async {
+        final vm = await newViewModel();
+        vm.selectCollection(BibleCollections.custom);
+        vm.setBooks([2, 1]);
 
-      vm.setBooks(BibleCollections.fromId(7).books);
-      expect(vm.selectedCollection.id, 7);
+        vm.setBooks(BibleCollections.fromId(7).books);
+        expect(vm.selectedCollection.id, 7);
 
-      vm.selectCollection(BibleCollections.custom);
+        vm.selectCollection(BibleCollections.custom);
 
-      expect(vm.orderedBookIds, [2, 1]);
-    });
+        expect(vm.orderedBookIds, [2, 1]);
+      },
+    );
   });
 
   group('estimatedDays', () {
     // Ruth (book 8) has 85 verses in the versification fixture.
-    EditReadingPlanViewModel ruthViewModel() {
-      final vm = newViewModel();
+    Future<EditReadingPlanViewModel> ruthViewModel() async {
+      final vm = await newViewModel();
       vm.setBooks([8]);
       return vm;
     }
 
-    test('divides total verses by a verses-per-day goal, rounding up', () {
-      final vm = ruthViewModel();
+    test(
+      'divides total verses by a verses-per-day goal, rounding up',
+      () async {
+        final vm = await ruthViewModel();
 
-      expect(vm.estimatedDays, 9); // ceil(85 / 10)
-    });
+        expect(vm.estimatedDays, 9); // ceil(85 / 10)
+      },
+    );
 
-    test('counts only selected books', () {
-      final vm = ruthViewModel();
+    test('counts only selected books', () async {
+      final vm = await ruthViewModel();
 
       vm.setBooks([8, 32]); // Ruth + Jonah (48 verses)
 
       expect(vm.estimatedDays, 14); // ceil(133 / 10)
     });
 
-    test('converts verses to minutes at five verses per minute', () {
-      final vm = ruthViewModel();
+    test('converts verses to minutes at five verses per minute', () async {
+      final vm = await ruthViewModel();
       vm.setGoalType(GoalType.minutes);
       vm.setGoalValue(5);
 
@@ -353,29 +365,29 @@ void main() {
       expect(vm.estimatedDays, 4);
     });
 
-    test('clamps an empty selection to one day', () {
-      final vm = newViewModel();
+    test('clamps an empty selection to one day', () async {
+      final vm = await newViewModel();
       vm.setBooks([]);
 
       expect(vm.estimatedDays, 1);
     });
 
-    test('clamps large goals to a minimum of one day', () {
-      final vm = ruthViewModel();
+    test('clamps large goals to a minimum of one day', () async {
+      final vm = await ruthViewModel();
       vm.setGoalValue(1000);
 
       expect(vm.estimatedDays, 1);
     });
 
-    test('books missing from the versification contribute no verses', () {
-      final vm = newViewModel();
+    test('books missing from the versification contribute no verses', () async {
+      final vm = await newViewModel();
       vm.setBooks([999]);
 
       expect(vm.estimatedDays, 1);
     });
 
-    test('estimatedCompletionDate is estimatedDays from now', () {
-      final vm = ruthViewModel();
+    test('estimatedCompletionDate is estimatedDays from now', () async {
+      final vm = await ruthViewModel();
       final now = DateTime.now();
 
       final completion = vm.estimatedCompletionDate;
@@ -389,7 +401,7 @@ void main() {
 
   group('submit', () {
     test('saves the current view model state', () async {
-      final vm = newViewModel('Daily Bread');
+      final vm = await newViewModel('Daily Bread');
       vm.selectCollection(BibleCollections.fromId(7)); // Gospels
       vm.setGoalType(GoalType.verses);
       vm.setGoalValue(25);
@@ -424,7 +436,7 @@ void main() {
     });
 
     test('saves a whole-Bible plan in canonical order', () async {
-      final vm = newViewModel('Through the Bible');
+      final vm = await newViewModel('Through the Bible');
 
       expect(await vm.submit(), isTrue);
 
@@ -433,7 +445,7 @@ void main() {
     });
 
     test('saves collectionId 0 with the custom order', () async {
-      final vm = newViewModel('Custom Plan');
+      final vm = await newViewModel('Custom Plan');
       vm.selectCollection(BibleCollections.custom);
       vm.setBooks([3, 1, 2]);
 
@@ -449,7 +461,7 @@ void main() {
     });
 
     test('does not persist an unselected custom draft', () async {
-      final vm = newViewModel('Torah Plan');
+      final vm = await newViewModel('Torah Plan');
       vm.selectCollection(BibleCollections.custom);
       vm.setBooks([2, 1]);
       vm.selectCollection(BibleCollections.fromId(4)); // Torah
@@ -460,7 +472,7 @@ void main() {
       expect(call.collectionId, 4);
       expect(call.orderedBookIds, [1, 2, 3, 4, 5]);
 
-      final reopened = existingViewModel(planService.plans.single);
+      final reopened = await existingViewModel(planService.plans.single);
       expect(reopened.selectedCollection.id, 4);
 
       reopened.selectCollection(BibleCollections.custom);
@@ -471,7 +483,7 @@ void main() {
       final saved = await savePlan(name: 'Original', bookIds: {2, 1});
       final originalId = saved.readingPlan.id;
 
-      final vm = existingViewModel(saved);
+      final vm = await existingViewModel(saved);
       vm.setPlanName('Revised');
       vm.setBooks([1, 3]); // drop Exodus (2), add Leviticus (3)
 
@@ -490,7 +502,7 @@ void main() {
     });
 
     test('does not save when the name is empty', () async {
-      final vm = newViewModel('');
+      final vm = await newViewModel('');
 
       expect(await vm.submit(), isFalse);
       expect(vm.isSubmitting, isFalse);
@@ -498,7 +510,7 @@ void main() {
     });
 
     test('does not save when no books are selected', () async {
-      final vm = newViewModel('Some Plan');
+      final vm = await newViewModel('Some Plan');
       vm.setBooks([]);
 
       expect(await vm.submit(), isFalse);
@@ -507,7 +519,7 @@ void main() {
     });
 
     test('saves the name without trimming it', () async {
-      final vm = newViewModel('  Padded  ');
+      final vm = await newViewModel('  Padded  ');
       expect(vm.canSubmit, isTrue);
 
       expect(await vm.submit(), isTrue);
@@ -516,7 +528,7 @@ void main() {
     });
 
     test('propagates save errors and resets the submitting state', () async {
-      final vm = newViewModel('Plan');
+      final vm = await newViewModel('Plan');
       planService.saveError = StateError('save failed');
       var notifications = 0;
       vm.addListener(() => notifications++);
@@ -530,7 +542,7 @@ void main() {
 
     test('ignores a second submit while the first is saving', () async {
       planService.queueSaveRequests = true;
-      final vm = newViewModel('Plan');
+      final vm = await newViewModel('Plan');
 
       final first = vm.submit();
       final second = await vm.submit();
@@ -544,7 +556,7 @@ void main() {
 
     test('does not notify after dispose while a save is in flight', () async {
       planService.queueSaveRequests = true;
-      final vm = newViewModel('Plan');
+      final vm = await newViewModel('Plan');
       var notifications = 0;
       vm.addListener(() => notifications++);
 
@@ -562,7 +574,7 @@ void main() {
 
   group('delete', () {
     test('is a no-op for an unsaved plan', () async {
-      final vm = newViewModel();
+      final vm = await newViewModel();
 
       await vm.delete();
 
@@ -571,7 +583,7 @@ void main() {
 
     test('propagates delete errors', () async {
       final details = await savePlan(name: 'Doomed', bookIds: {1});
-      final vm = existingViewModel(details);
+      final vm = await existingViewModel(details);
       planService.deleteError = StateError('delete failed');
 
       await expectLater(vm.delete(), throwsA(isA<StateError>()));
@@ -582,7 +594,7 @@ void main() {
     test('cancels an in-flight delete when disposed', () async {
       planService.queueDeleteRequests = true;
       final details = await savePlan(name: 'Doomed', bookIds: {1});
-      final vm = existingViewModel(details);
+      final vm = await existingViewModel(details);
 
       final future = vm.delete();
       expect(planService.deleteRequests, hasLength(1));

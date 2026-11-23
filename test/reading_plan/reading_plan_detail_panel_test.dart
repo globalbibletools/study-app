@@ -1,8 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gbt/asyncutils/cancellation.dart';
 import 'package:gbt/common/reference.dart';
 import 'package:gbt/l10n/app_localizations.dart';
-import 'package:gbt/reading_plan/day_activity_log_panel.dart';
+import 'package:gbt/reading_plan/edit_reading_plan_panel.dart';
 import 'package:gbt/reading_plan/reading_plan_detail_panel.dart';
 import 'package:gbt/reading_plan/reading_plan_detail_view_model.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
@@ -23,12 +22,12 @@ void main() {
     sessionViewModel = FakeReadingSessionViewModel();
   });
 
-  ReadingPlanDetailViewModel newViewModel(
+  Future<ReadingPlanDetailViewModel> newViewModel(
     ReadingPlanDetails plan,
     FakeReadingPlanService service,
   ) {
     service.plans = [plan];
-    return ReadingPlanDetailViewModel.withDependencies(
+    return ReadingPlanDetailViewModel.createWithDependencies(
       planId: plan.readingPlan.id!,
       planService: service,
       sessionViewModel: sessionViewModel,
@@ -49,17 +48,15 @@ void main() {
   Future<void> openDetail(
     WidgetTester tester,
     ReadingPlanDetailViewModel viewModel, {
-    Widget Function(BuildContext context, ReadingPlanDetails plan)?
-    editPlanBuilder,
-    DayActivityLogNavigator? dayActivityLogNavigator,
+    NavigateToExistingReadingPlanRoute? navigateToEditPlanRoute,
+    NavigateToDayActivityLogRoute? navigateToDayActivityLogRoute,
   }) async {
-    await viewModel.initialize();
     await tester.pumpWidget(
       buildApp(
         _DetailLauncher(
           viewModel: viewModel,
-          editPlanBuilder: editPlanBuilder,
-          dayActivityLogNavigator: dayActivityLogNavigator,
+          navigateToEditPlanRoute: navigateToEditPlanRoute,
+          navigateToDayActivityLogRoute: navigateToDayActivityLogRoute,
         ),
       ),
     );
@@ -97,10 +94,10 @@ void main() {
       expect(find.text('Ruth Plan'), findsOneWidget);
     });
 
-    testWidgets('stays closed when initialization fails', (tester) async {
-      final service = FakeReadingPlanService()
-        ..plans = [planDetails()]
-        ..queuePlanRequests = true;
+    testWidgets('shows an error and stays closed when loading fails', (
+      tester,
+    ) async {
+      final service = FakeReadingPlanService();
       final session = FakeReadingSessionViewModel();
       getIt.registerSingleton<ReadingPlanService>(service);
       getIt.registerSingleton<ReadingSessionViewModel>(session);
@@ -109,23 +106,24 @@ void main() {
         buildApp(const _NavigateToDetailLauncher(planId: 1)),
       );
       await tester.tap(find.text('Open detail'));
-      await tester.pump();
-
-      expect(service.planRequests, hasLength(1));
-      service.planRequests.single.completeError(
-        CancelledError(CancellationToken()),
-      );
       await tester.pumpAndSettle();
 
       expect(find.byType(ReadingPlanDetailPanel), findsNothing);
       expect(find.text('Open detail'), findsOneWidget);
+
+      final context = tester.element(find.text('Open detail'));
+      final l10n = AppLocalizations.of(context)!;
+      expect(find.text(l10n.errorLoadingContent), findsOneWidget);
+
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pumpAndSettle();
     });
 
     testWidgets('shows the full detail content after loading', (tester) async {
       final service = FakeReadingPlanService()
         ..plans = [planDetails()]
         ..bookStats = bookStats();
-      final viewModel = newViewModel(planDetails(), service);
+      final viewModel = await newViewModel(planDetails(), service);
 
       await openDetail(tester, viewModel);
       await tester.pumpAndSettle();
@@ -139,23 +137,6 @@ void main() {
     });
   });
 
-  group('initial load', () {
-    testWidgets('shows an error when the plan cannot be loaded', (
-      tester,
-    ) async {
-      final service = FakeReadingPlanService();
-      final viewModel = newViewModel(planDetails(), service);
-      service.plans = [];
-
-      await openDetail(tester, viewModel);
-      await tester.pumpAndSettle();
-
-      final context = tester.element(find.byType(ReadingPlanDetailPanel));
-      final l10n = AppLocalizations.of(context)!;
-      expect(find.text(l10n.errorLoadingContent), findsOneWidget);
-    });
-  });
-
   group("today's progress", () {
     testWidgets('shows verse and time progress toward a verse goal', (
       tester,
@@ -163,7 +144,7 @@ void main() {
       final service = FakeReadingPlanService()
         ..bookStats = bookStats()
         ..monthProgress = currentMonthProgress(verses: 3, minutes: 7);
-      final viewModel = newViewModel(planDetails(), service);
+      final viewModel = await newViewModel(planDetails(), service);
 
       await openDetail(tester, viewModel);
       await tester.pumpAndSettle();
@@ -177,7 +158,7 @@ void main() {
       final service = FakeReadingPlanService()
         ..bookStats = bookStats()
         ..monthProgress = currentMonthProgress(verses: 3, minutes: 7.46);
-      final viewModel = newViewModel(planDetails(), service);
+      final viewModel = await newViewModel(planDetails(), service);
 
       await openDetail(tester, viewModel);
       await tester.pumpAndSettle();
@@ -189,7 +170,7 @@ void main() {
       final service = FakeReadingPlanService()
         ..bookStats = bookStats()
         ..monthProgress = currentMonthProgress(verses: 3, minutes: 7);
-      final viewModel = newViewModel(
+      final viewModel = await newViewModel(
         planDetails(goalType: GoalType.minutes, goalValue: 20),
         service,
       );
@@ -206,7 +187,7 @@ void main() {
   group('bookmark', () {
     testWidgets('toggles the bookmark and updates the icon', (tester) async {
       final service = FakeReadingPlanService()..bookStats = bookStats();
-      final viewModel = newViewModel(planDetails(), service);
+      final viewModel = await newViewModel(planDetails(), service);
 
       await openDetail(tester, viewModel);
       await tester.pumpAndSettle();
@@ -221,30 +202,26 @@ void main() {
   });
 
   group('edit plan', () {
-    testWidgets('opens the injected edit widget and refreshes on return', (
-      tester,
-    ) async {
+    testWidgets('navigates with the plan id and refreshes', (tester) async {
       final service = FakeReadingPlanService()..bookStats = bookStats();
-      final viewModel = newViewModel(planDetails(), service);
+      final viewModel = await newViewModel(planDetails(), service);
+      final editedPlanIds = <int>[];
 
       await openDetail(
         tester,
         viewModel,
-        editPlanBuilder: (context, plan) => _FakeEditPlan(plan: plan),
+        navigateToEditPlanRoute: (context, planId) async {
+          editedPlanIds.add(planId);
+          service.plans = [planDetails(name: 'Renamed Plan')];
+        },
       );
       await tester.pumpAndSettle();
 
       await tester.tap(find.byIcon(Icons.edit_outlined));
       await tester.pumpAndSettle();
 
-      expect(find.text('Editing Ruth Plan'), findsOneWidget);
-
-      service.plans = [planDetails(name: 'Renamed Plan')];
-      await tester.tap(find.text('Close edit'));
-      await tester.pumpAndSettle();
-
+      expect(editedPlanIds, [1]);
       expect(find.text('Renamed Plan'), findsOneWidget);
-      expect(find.text('Editing Ruth Plan'), findsNothing);
     });
   });
 
@@ -253,7 +230,7 @@ void main() {
       tester,
     ) async {
       final service = FakeReadingPlanService()..bookStats = bookStats();
-      final viewModel = newViewModel(
+      final viewModel = await newViewModel(
         planDetails(bookIds: const [8, 20]),
         service,
       );
@@ -277,7 +254,7 @@ void main() {
       tester,
     ) async {
       final service = FakeReadingPlanService()..bookStats = bookStats();
-      final viewModel = newViewModel(planDetails(id: 7), service);
+      final viewModel = await newViewModel(planDetails(id: 7), service);
 
       await openDetail(tester, viewModel);
       await tester.pumpAndSettle();
@@ -295,7 +272,7 @@ void main() {
     ) async {
       final service = FakeReadingPlanService()
         ..bookStats = bookStats(versesRead: 1);
-      final viewModel = newViewModel(planDetails(), service);
+      final viewModel = await newViewModel(planDetails(), service);
 
       await openDetail(tester, viewModel);
       await tester.pumpAndSettle();
@@ -315,7 +292,7 @@ void main() {
       final service = FakeReadingPlanService()..bookStats = bookStats();
       service.monthProgressByMonth[currentMonth] = const [];
       service.monthProgressByMonth[nextMonth] = const [];
-      final viewModel = newViewModel(planDetails(), service);
+      final viewModel = await newViewModel(planDetails(), service);
 
       await openDetail(tester, viewModel);
       await tester.pumpAndSettle();
@@ -357,7 +334,7 @@ void main() {
           minutes: 7,
           goalReached: true,
         );
-      final viewModel = newViewModel(planDetails(), service);
+      final viewModel = await newViewModel(planDetails(), service);
 
       await openDetail(tester, viewModel);
       await tester.pumpAndSettle();
@@ -367,62 +344,31 @@ void main() {
   });
 
   group('day activity log', () {
-    testWidgets('opens the injected log for a day with progress', (
-      tester,
-    ) async {
+    testWidgets('navigates with the day and plan id', (tester) async {
       final now = DateTime.now();
       final service = FakeReadingPlanService()
         ..bookStats = bookStats()
         ..monthProgress = currentMonthProgress(verses: 3, minutes: 7);
-      final viewModel = newViewModel(planDetails(), service);
+      final viewModel = await newViewModel(planDetails(), service);
+      DateTime? openedDate;
+      int? openedPlanId;
 
       await openDetail(
         tester,
         viewModel,
-        dayActivityLogNavigator: (context, date) {
-          return Navigator.of(context).push<void>(
-            MaterialPageRoute(
-              builder: (_) =>
-                  AlertDialog(content: Text('Activity for ${date.day}')),
-            ),
-          );
-        },
+        navigateToDayActivityLogRoute:
+            (context, date, {required int readingPlanId}) async {
+              openedDate = date;
+              openedPlanId = readingPlanId;
+            },
       );
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('${now.day}'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Activity for ${now.day}'), findsOneWidget);
-    });
-
-    testWidgets('delegates day log navigation to the injected navigator', (
-      tester,
-    ) async {
-      final now = DateTime.now();
-      final service = FakeReadingPlanService()
-        ..bookStats = bookStats()
-        ..monthProgress = currentMonthProgress(verses: 3, minutes: 7);
-      final viewModel = newViewModel(planDetails(), service);
-
-      await openDetail(
-        tester,
-        viewModel,
-        dayActivityLogNavigator: (context, date) {
-          return Navigator.of(context).push<void>(
-            MaterialPageRoute(
-              builder: (_) => Text('Activity page for ${date.day}'),
-            ),
-          );
-        },
-      );
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('${now.day}'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Activity page for ${now.day}'), findsOneWidget);
-      expect(find.byType(Dialog), findsNothing);
+      expect(openedDate?.day, now.day);
+      expect(openedPlanId, 1);
     });
 
     testWidgets('does not open the log for an empty day', (tester) async {
@@ -430,15 +376,16 @@ void main() {
       final service = FakeReadingPlanService()
         ..bookStats = bookStats()
         ..monthProgress = const [];
-      final viewModel = newViewModel(planDetails(), service);
+      final viewModel = await newViewModel(planDetails(), service);
       var opened = false;
 
       await openDetail(
         tester,
         viewModel,
-        dayActivityLogNavigator: (context, date) async {
-          opened = true;
-        },
+        navigateToDayActivityLogRoute:
+            (context, date, {required int readingPlanId}) async {
+              opened = true;
+            },
       );
       await tester.pumpAndSettle();
 
@@ -452,7 +399,7 @@ void main() {
   group('back navigation', () {
     testWidgets('closes the detail panel', (tester) async {
       final service = FakeReadingPlanService()..bookStats = bookStats();
-      final viewModel = newViewModel(planDetails(), service);
+      final viewModel = await newViewModel(planDetails(), service);
 
       await openDetail(tester, viewModel);
       await tester.pumpAndSettle();
@@ -487,14 +434,13 @@ class _NavigateToDetailLauncher extends StatelessWidget {
 class _DetailLauncher extends StatelessWidget {
   const _DetailLauncher({
     required this.viewModel,
-    this.editPlanBuilder,
-    this.dayActivityLogNavigator,
+    this.navigateToEditPlanRoute,
+    this.navigateToDayActivityLogRoute,
   });
 
   final ReadingPlanDetailViewModel viewModel;
-  final Widget Function(BuildContext context, ReadingPlanDetails plan)?
-  editPlanBuilder;
-  final DayActivityLogNavigator? dayActivityLogNavigator;
+  final NavigateToExistingReadingPlanRoute? navigateToEditPlanRoute;
+  final NavigateToDayActivityLogRoute? navigateToDayActivityLogRoute;
 
   @override
   Widget build(BuildContext context) {
@@ -506,32 +452,13 @@ class _DetailLauncher extends StatelessWidget {
               MaterialPageRoute(
                 builder: (_) => ReadingPlanDetailPanel.withDependencies(
                   viewModel: viewModel,
-                  editPlanBuilder: editPlanBuilder,
-                  dayActivityLogNavigator: dayActivityLogNavigator,
+                  navigateToEditPlanRoute: navigateToEditPlanRoute,
+                  navigateToDayActivityLogRoute: navigateToDayActivityLogRoute,
                 ),
               ),
             );
           },
           child: const Text('Open detail'),
-        ),
-      ),
-    );
-  }
-}
-
-class _FakeEditPlan extends StatelessWidget {
-  const _FakeEditPlan({required this.plan});
-
-  final ReadingPlanDetails plan;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('Editing ${plan.readingPlan.planName}')),
-      body: Center(
-        child: ElevatedButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Close edit'),
         ),
       ),
     );

@@ -20,13 +20,6 @@ class EditBookListPanel extends StatefulWidget {
   ) async {
     final viewModel = EditBookListViewModel(bookIds);
 
-    try {
-      await viewModel.initialize();
-    } catch (_) {
-      viewModel.dispose();
-      return null;
-    }
-
     if (!context.mounted) {
       viewModel.dispose();
       return null;

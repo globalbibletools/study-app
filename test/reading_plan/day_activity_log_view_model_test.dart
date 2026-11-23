@@ -16,8 +16,8 @@ void main() {
     date = DateTime(2026, 11, 17);
   });
 
-  DayActivityLogViewModel newViewModel() {
-    final viewModel = DayActivityLogViewModel.withDependencies(
+  Future<DayActivityLogViewModel> newViewModel() async {
+    final viewModel = await DayActivityLogViewModel.createWithDependencies(
       readingPlanId: planId,
       date: date,
       planService: planService,
@@ -38,10 +38,7 @@ void main() {
       ];
       planService.detailedProgress = sessions;
 
-      final viewModel = newViewModel();
-      expect(viewModel.sessions, isEmpty);
-
-      await viewModel.initialize();
+      final viewModel = await newViewModel();
 
       expect(viewModel.readingPlanId, planId);
       expect(viewModel.date, date);
@@ -64,8 +61,7 @@ void main() {
         ),
       ];
 
-      final viewModel = newViewModel();
-      await viewModel.initialize();
+      final viewModel = await newViewModel();
 
       expect(viewModel.minutesFor(viewModel.sessions.first), 1.5);
       expect(viewModel.minutesFor(viewModel.sessions.last), 1.7);
@@ -84,8 +80,7 @@ void main() {
         ),
       ];
 
-      final viewModel = newViewModel();
-      await viewModel.initialize();
+      final viewModel = await newViewModel();
 
       final progress = viewModel.referencesFor(viewModel.sessions.single);
       expect(progress.map((entry) => entry.bookId), [63, 63, 63, 64]);
@@ -95,8 +90,7 @@ void main() {
 
     test('refresh replaces sessions with the latest service data', () async {
       planService.detailedProgress = [session(verses: 1)];
-      final viewModel = newViewModel();
-      await viewModel.initialize();
+      final viewModel = await newViewModel();
       expect(viewModel.sessions, hasLength(1));
 
       planService.detailedProgress = [
@@ -113,23 +107,22 @@ void main() {
       expect(viewModel.totalVerses, 5);
     });
 
-    test('propagates a load error from initialize', () async {
+    test('propagates a load error from create', () async {
       planService.detailedProgressError = StateError(
         'detailed progress query failed',
       );
-      final viewModel = newViewModel();
 
-      await expectLater(viewModel.initialize(), throwsA(isA<StateError>()));
-
-      expect(viewModel.sessions, isEmpty);
+      await expectLater(newViewModel(), throwsA(isA<StateError>()));
     });
 
-    test('refresh can recover after an initialize error', () async {
+    test('refresh can recover after a load error', () async {
+      planService.detailedProgress = [session(verses: 1)];
+      final viewModel = await newViewModel();
+
       planService.detailedProgressError = StateError(
         'detailed progress query failed',
       );
-      final viewModel = newViewModel();
-      await expectLater(viewModel.initialize(), throwsA(isA<StateError>()));
+      await expectLater(viewModel.refresh(), throwsA(isA<StateError>()));
 
       planService.detailedProgressError = null;
       planService.detailedProgress = [session(readSeconds: 120, verses: 1)];
@@ -143,10 +136,9 @@ void main() {
 
   group('concurrency', () {
     test('a newer refresh cancels the in-flight one and wins', () async {
-      planService
-        ..queueDetailedProgressRequests = true
-        ..detailedProgress = [session(verses: 1)];
-      final viewModel = newViewModel();
+      planService.detailedProgress = [session(verses: 1)];
+      final viewModel = await newViewModel();
+      planService.queueDetailedProgressRequests = true;
 
       final first = viewModel.refresh();
       final second = viewModel.refresh();
@@ -165,12 +157,13 @@ void main() {
     test(
       'does not notify after dispose while a refresh is in flight',
       () async {
-        planService.queueDetailedProgressRequests = true;
-        final viewModel = DayActivityLogViewModel.withDependencies(
+        planService.detailedProgress = [session()];
+        final viewModel = await DayActivityLogViewModel.createWithDependencies(
           readingPlanId: planId,
           date: date,
           planService: planService,
         );
+        planService.queueDetailedProgressRequests = true;
         var notifications = 0;
         viewModel.addListener(() => notifications++);
 

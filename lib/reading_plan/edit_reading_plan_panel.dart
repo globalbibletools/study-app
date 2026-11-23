@@ -7,45 +7,64 @@ import 'package:gbt/reading_plan/edit_reading_plan_view_model.dart';
 import 'package:gbt/reading_plan/goal_value_editor.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
 
+typedef NavigateToNewReadingPlanRoute =
+    Future<void> Function(BuildContext context, String name);
+typedef NavigateToExistingReadingPlanRoute =
+    Future<void> Function(BuildContext context, int planId);
+
 class EditReadingPlanPanel extends StatefulWidget {
-  final ReadingPlanDetails? planDetails;
-  final EditReadingPlanViewModel? viewModel;
+  final EditReadingPlanViewModel viewModel;
 
-  const EditReadingPlanPanel({super.key, required this.viewModel})
-    : planDetails = null;
-
-  const EditReadingPlanPanel.existing(this.planDetails, {super.key})
-    : viewModel = null;
-
-  EditReadingPlanPanel.newPlan(String name, {super.key})
-    : planDetails = EditReadingPlanViewModel.defaultPlan(name),
-      viewModel = null;
+  const EditReadingPlanPanel({super.key, required this.viewModel});
 
   const EditReadingPlanPanel.withDependencies({
     super.key,
     required this.viewModel,
-    this.planDetails,
   });
 
   static Future<void> navigateToNew(BuildContext context, String name) {
-    return _navigateTo(
+    return _createAndNavigate(
       context,
-      EditReadingPlanViewModel(EditReadingPlanViewModel.defaultPlan(name)),
+      () => EditReadingPlanViewModel.createNew(name),
     );
   }
 
-  static Future<void> navigateToExisting(
+  static Future<void> navigateToExisting(BuildContext context, int planId) {
+    return _createAndNavigate(
+      context,
+      () => EditReadingPlanViewModel.createExisting(planId),
+    );
+  }
+
+  static Future<void> _createAndNavigate(
     BuildContext context,
-    ReadingPlanDetails planDetails,
-  ) {
-    return _navigateTo(context, EditReadingPlanViewModel(planDetails));
+    Future<EditReadingPlanViewModel> Function() create,
+  ) async {
+    EditReadingPlanViewModel viewModel;
+    try {
+      viewModel = await create();
+    } catch (_) {
+      if (!context.mounted) return;
+
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.errorLoadingContent)));
+      return;
+    }
+
+    if (!context.mounted) {
+      viewModel.dispose();
+      return;
+    }
+
+    await _navigateTo(context, viewModel);
   }
 
   static Future<void> _navigateTo(
     BuildContext context,
     EditReadingPlanViewModel viewModel,
   ) async {
-    await viewModel.initialize();
     if (!context.mounted) {
       viewModel.dispose();
       return;
@@ -74,8 +93,7 @@ class _EditReadingPlanPanelState extends State<EditReadingPlanPanel> {
   @override
   void initState() {
     super.initState();
-    viewModel =
-        widget.viewModel ?? EditReadingPlanViewModel(widget.planDetails!);
+    viewModel = widget.viewModel;
   }
 
   @override
