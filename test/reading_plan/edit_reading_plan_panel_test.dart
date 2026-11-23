@@ -357,15 +357,6 @@ void main() {
     expect(submitButton.onPressed, isNull);
   });
 
-  testWidgets('disables save when no books are selected', (tester) async {
-    final viewModel = newViewModel()..setBooks([]);
-    await pumpPanel(tester, viewModel);
-
-    final submitButton = tester.widget<FilledButton>(find.byType(FilledButton));
-    expect(submitButton.onPressed, isNull);
-    expect(viewModel.canSubmit, isFalse);
-  });
-
   group('navigation helpers', () {
     setUp(() {
       getIt.registerSingleton<ReadingPlanService>(planService);

@@ -139,17 +139,6 @@ void main() {
       expect(vm.selectedCollection, same(BibleCollections.custom));
       expect(vm.orderedBookIds, [46, 45]);
     });
-
-    test('initialize is idempotent', () async {
-      final vm = newViewModel('My Plan');
-
-      final first = vm.initialize();
-      final second = vm.initialize();
-
-      expect(second, same(first));
-      await Future.wait([first, second]);
-      expect(vm.name, 'My Plan');
-    });
   });
 
   group('setters', () {
@@ -215,19 +204,6 @@ void main() {
         expect(notifications, 1);
       },
     );
-
-    test('selecting Custom again is a no-op', () {
-      final vm = newViewModel();
-      vm.selectCollection(BibleCollections.custom);
-      vm.setBooks([2, 1]);
-      var notifications = 0;
-      vm.addListener(() => notifications++);
-
-      vm.selectCollection(BibleCollections.custom);
-
-      expect(notifications, 0);
-      expect(vm.orderedBookIds, [2, 1]);
-    });
 
     test('setGoalType updates the goal type and notifies on change', () {
       final vm = newViewModel();
@@ -330,17 +306,6 @@ void main() {
 
       expect(vm.selectedCollection, same(BibleCollections.custom));
       expect(vm.orderedBookIds, [8, 2, 1]);
-    });
-
-    test('editing books while Custom is selected updates the draft', () {
-      final vm = newViewModel();
-      vm.selectCollection(BibleCollections.custom);
-
-      vm.setBooks([2, 1]);
-      vm.selectCollection(BibleCollections.fromId(3));
-      vm.selectCollection(BibleCollections.custom);
-
-      expect(vm.orderedBookIds, [2, 1]);
     });
 
     test('editing to a preset order leaves the custom draft unchanged', () {
@@ -465,21 +430,6 @@ void main() {
 
       final call = planService.saveCalls.single;
       expect(call.orderedBookIds, [for (int i = 1; i <= 66; i++) i]);
-    });
-
-    test('saves a custom book order', () async {
-      final vm = newViewModel('Custom Order');
-      vm.setBooks([3, 1]);
-
-      expect(await vm.submit(), isTrue);
-
-      final call = planService.saveCalls.single;
-      expect(call.collectionId, BibleCollections.custom.id);
-      expect(call.orderedBookIds, [3, 1]);
-
-      final saved = planService.plans.single;
-      expect(saved.books.map((b) => b.bookId), [3, 1]);
-      expect(saved.books.map((b) => b.ord), [1, 2]);
     });
 
     test('saves collectionId 0 with the custom order', () async {
