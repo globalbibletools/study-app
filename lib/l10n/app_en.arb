@@ -533,7 +533,7 @@
   "@dailyGoalReached": {
     "description": "Label shown when today's reading goal has been reached"
   },
-  "versesLeft": "{count, plural, =0{0 verses left} =1{1 verse left} other{{count} verses left}}",
+  "versesLeft": "{count, plural, =0{0 verses left today} =1{1 verse left today} other{{count} verses left today}}",
   "@versesLeft": {
     "description": "Remaining verses in today's reading goal",
     "placeholders": {
@@ -542,7 +542,7 @@
       }
     }
   },
-  "minutesLeft": "{count, plural, =0{0 minutes left} =1{1 minute left} other{{count} minutes left}}",
+  "minutesLeft": "{count, plural, =0{0 minutes left today} =1{1 minute left today} other{{count} minutes left today}}",
   "@minutesLeft": {
     "description": "Remaining minutes in today's reading goal",
     "placeholders": {

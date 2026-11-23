@@ -5,7 +5,6 @@ import 'package:gbt/common/reference.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/l10n/book_names.dart';
 import 'package:gbt/reading_plan/delete_reading_plan_confirm_dialog.dart';
-import 'package:gbt/reading_plan/progress_circle.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
 
 class ReadingPlanCard extends StatelessWidget {
@@ -59,7 +58,7 @@ class ReadingPlanCard extends StatelessWidget {
                     spacing: 16,
                     children: [
                       Flexible(child: _overallProgress(context)),
-                      Flexible(child: _resumeButton(context)),
+                      Flexible(child: _todayGoalProgress(context)),
                     ],
                   ),
                 ],
@@ -67,8 +66,8 @@ class ReadingPlanCard extends StatelessWidget {
             ),
           ),
           if (plan.readingPlan.isBookmarked)
-            Positioned(left: -8, top: 16, child: _bookmarkRibbon(context)),
-          Positioned(left: 16, bottom: -12, child: _dailyGoalLabel(context)),
+            Positioned(left: 10, top: -14, child: _bookmarkRibbon(context)),
+          Positioned(right: 16, bottom: -12, child: _resumeButton(context)),
         ],
       ),
     );
@@ -77,14 +76,15 @@ class ReadingPlanCard extends StatelessWidget {
   Widget _bookmarkRibbon(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Transform.rotate(
+    return Icon(
+      Icons.bookmark,
       key: ValueKey('plan-bookmark-ribbon-${plan.readingPlan.id}'),
-      angle: math.pi / 2,
-      child: Icon(Icons.bookmark, color: colorScheme.primary, size: 28),
+      color: colorScheme.primary,
+      size: 28,
     );
   }
 
-  Widget _dailyGoalLabel(BuildContext context) {
+  Widget _todayGoalProgress(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
     final today = plan.todayProgress;
@@ -100,36 +100,24 @@ class ReadingPlanCard extends StatelessWidget {
         ? l10n.versesLeft(math.max(remaining, 0))
         : l10n.minutesLeft(math.max(remaining, 0));
 
-    return Container(
+    return Row(
       key: ValueKey('plan-daily-goal-${plan.readingPlan.id}'),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: colorScheme.primary,
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: [
-          BoxShadow(
-            color: colorScheme.shadow.withValues(alpha: 0.2),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        spacing: 4,
-        children: [
-          if (goalReached)
-            Icon(Icons.check, color: colorScheme.onPrimary, size: 12),
-          Text(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.end,
+      spacing: 4,
+      children: [
+        if (goalReached)
+          Icon(Icons.check, color: colorScheme.primary, size: 16),
+        Flexible(
+          child: Text(
             label,
-            style: TextStyle(
-              color: colorScheme.onPrimary,
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.end,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -195,33 +183,14 @@ class ReadingPlanCard extends StatelessWidget {
 
   Widget _overallProgress(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final totalVerses = plan.totalVerses > 0 ? plan.totalVerses : 1;
-    final progress = plan.versesRead / totalVerses;
-    final versesLeft = math.max(plan.totalVerses - plan.versesRead, 0);
 
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      spacing: 12,
-      children: [
-        ProgressCircle(
-          percent: progress,
-          size: 32,
-          strokeWidth: 4,
-          fontSize: 9,
-        ),
-        Flexible(
-          child: Text(
-            l10n.versesLeft(versesLeft),
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-          ),
-        ),
-      ],
+    return Text(
+      '${plan.versesRead}/${plan.totalVerses} ${l10n.verses}',
+      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
     );
   }
 
   Widget _resumeButton(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final colorScheme = Theme.of(context).colorScheme;
     final resumeTarget =
         plan.resumePosition ??
         Reference(
@@ -233,30 +202,22 @@ class ReadingPlanCard extends StatelessWidget {
     final resumeReference =
         '$bookName ${resumeTarget.chapter}:${resumeTarget.verse}';
 
-    return TextButton(
+    return FilledButton(
+      key: ValueKey('plan-resume-${plan.readingPlan.id}'),
       onPressed: onStartSession,
-      style: TextButton.styleFrom(
-        padding: EdgeInsets.symmetric(vertical: 8, horizontal: 0),
+      style: FilledButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         minimumSize: Size.zero,
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
+        mainAxisSize: MainAxisSize.min,
+        spacing: 2,
         children: [
-          Flexible(
-            child: Text(
-              l10n.resumeAtReference(resumeReference),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.end,
-              style: TextStyle(
-                color: colorScheme.primary,
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
-              ),
-            ),
-          ),
-          Icon(Icons.chevron_right, color: colorScheme.primary, size: 14),
+          Text(resumeReference),
+          const Icon(Icons.chevron_right, size: 16),
         ],
       ),
     );

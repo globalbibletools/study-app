@@ -4,7 +4,6 @@ import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/reading_plan/reading_plan_card.dart';
 import 'package:gbt/reading_plan/reading_plan_panel.dart';
 import 'package:gbt/reading_plan/reading_plan_panel_view_model.dart';
-import 'package:gbt/reading_plan/progress_circle.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -148,7 +147,7 @@ void main() {
 
       await pumpPanel(tester);
 
-      expect(find.text('7 verses left'), findsOneWidget);
+      expect(find.text('7 verses left today'), findsOneWidget);
     });
 
     testWidgets('shows the remaining minutes for today', (tester) async {
@@ -164,7 +163,7 @@ void main() {
 
       await pumpPanel(tester);
 
-      expect(find.text('12 minutes left'), findsOneWidget);
+      expect(find.text('12 minutes left today'), findsOneWidget);
     });
 
     testWidgets('shows a check and completion label when the goal is reached', (
@@ -191,7 +190,7 @@ void main() {
       );
     });
 
-    testWidgets('shows overall progress as a circle and verses left', (
+    testWidgets('shows overall progress as read over total verses', (
       tester,
     ) async {
       planService.plans = [
@@ -206,10 +205,7 @@ void main() {
 
       await pumpPanel(tester);
 
-      final circle = tester.widget<ProgressCircle>(find.byType(ProgressCircle));
-      expect(circle.percent, 0.66);
-      expect(circle.size, 32);
-      expect(find.text('34 verses left'), findsOneWidget);
+      expect(find.text('66/100 verses'), findsOneWidget);
       expect(find.text('66/100 verses · 66%'), findsNothing);
     });
   });
@@ -337,7 +333,21 @@ void main() {
       await tester.tap(find.text('Open plans'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.textContaining('Resume at'));
+      final resumeButton = find.byKey(const ValueKey('plan-resume-7'));
+      expect(resumeButton, findsOneWidget);
+      expect(
+        find.descendant(of: resumeButton, matching: find.text('Ruth 1:1')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: resumeButton,
+          matching: find.byIcon(Icons.chevron_right),
+        ),
+        findsOneWidget,
+      );
+
+      await tester.tap(resumeButton);
       await tester.pumpAndSettle();
 
       expect(sessionViewModel.startedPlanIds, [7]);
