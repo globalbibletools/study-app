@@ -256,41 +256,23 @@ void main() {
     });
   });
 
-  group('delete', () {
-    testWidgets('delete asks for confirmation before removing the plan', (
-      tester,
-    ) async {
-      planService.plans = [
-        planDetails('Keep', id: 1),
-        planDetails('Doomed', id: 2),
-      ];
+  group('card actions', () {
+    testWidgets('shows edit but no delete action', (tester) async {
+      planService.plans = [planDetails('Ruth', id: 1)];
       await pumpPanel(tester);
 
-      final doomedCard = find.widgetWithText(ReadingPlanCard, 'Doomed');
-      final deleteButton = find.descendant(
-        of: doomedCard,
-        matching: find.byIcon(Icons.delete_outline_rounded),
+      final card = find.byType(ReadingPlanCard);
+      expect(
+        find.descendant(of: card, matching: find.byIcon(Icons.edit_outlined)),
+        findsOneWidget,
       );
-
-      await tester.tap(deleteButton);
-      await tester.pumpAndSettle();
-
-      expect(find.text('Delete Reading Plan?'), findsOneWidget);
-
-      await tester.tap(find.text('Cancel'));
-      await tester.pumpAndSettle();
-
-      expect(planService.deletedPlanIds, isEmpty);
-      expect(find.text('Doomed'), findsOneWidget);
-
-      await tester.tap(deleteButton);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Delete'));
-      await tester.pumpAndSettle();
-
-      expect(planService.deletedPlanIds, [2]);
-      expect(find.text('Doomed'), findsNothing);
-      expect(find.text('Keep'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: card,
+          matching: find.byIcon(Icons.delete_outline_rounded),
+        ),
+        findsNothing,
+      );
     });
   });
 

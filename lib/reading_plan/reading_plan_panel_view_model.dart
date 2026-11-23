@@ -56,11 +56,6 @@ class ReadingPlanPanelViewModel extends ChangeNotifier {
     });
   }
 
-  Future<void> deletePlan(int planId) async {
-    await _planService.deleteReadingPlan(planId);
-    await refresh();
-  }
-
   Future<void> startReadingSession(ReadingPlanDetails plan) async {
     final planId = plan.readingPlan.id;
     if (planId == null) return;
