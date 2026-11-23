@@ -27,7 +27,7 @@ class EditBookListViewModel extends ChangeNotifier {
   ];
 
   void _updateBookIds(List<int> newBookIds) {
-    _bookIds = List<int>.of(newBookIds);
+    _bookIds = newBookIds;
     _availableBookIds = _availableFor(_bookIds);
     notifyListeners();
   }
@@ -54,6 +54,7 @@ class EditBookListViewModel extends ChangeNotifier {
     final bookId = updatedList.removeAt(oldIndex);
     updatedList.insert(newIndex, bookId);
 
-    _updateBookIds(updatedList);
+    _bookIds = updatedList;
+    notifyListeners();
   }
 }

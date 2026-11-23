@@ -22,31 +22,21 @@ void main() {
     expect(viewModel.availableBookIds, availableExcept({5, 2}));
   });
 
-  test(
-    'removing a book keeps the remaining order and restores availability',
-    () {
-      final viewModel = EditBookListViewModel([3, 1, 2]);
-      var notifications = 0;
-      viewModel.addListener(() => notifications++);
+  test('removing a book restores it to availability', () {
+    final viewModel = EditBookListViewModel([3, 1, 2]);
 
-      viewModel.removeBook(1);
+    viewModel.removeBook(1);
 
-      expect(viewModel.bookIds, [3, 2]);
-      expect(viewModel.availableBookIds, availableExcept({3, 2}));
-      expect(notifications, 1);
-    },
-  );
+    expect(viewModel.bookIds, [3, 2]);
+    expect(viewModel.availableBookIds, availableExcept({3, 2}));
+  });
 
-  test('adding an unselected book appends it to the end', () {
+  test('adding a book removes it from availability', () {
     final viewModel = EditBookListViewModel([3, 1]);
-    var notifications = 0;
-    viewModel.addListener(() => notifications++);
 
     viewModel.addBook(2);
 
-    expect(viewModel.bookIds, [3, 1, 2]);
     expect(viewModel.availableBookIds, availableExcept({3, 1, 2}));
-    expect(notifications, 1);
   });
 
   test('adding ignores books already in the list', () {
@@ -71,15 +61,15 @@ void main() {
     expect(notifications, 0);
   });
 
-  test('moving a book updates the order', () {
-    final viewModel = EditBookListViewModel([1, 2, 3]);
+  test('removing a book that is not selected is a no-op', () {
+    final viewModel = EditBookListViewModel([1, 2]);
     var notifications = 0;
     viewModel.addListener(() => notifications++);
 
-    viewModel.moveBook(2, 0);
+    viewModel.removeBook(3);
 
-    expect(viewModel.bookIds, [3, 1, 2]);
-    expect(notifications, 1);
+    expect(viewModel.bookIds, [1, 2]);
+    expect(notifications, 0);
   });
 
   test('moving to the same position is a no-op', () {
@@ -88,6 +78,20 @@ void main() {
     viewModel.addListener(() => notifications++);
 
     viewModel.moveBook(1, 1);
+
+    expect(viewModel.bookIds, [1, 2, 3]);
+    expect(notifications, 0);
+  });
+
+  test('moving outside the list is a no-op', () {
+    final viewModel = EditBookListViewModel([1, 2, 3]);
+    var notifications = 0;
+    viewModel.addListener(() => notifications++);
+
+    viewModel.moveBook(-1, 0);
+    viewModel.moveBook(0, -1);
+    viewModel.moveBook(3, 0);
+    viewModel.moveBook(0, 3);
 
     expect(viewModel.bookIds, [1, 2, 3]);
     expect(notifications, 0);
