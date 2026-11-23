@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:gbt/asyncutils/cancellation.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
 import 'package:gbt/services/service_locator.dart';
@@ -19,18 +20,35 @@ class DayActivityLogViewModel extends ChangeNotifier {
 
   final ReadingPlanService _planService;
 
+  Future<void>? _initialization;
+  Future<void> initialize() => _initialization ??= refresh();
+
+  final _refreshScope = CancellationScope();
+
+  Future<void> refresh() {
+    return _refreshScope.run((guard) async {
+      final sessions = await guard(
+        _planService.getDetailedProgressFor(date, readingPlanId),
+      );
+      _setState(() {
+        _sessions = sessions;
+      });
+    });
+  }
+
   final int readingPlanId;
   final DateTime date;
 
   List<SessionDetails> _sessions = const [];
   List<SessionDetails> get sessions => _sessions;
 
-  int get sessionCount => _sessions.length;
-
-  int get totalSeconds =>
-      _sessions.fold(0, (sum, session) => sum + session.rsSession.readSeconds);
-
-  double get totalMinutes => _roundMinutes(totalSeconds / 60);
+  double get totalMinutes {
+    final totalSeconds = _sessions.fold(
+      0,
+      (sum, session) => sum + session.rsSession.readSeconds,
+    );
+    return _roundMinutes(totalSeconds / 60);
+  }
 
   int get totalVerses =>
       _sessions.fold(0, (sum, session) => sum + session.rsSession.verses);
@@ -38,59 +56,30 @@ class DayActivityLogViewModel extends ChangeNotifier {
   double minutesFor(SessionDetails session) =>
       _roundMinutes(session.rsSession.readSeconds / 60);
 
+  List<DetailedProgess> referencesFor(SessionDetails session) {
+    return [...session.progress]..sort((a, b) {
+      final byBook = a.bookId.compareTo(b.bookId);
+      if (byBook != 0) return byBook;
+      final byChapter = a.chapter.compareTo(b.chapter);
+      if (byChapter != 0) return byChapter;
+      return a.fromVerse.compareTo(b.fromVerse);
+    });
+  }
+
   double _roundMinutes(num minutes) => (minutes * 10).round() / 10;
 
-  bool _isInitialized = false;
-  bool get isInitialized => _isInitialized;
-
-  Future<void>? _initialization;
-  Future<void> initialize() => _initialization ??= refresh();
-
-  bool _isRefreshing = false;
-  bool get isRefreshing => _isRefreshing;
-
-  Object? _loadError;
-  Object? get loadError => _loadError;
+  void _setState(VoidCallback fn) {
+    if (_disposed) return;
+    fn();
+    notifyListeners();
+  }
 
   bool _disposed = false;
-
-  Future<void>? _refreshFuture;
-
-  Future<void> refresh() {
-    final inFlight = _refreshFuture;
-    if (inFlight != null) return inFlight;
-
-    final future = _refresh();
-    _refreshFuture = future;
-    return future;
-  }
-
-  Future<void> _refresh() async {
-    _isRefreshing = true;
-    _loadError = null;
-    notifyListeners();
-
-    try {
-      final sessions = await _planService.getDetailedProgressFor(
-        date,
-        readingPlanId,
-      );
-      if (_disposed) return;
-      _sessions = sessions;
-    } catch (error) {
-      if (_disposed) return;
-      _loadError = error;
-    } finally {
-      _isRefreshing = false;
-      _isInitialized = true;
-      _refreshFuture = null;
-      if (!_disposed) notifyListeners();
-    }
-  }
 
   @override
   void dispose() {
     _disposed = true;
+    _refreshScope.cancelAll();
     super.dispose();
   }
 }

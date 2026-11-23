@@ -21,7 +21,20 @@ class DayActivityLogPanel extends StatefulWidget {
       readingPlanId: readingPlanId,
       date: date,
     );
-    await viewModel.initialize();
+
+    try {
+      await viewModel.initialize();
+    } catch (_) {
+      viewModel.dispose();
+      if (!context.mounted) return;
+
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.errorLoadingContent)));
+      return;
+    }
+
     if (!context.mounted) {
       viewModel.dispose();
       return;
@@ -66,11 +79,10 @@ class _DayActivityLogPanelState extends State<DayActivityLogPanel> {
         listenable: viewModel,
         builder: (context, _) {
           return Column(
+            spacing: 16,
             children: [
               _header(),
-              const SizedBox(height: 12),
               _totals(),
-              const SizedBox(height: 20),
               Expanded(child: _readingSection()),
             ],
           );
@@ -113,17 +125,6 @@ class _DayActivityLogPanelState extends State<DayActivityLogPanel> {
   }
 
   Widget _readingSection() {
-    if (viewModel.loadError != null) {
-      final l10n = AppLocalizations.of(context)!;
-      return Center(
-        child: Text(l10n.errorLoadingContent, textAlign: TextAlign.center),
-      );
-    }
-
-    if (viewModel.isRefreshing && viewModel.sessions.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
     return ListView(children: viewModel.sessions.map(_sessionCard).toList());
   }
 
@@ -134,7 +135,7 @@ class _DayActivityLogPanelState extends State<DayActivityLogPanel> {
       color: Theme.of(context).colorScheme.onSurface,
       fontWeight: FontWeight.bold,
     );
-    final references = _references(session.progress);
+    final references = _references(viewModel.referencesFor(session));
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -145,11 +146,12 @@ class _DayActivityLogPanelState extends State<DayActivityLogPanel> {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        spacing: 8,
         children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(_formatTime(session.rsSession.startTime), style: style),
-              const Spacer(),
               Text(
                 "${_formatMinutes(viewModel.minutesFor(session))} "
                 "${l10n.minutesShort} • "
@@ -158,10 +160,7 @@ class _DayActivityLogPanelState extends State<DayActivityLogPanel> {
               ),
             ],
           ),
-          if (references.isNotEmpty) ...[
-            const SizedBox(height: 6),
-            Text(references),
-          ],
+          if (references.isNotEmpty) Text(references),
         ],
       ),
     );
@@ -175,31 +174,15 @@ class _DayActivityLogPanelState extends State<DayActivityLogPanel> {
       fontWeight: FontWeight.bold,
     );
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Text(
-          "${_formatMinutes(viewModel.totalMinutes)} ${l10n.minutesShort}",
-          style: style,
-        ),
-        const SizedBox(width: 10),
-        Text("•", style: style),
-        const SizedBox(width: 10),
-        Text("${viewModel.totalVerses} ${l10n.verses}", style: style),
-      ],
+    return Text(
+      "${_formatMinutes(viewModel.totalMinutes)} ${l10n.minutesShort} • "
+      "${viewModel.totalVerses} ${l10n.verses}",
+      style: style,
     );
   }
 
   String _references(List<DetailedProgess> progress) {
-    final ordered = [...progress]
-      ..sort((a, b) {
-        final byBook = a.bookId.compareTo(b.bookId);
-        if (byBook != 0) return byBook;
-        final byChapter = a.chapter.compareTo(b.chapter);
-        if (byChapter != 0) return byChapter;
-        return a.fromVerse.compareTo(b.fromVerse);
-      });
-    return ordered.map(_progressTitle).join(', ');
+    return progress.map(_progressTitle).join(', ');
   }
 
   String _progressTitle(DetailedProgess entry) {
