@@ -1,259 +1,208 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gbt/reading_plan/reading_plan_service.dart';
-import 'package:gbt/reading_plan/rs_database.dart';
-import 'package:gbt/reading_plan/rs_model.dart';
+import 'package:gbt/asyncutils/cancellation.dart';
 import 'package:gbt/reading_plan/day_activity_log_view_model.dart';
-import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:gbt/reading_plan/rs_model.dart';
 
-import '../fixtures/bible_navigation_fixture.dart';
+import 'fake_reading_plan_service.dart';
 
-/// Fails the first detailed-progress query, then delegates to the real
-/// service so tests can observe the retry path.
-class FlakyPlanService extends ReadingPlanService {
-  FlakyPlanService(ReadingSessionDatabase database, {required this.failures})
-    : super.withDependencies(
-        database: database,
-        bibleNavigation: createTestBibleNavigation(),
-      );
-
-  final int failures;
-  int calls = 0;
-
-  @override
-  Future<List<SessionDetails>> getDetailedProgressFor(
-    DateTime date,
-    int readingPlanId,
-  ) async {
-    calls += 1;
-    if (calls <= failures) {
-      throw StateError('detailed progress query failed');
-    }
-    return super.getDetailedProgressFor(date, readingPlanId);
-  }
-}
-
-/// Integration tests for [DayActivityLogViewModel] against a real in-memory
-/// SQLite database and the real [ReadingPlanService]. Everything is injected
-/// through `withDependencies`; the service locator is never used.
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
-
-  late ReadingSessionDatabase database;
-  late ReadingPlanService planService;
+  late FakeReadingPlanService planService;
   late DateTime date;
 
-  setUpAll(() {
-    sqfliteFfiInit();
-    databaseFactory = databaseFactoryFfi;
-  });
+  const planId = 1;
 
-  setUp(() async {
-    database = ReadingSessionDatabase.withDependencies(
-      databasePath: inMemoryDatabasePath,
-      verseInventoryProvider: (bookIds) async =>
-          createTestVerseInventory(bookIds: bookIds),
-    );
-    await database.init();
-    planService = ReadingPlanService.withDependencies(
-      database: database,
-      bibleNavigation: createTestBibleNavigation(),
-    );
+  setUp(() {
+    planService = FakeReadingPlanService();
     date = DateTime(2026, 11, 17);
-
-    // The schema ships with a default "Whole Bible" plan (id 1). Remove it so
-    // each test starts from a clean slate.
-    for (final plan in await planService.getReadingPlans()) {
-      await planService.deleteReadingPlan(plan.readingPlan.id!);
-    }
   });
 
-  tearDown(() {
-    database.dispose();
-  });
-
-  Future<int> createPlan() async {
-    final plan = await planService.saveReadingPlan(
-      planName: 'Detailed Progress Test',
-      collectionId: 1,
-      goalType: GoalType.verses,
-      goalValue: 10,
-      selectedBookIds: {63},
-    );
-    return plan.id!;
-  }
-
-  Future<RsSession> insertSession(
-    int planId, {
-    int readSeconds = 0,
-    int verses = 0,
-    DateTime? startTime,
-  }) {
-    final start = startTime ?? DateTime(2026, 11, 17, 9);
-    return database.insertSession(
-      RsSession(
-        rsDate: date,
-        startTime: start,
-        endTime: start.add(const Duration(minutes: 10)),
-        readSeconds: readSeconds,
-        verses: verses,
-        readingPlanId: planId,
-      ),
-    );
-  }
-
-  Future<void> insertLog(
-    RsSession session,
-    int bookId,
-    int chapter,
-    int verse,
-  ) {
-    return database.insertLog(
-      RsLog(
-        sessionId: session.id!,
-        bookId: bookId,
-        chapter: chapter,
-        verse: verse,
-        dateTime: session.startTime,
-        readingPlanId: session.readingPlanId,
-      ),
-    );
-  }
-
-  DayActivityLogViewModel newViewModel(int planId) {
-    return DayActivityLogViewModel.withDependencies(
+  DayActivityLogViewModel newViewModel() {
+    final viewModel = DayActivityLogViewModel.withDependencies(
       readingPlanId: planId,
       date: date,
       planService: planService,
     );
+    addTearDown(viewModel.dispose);
+    return viewModel;
   }
 
-  test('loads sessions and derives totals for the requested day', () async {
-    final planId = await createPlan();
+  group('initialization', () {
+    test('loads sessions and derives totals for the requested day', () async {
+      final sessions = [
+        session(readSeconds: 600, verses: 3),
+        session(
+          readSeconds: 300,
+          verses: 2,
+          startTime: DateTime(2026, 11, 17, 14),
+        ),
+      ];
+      planService.detailedProgress = sessions;
 
-    final first = await insertSession(planId, readSeconds: 600, verses: 3);
-    await insertLog(first, 63, 1, 1);
-    await insertLog(first, 63, 1, 2);
-    await insertLog(first, 63, 1, 4);
+      final viewModel = newViewModel();
+      expect(viewModel.sessions, isEmpty);
 
-    final second = await insertSession(
-      planId,
-      readSeconds: 300,
-      verses: 2,
-      startTime: DateTime(2026, 11, 17, 14),
-    );
-    await insertLog(second, 63, 2, 1);
-    await insertLog(second, 63, 2, 2);
+      await viewModel.initialize();
 
-    final viewModel = newViewModel(planId);
-    await viewModel.ready;
+      expect(viewModel.readingPlanId, planId);
+      expect(viewModel.date, date);
+      expect(viewModel.sessions, sessions);
+      expect(viewModel.totalMinutes, 15);
+      expect(viewModel.totalVerses, 5);
+      expect(viewModel.minutesFor(viewModel.sessions.first), 10);
+      expect(viewModel.minutesFor(viewModel.sessions.last), 5);
+      expect(planService.detailedProgressDates, [date]);
+      expect(planService.detailedProgressPlanIds, [planId]);
+    });
 
-    expect(viewModel.readingPlanId, planId);
-    expect(viewModel.date, date);
-    expect(viewModel.sessionCount, 2);
-    expect(viewModel.sessions, hasLength(2));
-    expect(viewModel.totalSeconds, 900);
-    expect(viewModel.totalMinutes, 15);
-    expect(viewModel.totalVerses, 5);
-    expect(viewModel.isRefreshing, isFalse);
-    expect(viewModel.loadError, isNull);
+    test('rounds session and total minutes to one decimal place', () async {
+      planService.detailedProgress = [
+        session(readSeconds: 90, verses: 1),
+        session(
+          readSeconds: 100,
+          verses: 1,
+          startTime: DateTime(2026, 11, 17, 14),
+        ),
+      ];
 
-    // Minutes are derived per session instead of in the widget.
-    expect(viewModel.minutesFor(viewModel.sessions.first), 10);
-    expect(viewModel.minutesFor(viewModel.sessions.last), 5);
+      final viewModel = newViewModel();
+      await viewModel.initialize();
 
-    // Contiguous verses collapse into one range; 4 is separated by a gap.
-    final progress = viewModel.sessions.first.progress;
-    expect(progress, hasLength(2));
-    expect((progress[0].fromVerse, progress[0].toVerse), (1, 2));
-    expect((progress[1].fromVerse, progress[1].toVerse), (4, 4));
+      expect(viewModel.minutesFor(viewModel.sessions.first), 1.5);
+      expect(viewModel.minutesFor(viewModel.sessions.last), 1.7);
+      expect(viewModel.totalMinutes, 3.2);
+    });
+
+    test('sorts references by book, chapter, and verse', () async {
+      planService.detailedProgress = [
+        session(
+          progress: [
+            DetailedProgess(64, 1, 1, 1),
+            DetailedProgess(63, 2, 1, 1),
+            DetailedProgess(63, 1, 4, 4),
+            DetailedProgess(63, 1, 1, 2),
+          ],
+        ),
+      ];
+
+      final viewModel = newViewModel();
+      await viewModel.initialize();
+
+      final progress = viewModel.referencesFor(viewModel.sessions.single);
+      expect(progress.map((entry) => entry.bookId), [63, 63, 63, 64]);
+      expect(progress.map((entry) => entry.chapter), [1, 1, 2, 1]);
+      expect(progress.map((entry) => entry.fromVerse), [1, 4, 1, 1]);
+    });
+
+    test('refresh replaces sessions with the latest service data', () async {
+      planService.detailedProgress = [session(verses: 1)];
+      final viewModel = newViewModel();
+      await viewModel.initialize();
+      expect(viewModel.sessions, hasLength(1));
+
+      planService.detailedProgress = [
+        session(verses: 2),
+        session(
+          readSeconds: 60,
+          verses: 3,
+          startTime: DateTime(2026, 11, 17, 14),
+        ),
+      ];
+      await viewModel.refresh();
+
+      expect(viewModel.sessions, hasLength(2));
+      expect(viewModel.totalVerses, 5);
+    });
+
+    test('propagates a load error from initialize', () async {
+      planService.detailedProgressError = StateError(
+        'detailed progress query failed',
+      );
+      final viewModel = newViewModel();
+
+      await expectLater(viewModel.initialize(), throwsA(isA<StateError>()));
+
+      expect(viewModel.sessions, isEmpty);
+    });
+
+    test('refresh can recover after an initialize error', () async {
+      planService.detailedProgressError = StateError(
+        'detailed progress query failed',
+      );
+      final viewModel = newViewModel();
+      await expectLater(viewModel.initialize(), throwsA(isA<StateError>()));
+
+      planService.detailedProgressError = null;
+      planService.detailedProgress = [session(readSeconds: 120, verses: 1)];
+      await viewModel.refresh();
+
+      expect(viewModel.sessions, hasLength(1));
+      expect(viewModel.totalMinutes, 2);
+      expect(viewModel.totalVerses, 1);
+    });
   });
 
-  test('ignores sessions from other plans and days', () async {
-    final planId = await createPlan();
-    final otherPlan = await planService.saveReadingPlan(
-      planName: 'Other Plan',
-      collectionId: 1,
-      goalType: GoalType.verses,
-      goalValue: 10,
-      selectedBookIds: {64},
+  group('concurrency', () {
+    test('a newer refresh cancels the in-flight one and wins', () async {
+      planService
+        ..queueDetailedProgressRequests = true
+        ..detailedProgress = [session(verses: 1)];
+      final viewModel = newViewModel();
+
+      final first = viewModel.refresh();
+      final second = viewModel.refresh();
+
+      expect(planService.detailedProgressRequests, hasLength(2));
+
+      planService.detailedProgressRequests[0].complete([session(verses: 1)]);
+      await expectLater(first, throwsA(isA<CancelledError>()));
+
+      planService.detailedProgressRequests[1].complete([session(verses: 2)]);
+      await second;
+
+      expect(viewModel.sessions.single.rsSession.verses, 2);
+    });
+
+    test(
+      'does not notify after dispose while a refresh is in flight',
+      () async {
+        planService.queueDetailedProgressRequests = true;
+        final viewModel = DayActivityLogViewModel.withDependencies(
+          readingPlanId: planId,
+          date: date,
+          planService: planService,
+        );
+        var notifications = 0;
+        viewModel.addListener(() => notifications++);
+
+        final future = viewModel.refresh();
+        expect(planService.detailedProgressRequests, hasLength(1));
+        final notificationsBeforeDispose = notifications;
+
+        viewModel.dispose();
+        planService.detailedProgressRequests.single.complete([session()]);
+        await expectLater(future, throwsA(isA<CancelledError>()));
+
+        expect(notifications, notificationsBeforeDispose);
+      },
     );
-
-    final matching = await insertSession(planId, readSeconds: 60, verses: 1);
-    await insertLog(matching, 63, 1, 1);
-
-    final otherPlanSession = await insertSession(
-      otherPlan.id!,
-      readSeconds: 60,
-      verses: 1,
-    );
-    await insertLog(otherPlanSession, 64, 1, 1);
-
-    await database.insertSession(
-      RsSession(
-        rsDate: DateTime(2026, 11, 16),
-        startTime: DateTime(2026, 11, 16, 9),
-        endTime: DateTime(2026, 11, 16, 9, 10),
-        readSeconds: 60,
-        verses: 1,
-        readingPlanId: planId,
-      ),
-    );
-
-    final viewModel = newViewModel(planId);
-    await viewModel.ready;
-
-    expect(viewModel.sessionCount, 1);
-    expect(viewModel.totalSeconds, 60);
-    expect(viewModel.totalVerses, 1);
   });
+}
 
-  test('deduplicates concurrent refresh calls', () async {
-    final planId = await createPlan();
-    final viewModel = newViewModel(planId);
-    await viewModel.ready;
-
-    final first = viewModel.refresh();
-    final second = viewModel.refresh();
-
-    expect(identical(first, second), isTrue);
-    await first;
-  });
-
-  test('captures a load error instead of throwing from ready', () async {
-    final planId = await createPlan();
-    final flaky = FlakyPlanService(database, failures: 1);
-    final viewModel = DayActivityLogViewModel.withDependencies(
-      readingPlanId: planId,
-      date: date,
-      planService: flaky,
-    );
-
-    await viewModel.ready;
-
-    expect(viewModel.loadError, isA<StateError>());
-    expect(viewModel.sessions, isEmpty);
-    expect(viewModel.isRefreshing, isFalse);
-  });
-
-  test('refresh clears a previous load error', () async {
-    final planId = await createPlan();
-    final session = await insertSession(planId, readSeconds: 120, verses: 1);
-    await insertLog(session, 63, 1, 1);
-
-    final flaky = FlakyPlanService(database, failures: 1);
-    final viewModel = DayActivityLogViewModel.withDependencies(
-      readingPlanId: planId,
-      date: date,
-      planService: flaky,
-    );
-    await viewModel.ready;
-    expect(viewModel.loadError, isNotNull);
-
-    await viewModel.refresh();
-
-    expect(viewModel.loadError, isNull);
-    expect(viewModel.sessionCount, 1);
-    expect(viewModel.totalSeconds, 120);
-    expect(flaky.calls, 2);
-  });
+SessionDetails session({
+  int readSeconds = 0,
+  int verses = 0,
+  DateTime? startTime,
+  List<DetailedProgess> progress = const [],
+}) {
+  final day = DateTime(2026, 11, 17);
+  return SessionDetails(
+    RsSession(
+      rsDate: day,
+      startTime: startTime ?? DateTime(2026, 11, 17, 9),
+      readSeconds: readSeconds,
+      verses: verses,
+      readingPlanId: 1,
+    ),
+    progress,
+  );
 }

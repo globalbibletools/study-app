@@ -12,10 +12,13 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
   List<ReadingPlanDetails> plans;
   List<RsBookStats> bookStats = const [];
   List<DayProgress> monthProgress = const [];
+  List<SessionDetails> detailedProgress = const [];
   Reference? resumePosition;
 
   final monthProgressByMonth = <DateTime, List<DayProgress>>{};
   final requestedMonths = <DateTime>[];
+  final detailedProgressDates = <DateTime>[];
+  final detailedProgressPlanIds = <int>[];
   final deletedPlanIds = <int>[];
   final bookmarkedValues = <bool>[];
   final reorderedBooks = <List<ReadingPlanBook>>[];
@@ -40,6 +43,14 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
   /// completer in [statsRequests] is completed.
   bool queueStatsRequests = false;
   final statsRequests = <Completer<List<RsBookStats>>>[];
+
+  /// When true, calls to [getDetailedProgressFor] wait until the corresponding
+  /// completer in [detailedProgressRequests] is completed.
+  bool queueDetailedProgressRequests = false;
+  final detailedProgressRequests = <Completer<List<SessionDetails>>>[];
+
+  /// When set, detailed progress queries throw this instead of returning data.
+  Object? detailedProgressError;
 
   /// When set, deletes wait for this to complete before taking effect.
   Completer<void>? deleteGate;
@@ -75,6 +86,25 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
       return request.future;
     }
     return Future.value(List.of(bookStats));
+  }
+
+  @override
+  Future<List<SessionDetails>> getDetailedProgressFor(
+    DateTime date,
+    int readingPlanId,
+  ) {
+    detailedProgressDates.add(date);
+    detailedProgressPlanIds.add(readingPlanId);
+
+    if (queueDetailedProgressRequests) {
+      final request = Completer<List<SessionDetails>>();
+      detailedProgressRequests.add(request);
+      return request.future;
+    }
+
+    final error = detailedProgressError;
+    if (error != null) return Future.error(error);
+    return Future.value(List.of(detailedProgress));
   }
 
   @override

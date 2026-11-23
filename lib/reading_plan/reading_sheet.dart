@@ -14,29 +14,36 @@ class ReadingSheet extends StatelessWidget {
           color: Theme.of(context).colorScheme.surface,
           child: SafeArea(
             top: false,
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: const BoxDecoration(
-                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-              ),
-              child: Column(
-                children: [
-                  _handle(context),
-                  const SizedBox(height: 16),
-                  Expanded(
-                    child: Navigator(
-                      onGenerateRoute: (_) => MaterialPageRoute(
-                        builder: (_) => PopScope(
-                          canPop: false,
-                          onPopInvokedWithResult: (didPop, result) {
-                            Navigator.of(context).pop();
-                          },
-                          child: const ReadingPlanPanel(),
-                        ),
-                      ),
+            child: ScaffoldMessenger(
+              child: Scaffold(
+                backgroundColor: Colors.transparent,
+                body: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: const BoxDecoration(
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(20),
                     ),
                   ),
-                ],
+                  child: Column(
+                    children: [
+                      _handle(context),
+                      const SizedBox(height: 16),
+                      Expanded(
+                        child: Navigator(
+                          onGenerateRoute: (_) => MaterialPageRoute(
+                            builder: (_) => PopScope(
+                              canPop: false,
+                              onPopInvokedWithResult: (didPop, result) {
+                                Navigator.of(context).pop();
+                              },
+                              child: const ReadingPlanPanel(),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),

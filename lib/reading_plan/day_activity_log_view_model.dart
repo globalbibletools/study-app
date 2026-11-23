@@ -1,21 +1,16 @@
 import 'package:flutter/foundation.dart';
+import 'package:gbt/asyncutils/cancellation.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
 import 'package:gbt/services/service_locator.dart';
 
 class DayActivityLogViewModel extends ChangeNotifier {
-  factory DayActivityLogViewModel({
-    required int readingPlanId,
-    required DateTime date,
-  }) {
-    final viewModel = DayActivityLogViewModel.withDependencies(
-      readingPlanId: readingPlanId,
-      date: date,
-      planService: getIt<ReadingPlanService>(),
-    );
-    viewModel._initFuture = viewModel.refresh();
-    return viewModel;
-  }
+  DayActivityLogViewModel({required int readingPlanId, required DateTime date})
+    : this.withDependencies(
+        readingPlanId: readingPlanId,
+        date: date,
+        planService: getIt<ReadingPlanService>(),
+      );
 
   DayActivityLogViewModel.withDependencies({
     required this.readingPlanId,
@@ -25,71 +20,66 @@ class DayActivityLogViewModel extends ChangeNotifier {
 
   final ReadingPlanService _planService;
 
+  Future<void>? _initialization;
+  Future<void> initialize() => _initialization ??= refresh();
+
+  final _refreshScope = CancellationScope();
+
+  Future<void> refresh() {
+    return _refreshScope.run((guard) async {
+      final sessions = await guard(
+        _planService.getDetailedProgressFor(date, readingPlanId),
+      );
+      _setState(() {
+        _sessions = sessions;
+      });
+    });
+  }
+
   final int readingPlanId;
   final DateTime date;
 
   List<SessionDetails> _sessions = const [];
   List<SessionDetails> get sessions => _sessions;
 
-  int get sessionCount => _sessions.length;
-
-  int get totalSeconds =>
-      _sessions.fold(0, (sum, session) => sum + session.rsSession.readSeconds);
-
-  int get totalMinutes => totalSeconds ~/ 60;
+  double get totalMinutes {
+    final totalSeconds = _sessions.fold(
+      0,
+      (sum, session) => sum + session.rsSession.readSeconds,
+    );
+    return _roundMinutes(totalSeconds / 60);
+  }
 
   int get totalVerses =>
       _sessions.fold(0, (sum, session) => sum + session.rsSession.verses);
 
-  int minutesFor(SessionDetails session) => session.rsSession.readSeconds ~/ 60;
+  double minutesFor(SessionDetails session) =>
+      _roundMinutes(session.rsSession.readSeconds / 60);
 
-  bool _isRefreshing = false;
-  bool get isRefreshing => _isRefreshing;
+  List<DetailedProgess> referencesFor(SessionDetails session) {
+    return [...session.progress]..sort((a, b) {
+      final byBook = a.bookId.compareTo(b.bookId);
+      if (byBook != 0) return byBook;
+      final byChapter = a.chapter.compareTo(b.chapter);
+      if (byChapter != 0) return byChapter;
+      return a.fromVerse.compareTo(b.fromVerse);
+    });
+  }
 
-  Object? _loadError;
-  Object? get loadError => _loadError;
+  double _roundMinutes(num minutes) => (minutes * 10).round() / 10;
+
+  void _setState(VoidCallback fn) {
+    if (_disposed) return;
+    fn();
+    notifyListeners();
+  }
 
   bool _disposed = false;
-
-  Future<void>? _initFuture;
-  Future<void> get ready => _initFuture ??= refresh();
-
-  Future<void>? _refreshFuture;
-
-  Future<void> refresh() {
-    final inFlight = _refreshFuture;
-    if (inFlight != null) return inFlight;
-
-    final future = _refresh();
-    _refreshFuture = future;
-    return future;
-  }
-
-  Future<void> _refresh() async {
-    _isRefreshing = true;
-    _loadError = null;
-    notifyListeners();
-
-    try {
-      final sessions = await _planService.getDetailedProgressFor(
-        date,
-        readingPlanId,
-      );
-      if (_disposed) return;
-      _sessions = sessions;
-    } catch (error) {
-      if (_disposed) return;
-      _loadError = error;
-    } finally {
-      _isRefreshing = false;
-      _refreshFuture = null;
-      if (!_disposed) notifyListeners();
-    }
-  }
 
   @override
   void dispose() {
     _disposed = true;
+    _refreshScope.cancelAll();
     super.dispose();
   }
 }
