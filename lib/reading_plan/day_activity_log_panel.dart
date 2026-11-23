@@ -159,6 +159,21 @@ class _DayActivityLogPanelState extends State<DayActivityLogPanel> {
     }
   }
 
+  Future<void> _deleteManualSession(SessionDetails session) async {
+    final sessionId = session.rsSession.id;
+    if (sessionId == null) return;
+
+    try {
+      await viewModel.deleteManualSession(sessionId);
+    } catch (error) {
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.errorMessage(error.toString()))),
+      );
+    }
+  }
+
   Widget _readingSection() {
     return ListView(children: viewModel.sessions.map(_sessionCard).toList());
   }
@@ -208,6 +223,10 @@ class _DayActivityLogPanelState extends State<DayActivityLogPanel> {
   }
 
   Widget _sessionLabel(SessionDetails session, TextStyle style) {
+    final rsSession = session.rsSession;
+    final l10n = AppLocalizations.of(context)!;
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -218,6 +237,27 @@ class _DayActivityLogPanelState extends State<DayActivityLogPanel> {
             overflow: TextOverflow.ellipsis,
           ),
         ),
+        if (rsSession.isManual) ...[
+          const SizedBox(width: 4),
+          SizedBox(
+            width: 18,
+            height: 18,
+            child: IconButton(
+              key: ValueKey('deleteManualSession-${rsSession.id}'),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints.tightFor(width: 18, height: 18),
+              visualDensity: VisualDensity.compact,
+              style: IconButton.styleFrom(
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              iconSize: 16,
+              color: colorScheme.error,
+              icon: const Icon(Icons.delete_outline),
+              tooltip: l10n.delete,
+              onPressed: () => _deleteManualSession(session),
+            ),
+          ),
+        ],
       ],
     );
   }

@@ -108,7 +108,8 @@ Days are marked when the goal was met.
 and verses read. A session is either timed (recorded while the user reads)
 or **manual** (totals entered by the user after the fact). Manual sessions
 count toward the day's activity totals and goal, but they do not mark
-individual verses read.
+individual verses read. Only manual sessions may be deleted; timed sessions
+are history.
 
 **Read log** — one record per verse-read event, tied to both a session and a
 plan. Reading sessions account for time and verse totals, while the read log

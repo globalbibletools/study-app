@@ -74,38 +74,53 @@ void main() {
       expect(find.byIcon(Icons.delete_outline), findsNothing);
     });
 
-    testWidgets('shows manual sessions with start time and description', (
-      tester,
-    ) async {
-      planService.detailedProgress = [
-        session(
-          id: 1,
-          startTime: DateTime(2026, 11, 17, 9, 5),
-          readSeconds: 300,
-          verses: 2,
-        ),
-        session(
-          id: 2,
-          isManual: true,
-          startTime: DateTime(2026, 11, 16, 22, 15),
-          readSeconds: 120,
-          verses: 1,
-        ),
-      ];
-      final viewModel = newViewModel();
-      await viewModel.initialize();
+    testWidgets(
+      'shows manual sessions with start time, description, and trash icon',
+      (tester) async {
+        planService.detailedProgress = [
+          session(
+            id: 1,
+            startTime: DateTime(2026, 11, 17, 9, 5),
+            readSeconds: 300,
+            verses: 2,
+          ),
+          session(
+            id: 2,
+            isManual: true,
+            startTime: DateTime(2026, 11, 16, 22, 15),
+            readSeconds: 120,
+            verses: 1,
+          ),
+        ];
+        final viewModel = newViewModel();
+        await viewModel.initialize();
 
-      await tester.pumpWidget(
-        buildApp(DayActivityLogPanel(viewModel: viewModel)),
-      );
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(
+          buildApp(DayActivityLogPanel(viewModel: viewModel)),
+        );
+        await tester.pumpAndSettle();
 
-      expect(find.text('09:05'), findsOneWidget);
-      expect(find.text('22:15'), findsOneWidget);
-      expect(find.text('No verses read'), findsOneWidget);
-      expect(find.text('Manually added'), findsOneWidget);
-      expect(find.byIcon(Icons.delete_outline), findsNothing);
-    });
+        expect(find.text('09:05'), findsOneWidget);
+        expect(find.text('22:15'), findsOneWidget);
+        expect(find.text('No verses read'), findsOneWidget);
+        expect(find.text('Manually added'), findsOneWidget);
+        expect(find.byIcon(Icons.delete_outline), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('deleteManualSession-2')),
+          findsOneWidget,
+        );
+
+        final deleteButton = find.byKey(
+          const ValueKey('deleteManualSession-2'),
+        );
+        expect(tester.getSize(deleteButton).height, lessThanOrEqualTo(18));
+        final deleteButtonWidget = tester.widget<IconButton>(deleteButton);
+        final errorColor = Theme.of(
+          tester.element(find.byType(DayActivityLogPanel)),
+        ).colorScheme.error;
+        expect(deleteButtonWidget.color, errorColor);
+      },
+    );
   });
 
   group('manual sessions', () {
@@ -245,6 +260,32 @@ void main() {
       expect(find.text(l10n.invalidManualSession), findsOneWidget);
       expect(planService.addedManualSessions, isEmpty);
       expect(find.byType(AlertDialog), findsOneWidget);
+    });
+
+    testWidgets('trash icon deletes a manual session', (tester) async {
+      planService.detailedProgress = [
+        session(
+          id: 7,
+          isManual: true,
+          startTime: DateTime(2026, 11, 17, 9, 30),
+          readSeconds: 120,
+          verses: 1,
+        ),
+      ];
+      final viewModel = newViewModel();
+      await viewModel.initialize();
+
+      await tester.pumpWidget(
+        buildApp(DayActivityLogPanel(viewModel: viewModel)),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('deleteManualSession-7')));
+      await tester.pumpAndSettle();
+
+      expect(planService.deletedManualSessionIds, [7]);
+      expect(viewModel.sessions, isEmpty);
+      expect(find.byIcon(Icons.delete_outline), findsNothing);
     });
   });
 
