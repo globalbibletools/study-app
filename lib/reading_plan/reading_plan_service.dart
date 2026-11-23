@@ -53,11 +53,13 @@ class ReadingPlanService {
 
     return DayProgress(
       day,
-      summary.rsSeconds ~/ 60,
+      _roundedMinutes(summary.rsSeconds),
       summary.rsVerses,
       summary.goalReached,
     );
   }
+
+  double _roundedMinutes(int seconds) => (seconds / 6).round() / 10;
 
   Future<List<DayProgress>> getMonthProgress(
     int readingPlanId,
@@ -83,7 +85,7 @@ class ReadingPlanService {
         monthData.add(
           DayProgress(
             date,
-            summary.rsSeconds ~/ 60,
+            _roundedMinutes(summary.rsSeconds),
             summary.rsVerses,
             summary.goalReached,
           ),
@@ -154,7 +156,7 @@ class ReadingPlanService {
           ? DayProgress.empty(day)
           : DayProgress(
               day,
-              summary.rsSeconds ~/ 60,
+              _roundedMinutes(summary.rsSeconds),
               summary.rsVerses,
               summary.goalReached,
             );

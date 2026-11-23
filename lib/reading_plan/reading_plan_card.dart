@@ -104,11 +104,12 @@ class ReadingPlanCard extends StatelessWidget {
         (plan.dailyGoal.type == GoalType.verses
             ? today?.verses ?? 0
             : today?.minutes ?? 0);
+    final remainingCount = math.max(remaining, 0).ceil();
     final label = goalReached
         ? l10n.dailyGoalReached
         : plan.dailyGoal.type == GoalType.verses
-        ? l10n.versesLeft(math.max(remaining, 0))
-        : l10n.minutesLeft(math.max(remaining, 0));
+        ? l10n.versesLeft(remainingCount)
+        : l10n.minutesLeft(remainingCount);
 
     return Row(
       key: ValueKey('plan-daily-goal-${plan.readingPlan.id}'),

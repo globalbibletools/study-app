@@ -116,6 +116,18 @@ void main() {
       expect(find.text('30%'), findsNWidgets(2));
     });
 
+    testWidgets('rounds minutes to the nearest tenth', (tester) async {
+      final service = FakeReadingPlanService()
+        ..bookStats = bookStats()
+        ..monthProgress = currentMonthProgress(verses: 3, minutes: 7.46);
+      final viewModel = newViewModel(planDetails(), service);
+
+      await openDetail(tester, viewModel);
+      await tester.pumpAndSettle();
+
+      expect(find.text('7.5 minutes'), findsOneWidget);
+    });
+
     testWidgets('omits the verse target for a minutes goal', (tester) async {
       final service = FakeReadingPlanService()
         ..bookStats = bookStats()
@@ -480,7 +492,7 @@ ReadingPlanDetails planDetails({
 
 List<DayProgress> currentMonthProgress({
   required int verses,
-  required int minutes,
+  required num minutes,
   bool goalReached = false,
 }) {
   final now = DateTime.now();

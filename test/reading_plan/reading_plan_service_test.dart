@@ -178,7 +178,7 @@ void main() {
     final progress = await planService.getDayProgress(savedPlan.id!, date);
     expect(progress.empty, isFalse);
     expect(progress.day, DateTime(2026, 11, 5));
-    expect(progress.minutes, 12);
+    expect(progress.minutes, 12.5);
     expect(progress.verses, 7);
     expect(progress.goalReached, isTrue);
 

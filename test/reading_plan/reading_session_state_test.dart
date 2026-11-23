@@ -458,7 +458,7 @@ void main() {
         final day5 = monthData[4];
         expect(day5.empty, isFalse);
         expect(day5.verses, 7);
-        expect(day5.minutes, 12);
+        expect(day5.minutes, 12.5);
         expect(day5.goalReached, isTrue);
 
         for (int i = 0; i < 30; i++) {

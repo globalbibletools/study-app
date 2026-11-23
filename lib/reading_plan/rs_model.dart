@@ -451,13 +451,14 @@ class VerseReadOptions {
 
 class DayProgress {
   final DateTime day;
-  final int minutes;
+  final double minutes;
   final int verses;
   final bool goalReached;
   final bool empty;
 
-  DayProgress(this.day, this.minutes, this.verses, this.goalReached)
-    : empty = false;
+  DayProgress(this.day, num minutes, this.verses, this.goalReached)
+    : minutes = minutes.toDouble(),
+      empty = false;
 
   DayProgress.empty(this.day)
     : minutes = 0,

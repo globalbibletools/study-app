@@ -227,7 +227,7 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
     final l10n = AppLocalizations.of(context)!;
     final progress = viewModel.todaysProgress;
     final verses = progress?.verses ?? 0;
-    final minutes = progress?.minutes ?? 0;
+    final minutes = _formatMinutes(progress?.minutes ?? 0);
     final target = viewModel.goalValue;
     final isVersesGoal = viewModel.goalType == GoalType.verses;
 
@@ -244,6 +244,13 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
       secondLine: versesText,
       thirdLine: minutesText,
     );
+  }
+
+  String _formatMinutes(double minutes) {
+    final rounded = (minutes * 10).round() / 10;
+    return rounded == rounded.roundToDouble()
+        ? rounded.toStringAsFixed(0)
+        : rounded.toStringAsFixed(1);
   }
 
   Widget _progressSummary({
