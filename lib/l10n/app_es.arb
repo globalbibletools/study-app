@@ -178,7 +178,7 @@
     "writings": "Escritos",
     "gospels": "Evangelios",
     "paulineEpistles": "Epístolas paulinas",
-    "allBooksSelected": "Los {total} libros seleccionados",
+    "allBooksSelected": "Todos los libros seleccionados",
     "booksSelected": "{selected}/{total} libros seleccionados",
     "updateReadingPlan": "Actualizar plan de lectura",
     "addReadingPlan": "Guardar plan de lectura",

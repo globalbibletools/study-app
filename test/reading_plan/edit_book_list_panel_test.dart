@@ -31,6 +31,22 @@ void main() {
     );
   });
 
+  testWidgets('shows All books selected when none can be added', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      buildApp(
+        Scaffold(
+          body: EditBookListPanel(bookIds: [for (int i = 1; i <= 66; i++) i]),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('All books selected'), findsOneWidget);
+    expect(find.text('Add book'), findsNothing);
+  });
+
   testWidgets('scrolls to a newly appended book', (tester) async {
     await tester.pumpWidget(
       buildApp(

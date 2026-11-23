@@ -1,42 +1,48 @@
+import 'dart:collection';
+
 import 'package:flutter/foundation.dart';
 import 'package:gbt/common/bible_collection.dart';
 
 class EditBookListViewModel extends ChangeNotifier {
-  EditBookListViewModel(List<int> initialBookIds, {List<int>? allBookIds})
-    : _allBookIds = List.unmodifiable(allBookIds ?? BibleCollections.allBooks),
-      _bookIds = _dedupe(initialBookIds);
-
-  final List<int> _allBookIds;
-  List<int> _bookIds;
-
-  static List<int> _dedupe(List<int> bookIds) {
-    final seen = <int>{};
-    return [
-      for (final bookId in bookIds)
-        if (seen.add(bookId)) bookId,
-    ];
+  EditBookListViewModel(List<int> initialBookIds)
+    : _bookIds = List.of(initialBookIds) {
+    _availableBookIds = _availableFor(_bookIds);
   }
 
-  List<int> get bookIds => List.unmodifiable(_bookIds);
+  static final List<int> allBookIds = List.unmodifiable(
+    BibleCollections.allBooks,
+  );
 
+  List<int> _bookIds;
+  UnmodifiableListView<int> get bookIds => UnmodifiableListView(_bookIds);
   bool get isEmpty => _bookIds.isEmpty;
 
-  List<int> get availableBookIds => [
-    for (final bookId in _allBookIds)
-      if (!_bookIds.contains(bookId)) bookId,
+  late List<int> _availableBookIds;
+  UnmodifiableListView<int> get availableBookIds =>
+      UnmodifiableListView(_availableBookIds);
+
+  static List<int> _availableFor(List<int> selectedBookIds) => [
+    for (final bookId in allBookIds)
+      if (!selectedBookIds.contains(bookId)) bookId,
   ];
 
-  int get allBookCount => _allBookIds.length;
+  void _updateBookIds(List<int> newBookIds) {
+    _bookIds = List<int>.of(newBookIds);
+    _availableBookIds = _availableFor(_bookIds);
+    notifyListeners();
+  }
 
   void removeBook(int bookId) {
-    if (!_bookIds.remove(bookId)) return;
-    notifyListeners();
+    final updatedList = List<int>.of(_bookIds);
+    if (!updatedList.remove(bookId)) return;
+
+    _updateBookIds(updatedList);
   }
 
   void addBook(int bookId) {
-    if (!_allBookIds.contains(bookId) || _bookIds.contains(bookId)) return;
-    _bookIds = [..._bookIds, bookId];
-    notifyListeners();
+    if (!allBookIds.contains(bookId) || _bookIds.contains(bookId)) return;
+
+    _updateBookIds([..._bookIds, bookId]);
   }
 
   void moveBook(int oldIndex, int newIndex) {
@@ -44,10 +50,10 @@ class EditBookListViewModel extends ChangeNotifier {
     if (newIndex < 0 || newIndex >= _bookIds.length) return;
     if (oldIndex == newIndex) return;
 
-    final reordered = List<int>.of(_bookIds);
-    final bookId = reordered.removeAt(oldIndex);
-    reordered.insert(newIndex, bookId);
-    _bookIds = reordered;
-    notifyListeners();
+    final updatedList = List<int>.of(_bookIds);
+    final bookId = updatedList.removeAt(oldIndex);
+    updatedList.insert(newIndex, bookId);
+
+    _updateBookIds(updatedList);
   }
 }

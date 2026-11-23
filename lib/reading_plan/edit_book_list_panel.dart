@@ -218,9 +218,7 @@ class _EditBookListPanelState extends State<EditBookListPanel> {
           borderRadius: BorderRadius.circular(12),
           dropdownColor: colorScheme.surfaceContainerLow,
           hint: Text(
-            availableBookIds.isEmpty
-                ? l10n.allBooksSelected(viewModel.allBookCount)
-                : l10n.addBook,
+            availableBookIds.isEmpty ? l10n.allBooksSelected : l10n.addBook,
             style: const TextStyle(fontSize: 16),
           ),
           items: [

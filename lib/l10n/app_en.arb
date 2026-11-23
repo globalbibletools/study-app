@@ -842,14 +842,9 @@
   "@paulineEpistles": {
     "description": "Bible collection for Paul's epistles"
   },
-  "allBooksSelected": "All {total} books selected",
+  "allBooksSelected": "All books selected",
   "@allBooksSelected": {
-    "description": "Summary shown when all books in a collection are selected",
-    "placeholders": {
-      "total": {
-        "type": "int"
-      }
-    }
+    "description": "Message shown when every book is already selected"
   },
   "booksSelected": "{selected}/{total} books selected",
   "@booksSelected": {

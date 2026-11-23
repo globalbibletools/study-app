@@ -178,7 +178,7 @@
     "writings": "الكتابات",
     "gospels": "الأناجيل",
     "paulineEpistles": "رسائل بولس",
-    "allBooksSelected": "تم تحديد كل الكتب ({total})",
+    "allBooksSelected": "تم تحديد كل الكتب",
     "booksSelected": "تم تحديد {selected}/{total} من الكتب",
     "updateReadingPlan": "تحديث خطة القراءة",
     "addReadingPlan": "حفظ خطة القراءة",
