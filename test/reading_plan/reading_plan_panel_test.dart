@@ -332,7 +332,6 @@ void main() {
       );
       await tester.tap(find.text('Open plans'));
       await tester.pumpAndSettle();
-
       final resumeButton = find.byKey(const ValueKey('plan-resume-7'));
       expect(resumeButton, findsOneWidget);
       expect(

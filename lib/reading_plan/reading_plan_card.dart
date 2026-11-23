@@ -26,48 +26,62 @@ class ReadingPlanCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    // Extend the stack below the card just enough for the overhanging resume
+    // button's tap target, while keeping the visual gap between cards the same.
+    const buttonHitAreaExtension = 2.0;
+    const resumeOverhang = 14.0;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 32),
+      margin: const EdgeInsets.only(bottom: 32 - buttonHitAreaExtension),
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          Container(
-            decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerLow,
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    spacing: 8,
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  color: colorScheme.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(child: _planTitle(context)),
-                      Transform.translate(
-                        offset: const Offset(8, 0),
-                        child: _planActions(context),
+                      Row(
+                        spacing: 8,
+                        children: [
+                          Expanded(child: _planTitle(context)),
+                          Transform.translate(
+                            offset: const Offset(8, 0),
+                            child: _planActions(context),
+                          ),
+                        ],
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        spacing: 16,
+                        children: [
+                          Flexible(child: _overallProgress(context)),
+                          Flexible(child: _todayGoalProgress(context)),
+                        ],
                       ),
                     ],
                   ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    spacing: 16,
-                    children: [
-                      Flexible(child: _overallProgress(context)),
-                      Flexible(child: _todayGoalProgress(context)),
-                    ],
-                  ),
-                ],
+                ),
               ),
-            ),
+              const SizedBox(height: buttonHitAreaExtension),
+            ],
           ),
           if (plan.readingPlan.isBookmarked)
-            Positioned(left: 10, top: -14, child: _bookmarkRibbon(context)),
-          Positioned(right: 16, bottom: -12, child: _resumeButton(context)),
+            Positioned(left: 18, top: -28 / 3, child: _bookmarkRibbon(context)),
+          Positioned(
+            right: 16,
+            bottom: -(resumeOverhang - buttonHitAreaExtension),
+            child: _resumeButton(context),
+          ),
         ],
       ),
     );
@@ -104,10 +118,16 @@ class ReadingPlanCard extends StatelessWidget {
       key: ValueKey('plan-daily-goal-${plan.readingPlan.id}'),
       mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.end,
+      crossAxisAlignment: CrossAxisAlignment.baseline,
+      textBaseline: TextBaseline.alphabetic,
       spacing: 4,
       children: [
         if (goalReached)
-          Icon(Icons.check, color: colorScheme.primary, size: 16),
+          Baseline(
+            baseline: 16,
+            baselineType: TextBaseline.alphabetic,
+            child: Icon(Icons.check, color: colorScheme.primary, size: 16),
+          ),
         Flexible(
           child: Text(
             label,
@@ -214,7 +234,6 @@ class ReadingPlanCard extends StatelessWidget {
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
-        spacing: 2,
         children: [
           Text(resumeReference),
           const Icon(Icons.chevron_right, size: 16),
