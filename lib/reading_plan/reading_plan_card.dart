@@ -26,13 +26,12 @@ class ReadingPlanCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    // Extend the stack below the card just enough for the overhanging resume
-    // button's tap target, while keeping the visual gap between cards the same.
-    const buttonHitAreaExtension = 2.0;
-    const resumeOverhang = 14.0;
+    // Fixed-height box below the card that reserves the resume button's
+    // overhang and keeps its full tap target inside the Stack.
+    const resumeOverhangBoxHeight = 14.0;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 32 - buttonHitAreaExtension),
+      margin: const EdgeInsets.only(bottom: 32 - resumeOverhangBoxHeight),
       child: Stack(
         clipBehavior: Clip.none,
         children: [
@@ -72,16 +71,12 @@ class ReadingPlanCard extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: buttonHitAreaExtension),
+              const SizedBox(height: resumeOverhangBoxHeight),
             ],
           ),
           if (plan.readingPlan.isBookmarked)
             Positioned(left: 20, top: -8, child: _bookmarkRibbon(context)),
-          Positioned(
-            right: 16,
-            bottom: -(resumeOverhang - buttonHitAreaExtension),
-            child: _resumeButton(context),
-          ),
+          Positioned(right: 16, bottom: 0, child: _resumeButton(context)),
         ],
       ),
     );

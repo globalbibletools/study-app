@@ -346,7 +346,8 @@ void main() {
         findsOneWidget,
       );
 
-      await tester.tap(resumeButton);
+      final buttonRect = tester.getRect(resumeButton);
+      await tester.tapAt(Offset(buttonRect.center.dx, buttonRect.bottom - 2));
       await tester.pumpAndSettle();
 
       expect(sessionViewModel.startedPlanIds, [7]);
