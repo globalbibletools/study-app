@@ -113,7 +113,6 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
               plan: plan,
               onOpenDetails: () => _openPlanDetails(plan),
               onEdit: () => _editPlan(plan),
-              onDelete: () => _deletePlan(plan),
               onStartSession: () => _startReadingSession(plan),
             ),
           )
@@ -174,13 +173,6 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
 
     if (!mounted) return;
     await viewModel.refresh();
-  }
-
-  Future<void> _deletePlan(ReadingPlanDetails plan) async {
-    final planId = plan.readingPlan.id;
-    if (planId == null) return;
-
-    await viewModel.deletePlan(planId);
   }
 
   Future<void> _startReadingSession(ReadingPlanDetails plan) async {

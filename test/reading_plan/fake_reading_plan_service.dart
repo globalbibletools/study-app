@@ -73,9 +73,6 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
   /// When set, detailed progress queries throw this instead of returning data.
   Object? detailedProgressError;
 
-  /// When set, deletes wait for this to complete before taking effect.
-  Completer<void>? deleteGate;
-
   ReadingPlanDetails? _detailsFor(int planId) =>
       plans.where((plan) => plan.readingPlan.id == planId).firstOrNull;
 
@@ -279,9 +276,6 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
   Future<void> deleteReadingPlan(int planId) async {
     final error = deleteError;
     if (error != null) throw error;
-
-    final gate = deleteGate;
-    if (gate != null) await gate.future;
 
     if (queueDeleteRequests) {
       final request = Completer<void>();
