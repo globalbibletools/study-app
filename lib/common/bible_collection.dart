@@ -25,8 +25,28 @@ class BibleCollections {
     BibleCollection(9, "Psalms", _psalmsBibleCollection),
   ];
 
+  static final BibleCollection custom = BibleCollection(0, "Custom", const []);
+
+  static final List<int> allBooks = _wholeBibleCollection;
+
   static BibleCollection fromId(int id) {
+    if (id == custom.id) return custom;
     return collections[id - 1];
+  }
+
+  static BibleCollection? matchingCollection(List<int> bookIds) {
+    for (final collection in collections) {
+      if (_sameBooks(collection.books, bookIds)) return collection;
+    }
+    return null;
+  }
+
+  static bool _sameBooks(List<int> a, List<int> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
   }
 
   static String localizedName(
@@ -35,6 +55,7 @@ class BibleCollections {
   ) {
     final l10n = AppLocalizations.of(context)!;
     return switch (collection.id) {
+      0 => l10n.custom,
       1 => l10n.wholeBible,
       2 => l10n.oldTestament,
       3 => l10n.newTestament,

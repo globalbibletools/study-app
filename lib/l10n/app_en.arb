@@ -590,6 +590,10 @@
   "@versesPerDay": {
     "description": "Verses per day"
   },
+  "perDay": "per day",
+  "@perDay": {
+    "description": "Suffix shown after a daily goal amount and unit"
+  },
   "goalReachedMessage": "You reached your goal 🎉",
   "@goalReachedMessage": {
     "description": "Message shown when the user reaches their daily goal"
@@ -652,6 +656,14 @@
   "createNewPlan": "Create New Plan",
   "@createNewPlan": {
     "description": "Button label for creating a new reading plan"
+  },
+  "createReadingPlan": "Create Reading Plan",
+  "@createReadingPlan": {
+    "description": "Title for the new reading-plan editor"
+  },
+  "editReadingPlan": "Edit Reading Plan",
+  "@editReadingPlan": {
+    "description": "Title for the existing reading-plan editor"
   },
   "noReadingPlans": "No reading plans.",
   "@noReadingPlans": {
@@ -762,6 +774,10 @@
   "@booksInThisPlan": {
     "description": "Section title for books included in a reading plan"
   },
+  "customizeBooks": "Customize Books",
+  "@customizeBooks": {
+    "description": "Title for the reading-plan book list editor"
+  },
   "done": "Done",
   "@done": {
     "description": "Button label for finishing an action"
@@ -778,6 +794,18 @@
   "@collection": {
     "description": "Section label for choosing a Bible collection"
   },
+  "custom": "Custom",
+  "@custom": {
+    "description": "Collection label used when the plan's books do not match a preset collection"
+  },
+  "addBook": "Add book",
+  "@addBook": {
+    "description": "Hint for the dropdown that adds an unselected book to a plan"
+  },
+  "removeBook": "Remove book",
+  "@removeBook": {
+    "description": "Tooltip for removing a book from a plan"
+  },
   "goal": "Goal",
   "@goal": {
     "description": "Section label for setting a reading plan goal"
@@ -785,6 +813,10 @@
   "planName": "Plan name",
   "@planName": {
     "description": "Hint text for the reading plan name input"
+  },
+  "name": "Name",
+  "@name": {
+    "description": "Label for the reading plan name input"
   },
   "wholeBible": "Whole Bible",
   "@wholeBible": {

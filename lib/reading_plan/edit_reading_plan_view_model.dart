@@ -49,8 +49,10 @@ class EditReadingPlanViewModel extends ChangeNotifier {
   }) : _planService = planService,
        _bibleNavigation = bibleNavigation {
     final plan = readingPlan.readingPlan;
-    _selectedCollection = BibleCollections.fromId(plan.collectionId);
-    _selectedBookIds = readingPlan.books.map((x) => x.bookId).toSet();
+    _orderedBookIds = [for (final book in readingPlan.books) book.bookId];
+    _selectedCollection =
+        BibleCollections.matchingCollection(_orderedBookIds) ??
+        BibleCollections.custom;
     _goalType = readingPlan.dailyGoal.type;
     _goalValue = readingPlan.dailyGoal.value;
     _name = plan.planName;
@@ -69,18 +71,54 @@ class EditReadingPlanViewModel extends ChangeNotifier {
   late BibleCollection _selectedCollection;
   BibleCollection get selectedCollection => _selectedCollection;
   void selectCollection(BibleCollection collection) {
-    if (_selectedCollection.id == collection.id) return;
+    if (collection.id == BibleCollections.custom.id) return;
+    if (_selectedCollection.id == collection.id &&
+        listEquals(_orderedBookIds, collection.books)) {
+      return;
+    }
     _selectedCollection = collection;
-    _selectedBookIds = collection.books.toSet();
+    _orderedBookIds = List<int>.of(collection.books);
     notifyListeners();
   }
 
-  late Set<int> _selectedBookIds;
-  Set<int> get selectedBookIds => _selectedBookIds;
+  late List<int> _orderedBookIds;
+  List<int> get orderedBookIds => List.unmodifiable(_orderedBookIds);
+  Set<int> get selectedBookIds => _orderedBookIds.toSet();
+
   void setSelectedBooks(Set<int> books) {
-    if (setEquals(_selectedBookIds, books)) return;
-    _selectedBookIds = {...books};
+    final reordered = [
+      for (final bookId in _orderedBookIds)
+        if (books.contains(bookId)) bookId,
+    ];
+    final added = [
+      for (final bookId in books)
+        if (!_orderedBookIds.contains(bookId)) bookId,
+    ]..sort();
+    reordered.addAll(added);
+    if (listEquals(reordered, _orderedBookIds)) return;
+
+    _orderedBookIds = reordered;
+    _syncSelectedCollection();
     notifyListeners();
+  }
+
+  void setBookOrder(List<int> bookIds) {
+    final seen = <int>{};
+    final ordered = [
+      for (final bookId in bookIds)
+        if (seen.add(bookId)) bookId,
+    ];
+    if (listEquals(ordered, _orderedBookIds)) return;
+
+    _orderedBookIds = ordered;
+    _syncSelectedCollection();
+    notifyListeners();
+  }
+
+  void _syncSelectedCollection() {
+    _selectedCollection =
+        BibleCollections.matchingCollection(_orderedBookIds) ??
+        BibleCollections.custom;
   }
 
   late GoalType _goalType;
@@ -103,15 +141,15 @@ class EditReadingPlanViewModel extends ChangeNotifier {
   bool _isSubmitting = false;
   bool get isSubmitting => _isSubmitting;
 
-  int get selectedBookCount => _selectedBookIds.length;
+  int get selectedBookCount => _orderedBookIds.length;
   int get collectionBookCount => _selectedCollection.books.length;
 
   bool get canSubmit =>
-      !_isSubmitting && _name.trim().isNotEmpty && _selectedBookIds.isNotEmpty;
+      !_isSubmitting && _name.trim().isNotEmpty && _orderedBookIds.isNotEmpty;
 
   int get estimatedDays {
     int totalVerses = 0;
-    for (int bookId in _selectedBookIds) {
+    for (int bookId in _orderedBookIds) {
       totalVerses += _bibleNavigation.getTotalVerseCount(bookId);
     }
 
@@ -124,6 +162,9 @@ class EditReadingPlanViewModel extends ChangeNotifier {
 
   double get estimatedMonths =>
       ReadingPlanEstimates.monthsForDays(estimatedDays);
+
+  DateTime get estimatedCompletionDate =>
+      DateTime.now().add(Duration(days: estimatedDays));
 
   Future<bool> submit() async {
     if (!canSubmit) return false;
@@ -140,7 +181,8 @@ class EditReadingPlanViewModel extends ChangeNotifier {
         collectionId: _selectedCollection.id,
         goalType: _goalType,
         goalValue: _goalValue,
-        selectedBookIds: _selectedBookIds,
+        selectedBookIds: _orderedBookIds.toSet(),
+        orderedBookIds: _orderedBookIds,
       );
       return true;
     } finally {

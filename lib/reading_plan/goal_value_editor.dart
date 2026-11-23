@@ -48,18 +48,27 @@ class _GoalValueEditorState extends State<GoalValueEditor> {
     );
   }
 
-  Widget _circleButton({required IconData icon, required VoidCallback onTap}) {
+  Widget _circleButton({
+    required Key key,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
     return GestureDetector(
+      key: key,
       onTap: onTap,
       child: Container(
-        width: 48,
-        height: 48,
+        width: 34,
+        height: 34,
         decoration: BoxDecoration(
           color: Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(10),
           border: Border.all(color: Theme.of(context).colorScheme.primary),
         ),
-        child: Icon(icon, color: Theme.of(context).colorScheme.primary),
+        child: Icon(
+          icon,
+          size: 18,
+          color: Theme.of(context).colorScheme.primary,
+        ),
       ),
     );
   }
@@ -67,19 +76,24 @@ class _GoalValueEditorState extends State<GoalValueEditor> {
   @override
   Widget build(BuildContext context) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
       children: [
         _circleButton(
+          key: const Key('goal-decrease'),
           icon: Icons.remove,
           onTap: () {
             if (_value <= 1) return;
             _setValue(_value - 1);
           },
         ),
-        const SizedBox(width: 30),
+        const SizedBox(width: 4),
         _GoalValueField(controller: _controller, onChanged: _setValue),
-        const SizedBox(width: 30),
-        _circleButton(icon: Icons.add, onTap: () => _setValue(_value + 1)),
+        const SizedBox(width: 4),
+        _circleButton(
+          key: const Key('goal-increase'),
+          icon: Icons.add,
+          onTap: () => _setValue(_value + 1),
+        ),
       ],
     );
   }
@@ -95,16 +109,15 @@ class _GoalValueField extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return SizedBox(
-      width: 110,
-      height: 84,
+      width: 52,
+      height: 34,
       child: ValueListenableBuilder<TextEditingValue>(
         valueListenable: controller,
         builder: (context, value, _) {
           final fontSize = switch (value.text.length) {
-            <= 3 => 64.0,
-            4 => 50.0,
-            5 => 40.0,
-            _ => 32.0,
+            <= 3 => 26.0,
+            4 => 22.0,
+            _ => 18.0,
           };
           return Center(
             child: TextField(
@@ -126,11 +139,11 @@ class _GoalValueField extends StatelessWidget {
                 isCollapsed: true,
                 border: InputBorder.none,
                 enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(10),
                   borderSide: BorderSide.none,
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(10),
                   borderSide: BorderSide(color: colorScheme.primary, width: 2),
                 ),
               ),

@@ -137,7 +137,7 @@ void main() {
 
       expect(vm.isExisting, isTrue);
       expect(vm.name, 'Epistles');
-      expect(vm.selectedCollection.id, 8);
+      expect(vm.selectedCollection.id, BibleCollections.custom.id);
       expect(vm.selectedBookIds, {45, 46});
       expect(vm.goalType, GoalType.minutes);
       expect(vm.goalValue, 20);
@@ -260,6 +260,40 @@ void main() {
 
       vm.setGoalValue(25);
       expect(notifications, 1);
+    });
+  });
+
+  group('book order', () {
+    test('a preset order keeps its collection selected', () {
+      final vm = newViewModel();
+
+      vm.setBookOrder(BibleCollections.fromId(7).books);
+
+      expect(vm.selectedCollection.id, 7);
+      expect(vm.orderedBookIds, [40, 41, 42, 43]);
+    });
+
+    test('a non-preset order selects Custom', () {
+      final vm = newViewModel();
+      final notifications = <int>[];
+      vm.addListener(() => notifications.add(1));
+
+      vm.setBookOrder([2, 1]);
+
+      expect(vm.selectedCollection.id, BibleCollections.custom.id);
+      expect(vm.orderedBookIds, [2, 1]);
+      expect(notifications, hasLength(1));
+    });
+
+    test('an identical order is ignored', () {
+      final vm = newViewModel();
+      vm.setBookOrder([2, 1]);
+      var notifications = 0;
+      vm.addListener(() => notifications++);
+
+      vm.setBookOrder([2, 1]);
+
+      expect(notifications, 0);
     });
   });
 
@@ -401,6 +435,18 @@ void main() {
         ]);
       },
     );
+
+    test('persists a custom book order', () async {
+      final vm = newViewModel('Custom Order');
+      vm.setBookOrder([3, 1]);
+
+      expect(await vm.submit(), isTrue);
+
+      final plans = await planService.getReadingPlans();
+      expect(plans.single.readingPlan.collectionId, 0);
+      expect(plans.single.books.map((b) => b.bookId), [3, 1]);
+      expect(plans.single.books.map((b) => b.ord), [1, 2]);
+    });
 
     test(
       'updates an existing plan in place, preserving prior book order',
