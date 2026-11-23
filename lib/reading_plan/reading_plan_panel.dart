@@ -125,25 +125,27 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
     return SizedBox(
       width: double.infinity,
       child: FilledButton(
-        onPressed: () async {
-          await Navigator.of(context).push(
-            MaterialPageRoute(
-              builder:
-                  widget.createPlanRouteBuilder ??
-                  (_) =>
-                      EditReadingPlanPanel.newPlan(l10n.defaultReadingPlanName),
-            ),
-          );
-
-          if (!mounted) return;
-          await viewModel.refresh();
-        },
+        onPressed: () => _createNewPlan(l10n.defaultReadingPlanName),
         child: Text(
           l10n.createNewPlan,
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
       ),
     );
+  }
+
+  Future<void> _createNewPlan(String defaultName) async {
+    final routeBuilder = widget.createPlanRouteBuilder;
+    if (routeBuilder != null) {
+      await Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: routeBuilder));
+    } else {
+      await EditReadingPlanPanel.navigateToNew(context, defaultName);
+    }
+
+    if (!mounted) return;
+    await viewModel.refresh();
   }
 
   Future<void> _openPlanDetails(ReadingPlanDetails plan) async {
@@ -160,13 +162,14 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
   }
 
   Future<void> _editPlan(ReadingPlanDetails plan) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) =>
-            widget.editPlanRouteBuilder?.call(context, plan) ??
-            EditReadingPlanPanel.existing(plan),
-      ),
-    );
+    final routeBuilder = widget.editPlanRouteBuilder;
+    if (routeBuilder != null) {
+      await Navigator.of(context).push(
+        MaterialPageRoute(builder: (context) => routeBuilder(context, plan)),
+      );
+    } else {
+      await EditReadingPlanPanel.navigateToExisting(context, plan);
+    }
 
     if (!mounted) return;
     await viewModel.refresh();

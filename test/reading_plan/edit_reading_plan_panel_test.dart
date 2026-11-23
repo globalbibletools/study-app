@@ -16,22 +16,73 @@ import 'fake_reading_plan_service.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  late FakeReadingPlanService planService;
+  late BibleNavigation bibleNavigation;
+
   setUp(() {
-    getIt.registerSingleton<ReadingPlanService>(FakeReadingPlanService());
-    getIt.registerSingleton<BibleNavigation>(createTestBibleNavigation());
+    planService = FakeReadingPlanService();
+    bibleNavigation = createTestBibleNavigation();
   });
 
-  tearDown(() async {
-    await getIt.reset();
-  });
+  EditReadingPlanViewModel newViewModel([String name = 'Plan']) {
+    return EditReadingPlanViewModel.withDependencies(
+      EditReadingPlanViewModel.defaultPlan(name),
+      planService: planService,
+      bibleNavigation: bibleNavigation,
+    );
+  }
+
+  EditReadingPlanViewModel existingViewModel(ReadingPlanDetails details) {
+    return EditReadingPlanViewModel.withDependencies(
+      details,
+      planService: planService,
+      bibleNavigation: bibleNavigation,
+    );
+  }
 
   Widget buildApp(Widget home) {
     return MaterialApp(
       locale: const Locale('en'),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
+      builder: (context, child) =>
+          Material(color: Theme.of(context).colorScheme.surface, child: child),
       home: home,
     );
+  }
+
+  Future<void> pumpPanel(
+    WidgetTester tester,
+    EditReadingPlanViewModel viewModel,
+  ) async {
+    await tester.pumpWidget(
+      buildApp(
+        Scaffold(
+          body: EditReadingPlanPanel.withDependencies(viewModel: viewModel),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+  }
+
+  Future<void> openPanel(
+    WidgetTester tester,
+    EditReadingPlanViewModel viewModel,
+  ) async {
+    await tester.pumpWidget(
+      buildApp(
+        _EditorLauncher(
+          onOpen: (context) => Navigator.of(context).push<void>(
+            MaterialPageRoute(
+              builder: (_) =>
+                  EditReadingPlanPanel.withDependencies(viewModel: viewModel),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('Open editor'));
+    await tester.pumpAndSettle();
   }
 
   testWidgets('goal controls fit on one line and switch goal type', (
@@ -42,22 +93,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(
-      buildApp(Scaffold(body: EditReadingPlanPanel.newPlan('Plan'))),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.text('NAME'), findsOneWidget);
-    expect(find.text('BOOKS'), findsOneWidget);
-    expect(find.text('COLLECTION'), findsNothing);
-    expect(find.text('Create Reading Plan'), findsOneWidget);
-    expect(find.byIcon(Icons.menu_book_outlined), findsNothing);
-    expect(find.text('ESTIMATED COMPLETION'), findsNothing);
-    expect(find.byType(Divider), findsNothing);
-    expect(
-      find.widgetWithText(FilledButton, 'Save Reading Plan'),
-      findsOneWidget,
-    );
+    await pumpPanel(tester, newViewModel());
 
     final nameInput = find.byType(TextFormField);
     final booksDropdown = find.byType(DropdownButton<BibleCollection>);
@@ -121,51 +157,218 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('shows the edit heading for an existing plan', (tester) async {
-    final defaultDetails = EditReadingPlanViewModel.defaultPlan('Plan');
-    final existingPlan = ReadingPlanDetails(
-      defaultDetails.readingPlan.copyWith(id: 1),
-      defaultDetails.books,
-    );
+  testWidgets('editing the name updates the view model', (tester) async {
+    final viewModel = newViewModel();
+    await pumpPanel(tester, viewModel);
 
-    await tester.pumpWidget(
-      buildApp(Scaffold(body: EditReadingPlanPanel.existing(existingPlan))),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.text('Edit Reading Plan'), findsOneWidget);
-    expect(find.text('Create Reading Plan'), findsNothing);
-  });
-
-  testWidgets('editing the book list updates the collection to Custom', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(500, 800);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-
-    await tester.pumpWidget(
-      buildApp(Scaffold(body: EditReadingPlanPanel.newPlan('Plan'))),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byKey(const Key('edit-book-list')));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Customize Books'), findsOneWidget);
-
-    final genesisRow = find.byKey(const ValueKey(1));
-    await tester.tap(
-      find.descendant(of: genesisRow, matching: find.byIcon(Icons.close)),
-    );
+    await tester.enterText(find.byType(TextFormField), 'Morning Reading');
     await tester.pump();
 
-    await tester.tap(find.text('Save'));
+    expect(viewModel.name, 'Morning Reading');
+  });
+
+  testWidgets(
+    'saving a new plan closes the editor and shows submitting state',
+    (tester) async {
+      planService.queueSaveRequests = true;
+      final viewModel = newViewModel('New Plan');
+      await openPanel(tester, viewModel);
+
+      await tester.enterText(find.byType(TextFormField), 'Saved Plan');
+      await tester.tap(find.text('Save Reading Plan'));
+      await tester.pump();
+
+      expect(planService.saveRequests, hasLength(1));
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      final submitButton = tester.widget<FilledButton>(
+        find.byType(FilledButton),
+      );
+      expect(submitButton.onPressed, isNull);
+
+      planService.saveRequests.single.complete();
+      await tester.pumpAndSettle();
+
+      expect(find.byType(EditReadingPlanPanel), findsNothing);
+      expect(find.text('Open editor'), findsOneWidget);
+      expect(planService.saveCalls.single.planName, 'Saved Plan');
+    },
+  );
+
+  testWidgets(
+    'updating an existing plan closes the editor and shows submitting state',
+    (tester) async {
+      planService.queueSaveRequests = true;
+      final details = existingPlan(name: 'Original');
+      final viewModel = existingViewModel(details);
+      await openPanel(tester, viewModel);
+
+      expect(find.text('Update Reading Plan'), findsOneWidget);
+
+      await tester.enterText(find.byType(TextFormField), 'Updated');
+      await tester.tap(find.text('Update Reading Plan'));
+      await tester.pump();
+
+      expect(planService.saveRequests, hasLength(1));
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      final submitButton = tester.widget<FilledButton>(
+        find.byType(FilledButton),
+      );
+      expect(submitButton.onPressed, isNull);
+      expect(planService.saveCalls.single.existingPlanDetails, same(details));
+
+      planService.saveRequests.single.complete();
+      await tester.pumpAndSettle();
+
+      expect(find.byType(EditReadingPlanPanel), findsNothing);
+      expect(find.text('Open editor'), findsOneWidget);
+      expect(planService.saveCalls.single.planName, 'Updated');
+    },
+  );
+
+  testWidgets('delete asks for confirmation before removing the plan', (
+    tester,
+  ) async {
+    final details = existingPlan(id: 2, name: 'Doomed');
+    planService.plans = [details];
+    final viewModel = existingViewModel(details);
+    await openPanel(tester, viewModel);
+
+    final deleteButton = find.byIcon(Icons.delete_outline_rounded);
+    await tester.tap(deleteButton);
     await tester.pumpAndSettle();
 
-    expect(find.text('Customize Books'), findsNothing);
-    expect(find.text('Custom'), findsOneWidget);
-    expect(tester.takeException(), isNull);
+    expect(find.text('Delete Reading Plan?'), findsOneWidget);
+
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+
+    expect(planService.deletedPlanIds, isEmpty);
+    expect(find.byType(EditReadingPlanPanel), findsOneWidget);
+
+    await tester.tap(deleteButton);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Delete'));
+    await tester.pumpAndSettle();
+
+    expect(planService.deletedPlanIds, [2]);
+    expect(planService.plans, isEmpty);
+    expect(find.byType(EditReadingPlanPanel), findsNothing);
+    expect(find.text('Open editor'), findsOneWidget);
   });
+
+  testWidgets('changing the collection updates the selected books', (
+    tester,
+  ) async {
+    final viewModel = newViewModel();
+    await pumpPanel(tester, viewModel);
+
+    await tester.tap(find.byType(DropdownButton<BibleCollection>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('New Testament').last);
+    await tester.pumpAndSettle();
+
+    expect(viewModel.selectedCollection.id, 3);
+    expect(viewModel.selectedBookIds, {for (int i = 40; i <= 66; i++) i});
+    expect(find.text('New Testament'), findsOneWidget);
+  });
+
+  testWidgets('disables save when the name is empty', (tester) async {
+    final viewModel = newViewModel();
+    await pumpPanel(tester, viewModel);
+
+    await tester.enterText(find.byType(TextFormField), '   ');
+    await tester.pump();
+
+    final submitButton = tester.widget<FilledButton>(find.byType(FilledButton));
+    expect(submitButton.onPressed, isNull);
+  });
+
+  testWidgets('disables save when no books are selected', (tester) async {
+    final viewModel = newViewModel()..setBooks([]);
+    await pumpPanel(tester, viewModel);
+
+    final submitButton = tester.widget<FilledButton>(find.byType(FilledButton));
+    expect(submitButton.onPressed, isNull);
+    expect(viewModel.canSubmit, isFalse);
+  });
+
+  group('navigation helpers', () {
+    setUp(() {
+      getIt.registerSingleton<ReadingPlanService>(planService);
+      getIt.registerSingleton<BibleNavigation>(bibleNavigation);
+    });
+
+    tearDown(() async {
+      await getIt.reset();
+    });
+
+    testWidgets('navigateToNew opens an initialized new plan editor', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        buildApp(
+          _EditorLauncher(
+            onOpen: (context) =>
+                EditReadingPlanPanel.navigateToNew(context, 'New Plan'),
+          ),
+        ),
+      );
+      await tester.tap(find.text('Open editor'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(EditReadingPlanPanel), findsOneWidget);
+      expect(find.text('Create Reading Plan'), findsOneWidget);
+      expect(find.text('New Plan'), findsOneWidget);
+      expect(find.text('Whole Bible'), findsOneWidget);
+    });
+
+    testWidgets(
+      'navigateToExisting opens an initialized existing plan editor',
+      (tester) async {
+        final details = existingPlan(id: 4, name: 'Existing Plan');
+
+        await tester.pumpWidget(
+          buildApp(
+            _EditorLauncher(
+              onOpen: (context) =>
+                  EditReadingPlanPanel.navigateToExisting(context, details),
+            ),
+          ),
+        );
+        await tester.tap(find.text('Open editor'));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(EditReadingPlanPanel), findsOneWidget);
+        expect(find.text('Edit Reading Plan'), findsOneWidget);
+        expect(find.text('Existing Plan'), findsOneWidget);
+        expect(find.text('Whole Bible'), findsOneWidget);
+      },
+    );
+  });
+}
+
+class _EditorLauncher extends StatelessWidget {
+  const _EditorLauncher({required this.onOpen});
+
+  final Future<void> Function(BuildContext context) onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: ElevatedButton(
+          onPressed: () => onOpen(context),
+          child: const Text('Open editor'),
+        ),
+      ),
+    );
+  }
+}
+
+ReadingPlanDetails existingPlan({int id = 1, String name = 'Existing Plan'}) {
+  final details = EditReadingPlanViewModel.defaultPlan(name);
+  return ReadingPlanDetails(
+    details.readingPlan.copyWith(id: id),
+    details.books,
+  );
 }

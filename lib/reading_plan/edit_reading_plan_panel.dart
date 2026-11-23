@@ -1,19 +1,68 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:gbt/common/bible_collection.dart';
 import 'package:gbt/l10n/app_localizations.dart';
-import 'package:gbt/reading_plan/rs_model.dart';
 import 'package:gbt/reading_plan/delete_reading_plan_confirm_dialog.dart';
 import 'package:gbt/reading_plan/edit_book_list_panel.dart';
 import 'package:gbt/reading_plan/edit_reading_plan_view_model.dart';
 import 'package:gbt/reading_plan/goal_value_editor.dart';
+import 'package:gbt/reading_plan/rs_model.dart';
 
 class EditReadingPlanPanel extends StatefulWidget {
-  final ReadingPlanDetails planDetails;
+  final ReadingPlanDetails? planDetails;
+  final EditReadingPlanViewModel? viewModel;
 
-  const EditReadingPlanPanel.existing(this.planDetails, {super.key});
+  const EditReadingPlanPanel({super.key, required this.viewModel})
+    : planDetails = null;
+
+  const EditReadingPlanPanel.existing(this.planDetails, {super.key})
+    : viewModel = null;
 
   EditReadingPlanPanel.newPlan(String name, {super.key})
-    : planDetails = EditReadingPlanViewModel.defaultPlan(name);
+    : planDetails = EditReadingPlanViewModel.defaultPlan(name),
+      viewModel = null;
+
+  const EditReadingPlanPanel.withDependencies({
+    super.key,
+    required this.viewModel,
+    this.planDetails,
+  });
+
+  static Future<void> navigateToNew(BuildContext context, String name) {
+    return _navigateTo(
+      context,
+      EditReadingPlanViewModel(EditReadingPlanViewModel.defaultPlan(name)),
+    );
+  }
+
+  static Future<void> navigateToExisting(
+    BuildContext context,
+    ReadingPlanDetails planDetails,
+  ) {
+    return _navigateTo(context, EditReadingPlanViewModel(planDetails));
+  }
+
+  static Future<void> _navigateTo(
+    BuildContext context,
+    EditReadingPlanViewModel viewModel,
+  ) async {
+    await viewModel.initialize();
+    if (!context.mounted) {
+      viewModel.dispose();
+      return;
+    }
+
+    try {
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          builder: (_) =>
+              EditReadingPlanPanel.withDependencies(viewModel: viewModel),
+        ),
+      );
+    } catch (_) {
+      viewModel.dispose();
+      rethrow;
+    }
+  }
 
   @override
   State<EditReadingPlanPanel> createState() => _EditReadingPlanPanelState();
@@ -25,7 +74,8 @@ class _EditReadingPlanPanelState extends State<EditReadingPlanPanel> {
   @override
   void initState() {
     super.initState();
-    viewModel = EditReadingPlanViewModel(widget.planDetails);
+    viewModel =
+        widget.viewModel ?? EditReadingPlanViewModel(widget.planDetails!);
   }
 
   @override
@@ -40,11 +90,10 @@ class _EditReadingPlanPanelState extends State<EditReadingPlanPanel> {
       listenable: viewModel,
       builder: (context, _) {
         return Column(
+          spacing: 16,
           children: [
             _topTitle(),
-            const SizedBox(height: 12),
             Expanded(child: _content()),
-            const SizedBox(height: 16),
             _addPlanButton(),
           ],
         );
@@ -89,19 +138,7 @@ class _EditReadingPlanPanelState extends State<EditReadingPlanPanel> {
                   color: Theme.of(context).colorScheme.error,
                 ),
                 tooltip: l10n.deleteReadingPlan,
-                onPressed: () async {
-                  final confirmed = await showDialog<bool>(
-                    context: context,
-                    builder: (_) => DeleteReadingPlanConfirmDialog(
-                      planName: widget.planDetails.readingPlan.planName,
-                    ),
-                  );
-                  if (confirmed == true) {
-                    await viewModel.delete();
-                    if (!mounted) return;
-                    Navigator.of(context).pop();
-                  }
-                },
+                onPressed: _confirmDelete,
               ),
             ),
           ),
@@ -114,22 +151,22 @@ class _EditReadingPlanPanelState extends State<EditReadingPlanPanel> {
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        spacing: 16,
         children: [
-          _sectionLabel(l10n.name.toUpperCase()),
-          const SizedBox(height: 8),
-          _planHeader(),
-          const SizedBox(height: 20),
-          _sectionLabel(l10n.books.toUpperCase()),
-          const SizedBox(height: 8),
-          _collectionSelector(),
-          const SizedBox(height: 20),
-          _sectionLabel(l10n.goal.toUpperCase()),
-          const SizedBox(height: 8),
-          _goalLine(l10n),
-          const SizedBox(height: 24),
+          _section(l10n.name.toUpperCase(), _planHeader()),
+          _section(l10n.books.toUpperCase(), _collectionSelector()),
+          _section(l10n.goal.toUpperCase(), _goalLine(l10n)),
           _estimatedCompletion(),
         ],
       ),
+    );
+  }
+
+  Widget _section(String label, Widget child) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      spacing: 8,
+      children: [_sectionLabel(label), child],
     );
   }
 
@@ -185,13 +222,9 @@ class _EditReadingPlanPanelState extends State<EditReadingPlanPanel> {
 
   Widget _collectionSelector() {
     final colorScheme = Theme.of(context).colorScheme;
-    final collections = [
-      ...BibleCollections.collections,
-      if (viewModel.selectedCollection.id == BibleCollections.custom.id)
-        BibleCollections.custom,
-    ];
 
     return Row(
+      spacing: 8,
       children: [
         Expanded(
           child: Container(
@@ -212,7 +245,7 @@ class _EditReadingPlanPanelState extends State<EditReadingPlanPanel> {
                 borderRadius: BorderRadius.circular(14),
                 dropdownColor: colorScheme.surfaceContainerLow,
                 selectedItemBuilder: (context) {
-                  return collections.map((collection) {
+                  return viewModel.collectionOptions.map((collection) {
                     return Align(
                       alignment: AlignmentDirectional.centerStart,
                       child: Text(
@@ -225,7 +258,7 @@ class _EditReadingPlanPanelState extends State<EditReadingPlanPanel> {
                     );
                   }).toList();
                 },
-                items: collections.map((collection) {
+                items: viewModel.collectionOptions.map((collection) {
                   return DropdownMenuItem<BibleCollection>(
                     value: collection,
                     child: Text(
@@ -245,7 +278,6 @@ class _EditReadingPlanPanelState extends State<EditReadingPlanPanel> {
             ),
           ),
         ),
-        const SizedBox(width: 8),
         IconButton(
           key: const Key('edit-book-list'),
           icon: const Icon(Icons.edit_outlined),
@@ -264,19 +296,18 @@ class _EditReadingPlanPanelState extends State<EditReadingPlanPanel> {
     );
 
     if (result == null) return;
-    viewModel.setBookOrder(result);
+    viewModel.setBooks(result);
   }
 
   Widget _goalLine(AppLocalizations l10n) {
     return Row(
+      spacing: 8,
       children: [
         GoalValueEditor(
           initialValue: viewModel.goalValue,
           onChanged: viewModel.setGoalValue,
         ),
-        const SizedBox(width: 12),
         _goalTypeDropdown(l10n),
-        const SizedBox(width: 6),
         Text(
           l10n.perDay,
           style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
@@ -312,9 +343,9 @@ class _EditReadingPlanPanelState extends State<EditReadingPlanPanel> {
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
+          spacing: 4,
           children: [
             Text(_goalTypeLabel(l10n, viewModel.goalType), style: textStyle),
-            const SizedBox(width: 4),
             Icon(
               Icons.keyboard_arrow_down,
               color: colorScheme.onSurface,
@@ -338,13 +369,13 @@ class _EditReadingPlanPanelState extends State<EditReadingPlanPanel> {
         '${completionDate.day}, ${completionDate.year}';
 
     return Row(
+      spacing: 10,
       children: [
         Icon(
           Icons.calendar_today_outlined,
           color: colorScheme.onSurface,
           size: 20,
         ),
-        const SizedBox(width: 10),
         Flexible(
           child: Text(
             '${l10n.daysCount(viewModel.estimatedDays)} ($date)',
@@ -377,6 +408,20 @@ class _EditReadingPlanPanelState extends State<EditReadingPlanPanel> {
               ),
       ),
     );
+  }
+
+  Future<void> _confirmDelete() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => DeleteReadingPlanConfirmDialog(
+        planName: viewModel.readingPlan.readingPlan.planName,
+      ),
+    );
+    if (confirmed != true) return;
+
+    await viewModel.delete();
+    if (!mounted) return;
+    Navigator.of(context).pop();
   }
 
   Future<void> _handleAddPlan() async {

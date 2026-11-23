@@ -1,19 +1,15 @@
+import 'dart:collection';
+
 import 'package:flutter/foundation.dart';
+import 'package:gbt/asyncutils/cancellation.dart';
 import 'package:gbt/common/bible_collection.dart';
 import 'package:gbt/common/bible_navigation.dart';
+import 'package:gbt/reading_plan/reading_plan_estimates.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
 import 'package:gbt/services/service_locator.dart';
-import 'package:gbt/reading_plan/reading_plan_estimates.dart';
 
 class EditReadingPlanViewModel extends ChangeNotifier {
-  final ReadingPlanDetails readingPlan;
-
-  final ReadingPlanService _planService;
-  final BibleNavigation _bibleNavigation;
-
-  bool _disposed = false;
-
   static ReadingPlanDetails defaultPlan(String name) {
     final collection = BibleCollections.collections[0];
     final plan = ReadingPlan(
@@ -48,85 +44,83 @@ class EditReadingPlanViewModel extends ChangeNotifier {
     required BibleNavigation bibleNavigation,
   }) : _planService = planService,
        _bibleNavigation = bibleNavigation {
-    final plan = readingPlan.readingPlan;
     _orderedBookIds = [for (final book in readingPlan.books) book.bookId];
     _selectedCollection =
         BibleCollections.matchingCollection(_orderedBookIds) ??
         BibleCollections.custom;
     _goalType = readingPlan.dailyGoal.type;
     _goalValue = readingPlan.dailyGoal.value;
-    _name = plan.planName;
+    _name = readingPlan.readingPlan.planName;
   }
 
+  final ReadingPlanService _planService;
+  final BibleNavigation _bibleNavigation;
+
+  Future<void>? _initialization;
+  Future<void> initialize() => _initialization ??= Future<void>.value();
+
+  // Plan basics
+
+  final ReadingPlanDetails readingPlan;
   bool get isExisting => readingPlan.readingPlan.id != null;
 
-  late String _name;
+  String _name = '';
   String get name => _name;
   void setPlanName(String value) {
     if (_name == value) return;
-    _name = value;
-    notifyListeners();
+    _setState(() {
+      _name = value;
+    });
   }
+
+  // Books and collection
 
   late BibleCollection _selectedCollection;
   BibleCollection get selectedCollection => _selectedCollection;
+  int get collectionBookCount => _selectedCollection.books.length;
+
+  List<BibleCollection> get collectionOptions => [
+    ...BibleCollections.collections,
+    if (_selectedCollection.id == BibleCollections.custom.id)
+      BibleCollections.custom,
+  ];
+
   void selectCollection(BibleCollection collection) {
     if (collection.id == BibleCollections.custom.id) return;
     if (_selectedCollection.id == collection.id &&
         listEquals(_orderedBookIds, collection.books)) {
       return;
     }
-    _selectedCollection = collection;
-    _orderedBookIds = List<int>.of(collection.books);
-    notifyListeners();
+    setBooks(List<int>.of(collection.books));
   }
 
   late List<int> _orderedBookIds;
-  List<int> get orderedBookIds => List.unmodifiable(_orderedBookIds);
+  UnmodifiableListView<int> get orderedBookIds =>
+      UnmodifiableListView(_orderedBookIds);
   Set<int> get selectedBookIds => _orderedBookIds.toSet();
+  int get selectedBookCount => _orderedBookIds.length;
 
-  void setSelectedBooks(Set<int> books) {
-    final reordered = [
-      for (final bookId in _orderedBookIds)
-        if (books.contains(bookId)) bookId,
-    ];
-    final added = [
-      for (final bookId in books)
-        if (!_orderedBookIds.contains(bookId)) bookId,
-    ]..sort();
-    reordered.addAll(added);
-    if (listEquals(reordered, _orderedBookIds)) return;
+  void setBooks(List<int> bookIds) {
+    if (listEquals(bookIds, _orderedBookIds)) return;
 
-    _orderedBookIds = reordered;
-    _syncSelectedCollection();
-    notifyListeners();
+    _setState(() {
+      _orderedBookIds = bookIds;
+      _selectedCollection =
+          BibleCollections.matchingCollection(_orderedBookIds) ??
+          BibleCollections.custom;
+    });
   }
 
-  void setBookOrder(List<int> bookIds) {
-    final seen = <int>{};
-    final ordered = [
-      for (final bookId in bookIds)
-        if (seen.add(bookId)) bookId,
-    ];
-    if (listEquals(ordered, _orderedBookIds)) return;
-
-    _orderedBookIds = ordered;
-    _syncSelectedCollection();
-    notifyListeners();
-  }
-
-  void _syncSelectedCollection() {
-    _selectedCollection =
-        BibleCollections.matchingCollection(_orderedBookIds) ??
-        BibleCollections.custom;
-  }
+  // Daily goal
 
   late GoalType _goalType;
   GoalType get goalType => _goalType;
+
   void setGoalType(GoalType type) {
     if (_goalType == type) return;
-    _goalType = type;
-    notifyListeners();
+    _setState(() {
+      _goalType = type;
+    });
   }
 
   late int _goalValue;
@@ -134,22 +128,16 @@ class EditReadingPlanViewModel extends ChangeNotifier {
 
   void setGoalValue(int value) {
     if (value < 1 || _goalValue == value) return;
-    _goalValue = value;
-    notifyListeners();
+    _setState(() {
+      _goalValue = value;
+    });
   }
 
-  bool _isSubmitting = false;
-  bool get isSubmitting => _isSubmitting;
-
-  int get selectedBookCount => _orderedBookIds.length;
-  int get collectionBookCount => _selectedCollection.books.length;
-
-  bool get canSubmit =>
-      !_isSubmitting && _name.trim().isNotEmpty && _orderedBookIds.isNotEmpty;
+  // Estimates
 
   int get estimatedDays {
-    int totalVerses = 0;
-    for (int bookId in _orderedBookIds) {
+    var totalVerses = 0;
+    for (final bookId in _orderedBookIds) {
       totalVerses += _bibleNavigation.getTotalVerseCount(bookId);
     }
 
@@ -160,46 +148,76 @@ class EditReadingPlanViewModel extends ChangeNotifier {
     ).clamp(1, 100000);
   }
 
-  double get estimatedMonths =>
-      ReadingPlanEstimates.monthsForDays(estimatedDays);
-
   DateTime get estimatedCompletionDate =>
       DateTime.now().add(Duration(days: estimatedDays));
 
-  Future<bool> submit() async {
-    if (!canSubmit) return false;
+  // Save and delete
 
-    _isSubmitting = true;
-    notifyListeners();
+  bool _isSubmitting = false;
+  bool get isSubmitting => _isSubmitting;
 
-    try {
-      await _planService.saveReadingPlan(
-        existingPlanDetails: readingPlan.readingPlan.id != null
-            ? readingPlan
-            : null,
-        planName: _name,
-        collectionId: _selectedCollection.id,
-        goalType: _goalType,
-        goalValue: _goalValue,
-        selectedBookIds: _orderedBookIds.toSet(),
-        orderedBookIds: _orderedBookIds,
-      );
-      return true;
-    } finally {
-      _isSubmitting = false;
-      if (!_disposed) notifyListeners();
-    }
+  bool get canSubmit =>
+      !_isSubmitting && _name.trim().isNotEmpty && _orderedBookIds.isNotEmpty;
+
+  final _submitScope = CancellationScope();
+
+  Future<bool> submit() {
+    if (!canSubmit) return Future.value(false);
+
+    return _submitScope.run((guard) async {
+      _setState(() {
+        _isSubmitting = true;
+      });
+
+      try {
+        await guard(
+          _planService.saveReadingPlan(
+            existingPlanDetails: readingPlan.readingPlan.id != null
+                ? readingPlan
+                : null,
+            planName: _name,
+            collectionId: _selectedCollection.id,
+            goalType: _goalType,
+            goalValue: _goalValue,
+            selectedBookIds: _orderedBookIds.toSet(),
+            orderedBookIds: List.of(_orderedBookIds),
+          ),
+        );
+        return true;
+      } finally {
+        _setState(() {
+          _isSubmitting = false;
+        });
+      }
+    });
   }
 
-  Future<void> delete() async {
+  final _deleteScope = CancellationScope();
+
+  Future<void> delete() {
     final planId = readingPlan.readingPlan.id;
-    if (planId == null) return;
-    await _planService.deleteReadingPlan(planId);
+    if (planId == null) return Future.value();
+
+    return _deleteScope.run((guard) async {
+      await guard(_planService.deleteReadingPlan(planId));
+    });
+  }
+
+  // Lifecycle utils
+
+  bool _disposed = false;
+
+  void _setState(VoidCallback fn) {
+    if (_disposed) return;
+    fn();
+    notifyListeners();
   }
 
   @override
   void dispose() {
     _disposed = true;
+    _submitScope.cancelAll();
+    _deleteScope.cancelAll();
     super.dispose();
   }
 }

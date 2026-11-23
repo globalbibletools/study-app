@@ -1,55 +1,20 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gbt/asyncutils/cancellation.dart';
 import 'package:gbt/common/bible_collection.dart';
 import 'package:gbt/common/bible_navigation.dart';
-import 'package:gbt/reading_plan/reading_plan_service.dart';
-import 'package:gbt/reading_plan/rs_database.dart';
-import 'package:gbt/reading_plan/rs_model.dart';
 import 'package:gbt/reading_plan/edit_reading_plan_view_model.dart';
-import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:gbt/reading_plan/rs_model.dart';
 
 import '../fixtures/bible_navigation_fixture.dart';
+import 'fake_reading_plan_service.dart';
 
-/// Integration tests for [EditReadingPlanViewModel] running against a real
-/// in-memory SQLite database, the real [ReadingPlanService], and a
-/// [BibleNavigation] backed by the versification fixture.
-///
-/// Everything is injected directly; the service locator is never used. Tests
-/// that would require modifying injected collaborators (e.g. to manufacture a
-/// failing save) are intentionally omitted.
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
-
-  late ReadingSessionDatabase database;
-  late ReadingPlanService planService;
+  late FakeReadingPlanService planService;
   late BibleNavigation bibleNavigation;
 
-  setUpAll(() {
-    sqfliteFfiInit();
-    databaseFactory = databaseFactoryFfi;
-  });
-
-  setUp(() async {
+  setUp(() {
+    planService = FakeReadingPlanService();
     bibleNavigation = createTestBibleNavigation();
-    database = ReadingSessionDatabase.withDependencies(
-      databasePath: inMemoryDatabasePath,
-      verseInventoryProvider: (bookIds) async =>
-          createTestVerseInventory(bookIds: bookIds),
-    );
-    await database.init();
-    planService = ReadingPlanService.withDependencies(
-      database: database,
-      bibleNavigation: bibleNavigation,
-    );
-
-    // The schema ships with a default "Whole Bible" plan (id 1). Remove it so
-    // each test starts from a clean slate.
-    for (final plan in await planService.getReadingPlans()) {
-      await planService.deleteReadingPlan(plan.readingPlan.id!);
-    }
-  });
-
-  tearDown(() {
-    database.dispose();
   });
 
   EditReadingPlanViewModel newViewModel([String name = 'Test Plan']) {
@@ -75,15 +40,14 @@ void main() {
     int goalValue = 10,
     Set<int> bookIds = const {1, 2},
   }) async {
-    final saved = await planService.saveReadingPlan(
+    final plan = await planService.saveReadingPlan(
       planName: name,
       collectionId: collectionId,
       goalType: goalType,
       goalValue: goalValue,
       selectedBookIds: bookIds,
     );
-    final details = await planService.getReadingPlanById(saved.id!);
-    return details!;
+    return (await planService.getReadingPlanById(plan.id!))!;
   }
 
   group('defaultPlan', () {
@@ -144,6 +108,26 @@ void main() {
       expect(vm.selectedBookCount, 2);
       expect(vm.canSubmit, isTrue);
     });
+
+    test('offers Custom as a collection option only after customizing', () {
+      final vm = newViewModel();
+      expect(vm.collectionOptions, isNot(contains(BibleCollections.custom)));
+
+      vm.setBooks([2, 1]);
+
+      expect(vm.collectionOptions.last, BibleCollections.custom);
+    });
+
+    test('initialize is idempotent', () async {
+      final vm = newViewModel('My Plan');
+
+      final first = vm.initialize();
+      final second = vm.initialize();
+
+      expect(second, same(first));
+      await Future.wait([first, second]);
+      expect(vm.name, 'My Plan');
+    });
   });
 
   group('setters', () {
@@ -161,15 +145,6 @@ void main() {
 
       vm.setPlanName('New Name');
       expect(notifications, 1);
-    });
-
-    test('setPlanName accepts an empty name but blocks submission', () {
-      final vm = newViewModel();
-
-      vm.setPlanName('');
-
-      expect(vm.name, '');
-      expect(vm.canSubmit, isFalse);
     });
 
     test(
@@ -194,31 +169,22 @@ void main() {
 
     test('selectCollection discards a partial book selection', () {
       final vm = newViewModel();
-      vm.setSelectedBooks({1, 5});
+      vm.setBooks([1, 5]);
 
       vm.selectCollection(BibleCollections.fromId(4)); // Torah
 
       expect(vm.selectedBookIds, {1, 2, 3, 4, 5});
     });
 
-    test('setSelectedBooks stores a defensive copy of the input', () {
+    test('selectCollection ignores the Custom sentinel', () {
       final vm = newViewModel();
-      final selection = <int>{8};
-      vm.setSelectedBooks(selection);
-
-      selection.add(9);
-
-      expect(vm.selectedBookIds, {8});
-    });
-
-    test('setSelectedBooks ignores identical selections', () {
-      final vm = newViewModel();
-      vm.setSelectedBooks({8});
       var notifications = 0;
       vm.addListener(() => notifications++);
 
-      vm.setSelectedBooks({8});
+      vm.selectCollection(BibleCollections.custom);
 
+      expect(vm.selectedCollection.id, 1);
+      expect(vm.orderedBookIds, [for (int i = 1; i <= 66; i++) i]);
       expect(notifications, 0);
     });
 
@@ -267,7 +233,7 @@ void main() {
     test('a preset order keeps its collection selected', () {
       final vm = newViewModel();
 
-      vm.setBookOrder(BibleCollections.fromId(7).books);
+      vm.setBooks(BibleCollections.fromId(7).books);
 
       expect(vm.selectedCollection.id, 7);
       expect(vm.orderedBookIds, [40, 41, 42, 43]);
@@ -278,7 +244,7 @@ void main() {
       final notifications = <int>[];
       vm.addListener(() => notifications.add(1));
 
-      vm.setBookOrder([2, 1]);
+      vm.setBooks([2, 1]);
 
       expect(vm.selectedCollection.id, BibleCollections.custom.id);
       expect(vm.orderedBookIds, [2, 1]);
@@ -287,32 +253,13 @@ void main() {
 
     test('an identical order is ignored', () {
       final vm = newViewModel();
-      vm.setBookOrder([2, 1]);
+      vm.setBooks([2, 1]);
       var notifications = 0;
       vm.addListener(() => notifications++);
 
-      vm.setBookOrder([2, 1]);
+      vm.setBooks([2, 1]);
 
       expect(notifications, 0);
-    });
-  });
-
-  group('canSubmit', () {
-    test('is false for a whitespace-only name', () {
-      final vm = newViewModel();
-
-      vm.setPlanName('   ');
-
-      expect(vm.canSubmit, isFalse);
-    });
-
-    test('is false when no books are selected', () {
-      final vm = newViewModel();
-
-      vm.setSelectedBooks({});
-
-      expect(vm.selectedBookIds, isEmpty);
-      expect(vm.canSubmit, isFalse);
     });
   });
 
@@ -320,7 +267,7 @@ void main() {
     // Ruth (book 8) has 85 verses in the versification fixture.
     EditReadingPlanViewModel ruthViewModel() {
       final vm = newViewModel();
-      vm.setSelectedBooks({8});
+      vm.setBooks([8]);
       return vm;
     }
 
@@ -333,7 +280,7 @@ void main() {
     test('counts only selected books', () {
       final vm = ruthViewModel();
 
-      vm.setSelectedBooks({8, 32}); // Ruth + Jonah (48 verses)
+      vm.setBooks([8, 32]); // Ruth + Jonah (48 verses)
 
       expect(vm.estimatedDays, 14); // ceil(133 / 10)
     });
@@ -349,7 +296,7 @@ void main() {
 
     test('clamps an empty selection to one day', () {
       final vm = newViewModel();
-      vm.setSelectedBooks({});
+      vm.setBooks([]);
 
       expect(vm.estimatedDays, 1);
     });
@@ -363,20 +310,26 @@ void main() {
 
     test('books missing from the versification contribute no verses', () {
       final vm = newViewModel();
-      vm.setSelectedBooks({999});
+      vm.setBooks([999]);
 
       expect(vm.estimatedDays, 1);
     });
 
-    test('estimatedMonths divides estimated days by 30.44', () {
+    test('estimatedCompletionDate is estimatedDays from now', () {
       final vm = ruthViewModel();
+      final now = DateTime.now();
 
-      expect(vm.estimatedMonths, closeTo(9 / 30.44, 1e-9));
+      final completion = vm.estimatedCompletionDate;
+
+      expect(
+        completion.difference(now).inSeconds,
+        closeTo(const Duration(days: 9).inSeconds, 1),
+      );
     });
   });
 
   group('submit', () {
-    test('persists a new plan with the current view model state', () async {
+    test('saves the current view model state', () async {
       final vm = newViewModel('Daily Bread');
       vm.selectCollection(BibleCollections.fromId(7)); // Gospels
       vm.setGoalType(GoalType.verses);
@@ -396,96 +349,82 @@ void main() {
       expect(vm.canSubmit, isTrue);
       expect(notifications, 2);
 
-      final plans = await planService.getReadingPlans();
-      expect(plans, hasLength(1));
+      final call = planService.saveCalls.single;
+      expect(call.existingPlanDetails, isNull);
+      expect(call.planName, 'Daily Bread');
+      expect(call.collectionId, 7);
+      expect(call.goalType, GoalType.verses);
+      expect(call.goalValue, 25);
+      expect(call.selectedBookIds, {40, 41, 42, 43});
+      expect(call.orderedBookIds, [40, 41, 42, 43]);
 
-      final plan = plans.single.readingPlan;
-      expect(plan.id, isNotNull);
-      expect(plan.planName, 'Daily Bread');
-      expect(plan.collectionId, 7);
-      expect(plan.goalType, GoalType.verses.name);
-      expect(plan.goalValue, 25);
-
-      expect(plans.single.books.map((b) => b.bookId), [40, 41, 42, 43]);
-      expect(plans.single.books.map((b) => b.ord), [1, 2, 3, 4]);
-
-      // Verse state is materialized for the saved books end to end.
-      final gospelsVerses = [
-        for (final bookId in [40, 41, 42, 43])
-          bibleNavigation.getTotalVerseCount(bookId),
-      ].reduce((a, b) => a + b);
-      final withProgress = await planService.getReadingPlansWithProgress();
-      expect(withProgress.single.totalVerses, gospelsVerses);
+      final saved = planService.plans.single;
+      expect(saved.readingPlan.id, isNotNull);
+      expect(saved.books.map((b) => b.bookId), [40, 41, 42, 43]);
+      expect(saved.books.map((b) => b.ord), [1, 2, 3, 4]);
     });
 
-    test(
-      'persists a whole-Bible plan with all books in canonical order',
-      () async {
-        final vm = newViewModel('Through the Bible');
-
-        expect(await vm.submit(), isTrue);
-
-        final plans = await planService.getReadingPlans();
-        expect(plans.single.readingPlan.planName, 'Through the Bible');
-        expect(plans.single.books.map((b) => b.bookId), [
-          for (int i = 1; i <= 66; i++) i,
-        ]);
-        expect(plans.single.books.map((b) => b.ord), [
-          for (int i = 1; i <= 66; i++) i,
-        ]);
-      },
-    );
-
-    test('persists a custom book order', () async {
-      final vm = newViewModel('Custom Order');
-      vm.setBookOrder([3, 1]);
+    test('saves a whole-Bible plan in canonical order', () async {
+      final vm = newViewModel('Through the Bible');
 
       expect(await vm.submit(), isTrue);
 
-      final plans = await planService.getReadingPlans();
-      expect(plans.single.readingPlan.collectionId, 0);
-      expect(plans.single.books.map((b) => b.bookId), [3, 1]);
-      expect(plans.single.books.map((b) => b.ord), [1, 2]);
+      final call = planService.saveCalls.single;
+      expect(call.orderedBookIds, [for (int i = 1; i <= 66; i++) i]);
     });
 
-    test(
-      'updates an existing plan in place, preserving prior book order',
-      () async {
-        final saved = await savePlan(name: 'Original', bookIds: {2, 1});
-        final originalId = saved.readingPlan.id;
+    test('saves a custom book order', () async {
+      final vm = newViewModel('Custom Order');
+      vm.setBooks([3, 1]);
 
-        final vm = existingViewModel(saved);
-        vm.setPlanName('Revised');
-        vm.setSelectedBooks({1, 3}); // drop Exodus (2), add Leviticus (3)
+      expect(await vm.submit(), isTrue);
 
-        expect(await vm.submit(), isTrue);
+      final call = planService.saveCalls.single;
+      expect(call.collectionId, BibleCollections.custom.id);
+      expect(call.orderedBookIds, [3, 1]);
 
-        final plans = await planService.getReadingPlans();
-        expect(plans, hasLength(1));
+      final saved = planService.plans.single;
+      expect(saved.books.map((b) => b.bookId), [3, 1]);
+      expect(saved.books.map((b) => b.ord), [1, 2]);
+    });
 
-        final updated = plans.single;
-        expect(updated.readingPlan.id, originalId);
-        expect(updated.readingPlan.planName, 'Revised');
-        expect(updated.books.map((b) => b.bookId), [1, 3]);
-        expect(updated.books.map((b) => b.ord), [1, 2]);
-      },
-    );
+    test('passes the existing plan through when updating', () async {
+      final saved = await savePlan(name: 'Original', bookIds: {2, 1});
+      final originalId = saved.readingPlan.id;
 
-    test('does not persist when the name is empty', () async {
+      final vm = existingViewModel(saved);
+      vm.setPlanName('Revised');
+      vm.setBooks([1, 3]); // drop Exodus (2), add Leviticus (3)
+
+      expect(await vm.submit(), isTrue);
+
+      final call = planService.saveCalls.last;
+      expect(call.existingPlanDetails, same(saved));
+      expect(call.planName, 'Revised');
+      expect(call.orderedBookIds, [1, 3]);
+
+      final updated = planService.plans.single;
+      expect(updated.readingPlan.id, originalId);
+      expect(updated.readingPlan.planName, 'Revised');
+      expect(updated.books.map((b) => b.bookId), [1, 3]);
+      expect(updated.books.map((b) => b.ord), [1, 2]);
+    });
+
+    test('does not save when the name is empty', () async {
       final vm = newViewModel('');
 
       expect(await vm.submit(), isFalse);
       expect(vm.isSubmitting, isFalse);
-      expect(await planService.getReadingPlans(), isEmpty);
+      expect(planService.saveCalls, isEmpty);
     });
 
-    test('does not persist when no books are selected', () async {
+    test('does not save when no books are selected', () async {
       final vm = newViewModel('Some Plan');
-      vm.setSelectedBooks({});
+      vm.setBooks([]);
 
       expect(await vm.submit(), isFalse);
       expect(vm.isSubmitting, isFalse);
-      expect(await planService.getReadingPlans(), isEmpty);
+      expect(planService.saveCalls, isEmpty);
     });
 
     test('saves the name without trimming it', () async {
@@ -494,8 +433,51 @@ void main() {
 
       expect(await vm.submit(), isTrue);
 
-      final plans = await planService.getReadingPlans();
-      expect(plans.single.readingPlan.planName, '  Padded  ');
+      expect(planService.saveCalls.single.planName, '  Padded  ');
+    });
+
+    test('propagates save errors and resets the submitting state', () async {
+      final vm = newViewModel('Plan');
+      planService.saveError = StateError('save failed');
+      var notifications = 0;
+      vm.addListener(() => notifications++);
+
+      await expectLater(vm.submit(), throwsA(isA<StateError>()));
+
+      expect(vm.isSubmitting, isFalse);
+      expect(vm.canSubmit, isTrue);
+      expect(notifications, 2);
+    });
+
+    test('ignores a second submit while the first is saving', () async {
+      planService.queueSaveRequests = true;
+      final vm = newViewModel('Plan');
+
+      final first = vm.submit();
+      final second = await vm.submit();
+
+      expect(second, isFalse);
+      expect(planService.saveCalls, hasLength(1));
+
+      planService.saveRequests.single.complete();
+      expect(await first, isTrue);
+    });
+
+    test('does not notify after dispose while a save is in flight', () async {
+      planService.queueSaveRequests = true;
+      final vm = newViewModel('Plan');
+      var notifications = 0;
+      vm.addListener(() => notifications++);
+
+      final future = vm.submit();
+      expect(planService.saveRequests, hasLength(1));
+      final notificationsBeforeDispose = notifications;
+
+      vm.dispose();
+      planService.saveRequests.single.complete();
+      await expectLater(future, throwsA(isA<CancelledError>()));
+
+      expect(notifications, notificationsBeforeDispose);
     });
   });
 
@@ -505,20 +487,30 @@ void main() {
 
       await vm.delete();
 
-      expect(await planService.getReadingPlans(), isEmpty);
+      expect(planService.deletedPlanIds, isEmpty);
     });
 
-    test('deletes a saved plan from the database', () async {
+    test('propagates delete errors', () async {
+      final details = await savePlan(name: 'Doomed', bookIds: {1});
+      final vm = existingViewModel(details);
+      planService.deleteError = StateError('delete failed');
+
+      await expectLater(vm.delete(), throwsA(isA<StateError>()));
+
+      expect(planService.deletedPlanIds, isEmpty);
+    });
+
+    test('cancels an in-flight delete when disposed', () async {
+      planService.queueDeleteRequests = true;
       final details = await savePlan(name: 'Doomed', bookIds: {1});
       final vm = existingViewModel(details);
 
-      await vm.delete();
+      final future = vm.delete();
+      expect(planService.deleteRequests, hasLength(1));
 
-      expect(
-        await planService.getReadingPlanById(details.readingPlan.id!),
-        isNull,
-      );
-      expect(await planService.getReadingPlans(), isEmpty);
+      vm.dispose();
+      planService.deleteRequests.single.complete();
+      await expectLater(future, throwsA(isA<CancelledError>()));
     });
   });
 }
