@@ -145,6 +145,80 @@ void main() {
     expect(aggregates[1]!.isComplete, isFalse);
   });
 
+  test('round trips manual sessions without creating verse progress', () async {
+    final plan = await database.saveReadingPlan(
+      planName: 'Manual Backup Test',
+      collectionId: 1,
+      goalType: 'verses',
+      goalValue: 12,
+      orderedBookIds: [63],
+    );
+    final date = DateTime(2026, 11, 20);
+    final manual = await database.insertSession(
+      RsSession(
+        rsDate: date,
+        startTime: DateTime(2026, 11, 20, 8),
+        endTime: DateTime(2026, 11, 20, 8, 15),
+        readSeconds: 900,
+        verses: 7,
+        readingPlanId: plan.id!,
+        isManual: true,
+      ),
+    );
+    await database.upsertDaySummary(plan.id!, date);
+
+    final payload =
+        jsonDecode(utf8.decode(await backupService.buildBackupBytes()))
+            as Map<String, dynamic>;
+    expect(payload['format_version'], 2);
+
+    final tables = payload['tables'] as Map<String, dynamic>;
+    final exportedSessions = (tables['rs_session'] as List).cast<Map>();
+    final exportedManual = exportedSessions.singleWhere(
+      (row) => row['id'] == manual.id,
+    );
+    expect(exportedManual['is_manual'], 1);
+    expect(
+      (tables['rs_log'] as List).where(
+        (row) => (row as Map)['rs_session_id'] == manual.id,
+      ),
+      isEmpty,
+    );
+
+    await database.deleteReadingPlan(plan.id!);
+    await backupService.restoreBackupJson(jsonEncode(payload));
+
+    final restoredSessions = await database.getSessionsForDate(date, plan.id!);
+    expect(restoredSessions, hasLength(1));
+    expect(restoredSessions.single.isManual, isTrue);
+    expect(restoredSessions.single.readSeconds, 900);
+    expect(restoredSessions.single.verses, 7);
+
+    final restoredSummaries = await database.getDaySummariesBetween(
+      plan.id!,
+      date,
+      date,
+    );
+    expect(restoredSummaries, hasLength(1));
+    expect(restoredSummaries.single.rsSeconds, 900);
+    expect(restoredSummaries.single.rsVerses, 7);
+
+    final counts = await database.getVerseReadCountsForChapter(plan.id!, 63, 1);
+    expect(counts.values.every((count) => count == 0), isTrue);
+    final stats = await database.getBookStats(plan.id!);
+    expect(stats[63]!.versesRead, 0);
+
+    // Older unreleased v2 backups predate the column; those rows restore as
+    // normal sessions.
+    for (final row in exportedSessions) {
+      row.remove('is_manual');
+    }
+    await backupService.restoreBackupJson(jsonEncode(payload));
+
+    final defaultedSessions = await database.getSessionsForDate(date, plan.id!);
+    expect(defaultedSessions.single.isManual, isFalse);
+  });
+
   test(
     'v1 restore rebuilds verse state from rs_log and materializes zeros',
     () async {

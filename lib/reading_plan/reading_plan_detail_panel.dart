@@ -347,17 +347,19 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
       final navigator = widget.dayActivityLogNavigator;
       if (navigator != null) {
         await navigator(context, progress.day);
-        return;
+      } else {
+        await DayActivityLogPanel.navigateTo(
+          context,
+          progress.day,
+          readingPlanId: viewModel.planId,
+        );
       }
-
-      await DayActivityLogPanel.navigateTo(
-        context,
-        progress.day,
-        readingPlanId: viewModel.planId,
-      );
     } finally {
       _openingActivityLog = false;
     }
+
+    if (!mounted) return;
+    await viewModel.refresh();
   }
 
   Widget _goalsContentByMonth() {

@@ -368,6 +368,49 @@ void main() {
       expect(find.byType(Dialog), findsNothing);
     });
 
+    testWidgets('refreshes the detail when the day log returns', (
+      tester,
+    ) async {
+      final now = DateTime.now();
+      final service = FakeReadingPlanService()
+        ..bookStats = bookStats()
+        ..monthProgress = currentMonthProgress(verses: 3, minutes: 7);
+      final viewModel = newViewModel(planDetails(), service);
+
+      await openDetail(
+        tester,
+        viewModel,
+        dayActivityLogNavigator: (context, date) {
+          return Navigator.of(context).push<void>(
+            MaterialPageRoute(
+              builder: (dialogContext) => AlertDialog(
+                content: Text('Activity for ${date.day}'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(),
+                    child: const Text('Close log'),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+      await tester.pumpAndSettle();
+
+      final callsBefore = service.getPlanByIdCalls;
+      await tester.tap(find.text('${now.day}'));
+      await tester.pumpAndSettle();
+      expect(find.text('Activity for ${now.day}'), findsOneWidget);
+
+      service.plans = [planDetails(name: 'Refreshed Plan')];
+      await tester.tap(find.text('Close log'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Refreshed Plan'), findsOneWidget);
+      expect(service.getPlanByIdCalls, greaterThan(callsBefore));
+    });
+
     testWidgets('does not open the log for an empty day', (tester) async {
       final now = DateTime.now();
       final service = FakeReadingPlanService()
