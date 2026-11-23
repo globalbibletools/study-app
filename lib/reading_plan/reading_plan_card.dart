@@ -1,8 +1,11 @@
+import 'dart:math' as math;
+
 import 'package:material_ui/material_ui.dart';
 import 'package:gbt/common/reference.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/l10n/book_names.dart';
 import 'package:gbt/reading_plan/delete_reading_plan_confirm_dialog.dart';
+import 'package:gbt/reading_plan/progress_circle.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
 
 class ReadingPlanCard extends StatelessWidget {
@@ -27,37 +30,121 @@ class ReadingPlanCard extends StatelessWidget {
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(24),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    spacing: 8,
+                    children: [
+                      Expanded(child: _planTitle(context)),
+                      Transform.translate(
+                        offset: const Offset(8, 0),
+                        child: _planActions(context),
+                      ),
+                    ],
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    spacing: 16,
+                    children: [
+                      Flexible(child: _overallProgress(context)),
+                      Flexible(child: _resumeButton(context)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (plan.readingPlan.isBookmarked)
+            Positioned(left: -8, top: 14, child: _bookmarkRibbon(context)),
+          Positioned(left: 24, bottom: -12, child: _dailyGoalLabel(context)),
+        ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              spacing: 8,
-              children: [
-                Expanded(child: _planTitle(context)),
-                Transform.translate(
-                  offset: const Offset(8, 0),
-                  child: _planActions(context),
-                ),
-              ],
+    );
+  }
+
+  Widget _bookmarkRibbon(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      key: ValueKey('plan-bookmark-ribbon-${plan.readingPlan.id}'),
+      width: 24,
+      height: 32,
+      decoration: BoxDecoration(
+        color: colorScheme.primary,
+        borderRadius: const BorderRadius.horizontal(right: Radius.circular(8)),
+        boxShadow: [
+          BoxShadow(
+            color: colorScheme.shadow.withValues(alpha: 0.2),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Icon(
+        Icons.bookmark_rounded,
+        color: colorScheme.onPrimary,
+        size: 16,
+      ),
+    );
+  }
+
+  Widget _dailyGoalLabel(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final colorScheme = Theme.of(context).colorScheme;
+    final today = plan.todayProgress;
+    final goalReached = today?.goalReached ?? false;
+    final remaining =
+        plan.dailyGoal.value -
+        (plan.dailyGoal.type == GoalType.verses
+            ? today?.verses ?? 0
+            : today?.minutes ?? 0);
+    final label = goalReached
+        ? l10n.dailyGoalReached
+        : plan.dailyGoal.type == GoalType.verses
+        ? l10n.versesLeft(math.max(remaining, 0))
+        : l10n.minutesLeft(math.max(remaining, 0));
+
+    return Container(
+      key: ValueKey('plan-daily-goal-${plan.readingPlan.id}'),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: colorScheme.primary,
+        borderRadius: BorderRadius.circular(999),
+        boxShadow: [
+          BoxShadow(
+            color: colorScheme.shadow.withValues(alpha: 0.2),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        spacing: 4,
+        children: [
+          if (goalReached)
+            Icon(Icons.check, color: colorScheme.onPrimary, size: 14),
+          Text(
+            label,
+            style: TextStyle(
+              color: colorScheme.onPrimary,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
             ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.baseline,
-              textBaseline: TextBaseline.alphabetic,
-              spacing: 16,
-              children: [
-                _progressText(context),
-                Flexible(child: _resumeButton(context)),
-              ],
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -122,15 +209,29 @@ class ReadingPlanCard extends StatelessWidget {
     );
   }
 
-  Widget _progressText(BuildContext context) {
+  Widget _overallProgress(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final totalVerses = plan.totalVerses > 0 ? plan.totalVerses : 1;
     final progress = plan.versesRead / totalVerses;
-    final percent = (progress * 100).toInt();
+    final versesLeft = math.max(plan.totalVerses - plan.versesRead, 0);
 
-    return Text(
-      '${plan.versesRead}/$totalVerses ${l10n.verses} · $percent%',
-      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      spacing: 12,
+      children: [
+        ProgressCircle(
+          percent: progress,
+          size: 32,
+          strokeWidth: 4,
+          fontSize: 9,
+        ),
+        Flexible(
+          child: Text(
+            l10n.versesLeft(versesLeft),
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+          ),
+        ),
+      ],
     );
   }
 

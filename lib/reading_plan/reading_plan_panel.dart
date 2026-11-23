@@ -106,6 +106,7 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
     }
 
     return ListView(
+      clipBehavior: Clip.none,
       children: viewModel.plans
           .map(
             (plan) => ReadingPlanCard(

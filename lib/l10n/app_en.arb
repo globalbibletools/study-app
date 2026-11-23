@@ -529,9 +529,27 @@
   "@versesShort": {
     "description": "Verses Abreviation"
   },
-  "dailyGoalReached": "daily goal reached",
+  "dailyGoalReached": "Daily Goal Reached",
   "@dailyGoalReached": {
-    "description": "daily goal reached"
+    "description": "Label shown when today's reading goal has been reached"
+  },
+  "versesLeft": "{count, plural, =0{0 verses left} =1{1 verse left} other{{count} verses left}}",
+  "@versesLeft": {
+    "description": "Remaining verses in today's reading goal",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "minutesLeft": "{count, plural, =0{0 minutes left} =1{1 minute left} other{{count} minutes left}}",
+  "@minutesLeft": {
+    "description": "Remaining minutes in today's reading goal",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "total": "Total",
   "@total": {

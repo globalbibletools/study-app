@@ -33,10 +33,12 @@ void main() {
 
   group('initialization', () {
     test('initialize loads plans with progress fields populated', () async {
+      final today = DateTime(2026, 11, 23);
       planService.plans = [
         planDetails(
           'Ruth',
           totalVerses: 85,
+          todayProgress: DayProgress(today, 0, 3, false),
           resumePosition: const Reference(bookId: 8, chapter: 1, verse: 1),
         ),
       ];
@@ -50,6 +52,8 @@ void main() {
       expect(plan.readingPlan.planName, 'Ruth');
       expect(plan.totalVerses, 85);
       expect(plan.versesRead, 0);
+      expect(plan.todayProgress?.verses, 3);
+      expect(plan.todayProgress?.goalReached, isFalse);
       expect(
         plan.resumePosition,
         const Reference(bookId: 8, chapter: 1, verse: 1),
@@ -168,6 +172,7 @@ ReadingPlanDetails planDetails(
   int? id = 1,
   int totalVerses = 0,
   int versesRead = 0,
+  DayProgress? todayProgress,
   Reference? resumePosition,
 }) {
   final details = ReadingPlanDetails(
@@ -184,6 +189,7 @@ ReadingPlanDetails planDetails(
   );
   details.totalVerses = totalVerses;
   details.versesRead = versesRead;
+  details.todayProgress = todayProgress;
   details.resumePosition = resumePosition;
   return details;
 }

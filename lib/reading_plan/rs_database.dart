@@ -761,6 +761,19 @@ class ReadingSessionDatabase {
     return rows.isEmpty ? null : RsDaySummary.fromMap(rows.first);
   }
 
+  Future<Map<int, RsDaySummary>> getDaySummariesForDate(DateTime date) async {
+    final rows = await _database.query(
+      'rs_day_summary',
+      where: 'rs_date = ?',
+      whereArgs: [RsDaySummary.dayString(date)],
+    );
+
+    return {
+      for (final row in rows)
+        row['reading_plan_id'] as int: RsDaySummary.fromMap(row),
+    };
+  }
+
   Future<List<RsDaySummary>> getDaySummariesBetween(
     int readingPlanId,
     DateTime start,

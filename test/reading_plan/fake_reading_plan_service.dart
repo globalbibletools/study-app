@@ -80,7 +80,9 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
       plans.where((plan) => plan.readingPlan.id == planId).firstOrNull;
 
   @override
-  Future<List<ReadingPlanDetails>> getReadingPlansWithProgress() {
+  Future<List<ReadingPlanDetails>> getReadingPlansWithProgress({
+    DateTime? today,
+  }) {
     if (queueGetRequests) {
       final request = Completer<List<ReadingPlanDetails>>();
       getRequests.add(request);
