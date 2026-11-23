@@ -5,6 +5,7 @@ import 'package:gbt/common/reference.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/l10n/book_names.dart';
 import 'package:gbt/reading_plan/delete_reading_plan_confirm_dialog.dart';
+import 'package:gbt/reading_plan/progress_circle.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
 
 class ReadingPlanCard extends StatelessWidget {
@@ -195,10 +196,27 @@ class ReadingPlanCard extends StatelessWidget {
 
   Widget _overallProgress(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final progress = plan.totalVerses > 0
+        ? plan.versesRead / plan.totalVerses
+        : 0.0;
 
-    return Text(
-      '${plan.versesRead}/${plan.totalVerses} ${l10n.verses}',
-      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      spacing: 12,
+      children: [
+        ProgressCircle(
+          percent: progress,
+          size: 32,
+          strokeWidth: 4,
+          fontSize: 9,
+        ),
+        Flexible(
+          child: Text(
+            '${plan.versesRead}/${plan.totalVerses} ${l10n.verses}',
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+          ),
+        ),
+      ],
     );
   }
 

@@ -4,6 +4,7 @@ import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/reading_plan/reading_plan_card.dart';
 import 'package:gbt/reading_plan/reading_plan_panel.dart';
 import 'package:gbt/reading_plan/reading_plan_panel_view_model.dart';
+import 'package:gbt/reading_plan/progress_circle.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -190,7 +191,7 @@ void main() {
       );
     });
 
-    testWidgets('shows overall progress as read over total verses', (
+    testWidgets('shows overall progress circle and read over total verses', (
       tester,
     ) async {
       planService.plans = [
@@ -205,6 +206,9 @@ void main() {
 
       await pumpPanel(tester);
 
+      final circle = tester.widget<ProgressCircle>(find.byType(ProgressCircle));
+      expect(circle.percent, 0.66);
+      expect(circle.size, 32);
       expect(find.text('66/100 verses'), findsOneWidget);
       expect(find.text('66/100 verses · 66%'), findsNothing);
     });
