@@ -5,7 +5,8 @@ import 'package:gbt/common/bible_collection.dart';
 
 class EditBookListViewModel extends ChangeNotifier {
   EditBookListViewModel(List<int> initialBookIds)
-    : _bookIds = List.of(initialBookIds) {
+    : _bookIds = List.of(initialBookIds),
+      _initialBookIds = List.of(initialBookIds) {
     _availableBookIds = _availableFor(_bookIds);
   }
 
@@ -16,6 +17,9 @@ class EditBookListViewModel extends ChangeNotifier {
   List<int> _bookIds;
   UnmodifiableListView<int> get bookIds => UnmodifiableListView(_bookIds);
   bool get isEmpty => _bookIds.isEmpty;
+
+  final List<int> _initialBookIds;
+  bool get hasChanges => !listEquals(_bookIds, _initialBookIds);
 
   late List<int> _availableBookIds;
   UnmodifiableListView<int> get availableBookIds =>
@@ -43,6 +47,12 @@ class EditBookListViewModel extends ChangeNotifier {
     if (!allBookIds.contains(bookId) || _bookIds.contains(bookId)) return;
 
     _updateBookIds([..._bookIds, bookId]);
+  }
+
+  void clearBooks() {
+    if (_bookIds.isEmpty) return;
+
+    _updateBookIds(const []);
   }
 
   void moveBook(int oldIndex, int newIndex) {
