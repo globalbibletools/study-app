@@ -4,7 +4,7 @@ import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/reading_plan/edit_reading_plan_panel.dart';
 import 'package:gbt/reading_plan/edit_reading_plan_view_model.dart';
-import 'package:gbt/reading_plan/goal_value_editor.dart';
+import 'package:gbt/reading_plan/number_stepper.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
 import 'package:gbt/services/service_locator.dart';
@@ -111,7 +111,7 @@ void main() {
     );
 
     final valueField = find.descendant(
-      of: find.byType(GoalValueEditor),
+      of: find.byType(NumberStepper),
       matching: find.byType(TextField),
     );
 
