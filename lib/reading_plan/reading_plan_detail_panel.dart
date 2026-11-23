@@ -298,7 +298,7 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
     return Container(
       key: ValueKey(book.bookId),
       margin: const EdgeInsets.symmetric(vertical: 4),
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(32),
