@@ -98,6 +98,8 @@ verse-by-verse progress in the original-language text.
 
 **Bible collection** — a preset set of books: Whole Bible, Old Testament,
 New Testament, Torah, Prophets, Writings, Gospels, Pauline Epistles, Psalms.
+A plan whose ordered book list does not match a preset is shown as **Custom**;
+the book list, not the stored collection id, is the source of truth.
 
 **Daily goal** — either a number of verses or a number of minutes per day.
 Days are marked when the goal was met.

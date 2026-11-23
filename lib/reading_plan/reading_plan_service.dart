@@ -168,20 +168,34 @@ class ReadingPlanService {
     required GoalType goalType,
     required int goalValue,
     required Set<int> selectedBookIds,
+    List<int>? orderedBookIds,
   }) {
-    final List<int> orderedBookIds = [];
-    if (existingPlanDetails != null) {
-      for (final b in existingPlanDetails.books) {
-        if (selectedBookIds.contains(b.bookId)) {
-          orderedBookIds.add(b.bookId);
+    final List<int> orderedIds;
+    if (orderedBookIds != null) {
+      final selected = <int>{};
+      orderedIds = [
+        for (final bookId in orderedBookIds)
+          if (selectedBookIds.contains(bookId) && selected.add(bookId)) bookId,
+      ];
+      final missing =
+          selectedBookIds.where((bookId) => !selected.contains(bookId)).toList()
+            ..sort();
+      orderedIds.addAll(missing);
+    } else {
+      orderedIds = [];
+      if (existingPlanDetails != null) {
+        for (final b in existingPlanDetails.books) {
+          if (selectedBookIds.contains(b.bookId)) {
+            orderedIds.add(b.bookId);
+          }
         }
       }
+      final existingBookIdsSet = orderedIds.toSet();
+      final newlyAddedBooks =
+          selectedBookIds.where((b) => !existingBookIdsSet.contains(b)).toList()
+            ..sort();
+      orderedIds.addAll(newlyAddedBooks);
     }
-    final existingBookIdsSet = orderedBookIds.toSet();
-    final newlyAddedBooks =
-        selectedBookIds.where((b) => !existingBookIdsSet.contains(b)).toList()
-          ..sort();
-    orderedBookIds.addAll(newlyAddedBooks);
 
     return _database.saveReadingPlan(
       existingPlan: existingPlanDetails?.readingPlan,
@@ -189,7 +203,7 @@ class ReadingPlanService {
       collectionId: collectionId,
       goalType: goalType.name,
       goalValue: goalValue,
-      orderedBookIds: orderedBookIds,
+      orderedBookIds: orderedIds,
     );
   }
 

@@ -22,12 +22,33 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
   final deletedPlanIds = <int>[];
   final bookmarkedValues = <bool>[];
   final reorderedBooks = <List<ReadingPlanBook>>[];
+  final saveCalls = <SaveReadingPlanCall>[];
+  final savedPlans = <ReadingPlan>[];
 
   /// When set, bookmark writes throw this instead of persisting.
   Object? bookmarkError;
 
   /// When set, reorder writes throw this instead of persisting.
   Object? reorderError;
+
+  /// When set, saves throw this instead of persisting.
+  Object? saveError;
+
+  /// When true, calls to [saveReadingPlan] wait until the corresponding
+  /// request in [saveRequests] is completed.
+  bool queueSaveRequests = false;
+  final saveRequests = <SaveReadingPlanRequest>[];
+
+  /// When set, saves wait for this to complete before taking effect.
+  Completer<void>? saveGate;
+
+  /// When set, deletes throw this instead of persisting.
+  Object? deleteError;
+
+  /// When true, calls to [deleteReadingPlan] wait until the corresponding
+  /// completer in [deleteRequests] is completed.
+  bool queueDeleteRequests = false;
+  final deleteRequests = <Completer<void>>[];
 
   /// When true, calls to [getReadingPlansWithProgress] wait until the
   /// corresponding completer in [getRequests] is completed.
@@ -139,6 +160,86 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
   }
 
   @override
+  Future<ReadingPlan> saveReadingPlan({
+    ReadingPlanDetails? existingPlanDetails,
+    required String planName,
+    required int collectionId,
+    required GoalType goalType,
+    required int goalValue,
+    required Set<int> selectedBookIds,
+    List<int>? orderedBookIds,
+  }) async {
+    final call = SaveReadingPlanCall(
+      existingPlanDetails: existingPlanDetails,
+      planName: planName,
+      collectionId: collectionId,
+      goalType: goalType,
+      goalValue: goalValue,
+      selectedBookIds: Set.of(selectedBookIds),
+      orderedBookIds: orderedBookIds == null ? null : List.of(orderedBookIds),
+    );
+    saveCalls.add(call);
+
+    final error = saveError;
+    if (error != null) throw error;
+
+    final gate = saveGate;
+    if (gate != null) await gate.future;
+
+    final plan = _planFor(call);
+    if (queueSaveRequests) {
+      final request = SaveReadingPlanRequest(plan);
+      saveRequests.add(request);
+      final queuedPlan = await request.future;
+      _storeSavedPlan(call, queuedPlan);
+      return queuedPlan;
+    }
+
+    _storeSavedPlan(call, plan);
+    return plan;
+  }
+
+  ReadingPlan _planFor(SaveReadingPlanCall call) {
+    final existing = call.existingPlanDetails?.readingPlan;
+    final plan = ReadingPlan(
+      id: existing?.id ?? _nextPlanId++,
+      planName: call.planName,
+      createdAt: existing?.createdAt ?? DateTime.now(),
+      lastRead: existing?.lastRead,
+      collectionId: call.collectionId,
+      goalType: call.goalType.name,
+      goalValue: call.goalValue,
+      isBookmarked: existing?.isBookmarked ?? false,
+    );
+    savedPlans.add(plan);
+    return plan;
+  }
+
+  void _storeSavedPlan(SaveReadingPlanCall call, ReadingPlan plan) {
+    final orderedBookIds =
+        call.orderedBookIds ?? (call.selectedBookIds.toList()..sort());
+    final details = ReadingPlanDetails(plan, [
+      for (var i = 0; i < orderedBookIds.length; i++)
+        ReadingPlanBook(
+          readingPlanId: plan.id!,
+          bookId: orderedBookIds[i],
+          ord: i + 1,
+        ),
+    ]);
+
+    final index = plans.indexWhere(
+      (existing) => existing.readingPlan.id == plan.id,
+    );
+    if (index == -1) {
+      plans.add(details);
+    } else {
+      plans[index] = details;
+    }
+  }
+
+  int _nextPlanId = 100;
+
+  @override
   Future<ReadingPlan> setReadingPlanBookmark(
     ReadingPlan readingPlan,
     bool isBookmarked,
@@ -174,10 +275,52 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
 
   @override
   Future<void> deleteReadingPlan(int planId) async {
+    final error = deleteError;
+    if (error != null) throw error;
+
     final gate = deleteGate;
     if (gate != null) await gate.future;
+
+    if (queueDeleteRequests) {
+      final request = Completer<void>();
+      deleteRequests.add(request);
+      await request.future;
+    }
 
     deletedPlanIds.add(planId);
     plans = plans.where((plan) => plan.readingPlan.id != planId).toList();
   }
+}
+
+class SaveReadingPlanCall {
+  const SaveReadingPlanCall({
+    required this.existingPlanDetails,
+    required this.planName,
+    required this.collectionId,
+    required this.goalType,
+    required this.goalValue,
+    required this.selectedBookIds,
+    required this.orderedBookIds,
+  });
+
+  final ReadingPlanDetails? existingPlanDetails;
+  final String planName;
+  final int collectionId;
+  final GoalType goalType;
+  final int goalValue;
+  final Set<int> selectedBookIds;
+  final List<int>? orderedBookIds;
+}
+
+class SaveReadingPlanRequest {
+  SaveReadingPlanRequest(this.plan);
+
+  final ReadingPlan plan;
+  final _completer = Completer<ReadingPlan>();
+
+  Future<ReadingPlan> get future => _completer.future;
+
+  void complete([ReadingPlan? plan]) => _completer.complete(plan ?? this.plan);
+
+  void completeError(Object error) => _completer.completeError(error);
 }
