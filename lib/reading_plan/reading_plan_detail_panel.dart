@@ -285,20 +285,15 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
     }
 
     final books = viewModel.books;
-    return ReorderableListView.builder(
+    return ListView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      buildDefaultDragHandles: false,
       itemCount: books.length,
-      onReorderItem: viewModel.moveBook,
-      proxyDecorator: (Widget child, int index, Animation<double> animation) {
-        return Material(color: Colors.transparent, elevation: 0, child: child);
-      },
-      itemBuilder: (context, index) => _bookRow(index, books[index]),
+      itemBuilder: (context, index) => _bookRow(books[index]),
     );
   }
 
-  Widget _bookRow(int index, ReadingPlanBook book) {
+  Widget _bookRow(ReadingPlanBook book) {
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
       key: ValueKey(book.bookId),
@@ -312,10 +307,6 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
         crossAxisAlignment: CrossAxisAlignment.center,
         spacing: 8,
         children: [
-          ReorderableDragStartListener(
-            index: index,
-            child: const Icon(Icons.drag_handle_rounded),
-          ),
           Expanded(
             child: Text(
               bookNameFromId(context, book.bookId),

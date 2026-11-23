@@ -246,48 +246,6 @@ class ReadingPlanDetailViewModel extends ChangeNotifier {
     });
   }
 
-  // Book reordering
-
-  final _reorderScope = CancellationScope();
-  Future<void> moveBook(int oldIndex, int newIndex) async {
-    final plan = _planDetails;
-    if (plan == null) return;
-    if (oldIndex < 0 || oldIndex >= plan.books.length) return;
-    if (newIndex < 0 || newIndex >= plan.books.length) return;
-
-    final reorderedBooks = List<ReadingPlanBook>.of(plan.books);
-    final book = reorderedBooks.removeAt(oldIndex);
-    reorderedBooks.insert(newIndex, book);
-    for (var i = 0; i < reorderedBooks.length; i++) {
-      reorderedBooks[i] = reorderedBooks[i].copyWith(
-        readingPlanId: _planId,
-        ord: i + 1,
-      );
-    }
-
-    _setState(() {
-      _planDetails = ReadingPlanDetails(plan.readingPlan, reorderedBooks)
-        ..resumePosition = plan.resumePosition;
-    });
-
-    await _reorderScope.run((guard) async {
-      await guard(
-        _planService.reorderReadingPlanBooks(_planId, reorderedBooks),
-      );
-
-      final resumePosition = await guard(
-        _planService.getResumeReference(_planId),
-      );
-      final current = _planDetails;
-      if (current != null) {
-        _setState(() {
-          _planDetails = ReadingPlanDetails(current.readingPlan, reorderedBooks)
-            ..resumePosition = resumePosition;
-        });
-      }
-    });
-  }
-
   // Lifecycle utils
 
   bool _disposed = false;
@@ -302,7 +260,6 @@ class ReadingPlanDetailViewModel extends ChangeNotifier {
     _disposed = true;
     _refreshScope.cancelAll();
     _monthScope.cancelAll();
-    _reorderScope.cancelAll();
     super.dispose();
   }
 }
