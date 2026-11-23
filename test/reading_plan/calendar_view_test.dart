@@ -3,21 +3,27 @@ import 'package:gbt/reading_plan/calendar_view.dart';
 import 'package:material_ui/material_ui.dart';
 
 void main() {
+  final theme = ThemeData(
+    colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
+  );
+
   Widget buildCalendar({
     DateTime? month,
-    Map<int, bool> checkedDays = const {},
+    Map<int, double> progressByDay = const {},
+    ThemeData? themeData,
     VoidCallback? onPreviousMonth,
     VoidCallback? onNextMonth,
     ValueChanged<int>? onDayTap,
   }) {
     return MaterialApp(
+      theme: themeData ?? theme,
       home: Scaffold(
         body: SizedBox(
           width: 400,
           height: 500,
           child: CalendarView(
             month: month ?? DateTime(2026, 11, 1),
-            checkedDays: checkedDays,
+            progressByDay: progressByDay,
             onPreviousMonth: onPreviousMonth ?? () {},
             onNextMonth: onNextMonth ?? () {},
             onDayTap: onDayTap ?? (_) {},
@@ -27,20 +33,59 @@ void main() {
     );
   }
 
-  testWidgets('renders the supplied month and checked days', (tester) async {
-    await tester.pumpWidget(buildCalendar(checkedDays: {5: true}));
+  BoxDecoration dayDecoration(WidgetTester tester, int number) {
+    final container = tester.widget<Container>(
+      find.byKey(ValueKey('calendar-day-$number')),
+    );
+    return container.decoration! as BoxDecoration;
+  }
+
+  testWidgets('renders a check for reached days and a percent below the goal', (
+    tester,
+  ) async {
+    await tester.pumpWidget(buildCalendar(progressByDay: {5: 1, 6: 0.42}));
 
     expect(find.text('November 2026'), findsOneWidget);
     expect(find.text('5'), findsOneWidget);
     expect(find.byIcon(Icons.check_rounded), findsOneWidget);
+    expect(find.text('42%'), findsOneWidget);
+    expect(find.textContaining('%'), findsOneWidget);
   });
 
-  testWidgets('missing and false entries do not render a check', (
+  testWidgets('days without an entry render neither a check nor a percentage', (
     tester,
   ) async {
-    await tester.pumpWidget(buildCalendar(checkedDays: {5: false}));
+    await tester.pumpWidget(buildCalendar(progressByDay: const {}));
 
     expect(find.byIcon(Icons.check_rounded), findsNothing);
+    expect(find.textContaining('%'), findsNothing);
+  });
+
+  testWidgets('interpolates day color from default to the goal color', (
+    tester,
+  ) async {
+    final defaultColor = theme.colorScheme.surfaceContainerLow;
+    final goalColor = theme.colorScheme.primary;
+
+    await tester.pumpWidget(buildCalendar(progressByDay: {5: 1, 6: 0.42}));
+
+    expect(dayDecoration(tester, 7).color, defaultColor);
+    expect(
+      dayDecoration(tester, 6).color,
+      Color.lerp(defaultColor, goalColor, 0.42),
+    );
+    expect(dayDecoration(tester, 5).color, goalColor);
+  });
+
+  testWidgets('keeps a visible border around today', (tester) async {
+    final now = DateTime.now();
+    final month = DateTime(now.year, now.month);
+
+    await tester.pumpWidget(buildCalendar(month: month));
+
+    final border = dayDecoration(tester, now.day).border! as Border;
+    expect(border.top.color, theme.colorScheme.onSurface);
+    expect(border.top.width, 2);
   });
 
   testWidgets('calls the callbacks for both month directions', (tester) async {

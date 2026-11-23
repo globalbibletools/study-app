@@ -488,7 +488,7 @@ void main() {
                 height: 500,
                 child: CalendarView(
                   month: DateTime(2026, 11, 1),
-                  checkedDays: {5: true},
+                  progressByDay: const {5: 1},
                   onPreviousMonth: () {},
                   onNextMonth: () {},
                   onDayTap: (_) {},
@@ -607,7 +607,7 @@ void main() {
                 height: 500,
                 child: CalendarView(
                   month: DateTime(2026, 11, 1),
-                  checkedDays: {5: true},
+                  progressByDay: const {5: 1},
                   onPreviousMonth: () {},
                   onNextMonth: () {},
                   onDayTap: (_) {},

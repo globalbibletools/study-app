@@ -113,7 +113,7 @@ void main() {
 
       expect(find.text('3/10 verses'), findsOneWidget);
       expect(find.text('7 minutes'), findsOneWidget);
-      expect(find.text('30%'), findsOneWidget);
+      expect(find.text('30%'), findsNWidgets(2));
     });
 
     testWidgets('omits the verse target for a minutes goal', (tester) async {
@@ -130,7 +130,7 @@ void main() {
 
       expect(find.text('3 verses'), findsOneWidget);
       expect(find.text('7/20 minutes'), findsOneWidget);
-      expect(find.text('35%'), findsOneWidget);
+      expect(find.text('35%'), findsNWidgets(2));
     });
   });
 
