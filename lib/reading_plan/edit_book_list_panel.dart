@@ -5,14 +5,12 @@ import 'package:gbt/reading_plan/edit_book_list_view_model.dart';
 import 'package:material_ui/material_ui.dart';
 
 class EditBookListPanel extends StatefulWidget {
-  const EditBookListPanel({super.key, required this.bookIds})
-    : viewModel = null;
+  const EditBookListPanel.withDependencies({
+    super.key,
+    required this.viewModel,
+  });
 
-  const EditBookListPanel.withDependencies({super.key, required this.viewModel})
-    : bookIds = const [];
-
-  final List<int> bookIds;
-  final EditBookListViewModel? viewModel;
+  final EditBookListViewModel viewModel;
 
   static Future<List<int>?> navigateTo(
     BuildContext context,
@@ -49,7 +47,7 @@ class _EditBookListPanelState extends State<EditBookListPanel> {
   @override
   void initState() {
     super.initState();
-    viewModel = widget.viewModel ?? EditBookListViewModel(widget.bookIds);
+    viewModel = widget.viewModel;
     _scrollController = ScrollController();
   }
 

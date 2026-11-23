@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:material_ui/material_ui.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/reading_plan/edit_reading_plan_panel.dart';
@@ -11,7 +9,7 @@ import 'package:gbt/reading_plan/rs_model.dart';
 class ReadingPlanPanel extends StatefulWidget {
   const ReadingPlanPanel({
     super.key,
-    this.viewModel,
+    required this.viewModel,
     this.navigateToCreatePlanRoute,
     this.navigateToPlanDetailsRoute,
     this.navigateToEditPlanRoute,
@@ -25,7 +23,7 @@ class ReadingPlanPanel extends StatefulWidget {
     this.navigateToEditPlanRoute,
   });
 
-  final ReadingPlanPanelViewModel? viewModel;
+  final ReadingPlanPanelViewModel viewModel;
   final NavigateToNewReadingPlanRoute? navigateToCreatePlanRoute;
   final Future<void> Function(BuildContext context, int planId)?
   navigateToPlanDetailsRoute;
@@ -41,8 +39,7 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
   @override
   void initState() {
     super.initState();
-    viewModel = widget.viewModel ?? ReadingPlanPanelViewModel();
-    unawaited(viewModel.initialize());
+    viewModel = widget.viewModel;
   }
 
   @override
@@ -86,10 +83,6 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
   }
 
   Widget _planList() {
-    if (!viewModel.isInitialized) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
     final l10n = AppLocalizations.of(context)!;
     if (viewModel.plans.isEmpty) {
       return Center(

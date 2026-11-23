@@ -20,18 +20,21 @@ void main() {
 
   late FakeReadingPlanService planService;
   late FakeReadingSessionViewModel sessionViewModel;
-  late ReadingPlanPanelViewModel viewModel;
 
   setUp(() {
     planService = FakeReadingPlanService();
     sessionViewModel = FakeReadingSessionViewModel();
-    viewModel = ReadingPlanPanelViewModel.withDependencies(
+  });
+
+  Future<ReadingPlanPanelViewModel> createViewModel() {
+    return ReadingPlanPanelViewModel.create(
       planService: planService,
       sessionViewModel: sessionViewModel,
     );
-  });
+  }
 
   ReadingPlanPanel buildPanel({
+    required ReadingPlanPanelViewModel viewModel,
     Future<void> Function(BuildContext context, String name)?
     navigateToCreatePlanRoute,
     Future<void> Function(BuildContext context, int planId)?
@@ -47,14 +50,14 @@ void main() {
     );
   }
 
-  Widget buildApp({Widget? home}) {
+  Widget buildApp({required Widget home}) {
     return MaterialApp(
       locale: const Locale('en'),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       builder: (context, child) =>
           Material(color: Theme.of(context).colorScheme.surface, child: child),
-      home: home ?? Scaffold(body: buildPanel()),
+      home: home,
     );
   }
 
@@ -67,10 +70,12 @@ void main() {
     Future<void> Function(BuildContext context, int planId)?
     navigateToEditPlanRoute,
   }) async {
+    final viewModel = await createViewModel();
     await tester.pumpWidget(
       buildApp(
         home: Scaffold(
           body: buildPanel(
+            viewModel: viewModel,
             navigateToCreatePlanRoute: navigateToCreatePlanRoute,
             navigateToPlanDetailsRoute: navigateToPlanDetailsRoute,
             navigateToEditPlanRoute: navigateToEditPlanRoute,
@@ -82,21 +87,6 @@ void main() {
   }
 
   group('rendering', () {
-    testWidgets('shows a loader until initialize finishes', (tester) async {
-      planService.queueGetRequests = true;
-
-      await tester.pumpWidget(buildApp());
-
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
-      expect(planService.getRequests, hasLength(1));
-
-      planService.getRequests.single.complete([]);
-      await tester.pumpAndSettle();
-
-      expect(find.byType(CircularProgressIndicator), findsNothing);
-      expect(find.text('No reading plans.'), findsOneWidget);
-    });
-
     testWidgets('shows the empty state and create button without plans', (
       tester,
     ) async {
@@ -363,6 +353,7 @@ void main() {
         ),
       ];
 
+      final viewModel = await createViewModel();
       await tester.pumpWidget(
         buildApp(home: _PanelLauncher(viewModel: viewModel)),
       );

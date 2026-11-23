@@ -6,17 +6,31 @@ import 'package:gbt/reading_plan/rs_model.dart';
 import 'package:gbt/services/service_locator.dart';
 
 class ReadingPlanPanelViewModel extends ChangeNotifier {
-  ReadingPlanPanelViewModel()
-    : this.withDependencies(
-        planService: getIt<ReadingPlanService>(),
-        sessionViewModel: getIt<ReadingSessionViewModel>(),
-      );
-
-  ReadingPlanPanelViewModel.withDependencies({
+  ReadingPlanPanelViewModel._({
     required ReadingPlanService planService,
     required ReadingSessionViewModel sessionViewModel,
   }) : _planService = planService,
        _sessionViewModel = sessionViewModel;
+
+  static Future<ReadingPlanPanelViewModel> create({
+    ReadingPlanService? planService,
+    ReadingSessionViewModel? sessionViewModel,
+  }) async {
+    final viewModel = ReadingPlanPanelViewModel._(
+      planService: planService ?? getIt<ReadingPlanService>(),
+      sessionViewModel: sessionViewModel ?? getIt<ReadingSessionViewModel>(),
+    );
+
+    try {
+      viewModel._plans = await viewModel._planService
+          .getReadingPlansWithProgress();
+    } catch (_) {
+      viewModel.dispose();
+      rethrow;
+    }
+
+    return viewModel;
+  }
 
   void _setState(VoidCallback fn) {
     if (_disposed) return;
@@ -27,24 +41,8 @@ class ReadingPlanPanelViewModel extends ChangeNotifier {
   final ReadingPlanService _planService;
   final ReadingSessionViewModel _sessionViewModel;
 
-  List<ReadingPlanDetails> _plans = const [];
+  late List<ReadingPlanDetails> _plans;
   List<ReadingPlanDetails> get plans => _plans;
-
-  bool _isInitialized = false;
-  bool get isInitialized => _isInitialized;
-
-  Future<void>? _initialization;
-  Future<void> initialize() {
-    return _initialization ??= _initialize();
-  }
-
-  Future<void> _initialize() async {
-    final plans = await _planService.getReadingPlansWithProgress();
-    _setState(() {
-      _plans = plans;
-      _isInitialized = true;
-    });
-  }
 
   final _refreshScope = CancellationScope();
   Future<void> refresh() {
