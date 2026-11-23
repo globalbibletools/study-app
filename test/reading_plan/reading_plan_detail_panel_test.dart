@@ -1,10 +1,14 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gbt/asyncutils/cancellation.dart';
 import 'package:gbt/common/reference.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/reading_plan/day_activity_log_panel.dart';
 import 'package:gbt/reading_plan/reading_plan_detail_panel.dart';
 import 'package:gbt/reading_plan/reading_plan_detail_view_model.dart';
+import 'package:gbt/reading_plan/reading_plan_service.dart';
+import 'package:gbt/reading_plan/reading_session_view_model.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
+import 'package:gbt/services/service_locator.dart';
 import 'package:material_ui/material_ui.dart';
 
 import 'fake_reading_plan_service.dart';
@@ -49,6 +53,7 @@ void main() {
     editPlanBuilder,
     DayActivityLogNavigator? dayActivityLogNavigator,
   }) async {
+    await viewModel.initialize();
     await tester.pumpWidget(
       buildApp(
         _DetailLauncher(
@@ -63,16 +68,66 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
   }
 
-  group('initial load', () {
-    testWidgets('shows a loader, then the full detail content', (tester) async {
-      final service = FakeReadingPlanService()..queueStatsRequests = true;
+  group('navigation helper', () {
+    tearDown(() async {
+      await getIt.reset();
+    });
+
+    testWidgets('initializes the view model before navigating', (tester) async {
+      final service = FakeReadingPlanService()
+        ..plans = [planDetails()]
+        ..queuePlanRequests = true;
+      final session = FakeReadingSessionViewModel();
+      getIt.registerSingleton<ReadingPlanService>(service);
+      getIt.registerSingleton<ReadingSessionViewModel>(session);
+
+      await tester.pumpWidget(
+        buildApp(const _NavigateToDetailLauncher(planId: 1)),
+      );
+      await tester.tap(find.text('Open detail'));
+      await tester.pump();
+
+      expect(find.byType(ReadingPlanDetailPanel), findsNothing);
+      expect(service.planRequests, hasLength(1));
+
+      service.planRequests.single.complete(service.plans.single);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ReadingPlanDetailPanel), findsOneWidget);
+      expect(find.text('Ruth Plan'), findsOneWidget);
+    });
+
+    testWidgets('stays closed when initialization fails', (tester) async {
+      final service = FakeReadingPlanService()
+        ..plans = [planDetails()]
+        ..queuePlanRequests = true;
+      final session = FakeReadingSessionViewModel();
+      getIt.registerSingleton<ReadingPlanService>(service);
+      getIt.registerSingleton<ReadingSessionViewModel>(session);
+
+      await tester.pumpWidget(
+        buildApp(const _NavigateToDetailLauncher(planId: 1)),
+      );
+      await tester.tap(find.text('Open detail'));
+      await tester.pump();
+
+      expect(service.planRequests, hasLength(1));
+      service.planRequests.single.completeError(
+        CancelledError(CancellationToken()),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ReadingPlanDetailPanel), findsNothing);
+      expect(find.text('Open detail'), findsOneWidget);
+    });
+
+    testWidgets('shows the full detail content after loading', (tester) async {
+      final service = FakeReadingPlanService()
+        ..plans = [planDetails()]
+        ..bookStats = bookStats();
       final viewModel = newViewModel(planDetails(), service);
 
       await openDetail(tester, viewModel);
-
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
-
-      service.statsRequests.single.complete(bookStats());
       await tester.pumpAndSettle();
 
       expect(find.text('Ruth Plan'), findsOneWidget);
@@ -82,7 +137,9 @@ void main() {
       expect(find.text("Today's Progress"), findsOneWidget);
       expect(find.textContaining('days remaining'), findsOneWidget);
     });
+  });
 
+  group('initial load', () {
     testWidgets('shows an error when the plan cannot be loaded', (
       tester,
     ) async {
@@ -407,6 +464,24 @@ void main() {
       expect(find.text('Open detail'), findsOneWidget);
     });
   });
+}
+
+class _NavigateToDetailLauncher extends StatelessWidget {
+  const _NavigateToDetailLauncher({required this.planId});
+
+  final int planId;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: ElevatedButton(
+          onPressed: () => ReadingPlanDetailPanel.navigateTo(context, planId),
+          child: const Text('Open detail'),
+        ),
+      ),
+    );
+  }
 }
 
 class _DetailLauncher extends StatelessWidget {

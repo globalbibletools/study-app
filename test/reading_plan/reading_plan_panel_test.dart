@@ -2,10 +2,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:gbt/common/reference.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/reading_plan/reading_plan_card.dart';
+import 'package:gbt/reading_plan/reading_plan_detail_panel.dart';
 import 'package:gbt/reading_plan/reading_plan_panel.dart';
 import 'package:gbt/reading_plan/reading_plan_panel_view_model.dart';
+import 'package:gbt/reading_plan/reading_plan_service.dart';
+import 'package:gbt/reading_plan/reading_session_view_model.dart';
 import 'package:gbt/reading_plan/progress_circle.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
+import 'package:gbt/services/service_locator.dart';
 import 'package:material_ui/material_ui.dart';
 
 import 'fake_reading_plan_service.dart';
@@ -316,6 +320,34 @@ void main() {
 
       expect(find.text('Details Ruth'), findsNothing);
       expect(find.text('Renamed Ruth'), findsOneWidget);
+    });
+  });
+
+  group('view plan default route', () {
+    tearDown(() async {
+      await getIt.reset();
+    });
+
+    testWidgets('initializes the detail view model before navigating', (
+      tester,
+    ) async {
+      planService.plans = [planDetails('Ruth', id: 1)];
+      planService.queuePlanRequests = true;
+      getIt.registerSingleton<ReadingPlanService>(planService);
+      getIt.registerSingleton<ReadingSessionViewModel>(sessionViewModel);
+
+      await pumpPanel(tester);
+      await tester.tap(find.text('Ruth'));
+      await tester.pump();
+
+      expect(find.byType(ReadingPlanDetailPanel), findsNothing);
+      expect(planService.planRequests, hasLength(1));
+
+      planService.planRequests.single.complete(planService.plans.single);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ReadingPlanDetailPanel), findsOneWidget);
+      expect(find.text('Ruth'), findsOneWidget);
     });
   });
 

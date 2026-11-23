@@ -289,10 +289,9 @@ class _EditReadingPlanPanelState extends State<EditReadingPlanPanel> {
   }
 
   Future<void> _openBookListEditor() async {
-    final result = await Navigator.of(context).push<List<int>>(
-      MaterialPageRoute(
-        builder: (_) => EditBookListPanel(bookIds: viewModel.orderedBookIds),
-      ),
+    final result = await EditBookListPanel.navigateTo(
+      context,
+      viewModel.orderedBookIds,
     );
 
     if (result == null) return;

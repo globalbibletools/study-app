@@ -31,6 +31,43 @@ class ReadingPlanDetailPanel extends StatefulWidget {
     this.dayActivityLogNavigator,
   }) : planId = 0;
 
+  static Future<void> navigateTo(
+    BuildContext context,
+    int planId, {
+    Widget Function(BuildContext context, ReadingPlanDetails plan)?
+    editPlanBuilder,
+    DayActivityLogNavigator? dayActivityLogNavigator,
+  }) async {
+    final viewModel = ReadingPlanDetailViewModel(planId: planId);
+
+    try {
+      await viewModel.initialize();
+    } catch (_) {
+      viewModel.dispose();
+      return;
+    }
+
+    if (!context.mounted) {
+      viewModel.dispose();
+      return;
+    }
+
+    try {
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          builder: (_) => ReadingPlanDetailPanel.withDependencies(
+            viewModel: viewModel,
+            editPlanBuilder: editPlanBuilder,
+            dayActivityLogNavigator: dayActivityLogNavigator,
+          ),
+        ),
+      );
+    } catch (_) {
+      viewModel.dispose();
+      rethrow;
+    }
+  }
+
   @override
   State<ReadingPlanDetailPanel> createState() => ReadingPlanDetailPanelState();
 }
@@ -44,7 +81,6 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
     super.initState();
     viewModel =
         widget.viewModel ?? ReadingPlanDetailViewModel(planId: widget.planId);
-    unawaited(viewModel.initialize());
   }
 
   @override

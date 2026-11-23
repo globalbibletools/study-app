@@ -10,6 +10,9 @@ class EditBookListViewModel extends ChangeNotifier {
     _availableBookIds = _availableFor(_bookIds);
   }
 
+  Future<void>? _initialization;
+  Future<void> initialize() => _initialization ??= Future<void>.value();
+
   static final List<int> allBookIds = List.unmodifiable(
     BibleCollections.allBooks,
   );

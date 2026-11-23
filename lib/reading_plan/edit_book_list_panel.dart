@@ -14,6 +14,37 @@ class EditBookListPanel extends StatefulWidget {
   final List<int> bookIds;
   final EditBookListViewModel? viewModel;
 
+  static Future<List<int>?> navigateTo(
+    BuildContext context,
+    List<int> bookIds,
+  ) async {
+    final viewModel = EditBookListViewModel(bookIds);
+
+    try {
+      await viewModel.initialize();
+    } catch (_) {
+      viewModel.dispose();
+      return null;
+    }
+
+    if (!context.mounted) {
+      viewModel.dispose();
+      return null;
+    }
+
+    try {
+      return await Navigator.of(context).push<List<int>>(
+        MaterialPageRoute(
+          builder: (_) =>
+              EditBookListPanel.withDependencies(viewModel: viewModel),
+        ),
+      );
+    } catch (_) {
+      viewModel.dispose();
+      rethrow;
+    }
+  }
+
   @override
   State<EditBookListPanel> createState() => _EditBookListPanelState();
 }

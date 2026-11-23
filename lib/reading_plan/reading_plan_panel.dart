@@ -150,13 +150,14 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
   }
 
   Future<void> _openPlanDetails(ReadingPlanDetails plan) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) =>
-            widget.planDetailsRouteBuilder?.call(context, plan) ??
-            ReadingPlanDetailPanel(planId: plan.readingPlan.id!),
-      ),
-    );
+    final routeBuilder = widget.planDetailsRouteBuilder;
+    if (routeBuilder != null) {
+      await Navigator.of(context).push(
+        MaterialPageRoute(builder: (context) => routeBuilder(context, plan)),
+      );
+    } else {
+      await ReadingPlanDetailPanel.navigateTo(context, plan.readingPlan.id!);
+    }
 
     if (!mounted) return;
     await viewModel.refresh();
