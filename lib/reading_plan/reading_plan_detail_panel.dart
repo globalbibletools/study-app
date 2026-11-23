@@ -359,7 +359,7 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
         constraints: const BoxConstraints(maxWidth: 420),
         child: CalendarView(
           month: viewModel.visibleMonth,
-          checkedDays: viewModel.checkedDays,
+          progressByDay: viewModel.calendarProgress,
           onPreviousMonth: () => unawaited(viewModel.showPreviousMonth()),
           onNextMonth: () => unawaited(viewModel.showNextMonth()),
           onDayTap: _openDayActivityLog,

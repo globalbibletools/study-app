@@ -226,10 +226,20 @@ class ReadingPlanDetailViewModel extends ChangeNotifier {
   DateTime get visibleMonth => _visibleMonth;
 
   List<DayProgress> _monthProgress = const [];
-  Map<int, bool> get checkedDays => {
+  Map<int, double> get calendarProgress => {
     for (final progress in _monthProgress)
-      progress.day.day: progress.goalReached,
+      if (!progress.empty) progress.day.day: _dayGoalFraction(progress),
   };
+
+  double _dayGoalFraction(DayProgress progress) {
+    if (progress.goalReached) return 1;
+    if (goalValue <= 0) return 0;
+
+    final read = goalType == GoalType.verses
+        ? progress.verses
+        : progress.minutes;
+    return (read / goalValue).clamp(0.0, 1.0);
+  }
 
   Future<void> showPreviousMonth() => _loadMonthStats(-1);
   Future<void> showNextMonth() => _loadMonthStats(1);

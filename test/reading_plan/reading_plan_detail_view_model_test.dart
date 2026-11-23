@@ -66,7 +66,7 @@ void main() {
         expect(viewModel.overallProgress, closeTo(13 / 28, 1e-9));
         expect(viewModel.todaysProgress!.verses, 13);
         expect(viewModel.todaysProgress!.minutes, 10);
-        expect(viewModel.checkedDays[today.day], isTrue);
+        expect(viewModel.calendarProgress[today.day], 1);
         expect(viewModel.dayProgress(today.day)!.day, today);
       },
     );
@@ -382,7 +382,7 @@ void main() {
   });
 
   group('month progress', () {
-    test('exposes checked days for the visible month', () async {
+    test('exposes calendar days for the visible month', () async {
       final month = monthStart(DateTime.now());
       final service = FakeReadingPlanService([planDetails()]);
       service.monthProgressByMonth[month] = [
@@ -394,11 +394,49 @@ void main() {
       await viewModel.initialize();
 
       expect(viewModel.visibleMonth, month);
-      expect(viewModel.checkedDays[1], isTrue);
-      expect(viewModel.checkedDays[2], isFalse);
-      expect(viewModel.checkedDays[3], isFalse);
+      final progress = viewModel.calendarProgress;
+      expect(progress, hasLength(2));
+      expect(progress[1], 1);
+      expect(progress.containsKey(2), isFalse);
+      expect(progress[3], 0);
       expect(viewModel.dayProgress(1)!.goalReached, isTrue);
       expect(viewModel.dayProgress(2)!.empty, isTrue);
+    });
+
+    test('omits empty days and exposes clamped fractions', () async {
+      final month = monthStart(DateTime.now());
+      final service = FakeReadingPlanService([planDetails()]);
+      service.monthProgressByMonth[month] = [
+        DayProgress(DateTime(month.year, month.month, 1), 10, 4, false),
+        DayProgress.empty(DateTime(month.year, month.month, 2)),
+        DayProgress(DateTime(month.year, month.month, 3), 0, 0, false),
+        DayProgress(DateTime(month.year, month.month, 4), 10, 10, true),
+        DayProgress(DateTime(month.year, month.month, 5), 10, 20, false),
+      ];
+      final viewModel = newViewModel(service);
+      await viewModel.initialize();
+
+      final progress = viewModel.calendarProgress;
+      expect(progress, hasLength(4));
+      expect(progress[1], closeTo(0.4, 1e-9));
+      expect(progress.containsKey(2), isFalse);
+      expect(progress[3], 0);
+      expect(progress[4], 1);
+      expect(progress[5], 1);
+    });
+
+    test('uses minutes for per-day progress toward a minutes goal', () async {
+      final month = monthStart(DateTime.now());
+      final service = FakeReadingPlanService([
+        planDetails(goalType: GoalType.minutes, goalValue: 20),
+      ]);
+      service.monthProgressByMonth[month] = [
+        DayProgress(DateTime(month.year, month.month, 1), 7, 3, false),
+      ];
+      final viewModel = newViewModel(service);
+      await viewModel.initialize();
+
+      expect(viewModel.calendarProgress[1], closeTo(0.35, 1e-9));
     });
 
     test(
@@ -418,7 +456,7 @@ void main() {
 
         expect(viewModel.visibleMonth, next);
         expect(service.requestedMonths.last, next);
-        expect(viewModel.checkedDays[1], isTrue);
+        expect(viewModel.calendarProgress[1], 1);
         expect(
           viewModel.dayProgress(1)!.day,
           DateTime(next.year, next.month, 1),
