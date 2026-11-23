@@ -25,8 +25,7 @@ class ReadingPlanPanel extends StatefulWidget {
 
   final ReadingPlanPanelViewModel viewModel;
   final NavigateToNewReadingPlanRoute? navigateToCreatePlanRoute;
-  final Future<void> Function(BuildContext context, int planId)?
-  navigateToPlanDetailsRoute;
+  final NavigateToReadingPlanDetailRoute? navigateToPlanDetailsRoute;
   final NavigateToExistingReadingPlanRoute? navigateToEditPlanRoute;
 
   @override

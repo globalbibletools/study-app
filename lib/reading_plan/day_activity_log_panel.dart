@@ -4,6 +4,13 @@ import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
 import 'package:gbt/reading_plan/day_activity_log_view_model.dart';
 
+typedef NavigateToDayActivityLogRoute =
+    Future<void> Function(
+      BuildContext context,
+      DateTime date, {
+      required int readingPlanId,
+    });
+
 class DayActivityLogPanel extends StatefulWidget {
   final DayActivityLogViewModel viewModel;
 

@@ -10,12 +10,8 @@ import 'package:gbt/reading_plan/edit_reading_plan_panel.dart';
 import 'package:gbt/reading_plan/progress_circle.dart';
 import 'package:gbt/reading_plan/reading_plan_detail_view_model.dart';
 
-typedef NavigateToDayActivityLogRoute =
-    Future<void> Function(
-      BuildContext context,
-      DateTime date, {
-      required int readingPlanId,
-    });
+typedef NavigateToReadingPlanDetailRoute =
+    Future<void> Function(BuildContext context, int planId);
 
 class ReadingPlanDetailPanel extends StatefulWidget {
   final ReadingPlanDetailViewModel viewModel;
@@ -51,8 +47,7 @@ class ReadingPlanDetailPanel extends StatefulWidget {
     try {
       await Navigator.of(context).push<void>(
         MaterialPageRoute(
-          builder: (_) =>
-              ReadingPlanDetailPanel(viewModel: viewModel),
+          builder: (_) => ReadingPlanDetailPanel(viewModel: viewModel),
         ),
       );
     } catch (_) {

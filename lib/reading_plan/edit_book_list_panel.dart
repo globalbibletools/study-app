@@ -4,11 +4,11 @@ import 'package:gbt/reading_plan/discard_book_list_changes_dialog.dart';
 import 'package:gbt/reading_plan/edit_book_list_view_model.dart';
 import 'package:material_ui/material_ui.dart';
 
+typedef NavigateToEditBookListRoute =
+    Future<List<int>?> Function(BuildContext context, List<int> bookIds);
+
 class EditBookListPanel extends StatefulWidget {
-  const EditBookListPanel({
-    super.key,
-    required this.viewModel,
-  });
+  const EditBookListPanel({super.key, required this.viewModel});
 
   final EditBookListViewModel viewModel;
 
@@ -21,8 +21,7 @@ class EditBookListPanel extends StatefulWidget {
     try {
       return await Navigator.of(context).push<List<int>>(
         MaterialPageRoute(
-          builder: (_) =>
-              EditBookListPanel(viewModel: viewModel),
+          builder: (_) => EditBookListPanel(viewModel: viewModel),
         ),
       );
     } catch (_) {
