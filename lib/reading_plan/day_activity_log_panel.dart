@@ -182,15 +182,25 @@ class _DayActivityLogPanelState extends State<DayActivityLogPanel> {
   }
 
   String _references(List<DetailedProgess> progress) {
-    return progress.map(_progressTitle).join(', ');
+    final references = <String>[];
+    int? previousBookId;
+
+    for (final entry in progress) {
+      final includeBook = entry.bookId != previousBookId;
+      references.add(_progressTitle(entry, includeBook: includeBook));
+      previousBookId = entry.bookId;
+    }
+
+    return references.join(', ');
   }
 
-  String _progressTitle(DetailedProgess entry) {
-    final book = bookNameForId(context, entry.bookId);
-    if (entry.fromVerse == entry.toVerse) {
-      return "$book ${entry.chapter}:${entry.fromVerse}";
-    }
-    return "$book ${entry.chapter}:${entry.fromVerse}-${entry.toVerse}";
+  String _progressTitle(DetailedProgess entry, {required bool includeBook}) {
+    final reference = entry.fromVerse == entry.toVerse
+        ? "${entry.chapter}:${entry.fromVerse}"
+        : "${entry.chapter}:${entry.fromVerse}-${entry.toVerse}";
+
+    if (!includeBook) return reference;
+    return "${bookNameForId(context, entry.bookId)} $reference";
   }
 
   String _formatDate(DateTime date) {

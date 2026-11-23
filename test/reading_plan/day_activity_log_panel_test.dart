@@ -52,7 +52,12 @@ void main() {
             verses: 3,
             readingPlanId: 1,
           ),
-          [DetailedProgess(63, 1, 4, 4), DetailedProgess(63, 1, 1, 2)],
+          [
+            DetailedProgess(63, 1, 4, 4),
+            DetailedProgess(63, 1, 1, 2),
+            DetailedProgess(63, 2, 1, 3),
+            DetailedProgess(64, 1, 1, 1),
+          ],
         ),
       ];
       final viewModel = newViewModel();
@@ -65,7 +70,7 @@ void main() {
 
       expect(find.text('09:05'), findsOneWidget);
       expect(find.text('1.5 min • 3 verses'), findsNWidgets(2));
-      expect(find.text('2 John 1:1-2, 2 John 1:4'), findsOneWidget);
+      expect(find.text('2 John 1:1-2, 1:4, 2:1-3, 3 John 1:1'), findsOneWidget);
     });
   });
 
