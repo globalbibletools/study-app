@@ -109,24 +109,35 @@ void main() {
       expect(vm.canSubmit, isTrue);
     });
 
-    test('offers Custom as a collection option only after customizing', () {
+    test('always offers Custom as a collection option', () {
       final vm = newViewModel();
-      expect(vm.collectionOptions, isNot(contains(BibleCollections.custom)));
+      expect(vm.collectionOptions.last, same(BibleCollections.custom));
 
       vm.setBooks([2, 1]);
 
-      expect(vm.collectionOptions.last, BibleCollections.custom);
+      expect(vm.collectionOptions.last, same(BibleCollections.custom));
     });
 
-    test('initialize is idempotent', () async {
-      final vm = newViewModel('My Plan');
+    test('initializes the custom draft from an existing custom plan', () async {
+      final plan = await planService.saveReadingPlan(
+        planName: 'Custom Plan',
+        collectionId: BibleCollections.custom.id,
+        goalType: GoalType.verses,
+        goalValue: 10,
+        selectedBookIds: {46, 45},
+        orderedBookIds: [46, 45],
+      );
+      final details = (await planService.getReadingPlanById(plan.id!))!;
 
-      final first = vm.initialize();
-      final second = vm.initialize();
+      final vm = existingViewModel(details);
+      expect(vm.selectedCollection, same(BibleCollections.custom));
+      expect(vm.orderedBookIds, [46, 45]);
 
-      expect(second, same(first));
-      await Future.wait([first, second]);
-      expect(vm.name, 'My Plan');
+      vm.selectCollection(BibleCollections.fromId(3)); // New Testament
+      vm.selectCollection(BibleCollections.custom);
+
+      expect(vm.selectedCollection, same(BibleCollections.custom));
+      expect(vm.orderedBookIds, [46, 45]);
     });
   });
 
@@ -176,17 +187,23 @@ void main() {
       expect(vm.selectedBookIds, {1, 2, 3, 4, 5});
     });
 
-    test('selectCollection ignores the Custom sentinel', () {
-      final vm = newViewModel();
-      var notifications = 0;
-      vm.addListener(() => notifications++);
+    test(
+      'selectCollection selects Custom with no books when no draft exists',
+      () {
+        final vm = newViewModel();
+        var notifications = 0;
+        vm.addListener(() => notifications++);
 
-      vm.selectCollection(BibleCollections.custom);
+        vm.selectCollection(BibleCollections.custom);
 
-      expect(vm.selectedCollection.id, 1);
-      expect(vm.orderedBookIds, [for (int i = 1; i <= 66; i++) i]);
-      expect(notifications, 0);
-    });
+        expect(vm.selectedCollection, same(BibleCollections.custom));
+        expect(vm.orderedBookIds, isEmpty);
+        expect(vm.collectionBookCount, 0);
+        expect(vm.selectedBookCount, 0);
+        expect(vm.canSubmit, isFalse);
+        expect(notifications, 1);
+      },
+    );
 
     test('setGoalType updates the goal type and notifies on change', () {
       final vm = newViewModel();
@@ -239,6 +256,16 @@ void main() {
       expect(vm.orderedBookIds, [40, 41, 42, 43]);
     });
 
+    test('a reordered preset selects Custom', () {
+      final vm = newViewModel();
+      final reversed = BibleCollections.fromId(4).books.reversed.toList();
+
+      vm.setBooks(reversed);
+
+      expect(vm.selectedCollection, same(BibleCollections.custom));
+      expect(vm.orderedBookIds, reversed);
+    });
+
     test('a non-preset order selects Custom', () {
       final vm = newViewModel();
       final notifications = <int>[];
@@ -260,6 +287,38 @@ void main() {
       vm.setBooks([2, 1]);
 
       expect(notifications, 0);
+    });
+  });
+
+  group('custom draft', () {
+    test('retains a custom draft across preset switches', () {
+      final vm = newViewModel();
+      vm.selectCollection(BibleCollections.custom);
+      vm.setBooks([8, 2, 1]);
+
+      vm.selectCollection(BibleCollections.fromId(7)); // Gospels
+      expect(vm.selectedCollection.id, 7);
+
+      vm.selectCollection(BibleCollections.fromId(4)); // Torah
+      expect(vm.selectedCollection.id, 4);
+
+      vm.selectCollection(BibleCollections.custom);
+
+      expect(vm.selectedCollection, same(BibleCollections.custom));
+      expect(vm.orderedBookIds, [8, 2, 1]);
+    });
+
+    test('editing to a preset order leaves the custom draft unchanged', () {
+      final vm = newViewModel();
+      vm.selectCollection(BibleCollections.custom);
+      vm.setBooks([2, 1]);
+
+      vm.setBooks(BibleCollections.fromId(7).books);
+      expect(vm.selectedCollection.id, 7);
+
+      vm.selectCollection(BibleCollections.custom);
+
+      expect(vm.orderedBookIds, [2, 1]);
     });
   });
 
@@ -373,19 +432,39 @@ void main() {
       expect(call.orderedBookIds, [for (int i = 1; i <= 66; i++) i]);
     });
 
-    test('saves a custom book order', () async {
-      final vm = newViewModel('Custom Order');
-      vm.setBooks([3, 1]);
+    test('saves collectionId 0 with the custom order', () async {
+      final vm = newViewModel('Custom Plan');
+      vm.selectCollection(BibleCollections.custom);
+      vm.setBooks([3, 1, 2]);
 
       expect(await vm.submit(), isTrue);
 
       final call = planService.saveCalls.single;
       expect(call.collectionId, BibleCollections.custom.id);
-      expect(call.orderedBookIds, [3, 1]);
+      expect(call.orderedBookIds, [3, 1, 2]);
 
       final saved = planService.plans.single;
-      expect(saved.books.map((b) => b.bookId), [3, 1]);
-      expect(saved.books.map((b) => b.ord), [1, 2]);
+      expect(saved.readingPlan.collectionId, BibleCollections.custom.id);
+      expect(saved.books.map((b) => b.bookId), [3, 1, 2]);
+    });
+
+    test('does not persist an unselected custom draft', () async {
+      final vm = newViewModel('Torah Plan');
+      vm.selectCollection(BibleCollections.custom);
+      vm.setBooks([2, 1]);
+      vm.selectCollection(BibleCollections.fromId(4)); // Torah
+
+      expect(await vm.submit(), isTrue);
+
+      final call = planService.saveCalls.single;
+      expect(call.collectionId, 4);
+      expect(call.orderedBookIds, [1, 2, 3, 4, 5]);
+
+      final reopened = existingViewModel(planService.plans.single);
+      expect(reopened.selectedCollection.id, 4);
+
+      reopened.selectCollection(BibleCollections.custom);
+      expect(reopened.orderedBookIds, isEmpty);
     });
 
     test('passes the existing plan through when updating', () async {

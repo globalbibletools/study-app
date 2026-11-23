@@ -48,6 +48,9 @@ class EditReadingPlanViewModel extends ChangeNotifier {
     _selectedCollection =
         BibleCollections.matchingCollection(_orderedBookIds) ??
         BibleCollections.custom;
+    _customBookIds = _selectedCollection.id == BibleCollections.custom.id
+        ? List.of(_orderedBookIds)
+        : [];
     _goalType = readingPlan.dailyGoal.type;
     _goalValue = readingPlan.dailyGoal.value;
     _name = readingPlan.readingPlan.planName;
@@ -81,12 +84,23 @@ class EditReadingPlanViewModel extends ChangeNotifier {
 
   List<BibleCollection> get collectionOptions => [
     ...BibleCollections.collections,
-    if (_selectedCollection.id == BibleCollections.custom.id)
-      BibleCollections.custom,
+    BibleCollections.custom,
   ];
 
+  /// The custom book list the user has created during this edit session.
+  ///
+  /// Kept even while a preset collection is selected, so switching back to
+  /// Custom restores the previous list. It lives only as long as this view
+  /// model and is never persisted unless the plan is saved with Custom
+  /// selected.
+  late List<int> _customBookIds;
+
   void selectCollection(BibleCollection collection) {
-    if (collection.id == BibleCollections.custom.id) return;
+    if (collection.id == BibleCollections.custom.id) {
+      if (_selectedCollection.id == BibleCollections.custom.id) return;
+      setBooks(List<int>.of(_customBookIds));
+      return;
+    }
     if (_selectedCollection.id == collection.id &&
         listEquals(_orderedBookIds, collection.books)) {
       return;
@@ -103,11 +117,13 @@ class EditReadingPlanViewModel extends ChangeNotifier {
   void setBooks(List<int> bookIds) {
     if (listEquals(bookIds, _orderedBookIds)) return;
 
+    final preset = BibleCollections.matchingCollection(bookIds);
     _setState(() {
-      _orderedBookIds = bookIds;
-      _selectedCollection =
-          BibleCollections.matchingCollection(_orderedBookIds) ??
-          BibleCollections.custom;
+      _orderedBookIds = List.of(bookIds);
+      _selectedCollection = preset ?? BibleCollections.custom;
+      if (preset == null) {
+        _customBookIds = List.of(bookIds);
+      }
     });
   }
 
