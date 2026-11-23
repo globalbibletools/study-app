@@ -272,6 +272,80 @@ void main() {
     expect(find.text('New Testament'), findsOneWidget);
   });
 
+  testWidgets('selecting Custom shows it with an empty selection', (
+    tester,
+  ) async {
+    final viewModel = newViewModel();
+    await pumpPanel(tester, viewModel);
+
+    await tester.tap(find.byType(DropdownButton<BibleCollection>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Custom').last);
+    await tester.pumpAndSettle();
+
+    expect(viewModel.selectedCollection, same(BibleCollections.custom));
+    expect(viewModel.orderedBookIds, isEmpty);
+    expect(viewModel.collectionBookCount, 0);
+    expect(find.text('Custom'), findsOneWidget);
+
+    final submitButton = tester.widget<FilledButton>(find.byType(FilledButton));
+    expect(submitButton.onPressed, isNull);
+  });
+
+  testWidgets('custom book list survives switching to a preset and back', (
+    tester,
+  ) async {
+    final viewModel = newViewModel();
+    await pumpPanel(tester, viewModel);
+
+    await tester.tap(find.byType(DropdownButton<BibleCollection>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Custom').last);
+    await tester.pumpAndSettle();
+
+    viewModel.setBooks([2, 1]);
+    await tester.pumpAndSettle();
+    expect(find.text('Custom'), findsOneWidget);
+
+    await tester.tap(find.byType(DropdownButton<BibleCollection>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('New Testament').last);
+    await tester.pumpAndSettle();
+    expect(viewModel.selectedCollection.id, 3);
+    expect(find.text('New Testament'), findsOneWidget);
+
+    await tester.tap(find.byType(DropdownButton<BibleCollection>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Custom').last);
+    await tester.pumpAndSettle();
+
+    expect(viewModel.selectedCollection, same(BibleCollections.custom));
+    expect(viewModel.orderedBookIds, [2, 1]);
+    expect(find.text('Custom'), findsOneWidget);
+  });
+
+  testWidgets('saves a custom collection from the editor', (tester) async {
+    final viewModel = newViewModel('Custom Plan');
+    await openPanel(tester, viewModel);
+
+    await tester.tap(find.byType(DropdownButton<BibleCollection>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Custom').last);
+    await tester.pumpAndSettle();
+
+    viewModel.setBooks([8, 2, 1]);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Save Reading Plan'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(EditReadingPlanPanel), findsNothing);
+    expect(planService.saveCalls.single.collectionId, 0);
+    expect(planService.saveCalls.single.orderedBookIds, [8, 2, 1]);
+    expect(planService.plans.single.readingPlan.collectionId, 0);
+    expect(planService.plans.single.books.map((b) => b.bookId), [8, 2, 1]);
+  });
+
   testWidgets('disables save when the name is empty', (tester) async {
     final viewModel = newViewModel();
     await pumpPanel(tester, viewModel);
