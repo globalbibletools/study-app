@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gbt/reading_plan/rs_database.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
+import 'package:gbt/reading_plan/session_log_repository.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import '../fixtures/bible_navigation_fixture.dart';
@@ -148,8 +149,8 @@ void main() {
 
       await database.markVerseRead(planId, 63, 1, 1);
       await database.markVerseRead(planId, 63, 1, 2);
-      await database.insertLog(
-        RsLog(
+      final firstLogId = await database.sessionLog.append(
+        SessionLogEntry(
           sessionId: firstSession.id!,
           bookId: 63,
           chapter: 1,
@@ -158,8 +159,8 @@ void main() {
           readingPlanId: planId,
         ),
       );
-      await database.insertLog(
-        RsLog(
+      final secondLogId = await database.sessionLog.append(
+        SessionLogEntry(
           sessionId: firstSession.id!,
           bookId: 63,
           chapter: 1,
@@ -191,15 +192,25 @@ void main() {
       expect(states[1]!.readThisSession, isFalse);
       expect(states[2]!.readThisSession, isFalse);
 
-      await database.deleteRsLogForSessionAndVerse(firstSession.id!, 63, 1, 1);
+      await database.sessionLog.remove(firstLogId);
 
       expect(
-        await database.getRsLogForSessionAndVerse(firstSession.id!, 63, 1, 1),
-        isEmpty,
+        await database.sessionLog.getVerseLogForSession(
+          firstSession.id!,
+          63,
+          1,
+          1,
+        ),
+        isNull,
       );
       expect(
-        await database.getRsLogForSessionAndVerse(firstSession.id!, 63, 1, 2),
-        hasLength(1),
+        (await database.sessionLog.getVerseLogForSession(
+          firstSession.id!,
+          63,
+          1,
+          2,
+        ))?.id,
+        secondLogId,
       );
       expect(await database.getRsLogForSession(secondSession.id!), isEmpty);
     },

@@ -3,6 +3,7 @@ import 'package:gbt/common/reference.dart';
 import 'package:gbt/services/hebrew_greek/database.dart';
 import 'package:gbt/services/logging/log.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
+import 'package:gbt/reading_plan/session_log_repository.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:sqflite/sqflite.dart';
 
@@ -36,6 +37,8 @@ class ReadingSessionDatabase {
 
   late Database _database;
   Future<void>? _initFuture;
+
+  late final SessionLogRepository sessionLog = SessionLogRepository(_database);
 
   Future<void> init() async {
     if (_initFuture != null) {
@@ -611,12 +614,6 @@ class ReadingSessionDatabase {
   }
 
   /* RS LOG */
-  Future<RsLog> insertLog(RsLog log, {DatabaseExecutor? executor}) async {
-    final db = executor ?? _database;
-    final id = await db.insert('rs_log', log.toMap()..remove('id'));
-    return log.copyWith(id: id);
-  }
-
   Future<Reference?> getResumeReference(
     int readingPlanId, {
     DatabaseExecutor? executor,
@@ -1009,21 +1006,6 @@ class ReadingSessionDatabase {
     return total > 0 && read == total;
   }
 
-  Future<int> deleteRsLogForSessionAndVerse(
-    int sessionId,
-    int bookId,
-    int chapter,
-    int verse, {
-    DatabaseExecutor? executor,
-  }) async {
-    final db = executor ?? _database;
-    return await db.delete(
-      'rs_log',
-      where: 'rs_session_id = ? AND book_id = ? AND chapter = ? AND verse = ?',
-      whereArgs: [sessionId, bookId, chapter, verse],
-    );
-  }
-
   void dispose() {
     _database.close();
     _initFuture = null;
@@ -1063,24 +1045,6 @@ class ReadingSessionDatabase {
       'rs_log',
       where: 'rs_session_id = ?',
       whereArgs: [sessionId],
-      orderBy: "book_id, chapter, verse",
-    );
-
-    return result.map((e) => RsLog.fromMap(e)).toList();
-  }
-
-  Future<List<RsLog>> getRsLogForSessionAndVerse(
-    int sessionId,
-    int bookId,
-    int chapter,
-    int verse, {
-    DatabaseExecutor? executor,
-  }) async {
-    final db = executor ?? _database;
-    final result = await db.query(
-      'rs_log',
-      where: 'rs_session_id = ? and book_id = ? and chapter = ? and verse = ?',
-      whereArgs: [sessionId, bookId, chapter, verse],
       orderBy: "book_id, chapter, verse",
     );
 
