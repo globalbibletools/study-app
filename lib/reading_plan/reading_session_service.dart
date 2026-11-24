@@ -3,7 +3,6 @@ import 'dart:math' as math;
 import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/common/reference.dart';
 import 'package:gbt/reading_plan/reading_plan_config.dart';
-import 'package:gbt/reading_plan/reading_plan_estimates.dart';
 import 'package:gbt/reading_plan/data_access/rs_database.dart';
 import 'package:gbt/reading_plan/data_access/rs_model.dart';
 import 'package:gbt/reading_plan/data_access/session_log_repository.dart';
@@ -30,18 +29,6 @@ class SessionProgress {
   final int secondsToday;
   final bool goalAlreadyReachedToday;
   final DateTime asOf;
-}
-
-class ActiveSessionSnapshot {
-  const ActiveSessionSnapshot({
-    required this.config,
-    required this.progress,
-    required this.resumePosition,
-  });
-
-  final ReadingPlanConfig config;
-  final SessionProgress progress;
-  final Reference resumePosition;
 }
 
 class BookCompletedEvent {
@@ -71,17 +58,14 @@ class ReadingSessionService {
   final ReadingSessionDatabase _database;
   late final _bibleNavigation = getIt<BibleNavigation>();
 
-  Future<ActiveSessionSnapshot?> startSession(int planId) async {
-    final details = await _database.getReadingPlanById(planId);
-    if (details == null) return null;
-
-    final config = ReadingPlanConfig.fromPlanDetails(details, _bibleNavigation);
+  Future<int?> startSession(int planId) async {
+    final plan = await _database.readingPlans.getById(planId);
+    if (plan == null) return null;
 
     final now = DateTime.now();
-    final today = _day(now);
     final session = await _database.session.commit(
       Session(
-        rsDate: today,
+        rsDate: _day(now),
         startTime: now,
         endTime: now,
         readSeconds: 0,
@@ -90,14 +74,7 @@ class ReadingSessionService {
       ),
     );
 
-    final progress = await _readProgress(session, now);
-    final resumePosition = await _database.getResumeReference(planId);
-    return ActiveSessionSnapshot(
-      config: config,
-      progress: progress,
-      resumePosition:
-          resumePosition ?? ReadingPlanEstimates.resumeTargetFor(details),
-    );
+    return session.id;
   }
 
   Future<void> endSession(

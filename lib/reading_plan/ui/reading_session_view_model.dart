@@ -4,7 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/widgets.dart';
 import 'package:gbt/common/reference.dart';
 import 'package:gbt/reading_plan/data_access/reading_plan_queries.dart';
-import 'package:gbt/reading_plan/reading_plan_config.dart';
+import 'package:gbt/reading_plan/data_access/reading_plan_read_models.dart';
 import 'package:gbt/reading_plan/reading_session_service.dart';
 import 'package:gbt/services/logging/log.dart' as log;
 import 'package:gbt/reading_plan/data_access/rs_model.dart';
@@ -116,39 +116,48 @@ class ReadingSessionViewModel with WidgetsBindingObserver {
         if (_disposed) return;
       }
 
-      final snapshot = await _service.startSession(planId);
+      final sessionId = await _service.startSession(planId);
       if (_disposed) return;
 
-      if (snapshot == null) {
+      if (sessionId == null) {
         throw StateError('Reading plan not found: $planId');
       }
 
-      final progress = snapshot.progress;
-      final config = snapshot.config;
+      final summary = await _queries.getPlanSummary(planId);
+      final runtime = await _queries.getSessionRuntime(sessionId);
+      if (_disposed) return;
 
-      _sessionDay = progress.sessionDay;
-      _sessionReadMilliseconds = progress.sessionReadSeconds * 1000;
-      _dayReadMilliseconds = progress.secondsToday * 1000;
-      _lastTickAt = progress.asOf;
-      _lastFlushAt = progress.asOf;
-      _goalLatch = progress.goalAlreadyReachedToday;
+      if (summary == null || runtime == null) {
+        throw StateError('Reading session not found: $sessionId');
+      }
+
+      final now = DateTime.now();
+      final progress = runtime.dayProgress;
+      final config = summary.config;
+
+      _sessionDay = runtime.sessionDay;
+      _sessionReadMilliseconds = runtime.sessionReadSeconds * 1000;
+      _dayReadMilliseconds = progress.seconds * 1000;
+      _lastTickAt = now;
+      _lastFlushAt = now;
+      _goalLatch = progress.goalReached;
 
       sessionNotifier.value = ReadingSessionUiState(
-        sessionId: progress.sessionId,
+        sessionId: sessionId,
         config: config,
-        bookIds: config.bookIds,
-        versesToday: progress.versesToday,
-        goalAlreadyReachedToday: progress.goalAlreadyReachedToday,
+        bookIds: config.bookIds.toSet(),
+        versesToday: progress.verses,
+        goalAlreadyReachedToday: progress.goalReached,
         resumePosition: null,
-        sessionStartTime: progress.sessionStartTime,
+        sessionStartTime: runtime.sessionStartTime,
       );
-      secondsTodayNotifier.value = progress.secondsToday;
+      secondsTodayNotifier.value = progress.seconds;
       sessionSecondsNotifier.value = _sessionReadSeconds;
       goalReachedNotifier.value = false;
       bookCompletedNotifier.value = null;
       hudVisible.value = true;
 
-      _navigationViewModel.navigateTo(snapshot.resumePosition);
+      _navigationViewModel.navigateTo(summary.resumeTarget);
 
       _scheduleNextTick();
     } finally {

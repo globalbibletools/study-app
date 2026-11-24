@@ -78,8 +78,7 @@ void main() {
   });
 
   Future<int> startPlan(int planId) async {
-    final snapshot = await sessionService.startSession(planId);
-    return snapshot!.progress.sessionId;
+    return (await sessionService.startSession(planId))!;
   }
 
   Future<VerseReadResult?> setVerseRead(
@@ -97,7 +96,7 @@ void main() {
     return database.queries.getVerseReadStates(sessionId, bookId, chapter);
   }
 
-  test('starts a session and returns a static plan config', () async {
+  test('starts a session and returns its id', () async {
     final planId = await planService.saveReadingPlan(
       planName: 'Session Service Test',
       goalType: GoalType.verses,
@@ -105,25 +104,14 @@ void main() {
       bookIds: [63, 64],
     );
 
-    final snapshot = await sessionService.startSession(planId);
+    final sessionId = await sessionService.startSession(planId);
 
-    expect(snapshot, isNotNull);
-    final config = snapshot!.config;
-    expect(config.planId, planId);
-    expect(config.planName, 'Session Service Test');
-    expect(config.dailyGoal.type, GoalType.verses);
-    expect(config.dailyGoal.value, 15);
-    expect(config.books.map((book) => book.bookId), [63, 64]);
-    expect(config.bookIds, {63, 64});
-    expect(config.totalChapters, 2);
-    expect(config.totalVerses, 28);
-    expect(() => config.books.add(config.books.first), throwsUnsupportedError);
-
-    expect(snapshot.progress.versesToday, 0);
-    expect(snapshot.progress.secondsToday, 0);
-    expect(snapshot.progress.goalAlreadyReachedToday, isFalse);
-    expect(snapshot.progress.sessionDay, isNotNull);
-    expect(snapshot.progress.sessionId, isPositive);
+    expect(sessionId, isNotNull);
+    final session = (await database.session.getById(sessionId!))!;
+    expect(session.readingPlanId, planId);
+    expect(session.readSeconds, 0);
+    expect(session.verses, 0);
+    expect(session.endTime, isNotNull);
   });
 
   test('returns null when the plan does not exist', () async {
