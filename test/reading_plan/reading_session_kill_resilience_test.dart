@@ -62,6 +62,7 @@ void main() {
     navigationViewModel = FakeNavigationViewModel();
     viewModel = ReadingSessionViewModel.withDependencies(
       service: sessionService,
+      queries: rsDb.queries,
       navigationViewModel: navigationViewModel,
     );
   });

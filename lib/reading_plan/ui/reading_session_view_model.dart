@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/widgets.dart';
 import 'package:gbt/common/reference.dart';
+import 'package:gbt/reading_plan/data_access/reading_plan_queries.dart';
 import 'package:gbt/reading_plan/reading_plan_config.dart';
 import 'package:gbt/reading_plan/reading_session_service.dart';
 import 'package:gbt/services/logging/log.dart' as log;
@@ -57,13 +58,16 @@ class ReadingSessionViewModel with WidgetsBindingObserver {
   ReadingSessionViewModel()
     : this.withDependencies(
         service: getIt<ReadingSessionService>(),
+        queries: getIt<ReadingPlanQueries>(),
         navigationViewModel: getIt<NavigationViewModel>(),
       );
 
   ReadingSessionViewModel.withDependencies({
     required ReadingSessionService service,
+    required ReadingPlanQueries queries,
     required NavigationViewModel navigationViewModel,
   }) : _service = service,
+       _queries = queries,
        _navigationViewModel = navigationViewModel {
     WidgetsBinding.instance.addObserver(this);
   }
@@ -71,6 +75,7 @@ class ReadingSessionViewModel with WidgetsBindingObserver {
   static Duration heartbeatInterval = const Duration(seconds: 60);
 
   final ReadingSessionService _service;
+  final ReadingPlanQueries _queries;
   final NavigationViewModel _navigationViewModel;
 
   final sessionNotifier = ValueNotifier<ReadingSessionUiState?>(null);
@@ -227,7 +232,11 @@ class ReadingSessionViewModel with WidgetsBindingObserver {
       }
 
       _checkGoalReached();
-      return result.verseReadStates;
+      return await _queries.getVerseReadStates(
+        sessionId,
+        options.bookId,
+        options.chapter,
+      );
     } finally {
       _unlockRequest();
     }
@@ -239,7 +248,7 @@ class ReadingSessionViewModel with WidgetsBindingObserver {
   ) async {
     final sessionId = session?.sessionId;
     if (sessionId == null) return const {};
-    return _service.getVerseReadStates(sessionId, bookId, chapter);
+    return _queries.getVerseReadStates(sessionId, bookId, chapter);
   }
 
   void toggleDisplayGoalProgress() {

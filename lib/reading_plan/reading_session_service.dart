@@ -57,14 +57,9 @@ class BookCompletedEvent {
 }
 
 class VerseReadResult {
-  const VerseReadResult({
-    required this.progress,
-    required this.verseReadStates,
-    this.bookCompleted,
-  });
+  const VerseReadResult({required this.progress, this.bookCompleted});
 
   final SessionProgress progress;
-  final Map<int, VerseReadState> verseReadStates;
   final BookCompletedEvent? bookCompleted;
 }
 
@@ -155,15 +150,7 @@ class ReadingSessionService {
     final planId = session.readingPlanId;
 
     if (!config.bookIds.contains(bookId)) {
-      return VerseReadResult(
-        progress: await _readProgress(session, now),
-        verseReadStates: await _database.getVerseReadStatesForChapter(
-          planId,
-          session.id!,
-          bookId,
-          chapter,
-        ),
-      );
+      return VerseReadResult(progress: await _readProgress(session, now));
     }
 
     final effectiveReadSeconds = math.max(session.readSeconds, readSeconds);
@@ -269,22 +256,11 @@ class ReadingSessionService {
         );
       }
 
-      return (
-        session: updatedSession,
-        states: await _database.getVerseReadStatesForChapter(
-          planId,
-          updatedSession.id!,
-          bookId,
-          chapter,
-          executor: txn,
-        ),
-        event: event,
-      );
+      return (session: updatedSession, event: event);
     });
 
     return VerseReadResult(
       progress: await _readProgress(outcome.session, now),
-      verseReadStates: outcome.states,
       bookCompleted: outcome.event,
     );
   }
@@ -384,22 +360,6 @@ class ReadingSessionService {
     });
 
     return _readProgress(inserted, at);
-  }
-
-  Future<Map<int, VerseReadState>> getVerseReadStates(
-    int sessionId,
-    int bookId,
-    int chapter,
-  ) async {
-    final session = await _database.session.getById(sessionId);
-    if (session == null) return const {};
-
-    return _database.getVerseReadStatesForChapter(
-      session.readingPlanId,
-      session.id!,
-      bookId,
-      chapter,
-    );
   }
 
   void _ensureSessionIsCurrent(Session session, DateTime at) {

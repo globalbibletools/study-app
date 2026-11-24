@@ -65,6 +65,7 @@ void main() {
   ReadingSessionViewModel newViewModel() {
     return ReadingSessionViewModel.withDependencies(
       service: sessionService,
+      queries: database.queries,
       navigationViewModel: navigationViewModel,
     );
   }
@@ -86,6 +87,14 @@ void main() {
     VerseReadOptions options,
   ) {
     return sessionService.setVerseRead(sessionId, options, readSeconds: 0);
+  }
+
+  Future<Map<int, VerseReadState>> statesFor(
+    int sessionId, {
+    int bookId = 63,
+    int chapter = 1,
+  }) {
+    return database.queries.getVerseReadStates(sessionId, bookId, chapter);
   }
 
   test('starts a session and returns a static plan config', () async {
@@ -253,13 +262,11 @@ void main() {
         _readOptions(63, 1, 1, read: true),
       ))!;
 
-      expect(result.verseReadStates[1]?.readCount, 1);
-      expect(result.verseReadStates[1]?.readThisSession, isTrue);
       expect(result.progress.versesToday, 1);
       expect(result.bookCompleted, isNull);
       expect(result.progress.asOf, isNotNull);
 
-      final states = await sessionService.getVerseReadStates(sessionId, 63, 1);
+      final states = await statesFor(sessionId);
       expect(states[1]?.readCount, 1);
       expect(states[1]?.readThisSession, isTrue);
     },
@@ -276,19 +283,16 @@ void main() {
       );
 
       final sessionId = await startPlan(planId);
-      final first = (await setVerseRead(
-        sessionId,
-        _readOptions(63, 1, 1, read: true),
-      ))!;
+      await setVerseRead(sessionId, _readOptions(63, 1, 1, read: true));
       final second = (await setVerseRead(
         sessionId,
         _readOptions(63, 1, 1, read: true),
       ))!;
 
-      expect(first.verseReadStates[1]?.readCount, 1);
-      expect(second.verseReadStates[1]?.readCount, 1);
-      expect(second.verseReadStates[1]?.readThisSession, isTrue);
       expect(second.progress.versesToday, 1);
+      final states = await statesFor(sessionId);
+      expect(states[1]?.readCount, 1);
+      expect(states[1]?.readThisSession, isTrue);
     },
   );
 
@@ -311,7 +315,8 @@ void main() {
         secondSessionId,
         _readOptions(63, 1, 1, read: true),
       ))!;
-      expect(checked.verseReadStates[1]?.readCount, 2);
+      final checkedStates = await statesFor(secondSessionId);
+      expect(checkedStates[1]?.readCount, 2);
       expect(checked.progress.versesToday, 2);
 
       final unchecked = (await setVerseRead(
@@ -319,8 +324,9 @@ void main() {
         _readOptions(63, 1, 1, read: false),
       ))!;
 
-      expect(unchecked.verseReadStates[1]?.readCount, 1);
-      expect(unchecked.verseReadStates[1]?.readThisSession, isFalse);
+      final uncheckedStates = await statesFor(secondSessionId);
+      expect(uncheckedStates[1]?.readCount, 1);
+      expect(uncheckedStates[1]?.readThisSession, isFalse);
       expect(unchecked.progress.versesToday, 1);
       expect(unchecked.bookCompleted, isNull);
 
@@ -349,8 +355,9 @@ void main() {
       _readOptions(63, 1, 1, read: false),
     ))!;
 
-    expect(result.verseReadStates[1]?.readCount, 1);
-    expect(result.verseReadStates[1]?.readThisSession, isFalse);
+    final states = await statesFor(secondSessionId);
+    expect(states[1]?.readCount, 1);
+    expect(states[1]?.readThisSession, isFalse);
     expect(result.progress.versesToday, 1);
 
     final after = (await database.session.getById(secondSessionId))!;
@@ -408,8 +415,9 @@ void main() {
         newSessionId,
         _readOptions(63, 1, 1, read: false),
       ))!;
-      expect(unchecked.verseReadStates[1]?.readCount, 1);
-      expect(unchecked.verseReadStates[1]?.readThisSession, isFalse);
+      final uncheckedStates = await statesFor(newSessionId);
+      expect(uncheckedStates[1]?.readCount, 1);
+      expect(uncheckedStates[1]?.readThisSession, isFalse);
       expect(unchecked.progress.versesToday, 0);
       expect(unchecked.bookCompleted, isNull);
       expect(await database.getRsLogForSession(oldSession.id!), hasLength(1));
@@ -418,8 +426,9 @@ void main() {
         newSessionId,
         _readOptions(63, 1, 1, read: true),
       ))!;
-      expect(checked.verseReadStates[1]?.readCount, 2);
-      expect(checked.verseReadStates[1]?.readThisSession, isTrue);
+      final checkedStates = await statesFor(newSessionId);
+      expect(checkedStates[1]?.readCount, 2);
+      expect(checkedStates[1]?.readThisSession, isTrue);
       expect(checked.progress.versesToday, 1);
       expect(await database.getRsLogForSession(oldSession.id!), hasLength(1));
       expect(await database.getRsLogForSession(newSessionId), hasLength(1));
@@ -589,6 +598,6 @@ void main() {
     expect(await sessionService.heartbeat(-1, readSeconds: 0), isNull);
     expect(await setVerseRead(-1, _readOptions(63, 1, 1, read: true)), isNull);
     expect(await setVerseRead(-1, _readOptions(63, 1, 1, read: false)), isNull);
-    expect(await sessionService.getVerseReadStates(-1, 63, 1), isEmpty);
+    expect(await database.queries.getVerseReadStates(-1, 63, 1), isEmpty);
   });
 }
