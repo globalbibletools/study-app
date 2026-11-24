@@ -1,26 +1,24 @@
 import 'dart:async';
+import 'dart:collection';
 
 import 'package:flutter/foundation.dart';
 import 'package:gbt/ui/messaging/ephemeral_message.dart';
 
 class MessengerViewModel extends ChangeNotifier {
-  EphemeralMessage? _visible;
-  final List<EphemeralMessage> _pending = [];
   Timer? _timer;
   int _nextId = 0;
 
+  EphemeralMessage? _visible;
   EphemeralMessage? get visibleMessage => _visible;
 
-  List<EphemeralMessage> get pendingMessages => List.unmodifiable(_pending);
-
+  final List<EphemeralMessage> _pending = [];
+  UnmodifiableListView<EphemeralMessage> get pendingMessages =>
+      UnmodifiableListView(_pending);
   bool get hasPendingMessages => _pending.isNotEmpty;
 
   String showInfo(String text) => _show(MessageSeverity.info, text);
-
   String showSuccess(String text) => _show(MessageSeverity.success, text);
-
   String showWarning(String text) => _show(MessageSeverity.warning, text);
-
   String showError(String text) => _show(MessageSeverity.error, text);
 
   String _show(MessageSeverity severity, String text) {
@@ -43,12 +41,14 @@ class MessengerViewModel extends ChangeNotifier {
     } else {
       _pending.add(message);
     }
+
     return message.id;
   }
 
   String? _refreshVisibleDuplicate(MessageSeverity severity, String text) {
     final visible = _visible;
-    if (visible == null || !_matches(visible, severity, text)) return null;
+    if (visible == null || !visible.matches(severity, text)) return null;
+
     _startTimer();
     return visible.id;
   }
@@ -58,17 +58,9 @@ class MessengerViewModel extends ChangeNotifier {
     String text,
   ) {
     for (final message in _pending) {
-      if (_matches(message, severity, text)) return message;
+      if (message.matches(severity, text)) return message;
     }
     return null;
-  }
-
-  bool _matches(
-    EphemeralMessage message,
-    MessageSeverity severity,
-    String text,
-  ) {
-    return message.severity == severity && message.text == text;
   }
 
   void dismissVisible() {

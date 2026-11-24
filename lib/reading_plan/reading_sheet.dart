@@ -13,14 +13,17 @@ class ReadingSheet extends StatelessWidget {
 
   const ReadingSheet({super.key, required this.child});
 
-  static Future<void> navigateTo(BuildContext context) async {
+  static Future<void> navigateTo(
+    BuildContext context, {
+    MessengerViewModel? messenger,
+  }) async {
     final l10n = AppLocalizations.of(context)!;
-    final messenger = getIt<MessengerViewModel>();
+    final messengerViewModel = messenger ?? getIt<MessengerViewModel>();
     ReadingPlanPanelViewModel viewModel;
     try {
       viewModel = await ReadingPlanPanelViewModel.create();
     } catch (_) {
-      messenger.showError(l10n.errorLoadingContent);
+      messengerViewModel.showError(l10n.errorLoadingContent);
       return;
     }
 
@@ -37,8 +40,12 @@ class ReadingSheet extends StatelessWidget {
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
         ),
-        builder: (context) =>
-            ReadingSheet(child: ReadingPlanPanel(viewModel: viewModel)),
+        builder: (context) => ReadingSheet(
+          child: ReadingPlanPanel(
+            viewModel: viewModel,
+            messenger: messengerViewModel,
+          ),
+        ),
       );
     } catch (_) {
       viewModel.dispose();

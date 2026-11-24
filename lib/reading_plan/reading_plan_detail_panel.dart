@@ -20,16 +20,22 @@ class ReadingPlanDetailPanel extends StatefulWidget {
   final ReadingPlanDetailViewModel viewModel;
   final NavigateToExistingReadingPlanRoute? navigateToEditPlanRoute;
   final NavigateToDayActivityLogRoute? navigateToDayActivityLogRoute;
+  final MessengerViewModel? messenger;
 
   const ReadingPlanDetailPanel({
     super.key,
     required this.viewModel,
     this.navigateToEditPlanRoute,
     this.navigateToDayActivityLogRoute,
+    this.messenger,
   });
 
-  static Future<void> navigateTo(BuildContext context, int planId) async {
-    final messenger = getIt<MessengerViewModel>();
+  static Future<void> navigateTo(
+    BuildContext context,
+    int planId, {
+    MessengerViewModel? messenger,
+  }) async {
+    final messengerViewModel = messenger ?? getIt<MessengerViewModel>();
     ReadingPlanDetailViewModel viewModel;
     try {
       viewModel = await ReadingPlanDetailViewModel.create(planId: planId);
@@ -37,7 +43,7 @@ class ReadingPlanDetailPanel extends StatefulWidget {
       if (!context.mounted) return;
 
       final l10n = AppLocalizations.of(context)!;
-      messenger.showError(l10n.errorLoadingContent);
+      messengerViewModel.showError(l10n.errorLoadingContent);
       return;
     }
 
@@ -49,7 +55,10 @@ class ReadingPlanDetailPanel extends StatefulWidget {
     try {
       await Navigator.of(context).push<void>(
         MaterialPageRoute(
-          builder: (_) => ReadingPlanDetailPanel(viewModel: viewModel),
+          builder: (_) => ReadingPlanDetailPanel(
+            viewModel: viewModel,
+            messenger: messengerViewModel,
+          ),
         ),
       );
     } catch (_) {
@@ -149,7 +158,11 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
   Future<void> _editPlan() async {
     final navigate =
         widget.navigateToEditPlanRoute ??
-        EditReadingPlanPanel.navigateToExisting;
+        (context, planId) => EditReadingPlanPanel.navigateToExisting(
+          context,
+          planId,
+          messenger: widget.messenger,
+        );
     await navigate(context, viewModel.planId);
 
     if (!mounted) return;
@@ -331,7 +344,13 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
     try {
       final navigate =
           widget.navigateToDayActivityLogRoute ??
-          DayActivityLogPanel.navigateTo;
+          (context, date, {required readingPlanId}) =>
+              DayActivityLogPanel.navigateTo(
+                context,
+                date,
+                readingPlanId: readingPlanId,
+                messenger: widget.messenger,
+              );
       await navigate(context, date, readingPlanId: viewModel.planId);
     } finally {
       _openingActivityLog = false;

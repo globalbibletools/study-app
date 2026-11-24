@@ -6,6 +6,7 @@ import 'package:gbt/reading_plan/reading_plan_card.dart';
 import 'package:gbt/reading_plan/reading_plan_detail_panel.dart';
 import 'package:gbt/reading_plan/reading_plan_panel_view_model.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
+import 'package:gbt/ui/messaging/messenger_view_model.dart';
 
 class ReadingPlanPanel extends StatefulWidget {
   const ReadingPlanPanel({
@@ -14,6 +15,7 @@ class ReadingPlanPanel extends StatefulWidget {
     this.navigateToCreatePlanRoute,
     this.navigateToPlanDetailsRoute,
     this.navigateToEditPlanRoute,
+    this.messenger,
   });
 
   const ReadingPlanPanel.withDependencies({
@@ -22,12 +24,14 @@ class ReadingPlanPanel extends StatefulWidget {
     this.navigateToCreatePlanRoute,
     this.navigateToPlanDetailsRoute,
     this.navigateToEditPlanRoute,
+    this.messenger,
   });
 
   final ReadingPlanPanelViewModel viewModel;
   final NavigateToNewReadingPlanRoute? navigateToCreatePlanRoute;
   final NavigateToReadingPlanDetailRoute? navigateToPlanDetailsRoute;
   final NavigateToExistingReadingPlanRoute? navigateToEditPlanRoute;
+  final MessengerViewModel? messenger;
 
   @override
   ReadingPlanPanelState createState() => ReadingPlanPanelState();
@@ -123,7 +127,12 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
 
   Future<void> _createNewPlan(String defaultName) async {
     final navigate =
-        widget.navigateToCreatePlanRoute ?? EditReadingPlanPanel.navigateToNew;
+        widget.navigateToCreatePlanRoute ??
+        (context, name) => EditReadingPlanPanel.navigateToNew(
+          context,
+          name,
+          messenger: widget.messenger,
+        );
     await navigate(context, defaultName);
 
     if (!mounted) return;
@@ -135,7 +144,12 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
     if (planId == null) return;
 
     final navigate =
-        widget.navigateToPlanDetailsRoute ?? ReadingPlanDetailPanel.navigateTo;
+        widget.navigateToPlanDetailsRoute ??
+        (context, planId) => ReadingPlanDetailPanel.navigateTo(
+          context,
+          planId,
+          messenger: widget.messenger,
+        );
     await navigate(context, planId);
 
     if (!mounted) return;
@@ -148,7 +162,11 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
 
     final navigate =
         widget.navigateToEditPlanRoute ??
-        EditReadingPlanPanel.navigateToExisting;
+        (context, planId) => EditReadingPlanPanel.navigateToExisting(
+          context,
+          planId,
+          messenger: widget.messenger,
+        );
     await navigate(context, planId);
 
     if (!mounted) return;

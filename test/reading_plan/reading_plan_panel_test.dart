@@ -13,6 +13,7 @@ import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/messaging/messenger_view_model.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../fixtures/fake_messenger_view_model.dart';
 import 'fake_reading_plan_service.dart';
 import 'fake_reading_session_view_model.dart';
 
@@ -21,10 +22,17 @@ void main() {
 
   late FakeReadingPlanService planService;
   late FakeReadingSessionViewModel sessionViewModel;
+  late FakeMessengerViewModel fakeMessenger;
 
   setUp(() {
     planService = FakeReadingPlanService();
     sessionViewModel = FakeReadingSessionViewModel();
+    fakeMessenger = FakeMessengerViewModel();
+  });
+
+  tearDown(() async {
+    fakeMessenger.dispose();
+    await getIt.reset();
   });
 
   Future<ReadingPlanPanelViewModel> createViewModel() {
@@ -42,12 +50,14 @@ void main() {
     navigateToPlanDetailsRoute,
     Future<void> Function(BuildContext context, int planId)?
     navigateToEditPlanRoute,
+    MessengerViewModel? messenger,
   }) {
     return ReadingPlanPanel.withDependencies(
       viewModel: viewModel,
       navigateToCreatePlanRoute: navigateToCreatePlanRoute,
       navigateToPlanDetailsRoute: navigateToPlanDetailsRoute,
       navigateToEditPlanRoute: navigateToEditPlanRoute,
+      messenger: messenger,
     );
   }
 
@@ -80,6 +90,7 @@ void main() {
             navigateToCreatePlanRoute: navigateToCreatePlanRoute,
             navigateToPlanDetailsRoute: navigateToPlanDetailsRoute,
             navigateToEditPlanRoute: navigateToEditPlanRoute,
+            messenger: fakeMessenger,
           ),
         ),
       ),
@@ -297,10 +308,6 @@ void main() {
   });
 
   group('view plan default route', () {
-    setUp(() {
-      getIt.registerSingleton<MessengerViewModel>(MessengerViewModel());
-    });
-
     tearDown(() async {
       await getIt.reset();
     });

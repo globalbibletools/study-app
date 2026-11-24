@@ -32,4 +32,8 @@ class EphemeralMessage {
 
   @override
   String toString() => 'EphemeralMessage($id, ${severity.name}, "$text")';
+
+  bool matches(MessageSeverity severity, String text) {
+    return this.severity == severity && this.text == text;
+  }
 }

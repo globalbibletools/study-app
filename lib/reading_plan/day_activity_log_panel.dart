@@ -17,15 +17,21 @@ typedef NavigateToDayActivityLogRoute =
 
 class DayActivityLogPanel extends StatefulWidget {
   final DayActivityLogViewModel viewModel;
+  final MessengerViewModel? messenger;
 
-  const DayActivityLogPanel({super.key, required this.viewModel});
+  const DayActivityLogPanel({
+    super.key,
+    required this.viewModel,
+    this.messenger,
+  });
 
   static Future<void> navigateTo(
     BuildContext context,
     DateTime date, {
     required int readingPlanId,
+    MessengerViewModel? messenger,
   }) async {
-    final messenger = getIt<MessengerViewModel>();
+    final messengerViewModel = messenger ?? getIt<MessengerViewModel>();
     DayActivityLogViewModel viewModel;
     try {
       viewModel = await DayActivityLogViewModel.create(
@@ -41,14 +47,17 @@ class DayActivityLogPanel extends StatefulWidget {
       if (!context.mounted) return;
 
       final l10n = AppLocalizations.of(context)!;
-      messenger.showError(l10n.errorLoadingContent);
+      messengerViewModel.showError(l10n.errorLoadingContent);
       return;
     }
 
     try {
       await Navigator.of(context).push<void>(
         MaterialPageRoute(
-          builder: (context) => DayActivityLogPanel(viewModel: viewModel),
+          builder: (context) => DayActivityLogPanel(
+            viewModel: viewModel,
+            messenger: messengerViewModel,
+          ),
         ),
       );
     } catch (_) {
@@ -63,6 +72,9 @@ class DayActivityLogPanel extends StatefulWidget {
 
 class _DayActivityLogPanelState extends State<DayActivityLogPanel> {
   late final DayActivityLogViewModel viewModel;
+
+  MessengerViewModel get _messenger =>
+      widget.messenger ?? getIt<MessengerViewModel>();
 
   @override
   void initState() {
@@ -122,7 +134,7 @@ class _DayActivityLogPanelState extends State<DayActivityLogPanel> {
 
   Future<void> _showAddManualSessionDialog() async {
     final l10n = AppLocalizations.of(context)!;
-    final messenger = getIt<MessengerViewModel>();
+    final messenger = _messenger;
     final input = await showDialog<_ManualSessionInput>(
       context: context,
       builder: (context) => const _AddManualSessionDialog(),
@@ -144,7 +156,7 @@ class _DayActivityLogPanelState extends State<DayActivityLogPanel> {
     if (sessionId == null) return;
 
     final l10n = AppLocalizations.of(context)!;
-    final messenger = getIt<MessengerViewModel>();
+    final messenger = _messenger;
 
     try {
       await viewModel.deleteManualSession(sessionId);

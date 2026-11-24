@@ -10,9 +10,9 @@ import 'package:gbt/reading_plan/reading_session_view_model.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/messaging/messenger_host.dart';
-import 'package:gbt/ui/messaging/messenger_view_model.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../fixtures/fake_messenger_view_model.dart';
 import 'fake_reading_plan_service.dart';
 import 'fake_reading_session_view_model.dart';
 
@@ -20,13 +20,15 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late FakeReadingSessionViewModel sessionViewModel;
+  late FakeMessengerViewModel messenger;
 
   setUp(() {
     sessionViewModel = FakeReadingSessionViewModel();
-    getIt.registerSingleton<MessengerViewModel>(MessengerViewModel());
+    messenger = FakeMessengerViewModel();
   });
 
   tearDown(() async {
+    messenger.dispose();
     await getIt.reset();
   });
 
@@ -50,7 +52,7 @@ void main() {
       builder: (context, child) => Material(
         color: Theme.of(context).colorScheme.surface,
         child: MessengerHost(
-          messenger: getIt<MessengerViewModel>(),
+          messenger: messenger,
           child: child ?? const SizedBox.shrink(),
         ),
       ),
@@ -70,6 +72,7 @@ void main() {
           viewModel: viewModel,
           navigateToEditPlanRoute: navigateToEditPlanRoute,
           navigateToDayActivityLogRoute: navigateToDayActivityLogRoute,
+          messenger: messenger,
         ),
       ),
     );
@@ -92,7 +95,7 @@ void main() {
       getIt.registerSingleton<ReadingSessionViewModel>(session);
 
       await tester.pumpWidget(
-        buildApp(const _NavigateToDetailLauncher(planId: 1)),
+        buildApp(_NavigateToDetailLauncher(planId: 1, messenger: messenger)),
       );
       await tester.tap(find.text('Open detail'));
       await tester.pump();
@@ -116,7 +119,7 @@ void main() {
       getIt.registerSingleton<ReadingSessionViewModel>(session);
 
       await tester.pumpWidget(
-        buildApp(const _NavigateToDetailLauncher(planId: 1)),
+        buildApp(_NavigateToDetailLauncher(planId: 1, messenger: messenger)),
       );
       await tester.tap(find.text('Open detail'));
       await tester.pumpAndSettle();
@@ -127,6 +130,7 @@ void main() {
       final context = tester.element(find.text('Open detail'));
       final l10n = AppLocalizations.of(context)!;
       expect(find.text(l10n.errorLoadingContent), findsOneWidget);
+      expect(messenger.messages.single.text, l10n.errorLoadingContent);
 
       await tester.pump(const Duration(seconds: 8));
       await tester.pumpAndSettle();
@@ -543,16 +547,24 @@ void main() {
 }
 
 class _NavigateToDetailLauncher extends StatelessWidget {
-  const _NavigateToDetailLauncher({required this.planId});
+  const _NavigateToDetailLauncher({
+    required this.planId,
+    required this.messenger,
+  });
 
   final int planId;
+  final FakeMessengerViewModel messenger;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Center(
         child: ElevatedButton(
-          onPressed: () => ReadingPlanDetailPanel.navigateTo(context, planId),
+          onPressed: () => ReadingPlanDetailPanel.navigateTo(
+            context,
+            planId,
+            messenger: messenger,
+          ),
           child: const Text('Open detail'),
         ),
       ),
@@ -565,11 +577,13 @@ class _DetailLauncher extends StatelessWidget {
     required this.viewModel,
     this.navigateToEditPlanRoute,
     this.navigateToDayActivityLogRoute,
+    this.messenger,
   });
 
   final ReadingPlanDetailViewModel viewModel;
   final NavigateToExistingReadingPlanRoute? navigateToEditPlanRoute;
   final NavigateToDayActivityLogRoute? navigateToDayActivityLogRoute;
+  final FakeMessengerViewModel? messenger;
 
   @override
   Widget build(BuildContext context) {
@@ -583,6 +597,7 @@ class _DetailLauncher extends StatelessWidget {
                   viewModel: viewModel,
                   navigateToEditPlanRoute: navigateToEditPlanRoute,
                   navigateToDayActivityLogRoute: navigateToDayActivityLogRoute,
+                  messenger: messenger,
                 ),
               ),
             );
