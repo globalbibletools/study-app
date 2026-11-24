@@ -130,7 +130,7 @@ class ReadingPlanQueries {
       sessionDay: day,
       sessionStartTime: DateTime.parse(row['start_time'] as String),
       sessionReadSeconds: row['read_seconds'] as int? ?? 0,
-      dayProgress: await _getDayProgress(planId, day),
+      dayProgress: await getDayProgress(planId, day),
     );
   }
 
@@ -166,7 +166,7 @@ class ReadingPlanQueries {
     };
   }
 
-  Future<DailyProgress> _getDayProgress(int planId, DateTime date) async {
+  Future<DailyProgress> getDayProgress(int planId, DateTime date) async {
     final day = _dayOnly(date);
     final rows = await _database.query(
       'rs_day_summary',

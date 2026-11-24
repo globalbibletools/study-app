@@ -40,6 +40,7 @@ void main() {
     expect((await queries.getMonthDayProgress(1, DateTime(2026, 11, 1))).keys, [
       17,
     ]);
+    expect((await queries.getDayProgress(1, day)).verses, 3);
 
     final activity = await queries.getDayActivity(1, day);
     expect(activity.sessions.single.ranges.single.toVerse, 3);
@@ -47,6 +48,7 @@ void main() {
     expect((await queries.getSessionRuntime(10))!.sessionReadSeconds, 120);
     expect((await queries.getVerseReadStates(10, 63, 1))[1]!.readCount, 1);
     expect(queries.requestedMonths, [DateTime(2026, 11)]);
+    expect(queries.requestedDays, [day]);
     expect(queries.dayActivityDates, [day]);
     expect(queries.dayActivityPlanIds, [1]);
   });

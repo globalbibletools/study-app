@@ -16,7 +16,9 @@ class FakeReadingPlanQueries extends Fake implements ReadingPlanQueries {
   Reference? resumePosition;
 
   final monthProgressByMonth = <DateTime, Map<int, DailyProgress>>{};
+  final dayProgressByDay = <DateTime, DailyProgress>{};
   final requestedMonths = <DateTime>[];
+  final requestedDays = <DateTime>[];
   final dayActivityDates = <DateTime>[];
   final dayActivityPlanIds = <int>[];
 
@@ -100,6 +102,15 @@ class FakeReadingPlanQueries extends Fake implements ReadingPlanQueries {
     return Future.value([
       for (final summary in plans) _withOverrides(summary, today: today),
     ]);
+  }
+
+  @override
+  Future<DailyProgress> getDayProgress(int planId, DateTime day) async {
+    final normalized = DateTime(day.year, day.month, day.day);
+    requestedDays.add(normalized);
+    return dayProgressByDay[normalized] ??
+        monthProgressByMonth[DateTime(day.year, day.month)]?[day.day] ??
+        DailyProgress.empty(normalized);
   }
 
   @override

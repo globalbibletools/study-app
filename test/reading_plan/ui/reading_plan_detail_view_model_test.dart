@@ -1,17 +1,21 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gbt/asyncutils/cancellation.dart';
 import 'package:gbt/common/reference.dart';
+import 'package:gbt/reading_plan/data_access/reading_plan_read_models.dart';
 import 'package:gbt/reading_plan/ui/reading_plan_detail_view_model.dart';
 import 'package:gbt/reading_plan/data_access/rs_model.dart';
 
+import '../fake_reading_plan_queries.dart';
 import '../fake_reading_plan_service.dart';
 import '../fake_reading_session_view_model.dart';
 
 void main() {
   late FakeReadingSessionViewModel sessionViewModel;
+  late FakeReadingPlanQueries queries;
 
   setUp(() {
     sessionViewModel = FakeReadingSessionViewModel();
+    queries = FakeReadingPlanQueries();
   });
 
   Future<ReadingPlanDetailViewModel> newViewModel(
@@ -20,6 +24,7 @@ void main() {
   }) async {
     final viewModel = await ReadingPlanDetailViewModel.create(
       planId: planId,
+      queries: queries,
       planService: service,
       sessionViewModel: sessionViewModel,
     );
@@ -46,8 +51,15 @@ void main() {
               ..bookStats = [
                 bookStats(63, totalVerses: 13, versesRead: 13),
                 bookStats(64, totalVerses: 15, versesRead: 0),
-              ]
-              ..monthProgress = [DayProgress(today, 10, 13, true)];
+              ];
+        queries.monthProgressByMonth[monthStart(today)] = {
+          today.day: dailyProgress(
+            today,
+            minutes: 10,
+            verses: 13,
+            goalReached: true,
+          ),
+        };
         final viewModel = await newViewModel(service);
         expect(viewModel.planId, 7);
         expect(viewModel.planName, 'Ruth Plan');
@@ -123,6 +135,7 @@ void main() {
         final service = FakeReadingPlanService([details]);
         final viewModel = await ReadingPlanDetailViewModel.create(
           planId: 7,
+          queries: queries,
           planService: service,
           sessionViewModel: sessionViewModel,
         );
@@ -212,7 +225,10 @@ void main() {
       final today = dateOnly(DateTime.now());
       final service = FakeReadingPlanService([
         planDetails(goalType: GoalType.verses, goalValue: 10),
-      ])..monthProgress = [DayProgress(today, 7, 3, false)];
+      ]);
+      queries.monthProgressByMonth[monthStart(today)] = {
+        today.day: dailyProgress(today, minutes: 7, verses: 3),
+      };
       final viewModel = await newViewModel(service);
 
       expect(viewModel.goalType, GoalType.verses);
@@ -226,7 +242,10 @@ void main() {
       final today = dateOnly(DateTime.now());
       final service = FakeReadingPlanService([
         planDetails(goalType: GoalType.minutes, goalValue: 20),
-      ])..monthProgress = [DayProgress(today, 7, 3, false)];
+      ]);
+      queries.monthProgressByMonth[monthStart(today)] = {
+        today.day: dailyProgress(today, minutes: 7, verses: 3),
+      };
       final viewModel = await newViewModel(service);
 
       expect(viewModel.goalType, GoalType.minutes);
@@ -239,7 +258,10 @@ void main() {
       final today = dateOnly(DateTime.now());
       final service = FakeReadingPlanService([
         planDetails(goalType: GoalType.verses, goalValue: 0),
-      ])..monthProgress = [DayProgress(today, 7, 3, false)];
+      ]);
+      queries.monthProgressByMonth[monthStart(today)] = {
+        today.day: dailyProgress(today, minutes: 7, verses: 3),
+      };
       final viewModel = await newViewModel(service);
 
       expect(viewModel.todaysGoalProgress, 0);
@@ -347,11 +369,15 @@ void main() {
     test('exposes calendar days for the visible month', () async {
       final month = monthStart(DateTime.now());
       final service = FakeReadingPlanService([planDetails()]);
-      service.monthProgressByMonth[month] = [
-        DayProgress(DateTime(month.year, month.month, 1), 10, 10, true),
-        DayProgress.empty(DateTime(month.year, month.month, 2)),
-        DayProgress(DateTime(month.year, month.month, 3), 0, 0, false),
-      ];
+      queries.monthProgressByMonth[month] = {
+        1: dailyProgress(
+          DateTime(month.year, month.month, 1),
+          minutes: 10,
+          verses: 10,
+          goalReached: true,
+        ),
+        3: dailyProgress(DateTime(month.year, month.month, 3)),
+      };
       final viewModel = await newViewModel(service);
 
       expect(viewModel.visibleMonth, month);
@@ -361,19 +387,31 @@ void main() {
       expect(progress.containsKey(2), isFalse);
       expect(progress[3], 0);
       expect(viewModel.dayProgress(1)!.goalReached, isTrue);
-      expect(viewModel.dayProgress(2)!.empty, isTrue);
+      expect(viewModel.dayProgress(2), isNull);
     });
 
     test('omits empty days and exposes clamped fractions', () async {
       final month = monthStart(DateTime.now());
       final service = FakeReadingPlanService([planDetails()]);
-      service.monthProgressByMonth[month] = [
-        DayProgress(DateTime(month.year, month.month, 1), 10, 4, false),
-        DayProgress.empty(DateTime(month.year, month.month, 2)),
-        DayProgress(DateTime(month.year, month.month, 3), 0, 0, false),
-        DayProgress(DateTime(month.year, month.month, 4), 10, 10, true),
-        DayProgress(DateTime(month.year, month.month, 5), 10, 20, false),
-      ];
+      queries.monthProgressByMonth[month] = {
+        1: dailyProgress(
+          DateTime(month.year, month.month, 1),
+          minutes: 10,
+          verses: 4,
+        ),
+        3: dailyProgress(DateTime(month.year, month.month, 3)),
+        4: dailyProgress(
+          DateTime(month.year, month.month, 4),
+          minutes: 10,
+          verses: 10,
+          goalReached: true,
+        ),
+        5: dailyProgress(
+          DateTime(month.year, month.month, 5),
+          minutes: 10,
+          verses: 20,
+        ),
+      };
       final viewModel = await newViewModel(service);
 
       final progress = viewModel.calendarProgress;
@@ -390,12 +428,53 @@ void main() {
       final service = FakeReadingPlanService([
         planDetails(goalType: GoalType.minutes, goalValue: 20),
       ]);
-      service.monthProgressByMonth[month] = [
-        DayProgress(DateTime(month.year, month.month, 1), 7, 3, false),
-      ];
+      queries.monthProgressByMonth[month] = {
+        1: dailyProgress(
+          DateTime(month.year, month.month, 1),
+          minutes: 7,
+          verses: 3,
+        ),
+      };
       final viewModel = await newViewModel(service);
 
       expect(viewModel.calendarProgress[1], closeTo(0.35, 1e-9));
+    });
+
+    test('uses the stored goal snapshot for calendar fractions', () async {
+      final month = monthStart(DateTime.now());
+      final service = FakeReadingPlanService([
+        planDetails(goalType: GoalType.verses, goalValue: 20),
+      ]);
+      queries.monthProgressByMonth[month] = {
+        1: dailyProgress(
+          DateTime(month.year, month.month, 1),
+          minutes: 10,
+          verses: 10,
+          goal: const DailyGoal(GoalType.verses, 10),
+        ),
+      };
+      final viewModel = await newViewModel(service);
+
+      expect(viewModel.calendarProgress[1], 1);
+    });
+
+    test('reads today separately from the visible month', () async {
+      final month = monthStart(DateTime.now());
+      final today = dateOnly(DateTime.now());
+      final service = FakeReadingPlanService([planDetails()]);
+      queries.monthProgressByMonth[month] = {
+        today.day: dailyProgress(today, minutes: 3, verses: 1),
+      };
+      queries.dayProgressByDay[today] = dailyProgress(
+        today,
+        minutes: 9,
+        verses: 5,
+      );
+      final viewModel = await newViewModel(service);
+
+      expect(viewModel.todaysProgress.verses, 5);
+      expect(viewModel.todaysProgress.minutes, 9);
+      expect(viewModel.calendarProgress[today.day], closeTo(0.1, 1e-9));
     });
 
     test(
@@ -404,16 +483,21 @@ void main() {
         final current = monthStart(DateTime.now());
         final next = DateTime(current.year, current.month + 1);
         final service = FakeReadingPlanService([planDetails()]);
-        service.monthProgressByMonth[current] = const [];
-        service.monthProgressByMonth[next] = [
-          DayProgress(DateTime(next.year, next.month, 1), 5, 5, true),
-        ];
+        queries.monthProgressByMonth[current] = const {};
+        queries.monthProgressByMonth[next] = {
+          1: dailyProgress(
+            DateTime(next.year, next.month, 1),
+            minutes: 5,
+            verses: 5,
+            goalReached: true,
+          ),
+        };
         final viewModel = await newViewModel(service);
 
         await viewModel.showNextMonth();
 
         expect(viewModel.visibleMonth, next);
-        expect(service.requestedMonths.last, next);
+        expect(queries.requestedMonths.last, next);
         expect(viewModel.calendarProgress[1], 1);
         expect(
           viewModel.dayProgress(1)!.day,
@@ -422,19 +506,49 @@ void main() {
       },
     );
 
+    test(
+      'refresh keeps today\'s progress while viewing another month',
+      () async {
+        final current = monthStart(DateTime.now());
+        final next = DateTime(current.year, current.month + 1);
+        final today = dateOnly(DateTime.now());
+        final service = FakeReadingPlanService([planDetails()]);
+        queries.dayProgressByDay[today] = dailyProgress(
+          today,
+          minutes: 7,
+          verses: 3,
+        );
+        queries.monthProgressByMonth[next] = const {};
+        final viewModel = await newViewModel(service);
+
+        await viewModel.showNextMonth();
+        queries.dayProgressByDay[today] = dailyProgress(
+          today,
+          minutes: 9,
+          verses: 5,
+        );
+        await viewModel.refresh();
+
+        expect(viewModel.visibleMonth, next);
+        expect(viewModel.todaysProgress.verses, 5);
+        expect(viewModel.todaysProgress.minutes, 9);
+        expect(queries.requestedDays, [today, today]);
+      },
+    );
+
     test('navigating back restores the previous month', () async {
       final current = monthStart(DateTime.now());
       final next = DateTime(current.year, current.month + 1);
       final service = FakeReadingPlanService([planDetails()]);
-      service.monthProgressByMonth[current] = const [];
-      service.monthProgressByMonth[next] = const [];
+      queries.monthProgressByMonth[current] = const {};
+      queries.monthProgressByMonth[next] = const {};
       final viewModel = await newViewModel(service);
 
       await viewModel.showNextMonth();
       await viewModel.showPreviousMonth();
 
       expect(viewModel.visibleMonth, current);
-      expect(service.requestedMonths.last, current);
+      expect(queries.requestedMonths.last, current);
     });
   });
 }
@@ -483,3 +597,19 @@ DateTime dateOnly(DateTime value) =>
     DateTime(value.year, value.month, value.day);
 
 DateTime monthStart(DateTime value) => DateTime(value.year, value.month);
+
+DailyProgress dailyProgress(
+  DateTime day, {
+  int minutes = 0,
+  int verses = 0,
+  bool goalReached = false,
+  DailyGoal? goal,
+}) {
+  return DailyProgress(
+    day: day,
+    seconds: minutes * 60,
+    verses: verses,
+    goalReached: goalReached,
+    goal: goal,
+  );
+}

@@ -5,6 +5,7 @@ import 'package:gbt/reading_plan/ui/reading_plan_card.dart';
 import 'package:gbt/reading_plan/ui/reading_plan_detail_panel.dart';
 import 'package:gbt/reading_plan/ui/reading_plan_panel.dart';
 import 'package:gbt/reading_plan/ui/reading_plan_panel_view_model.dart';
+import 'package:gbt/reading_plan/data_access/reading_plan_queries.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
 import 'package:gbt/reading_plan/ui/reading_session_view_model.dart';
 import 'package:gbt/reading_plan/ui/progress_circle.dart';
@@ -14,6 +15,7 @@ import 'package:gbt/ui/messaging/messenger_view_model.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../fixtures/fake_messenger_view_model.dart';
+import '../fake_reading_plan_queries.dart';
 import '../fake_reading_plan_service.dart';
 import '../fake_reading_session_view_model.dart';
 
@@ -316,6 +318,7 @@ void main() {
       planService.plans = [planDetails('Ruth', id: 1)];
       planService.queuePlanRequests = true;
       getIt.registerSingleton<ReadingPlanService>(planService);
+      getIt.registerSingleton<ReadingPlanQueries>(FakeReadingPlanQueries());
       getIt.registerSingleton<ReadingSessionViewModel>(sessionViewModel);
 
       await pumpPanel(tester);
