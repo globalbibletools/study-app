@@ -9,28 +9,6 @@ import 'package:gbt/reading_plan/data_access/session_log_repository.dart';
 import 'package:gbt/reading_plan/data_access/session_repository.dart';
 import 'package:gbt/services/service_locator.dart';
 
-class SessionProgress {
-  const SessionProgress({
-    required this.sessionId,
-    required this.sessionDay,
-    required this.sessionStartTime,
-    required this.sessionReadSeconds,
-    required this.versesToday,
-    required this.secondsToday,
-    required this.goalAlreadyReachedToday,
-    required this.asOf,
-  });
-
-  final int sessionId;
-  final DateTime sessionDay;
-  final DateTime sessionStartTime;
-  final int sessionReadSeconds;
-  final int versesToday;
-  final int secondsToday;
-  final bool goalAlreadyReachedToday;
-  final DateTime asOf;
-}
-
 class BookCompletedEvent {
   const BookCompletedEvent({
     required this.completedBookId,
@@ -44,9 +22,8 @@ class BookCompletedEvent {
 }
 
 class VerseReadResult {
-  const VerseReadResult({required this.progress, this.bookCompleted});
+  const VerseReadResult({this.bookCompleted});
 
-  final SessionProgress progress;
   final BookCompletedEvent? bookCompleted;
 }
 
@@ -127,13 +104,13 @@ class ReadingSessionService {
     final planId = session.readingPlanId;
 
     if (!config.bookIds.contains(bookId)) {
-      return VerseReadResult(progress: await _readProgress(session, now));
+      return const VerseReadResult();
     }
 
     final effectiveReadSeconds = math.max(session.readSeconds, readSeconds);
     final hasNewReadSeconds = effectiveReadSeconds > session.readSeconds;
 
-    final outcome = await _database.transaction((txn) async {
+    final event = await _database.transaction((txn) async {
       final existingLog = await _database.sessionLog.getVerseLogForSession(
         session.id!,
         bookId,
@@ -233,23 +210,20 @@ class ReadingSessionService {
         );
       }
 
-      return (session: updatedSession, event: event);
+      return event;
     });
 
-    return VerseReadResult(
-      progress: await _readProgress(outcome.session, now),
-      bookCompleted: outcome.event,
-    );
+    return VerseReadResult(bookCompleted: event);
   }
 
-  Future<SessionProgress?> heartbeat(
+  Future<void> heartbeat(
     int sessionId, {
     required int readSeconds,
     DateTime? at,
   }) async {
     final now = at ?? DateTime.now();
     final session = await _database.session.getById(sessionId);
-    if (session == null) return null;
+    if (session == null) return;
 
     _ensureSessionIsCurrent(session, now);
 
@@ -266,11 +240,9 @@ class ReadingSessionService {
         executor: txn,
       );
     });
-
-    return _readProgress(updated, now);
   }
 
-  Future<SessionProgress?> rolloverSession(
+  Future<int?> rolloverSession(
     int sessionId, {
     required DateTime at,
     required int oldReadSeconds,
@@ -336,7 +308,7 @@ class ReadingSessionService {
       return inserted;
     });
 
-    return _readProgress(inserted, at);
+    return inserted.id;
   }
 
   void _ensureSessionIsCurrent(Session session, DateTime at) {
@@ -347,25 +319,6 @@ class ReadingSessionService {
       'Session ${session.id} belongs to '
       '${RsDaySummary.dayString(session.rsDate)}, but the current day is '
       '${RsDaySummary.dayString(today)}. Call rolloverSession first.',
-    );
-  }
-
-  Future<SessionProgress> _readProgress(Session session, DateTime asOf) async {
-    final planId = session.readingPlanId;
-    final summary = await _database.getDaySummary(planId, session.rsDate);
-
-    return SessionProgress(
-      sessionId: session.id!,
-      sessionDay: _day(session.rsDate),
-      sessionStartTime: session.startTime,
-      sessionReadSeconds: session.readSeconds,
-      versesToday: await _database.getVersesReadToday(planId, session.rsDate),
-      secondsToday: await _database.getTotalSecondsReadToday(
-        planId,
-        session.rsDate,
-      ),
-      goalAlreadyReachedToday: summary?.goalReached ?? false,
-      asOf: asOf,
     );
   }
 

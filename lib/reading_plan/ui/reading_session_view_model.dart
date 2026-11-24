@@ -227,7 +227,7 @@ class ReadingSessionViewModel with WidgetsBindingObserver {
       );
       if (_disposed || result == null) return null;
 
-      _applyProgress(result.progress);
+      if (!await _refreshRuntime(sessionId, asOf: now)) return null;
 
       final event = result.bookCompleted;
       if (event != null) {
@@ -357,43 +357,53 @@ class ReadingSessionViewModel with WidgetsBindingObserver {
     _requestLocked = false;
   }
 
-  void _applyProgress(SessionProgress progress) {
+  Future<bool> _refreshRuntime(int sessionId, {DateTime? asOf}) async {
+    final runtime = await _queries.getSessionRuntime(sessionId);
+    if (_disposed || runtime == null) return false;
+
+    _applyRuntime(runtime, asOf: asOf);
+    return true;
+  }
+
+  void _applyRuntime(SessionRuntime runtime, {DateTime? asOf}) {
+    final now = asOf ?? DateTime.now();
+    final progress = runtime.dayProgress;
     final previousDay = _sessionDay;
     final dayChanged =
-        previousDay != null && !_sameDay(previousDay, progress.sessionDay);
+        previousDay != null && !_sameDay(previousDay, runtime.sessionDay);
     final currentSessionId = session?.sessionId;
     final sessionChanged =
-        currentSessionId != null && currentSessionId != progress.sessionId;
+        currentSessionId != null && currentSessionId != runtime.sessionId;
 
-    _sessionDay = progress.sessionDay;
+    _sessionDay = runtime.sessionDay;
     if (dayChanged) {
-      _goalLatch = progress.goalAlreadyReachedToday;
+      _goalLatch = progress.goalReached;
     }
 
     if (sessionChanged || dayChanged) {
       // A day/session rollover starts a fresh accumulated duration.
-      _sessionReadMilliseconds = progress.sessionReadSeconds * 1000;
-      _dayReadMilliseconds = progress.secondsToday * 1000;
-      _lastTickAt = progress.asOf;
+      _sessionReadMilliseconds = runtime.sessionReadSeconds * 1000;
+      _dayReadMilliseconds = progress.seconds * 1000;
+      _lastTickAt = now;
     } else {
       _sessionReadMilliseconds = math.max(
         _sessionReadMilliseconds,
-        progress.sessionReadSeconds * 1000,
+        runtime.sessionReadSeconds * 1000,
       );
       _dayReadMilliseconds = math.max(
         _dayReadMilliseconds,
-        progress.secondsToday * 1000,
+        progress.seconds * 1000,
       );
     }
-    _lastFlushAt = progress.asOf;
+    _lastFlushAt = now;
 
     final current = session;
     if (current != null) {
       final updated = current.copyWith(
-        sessionId: progress.sessionId,
-        versesToday: progress.versesToday,
-        goalAlreadyReachedToday: progress.goalAlreadyReachedToday,
-        sessionStartTime: progress.sessionStartTime,
+        sessionId: runtime.sessionId,
+        versesToday: progress.verses,
+        goalAlreadyReachedToday: progress.goalReached,
+        sessionStartTime: runtime.sessionStartTime,
       );
       if (updated.sessionId != current.sessionId ||
           updated.versesToday != current.versesToday ||
@@ -479,14 +489,14 @@ class ReadingSessionViewModel with WidgetsBindingObserver {
       final sessionId = session?.sessionId;
       if (sessionId == null) return;
 
-      final progress = await _service.heartbeat(
+      await _service.heartbeat(
         sessionId,
         readSeconds: _sessionReadSeconds,
         at: now,
       );
-      if (_disposed || progress == null) return;
+      if (_disposed) return;
+      if (!await _refreshRuntime(sessionId, asOf: now)) return;
 
-      _applyProgress(progress);
       _checkGoalReached();
     } finally {
       _unlockRequest();
@@ -552,15 +562,15 @@ class ReadingSessionViewModel with WidgetsBindingObserver {
       newDayExtra = elapsed - oldDayExtra;
     }
 
-    final progress = await _service.rolloverSession(
+    final newSessionId = await _service.rolloverSession(
       sessionId,
       at: now,
       oldReadSeconds: _sessionReadSeconds + oldDayExtra,
       newReadSeconds: newDayExtra,
     );
-    if (_disposed || progress == null) return;
+    if (_disposed || newSessionId == null) return;
 
-    _applyProgress(progress);
+    await _refreshRuntime(newSessionId, asOf: now);
   }
 
   static DateTime _day(DateTime date) {

@@ -3,6 +3,7 @@ import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/common/reference.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
 import 'package:gbt/reading_plan/reading_session_service.dart';
+import 'package:gbt/reading_plan/data_access/reading_plan_read_models.dart';
 import 'package:gbt/reading_plan/data_access/rs_database.dart';
 import 'package:gbt/reading_plan/data_access/rs_model.dart';
 import 'package:gbt/reading_plan/data_access/session_log_repository.dart';
@@ -94,6 +95,10 @@ void main() {
     int chapter = 1,
   }) {
     return database.queries.getVerseReadStates(sessionId, bookId, chapter);
+  }
+
+  Future<SessionRuntime> runtimeFor(int sessionId) async {
+    return (await database.queries.getSessionRuntime(sessionId))!;
   }
 
   test('starts a session and returns its id', () async {
@@ -250,9 +255,9 @@ void main() {
         _readOptions(63, 1, 1, read: true),
       ))!;
 
-      expect(result.progress.versesToday, 1);
       expect(result.bookCompleted, isNull);
-      expect(result.progress.asOf, isNotNull);
+      final runtime = await runtimeFor(sessionId);
+      expect(runtime.dayProgress.verses, 1);
 
       final states = await statesFor(sessionId);
       expect(states[1]?.readCount, 1);
@@ -272,12 +277,9 @@ void main() {
 
       final sessionId = await startPlan(planId);
       await setVerseRead(sessionId, _readOptions(63, 1, 1, read: true));
-      final second = (await setVerseRead(
-        sessionId,
-        _readOptions(63, 1, 1, read: true),
-      ))!;
+      await setVerseRead(sessionId, _readOptions(63, 1, 1, read: true));
 
-      expect(second.progress.versesToday, 1);
+      expect((await runtimeFor(sessionId)).dayProgress.verses, 1);
       final states = await statesFor(sessionId);
       expect(states[1]?.readCount, 1);
       expect(states[1]?.readThisSession, isTrue);
@@ -299,13 +301,10 @@ void main() {
       await sessionService.endSession(firstSessionId, readSeconds: 0);
 
       final secondSessionId = await startPlan(planId);
-      final checked = (await setVerseRead(
-        secondSessionId,
-        _readOptions(63, 1, 1, read: true),
-      ))!;
+      await setVerseRead(secondSessionId, _readOptions(63, 1, 1, read: true));
       final checkedStates = await statesFor(secondSessionId);
       expect(checkedStates[1]?.readCount, 2);
-      expect(checked.progress.versesToday, 2);
+      expect((await runtimeFor(secondSessionId)).dayProgress.verses, 2);
 
       final unchecked = (await setVerseRead(
         secondSessionId,
@@ -315,7 +314,7 @@ void main() {
       final uncheckedStates = await statesFor(secondSessionId);
       expect(uncheckedStates[1]?.readCount, 1);
       expect(uncheckedStates[1]?.readThisSession, isFalse);
-      expect(unchecked.progress.versesToday, 1);
+      expect((await runtimeFor(secondSessionId)).dayProgress.verses, 1);
       expect(unchecked.bookCompleted, isNull);
 
       expect(await database.getRsLogForSession(firstSessionId), hasLength(1));
@@ -338,15 +337,12 @@ void main() {
     final secondSessionId = await startPlan(planId);
     final before = (await database.session.getById(secondSessionId))!;
 
-    final result = (await setVerseRead(
-      secondSessionId,
-      _readOptions(63, 1, 1, read: false),
-    ))!;
+    await setVerseRead(secondSessionId, _readOptions(63, 1, 1, read: false));
 
     final states = await statesFor(secondSessionId);
     expect(states[1]?.readCount, 1);
     expect(states[1]?.readThisSession, isFalse);
-    expect(result.progress.versesToday, 1);
+    expect((await runtimeFor(secondSessionId)).dayProgress.verses, 1);
 
     final after = (await database.session.getById(secondSessionId))!;
     expect(after.endTime, before.endTime);
@@ -387,17 +383,17 @@ void main() {
         ),
       );
 
-      final rollover = (await sessionService.rolloverSession(
+      final newSessionId = (await sessionService.rolloverSession(
         oldSession.id!,
         at: now,
         oldReadSeconds: 300,
         newReadSeconds: 0,
       ))!;
 
-      final newSessionId = rollover.sessionId;
       expect(newSessionId, isNot(oldSession.id));
-      expect(rollover.versesToday, 0);
-      expect(rollover.secondsToday, 0);
+      final newDayRuntime = await runtimeFor(newSessionId);
+      expect(newDayRuntime.dayProgress.verses, 0);
+      expect(newDayRuntime.dayProgress.seconds, 0);
 
       final unchecked = (await setVerseRead(
         newSessionId,
@@ -406,18 +402,15 @@ void main() {
       final uncheckedStates = await statesFor(newSessionId);
       expect(uncheckedStates[1]?.readCount, 1);
       expect(uncheckedStates[1]?.readThisSession, isFalse);
-      expect(unchecked.progress.versesToday, 0);
+      expect((await runtimeFor(newSessionId)).dayProgress.verses, 0);
       expect(unchecked.bookCompleted, isNull);
       expect(await database.getRsLogForSession(oldSession.id!), hasLength(1));
 
-      final checked = (await setVerseRead(
-        newSessionId,
-        _readOptions(63, 1, 1, read: true),
-      ))!;
+      await setVerseRead(newSessionId, _readOptions(63, 1, 1, read: true));
       final checkedStates = await statesFor(newSessionId);
       expect(checkedStates[1]?.readCount, 2);
       expect(checkedStates[1]?.readThisSession, isTrue);
-      expect(checked.progress.versesToday, 1);
+      expect((await runtimeFor(newSessionId)).dayProgress.verses, 1);
       expect(await database.getRsLogForSession(oldSession.id!), hasLength(1));
       expect(await database.getRsLogForSession(newSessionId), hasLength(1));
     },
@@ -460,23 +453,21 @@ void main() {
         throwsA(isA<StateError>()),
       );
 
-      final rolled = (await sessionService.rolloverSession(
+      final rolledSessionId = (await sessionService.rolloverSession(
         oldSession.id!,
         at: now,
         oldReadSeconds: 300,
         newReadSeconds: 0,
       ))!;
 
-      expect(rolled.sessionId, isNot(oldSession.id));
+      expect(rolledSessionId, isNot(oldSession.id));
       final old = (await database.session.getById(oldSession.id!))!;
       expect(old.readSeconds, 300);
       expect(old.endTime, yesterday.add(const Duration(days: 1, seconds: -1)));
 
-      final progress = (await sessionService.heartbeat(
-        rolled.sessionId,
-        readSeconds: 0,
-      ))!;
-      expect(progress.sessionId, rolled.sessionId);
+      await sessionService.heartbeat(rolledSessionId, readSeconds: 0);
+      final runtime = await runtimeFor(rolledSessionId);
+      expect(runtime.sessionId, rolledSessionId);
     },
   );
 
@@ -547,11 +538,9 @@ void main() {
     final sessionId = await startPlan(planId);
     await Future<void>.delayed(const Duration(seconds: 1));
 
-    final progress = (await sessionService.heartbeat(
-      sessionId,
-      readSeconds: 1,
-    ))!;
-    expect(progress.secondsToday, greaterThanOrEqualTo(1));
+    await sessionService.heartbeat(sessionId, readSeconds: 1);
+    final progress = await runtimeFor(sessionId);
+    expect(progress.dayProgress.seconds, greaterThanOrEqualTo(1));
 
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -583,7 +572,7 @@ void main() {
     final sessionId = await startPlan(planId);
     await sessionService.endSession(sessionId, readSeconds: 0);
 
-    expect(await sessionService.heartbeat(-1, readSeconds: 0), isNull);
+    await sessionService.heartbeat(-1, readSeconds: 0);
     expect(await setVerseRead(-1, _readOptions(63, 1, 1, read: true)), isNull);
     expect(await setVerseRead(-1, _readOptions(63, 1, 1, read: false)), isNull);
     expect(await database.queries.getVerseReadStates(-1, 63, 1), isEmpty);
