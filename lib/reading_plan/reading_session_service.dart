@@ -184,7 +184,7 @@ class ReadingSessionService {
 
       if (read && !readThisSession) {
         final existingCount =
-            await _database.getVerseReadCount(
+            await _database.verseState.getReadCount(
               planId,
               bookId,
               chapter,
@@ -210,7 +210,7 @@ class ReadingSessionService {
           endTime: now,
         );
 
-        await _database.markVerseRead(
+        await _database.verseState.markRead(
           planId,
           bookId,
           chapter,
@@ -220,7 +220,11 @@ class ReadingSessionService {
         );
 
         if (existingCount == 0 &&
-            await _database.isBookComplete(planId, bookId, executor: txn)) {
+            await _database.verseState.isBookComplete(
+              planId,
+              bookId,
+              executor: txn,
+            )) {
           final completedIndex = config.books.indexWhere(
             (book) => book.bookId == bookId,
           );
@@ -239,7 +243,7 @@ class ReadingSessionService {
         }
       } else if (!read && readThisSession) {
         await _database.sessionLog.remove(existingLog.id!, executor: txn);
-        await _database.unmarkVerseRead(
+        await _database.verseState.unmarkRead(
           planId,
           bookId,
           chapter,

@@ -7,6 +7,7 @@ import 'package:gbt/reading_plan/reading_plan_repository.dart'
 import 'package:gbt/reading_plan/rs_model.dart';
 import 'package:gbt/reading_plan/session_log_repository.dart';
 import 'package:gbt/reading_plan/session_repository.dart';
+import 'package:gbt/reading_plan/verse_state_repository.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:sqflite/sqflite.dart';
 
@@ -47,6 +48,7 @@ class ReadingSessionDatabase {
 
   late final SessionLogRepository sessionLog = SessionLogRepository(_database);
   late final SessionRepository session = SessionRepository(_database);
+  late final VerseStateRepository verseState = VerseStateRepository(_database);
 
   Future<void> init() async {
     if (_initFuture != null) {
@@ -124,7 +126,7 @@ class ReadingSessionDatabase {
     }
   }
 
-  Future<void> _materializeAllVerseState(DatabaseExecutor db) async {
+  Future<void> _materializeAllVerseState(Database db) async {
     final plans = await db.query('reading_plan', columns: ['id']);
     for (final plan in plans) {
       await _materializeVerseState(db, plan['id'] as int);
@@ -143,7 +145,7 @@ class ReadingSessionDatabase {
   }
 
   Future<void> _materializeVerseState(
-    DatabaseExecutor db,
+    Database db,
     int planId, {
     Set<int>? bookIds,
   }) async {
@@ -162,19 +164,7 @@ class ReadingSessionDatabase {
     final inventory = await _verseInventoryProvider(targetBookIds);
     if (inventory.isEmpty) return;
 
-    final batch = db.batch();
-    for (final entry in inventory.entries) {
-      final (bookId, chapter) = entry.key;
-      for (final verse in entry.value) {
-        batch.rawInsert(
-          'INSERT OR IGNORE INTO rs_verse_state '
-          '(reading_plan_id, book_id, chapter, verse, read_count, last_read) '
-          'VALUES (?, ?, ?, ?, 0, NULL)',
-          [planId, bookId, chapter, verse],
-        );
-      }
-    }
-    await batch.commit(noResult: true);
+    await VerseStateRepository(db).bulkInsert(planId, inventory);
   }
 
   Future<void> materializeVerseStateForPlan(
@@ -477,19 +467,6 @@ class ReadingSessionDatabase {
     );
   }
 
-  /// Deletes every `rs_verse_state` row for a plan.
-  Future<int> deleteVerseStateForPlan(
-    int planId, {
-    DatabaseExecutor? executor,
-  }) async {
-    final db = executor ?? _database;
-    return db.delete(
-      'rs_verse_state',
-      where: 'reading_plan_id = ?',
-      whereArgs: [planId],
-    );
-  }
-
   Future<T> transaction<T>(Future<T> Function(DatabaseExecutor txn) action) {
     return _database.transaction(action);
   }
@@ -687,66 +664,6 @@ class ReadingSessionDatabase {
     return goalType != null && goalType.toLowerCase().startsWith('m');
   }
 
-  Future<void> markVerseRead(
-    int readingPlanId,
-    int bookId,
-    int chapter,
-    int verse, {
-    DateTime? timestamp,
-    DatabaseExecutor? executor,
-  }) async {
-    final db = executor ?? _database;
-    await db.rawUpdate(
-      'UPDATE rs_verse_state '
-      'SET read_count = read_count + 1, last_read = ? '
-      'WHERE reading_plan_id = ? AND book_id = ? AND chapter = ? AND verse = ?',
-      [
-        (timestamp ?? DateTime.now()).toIso8601String(),
-        readingPlanId,
-        bookId,
-        chapter,
-        verse,
-      ],
-    );
-  }
-
-  Future<void> unmarkVerseRead(
-    int readingPlanId,
-    int bookId,
-    int chapter,
-    int verse, {
-    DatabaseExecutor? executor,
-  }) async {
-    final db = executor ?? _database;
-    await db.rawUpdate(
-      'UPDATE rs_verse_state '
-      'SET read_count = MAX(read_count - 1, 0), '
-      '    last_read = CASE WHEN read_count <= 1 THEN NULL ELSE last_read END '
-      'WHERE reading_plan_id = ? AND book_id = ? AND chapter = ? AND verse = ?',
-      [readingPlanId, bookId, chapter, verse],
-    );
-  }
-
-  Future<int?> getVerseReadCount(
-    int readingPlanId,
-    int bookId,
-    int chapter,
-    int verse, {
-    DatabaseExecutor? executor,
-  }) async {
-    final db = executor ?? _database;
-    final rows = await db.query(
-      'rs_verse_state',
-      columns: ['read_count'],
-      where:
-          'reading_plan_id = ? AND book_id = ? AND chapter = ? AND verse = ?',
-      whereArgs: [readingPlanId, bookId, chapter, verse],
-      limit: 1,
-    );
-
-    return rows.isEmpty ? null : rows.first['read_count'] as int;
-  }
-
   Future<Map<int, int>> getVerseReadCountsForChapter(
     int readingPlanId,
     int bookId,
@@ -866,25 +783,6 @@ class ReadingSessionDatabase {
                 ),
         ),
     };
-  }
-
-  Future<bool> isBookComplete(
-    int readingPlanId,
-    int bookId, {
-    DatabaseExecutor? executor,
-  }) async {
-    final db = executor ?? _database;
-    final rows = await db.rawQuery(
-      'SELECT COUNT(*) AS total_verses, '
-      '       SUM(CASE WHEN read_count > 0 THEN 1 ELSE 0 END) AS read_verses '
-      'FROM rs_verse_state v '
-      'WHERE v.reading_plan_id = ? AND v.book_id = ?',
-      [readingPlanId, bookId],
-    );
-
-    final total = rows.first['total_verses'] as int? ?? 0;
-    final read = rows.first['read_verses'] as int? ?? 0;
-    return total > 0 && read == total;
   }
 
   void dispose() {

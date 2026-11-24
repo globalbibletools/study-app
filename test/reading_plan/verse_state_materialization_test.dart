@@ -278,7 +278,7 @@ PRAGMA user_version = 3;
       ).first['count'],
       0,
     );
-    expect(await database.isBookComplete(planId, 67), isFalse);
+    expect(await database.verseState.isBookComplete(planId, 67), isFalse);
     expect((await database.getBookStats(planId))[67], isNull);
   });
 }

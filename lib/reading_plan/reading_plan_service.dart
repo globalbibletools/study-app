@@ -346,7 +346,7 @@ class ReadingPlanService {
       await _database.sessionLog.deleteForPlanId(planId, executor: txn);
       await _database.session.deleteForPlanId(planId, executor: txn);
       await _database.deleteDaySummariesForPlan(planId, executor: txn);
-      await _database.deleteVerseStateForPlan(planId, executor: txn);
+      await _database.verseState.deleteForPlanId(planId, executor: txn);
       await _database.readingPlans.delete(planId, executor: txn);
     });
   }

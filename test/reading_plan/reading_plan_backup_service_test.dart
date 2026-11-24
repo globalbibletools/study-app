@@ -70,7 +70,7 @@ void main() {
       bookIds: [1, 2],
     );
 
-    await database.markVerseRead(planId, 1, 1, 1);
+    await database.verseState.markRead(planId, 1, 1, 1);
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final dailyLog = await database.session.commit(

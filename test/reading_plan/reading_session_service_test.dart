@@ -169,7 +169,7 @@ void main() {
       goalValue: 10,
       bookIds: [19],
     );
-    await database.markVerseRead(planId, 19, 1, 1);
+    await database.verseState.markRead(planId, 19, 1, 1);
 
     final now = DateTime.now();
     final session = await database.session.commit(
@@ -380,7 +380,7 @@ void main() {
           readingPlanId: planId,
         ),
       );
-      await database.markVerseRead(planId, 63, 1, 1);
+      await database.verseState.markRead(planId, 63, 1, 1);
       await database.sessionLog.append(
         SessionLogEntry(
           sessionId: oldSession.id!,
