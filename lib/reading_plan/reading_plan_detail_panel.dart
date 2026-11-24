@@ -117,7 +117,6 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
         viewModel.planName,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
       ),
       onBack: () => Navigator.of(context).pop(),
       actions: [

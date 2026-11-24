@@ -67,10 +67,6 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
                 l10n.readingPlans,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                ),
               ),
             ),
             Expanded(

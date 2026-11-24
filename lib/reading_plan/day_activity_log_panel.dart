@@ -109,7 +109,6 @@ class _DayActivityLogPanelState extends State<DayActivityLogPanel> {
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         textAlign: TextAlign.center,
-        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
       ),
       onBack: () => Navigator.of(context).pop(),
       actions: [

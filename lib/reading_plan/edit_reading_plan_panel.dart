@@ -118,7 +118,6 @@ class _EditReadingPlanPanelState extends State<EditReadingPlanPanel> {
         viewModel.isExisting ? l10n.editReadingPlan : l10n.createReadingPlan,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
       ),
       onBack: () => Navigator.of(context).pop(),
       actions: [

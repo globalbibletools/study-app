@@ -21,6 +21,9 @@ class ReadingPlanAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
+    final baseTitleStyle =
+        Theme.of(context).appBarTheme.titleTextStyle ??
+        Theme.of(context).textTheme.titleLarge;
     return AppBar(
       primary: false,
       automaticallyImplyLeading: false,
@@ -33,6 +36,10 @@ class ReadingPlanAppBar extends StatelessWidget implements PreferredSizeWidget {
       elevation: 0,
       scrolledUnderElevation: 0,
       surfaceTintColor: Colors.transparent,
+      titleTextStyle: baseTitleStyle?.copyWith(
+        fontSize: 20,
+        fontWeight: FontWeight.w600,
+      ),
       leading: onBack == null
           ? null
           : IconButton(
