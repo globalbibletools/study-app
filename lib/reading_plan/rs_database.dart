@@ -462,21 +462,6 @@ class ReadingSessionDatabase {
     return ReadingPlanDetails(plan, books);
   }
 
-  /// Deletes every `rs_log` row for a plan. Thin primitive for the service's
-  /// plan-deletion orchestration; accepts an executor so it can join the
-  /// service's transaction.
-  Future<int> deleteLogsForPlan(
-    int planId, {
-    DatabaseExecutor? executor,
-  }) async {
-    final db = executor ?? _database;
-    return db.delete(
-      'rs_log',
-      where: 'reading_plan_id = ?',
-      whereArgs: [planId],
-    );
-  }
-
   /// Deletes every `rs_session` row for a plan.
   Future<int> deleteSessionsForPlan(
     int planId, {

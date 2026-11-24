@@ -20,6 +20,16 @@ class SessionLogRepository {
     return db.delete('rs_log', where: 'id = ?', whereArgs: [id]);
   }
 
+  Future<int> deleteForPlanId(int readingPlanId, {DatabaseExecutor? executor}) {
+    final db = executor ?? _database;
+
+    return db.delete(
+      'rs_log',
+      where: 'reading_plan_id = ?',
+      whereArgs: [readingPlanId],
+    );
+  }
+
   Future<SessionLogEntry?> getVerseLogForSession(
     int sessionId,
     int bookId,
