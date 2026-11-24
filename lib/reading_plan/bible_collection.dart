@@ -1,9 +1,3 @@
-/// Preset sets of books a reading plan can cover.
-///
-/// The ordered book list on a reading plan is the source of truth; a plan's
-/// collection is derived by comparing that list against these presets. A list
-/// that matches no preset is [custom], whose [books] are empty because its
-/// contents live only in the edit view model until the plan is saved.
 enum BibleCollection {
   wholeBible(books: [..._oldTestament, ..._newTestament]),
   oldTestament(books: _oldTestament),
@@ -18,21 +12,16 @@ enum BibleCollection {
 
   const BibleCollection({required this.books});
 
-  /// The books in this collection, in canonical reading order.
   final List<int> books;
 
-  /// The full canonical book list, Genesis through Revelation.
   static const List<int> allBooks = [..._oldTestament, ..._newTestament];
 
-  /// Returns the preset whose book list exactly equals [bookIds], or null.
-  ///
-  /// [custom] is never returned: it has no predefined books.
-  static BibleCollection? matchingCollection(List<int> bookIds) {
+  static BibleCollection matchingCollection(List<int> bookIds) {
     for (final collection in values) {
       if (collection == custom) continue;
       if (_sameBooks(collection.books, bookIds)) return collection;
     }
-    return null;
+    return custom;
   }
 
   static bool _sameBooks(List<int> a, List<int> b) {

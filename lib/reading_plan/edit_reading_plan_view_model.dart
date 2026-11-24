@@ -91,8 +91,7 @@ class EditReadingPlanViewModel extends ChangeNotifier {
   // Books and collection
 
   BibleCollection get selectedCollection =>
-      BibleCollection.matchingCollection(_orderedBookIds) ??
-      BibleCollection.custom;
+      BibleCollection.matchingCollection(_orderedBookIds);
   int get collectionBookCount => selectedCollection.books.length;
 
   List<BibleCollection> get collectionOptions => BibleCollection.values;
@@ -130,7 +129,7 @@ class EditReadingPlanViewModel extends ChangeNotifier {
     final preset = BibleCollection.matchingCollection(bookIds);
     _setState(() {
       _orderedBookIds = List.of(bookIds);
-      if (preset == null) {
+      if (preset == BibleCollection.custom) {
         _customBookIds = List.of(bookIds);
       }
     });

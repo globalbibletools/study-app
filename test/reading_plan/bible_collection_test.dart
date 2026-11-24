@@ -43,11 +43,17 @@ void main() {
   test('requires the same order', () {
     final reversed = BibleCollection.torah.books.reversed.toList();
 
-    expect(BibleCollection.matchingCollection(reversed), isNull);
+    expect(
+      BibleCollection.matchingCollection(reversed),
+      BibleCollection.custom,
+    );
   });
 
-  test('never matches custom', () {
-    expect(BibleCollection.matchingCollection(const []), isNull);
-    expect(BibleCollection.matchingCollection([2, 1]), isNull);
+  test('falls back to custom when no preset matches', () {
+    expect(
+      BibleCollection.matchingCollection(const []),
+      BibleCollection.custom,
+    );
+    expect(BibleCollection.matchingCollection([2, 1]), BibleCollection.custom);
   });
 }
