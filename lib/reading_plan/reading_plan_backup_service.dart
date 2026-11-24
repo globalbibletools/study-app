@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:gbt/reading_plan/rs_database.dart';
+import 'package:gbt/reading_plan/data_access/rs_database.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';

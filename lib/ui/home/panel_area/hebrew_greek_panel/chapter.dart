@@ -5,7 +5,7 @@ import 'package:gbt/common/book_name.dart';
 import 'package:gbt/common/reference.dart';
 import 'package:gbt/common/word.dart';
 import 'package:gbt/l10n/app_localizations.dart';
-import 'package:gbt/reading_plan/rs_model.dart';
+import 'package:gbt/reading_plan/data_access/rs_model.dart';
 import 'package:gbt/services/resources/resource.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/common/resource_ui_helper.dart';

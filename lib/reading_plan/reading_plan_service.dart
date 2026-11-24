@@ -1,9 +1,10 @@
 import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/common/reference.dart';
-import 'package:gbt/reading_plan/reading_plan_repository.dart' as repo;
-import 'package:gbt/reading_plan/rs_database.dart';
-import 'package:gbt/reading_plan/rs_model.dart';
-import 'package:gbt/reading_plan/session_repository.dart';
+import 'package:gbt/reading_plan/data_access/reading_plan_repository.dart'
+    as repo;
+import 'package:gbt/reading_plan/data_access/rs_database.dart';
+import 'package:gbt/reading_plan/data_access/rs_model.dart';
+import 'package:gbt/reading_plan/data_access/session_repository.dart';
 import 'package:gbt/services/service_locator.dart';
 
 class ReadingPlanService {

@@ -2,7 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:gbt/common/book_name.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/reading_plan/reading_session_service.dart';
-import 'package:gbt/reading_plan/reading_session_view_model.dart';
+import 'package:gbt/reading_plan/ui/reading_session_view_model.dart';
 
 class BookCompletedOverlay extends StatefulWidget {
   const BookCompletedOverlay({

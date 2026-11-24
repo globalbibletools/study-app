@@ -13,7 +13,7 @@ import 'package:gbt/services/gloss/gloss_database.dart';
 import 'package:gbt/services/gloss/gloss_service.dart';
 import 'package:gbt/services/hebrew_greek/database.dart';
 import 'package:gbt/services/lexicon/database.dart';
-import 'package:gbt/reading_plan/reading_session_view_model.dart';
+import 'package:gbt/reading_plan/ui/reading_session_view_model.dart';
 import 'package:gbt/services/resources/resource_service.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/services/settings/user_settings.dart';

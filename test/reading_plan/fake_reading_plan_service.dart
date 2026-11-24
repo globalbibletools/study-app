@@ -2,9 +2,10 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gbt/common/reference.dart';
-import 'package:gbt/reading_plan/reading_plan_repository.dart' as repo;
+import 'package:gbt/reading_plan/data_access/reading_plan_repository.dart'
+    as repo;
 import 'package:gbt/reading_plan/reading_plan_service.dart';
-import 'package:gbt/reading_plan/rs_model.dart';
+import 'package:gbt/reading_plan/data_access/rs_model.dart';
 
 class FakeReadingPlanService extends Fake implements ReadingPlanService {
   FakeReadingPlanService([List<ReadingPlanDetails>? plans])
