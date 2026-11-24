@@ -1,11 +1,11 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:gbt/reading_plan/reading_plan_read_models.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/reading_plan/edit_reading_plan_panel.dart';
 import 'package:gbt/reading_plan/reading_plan_app_bar.dart';
 import 'package:gbt/reading_plan/reading_plan_card.dart';
 import 'package:gbt/reading_plan/reading_plan_detail_panel.dart';
 import 'package:gbt/reading_plan/reading_plan_panel_view_model.dart';
-import 'package:gbt/reading_plan/rs_model.dart';
 
 class ReadingPlanPanel extends StatefulWidget {
   const ReadingPlanPanel({
@@ -130,9 +130,8 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
     await viewModel.refresh();
   }
 
-  Future<void> _openPlanDetails(ReadingPlanDetails plan) async {
-    final planId = plan.readingPlan.id;
-    if (planId == null) return;
+  Future<void> _openPlanDetails(ReadingPlanSummary plan) async {
+    final planId = plan.planId;
 
     final navigate =
         widget.navigateToPlanDetailsRoute ?? ReadingPlanDetailPanel.navigateTo;
@@ -142,9 +141,8 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
     await viewModel.refresh();
   }
 
-  Future<void> _editPlan(ReadingPlanDetails plan) async {
-    final planId = plan.readingPlan.id;
-    if (planId == null) return;
+  Future<void> _editPlan(ReadingPlanSummary plan) async {
+    final planId = plan.planId;
 
     final navigate =
         widget.navigateToEditPlanRoute ??
@@ -155,7 +153,7 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
     await viewModel.refresh();
   }
 
-  Future<void> _startReadingSession(ReadingPlanDetails plan) async {
+  Future<void> _startReadingSession(ReadingPlanSummary plan) async {
     await viewModel.startReadingSession(plan);
 
     if (!mounted) return;

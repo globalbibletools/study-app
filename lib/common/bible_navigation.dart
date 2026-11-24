@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:gbt/services/hebrew_greek/database.dart';
-import 'package:gbt/reading_plan/rs_model.dart';
 
 @immutable
 class ChapterIdentifier {
@@ -92,7 +91,7 @@ class BibleNavigation {
   // Returns null if there is no next chapter (last book in the reading plan)
   ChapterIdentifier? getNextChapterForReadingPlan(
     ChapterIdentifier current,
-    ReadingPlanDetails readingPlan,
+    List<int> orderedBookIds,
   ) {
     final totalChapters = getChapterCount(current.bookId);
 
@@ -101,11 +100,11 @@ class BibleNavigation {
       return ChapterIdentifier(current.bookId, current.chapter + 1);
     }
     // Case 2: First chapter of next book
-    for (int i = 0; i < readingPlan.books.length; i++) {
-      if (readingPlan.books[i].bookId != current.bookId) continue;
+    for (int i = 0; i < orderedBookIds.length; i++) {
+      if (orderedBookIds[i] != current.bookId) continue;
 
-      if (i < readingPlan.books.length - 1) {
-        return ChapterIdentifier(readingPlan.books[i + 1].bookId, 1);
+      if (i < orderedBookIds.length - 1) {
+        return ChapterIdentifier(orderedBookIds[i + 1], 1);
       }
 
       // Case 3 : End of the reading plan
@@ -118,7 +117,7 @@ class BibleNavigation {
   // Returns null if there is no previous chapter (e.g. Genesis 1)
   ChapterIdentifier? getPreviousChapterForReadingPlan(
     ChapterIdentifier current,
-    ReadingPlanDetails readingPlan,
+    List<int> orderedBookIds,
   ) {
     // Case 1: Previous chapter in same book
     if (current.chapter > 1) {
@@ -126,13 +125,13 @@ class BibleNavigation {
     }
 
     // Case 2: First chapter of previous book
-    for (int i = 0; i < readingPlan.books.length; i++) {
-      if (readingPlan.books[i].bookId != current.bookId) continue;
+    for (int i = 0; i < orderedBookIds.length; i++) {
+      if (orderedBookIds[i] != current.bookId) continue;
 
       // Case 3 : first book of the reading plan
       if (i == 0) return null;
 
-      final previousBookId = readingPlan.books[i - 1].bookId;
+      final previousBookId = orderedBookIds[i - 1];
       final lastChapterOfPreviousBook = getChapterCount(previousBookId);
       return ChapterIdentifier(previousBookId, lastChapterOfPreviousBook);
     }

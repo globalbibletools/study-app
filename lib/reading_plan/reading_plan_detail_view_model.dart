@@ -1,28 +1,34 @@
 import 'package:flutter/foundation.dart';
 import 'package:gbt/asyncutils/cancellation.dart';
 import 'package:gbt/common/reference.dart';
+import 'package:gbt/reading_plan/reading_plan_estimates.dart';
+import 'package:gbt/reading_plan/reading_plan_read_models.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
+import 'package:gbt/reading_plan/reading_session_view_model.dart';
+import 'package:gbt/reading_plan/rs_database.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
 import 'package:gbt/services/service_locator.dart';
-import 'package:gbt/reading_plan/reading_plan_estimates.dart';
-import 'package:gbt/reading_plan/reading_session_view_model.dart';
 
 class ReadingPlanDetailViewModel extends ChangeNotifier {
   ReadingPlanDetailViewModel._({
     required int planId,
+    required ReadingPlanReadModels readModels,
     required ReadingPlanService planService,
     required ReadingSessionViewModel sessionViewModel,
   }) : _planId = planId,
+       _readModels = readModels,
        _planService = planService,
        _sessionViewModel = sessionViewModel;
 
   static Future<ReadingPlanDetailViewModel> create({
     required int planId,
+    ReadingPlanReadModels? readModels,
     ReadingPlanService? planService,
     ReadingSessionViewModel? sessionViewModel,
   }) async {
     final viewModel = ReadingPlanDetailViewModel._(
       planId: planId,
+      readModels: readModels ?? getIt<ReadingSessionDatabase>().readModels,
       planService: planService ?? getIt<ReadingPlanService>(),
       sessionViewModel: sessionViewModel ?? getIt<ReadingSessionViewModel>(),
     );
@@ -37,6 +43,7 @@ class ReadingPlanDetailViewModel extends ChangeNotifier {
     return viewModel;
   }
 
+  final ReadingPlanReadModels _readModels;
   final ReadingPlanService _planService;
   final ReadingSessionViewModel _sessionViewModel;
 
@@ -44,24 +51,16 @@ class ReadingPlanDetailViewModel extends ChangeNotifier {
 
   Future<void> refresh() {
     return _refreshScope.run((guard) async {
-      final details = await guard(_planService.getReadingPlanById(_planId));
-      if (details == null) throw StateError('Reading plan not found');
+      final summary = await guard(_readModels.getPlanSummary(_planId));
+      if (summary == null) throw StateError('Reading plan not found');
 
-      final stats = await guard(_planService.getBooksStats(_planId));
-      final statsByBook = {for (final stat in stats) stat.bookId: stat};
-
-      final todaysProgress = await guard(
-        _planService.getDayProgress(_planId, DateTime.now()),
-      );
       final monthProgress = await guard(
-        _planService.getMonthProgress(_planId, _visibleMonth),
+        _readModels.getMonthProgress(_planId, _visibleMonth),
       );
 
       _setState(() {
-        _planDetails = details;
-        _bookStats = statsByBook;
+        _summary = summary;
         _monthProgress = monthProgress;
-        _todaysProgress = todaysProgress;
       });
     });
   }
@@ -71,31 +70,41 @@ class ReadingPlanDetailViewModel extends ChangeNotifier {
   final int _planId;
   int get planId => _planId;
 
-  late ReadingPlanDetails _planDetails;
-  String get planName => _planDetails.readingPlan.planName;
+  ReadingPlanSummary? _summary;
+  ReadingPlanSummary get summary {
+    final summary = _summary;
+    if (summary == null) {
+      throw StateError('Reading plan details have not been loaded');
+    }
+    return summary;
+  }
 
-  ReadingPlanDetails get planDetails => _planDetails;
+  String get planName => _summary?.planName ?? '';
 
-  bool get isBookmarked => _planDetails.readingPlan.isBookmarked;
+  bool get isBookmarked => _summary?.isBookmarked ?? false;
+
   Future<void> toggleBookmark() async {
-    final updatedPlan = await _planService.setReadingPlanBookmark(
-      _planDetails.readingPlan,
-      !_planDetails.readingPlan.isBookmarked,
-    );
+    final summary = _summary;
+    if (summary == null) return;
+
+    final isBookmarked = !summary.isBookmarked;
+    await _planService.setReadingPlanBookmark(_planId, isBookmarked);
+
     _setState(() {
-      _planDetails.readingPlan = updatedPlan;
+      _summary = summary.copyWith(
+        config: summary.config.copyWith(isBookmarked: isBookmarked),
+      );
     });
   }
 
   // Book progress
 
-  late Map<int, RsBookStats> _bookStats;
-  Map<int, RsBookStats> get bookStats => _bookStats;
+  Map<int, BookProgress> get bookStats => _summary?.bookProgress ?? const {};
 
-  List<ReadingPlanBook> get books => _planDetails.books;
+  List<ReadingPlanBook> get books => _summary?.books ?? const [];
 
   double progressForBook(int bookId) {
-    final stats = _bookStats[bookId];
+    final stats = _summary?.bookProgress[bookId];
     if (stats == null || stats.totalVerses <= 0) return 0;
 
     return (stats.versesRead / stats.totalVerses).clamp(0.0, 1.0);
@@ -103,16 +112,7 @@ class ReadingPlanDetailViewModel extends ChangeNotifier {
 
   // Start session
 
-  Reference get readingReference {
-    final resumePosition = _planDetails.resumePosition;
-    if (resumePosition != null) return resumePosition;
-
-    return Reference(
-      bookId: books.isNotEmpty ? books.first.bookId : 1,
-      chapter: 1,
-      verse: 1,
-    );
-  }
+  Reference get readingReference => summary.resumeTarget;
 
   Future<void> startReadingSession() {
     return _sessionViewModel.startSession(_planId);
@@ -121,30 +121,9 @@ class ReadingPlanDetailViewModel extends ChangeNotifier {
   // Total Progress
 
   bool get hasStarted => versesRead > 0;
-
-  int get totalVerses {
-    var total = 0;
-    for (final book in books) {
-      total += _bookStats[book.bookId]?.totalVerses ?? 0;
-    }
-    return total;
-  }
-
-  int get versesRead {
-    var read = 0;
-    for (final book in books) {
-      read += _bookStats[book.bookId]?.versesRead ?? 0;
-    }
-    return read;
-  }
-
-  int get booksRead {
-    var read = 0;
-    for (final book in books) {
-      if (_bookStats[book.bookId]?.isComplete ?? false) read += 1;
-    }
-    return read;
-  }
+  int get totalVerses => _summary?.totalVerses ?? 0;
+  int get versesRead => _summary?.versesRead ?? 0;
+  int get booksRead => _summary?.booksRead ?? 0;
 
   double get overallProgress =>
       totalVerses > 0 ? versesRead / totalVerses : 0.0;
@@ -164,17 +143,22 @@ class ReadingPlanDetailViewModel extends ChangeNotifier {
 
   // Day Progress
 
-  GoalType get goalType => _planDetails.dailyGoal.type;
-  int get goalValue => _planDetails.dailyGoal.value;
+  GoalType get goalType => _summary?.dailyGoal.type ?? GoalType.verses;
+  int get goalValue => _summary?.dailyGoal.value ?? 0;
 
-  late DayProgress _todaysProgress;
-  DayProgress get todaysProgress => _todaysProgress;
+  DayProgress get todaysProgress {
+    final summary = _summary;
+    if (summary == null) {
+      throw StateError('Reading plan progress has not been loaded');
+    }
+    return summary.today;
+  }
 
   double get todaysGoalProgress {
     if (goalValue <= 0) return 0;
     final read = goalType == GoalType.verses
-        ? _todaysProgress.verses
-        : _todaysProgress.minutes;
+        ? todaysProgress.verses
+        : todaysProgress.minutes;
     return read / goalValue;
   }
 
@@ -197,7 +181,7 @@ class ReadingPlanDetailViewModel extends ChangeNotifier {
   DateTime _visibleMonth = _monthStart(DateTime.now());
   DateTime get visibleMonth => _visibleMonth;
 
-  late List<DayProgress> _monthProgress;
+  List<DayProgress> _monthProgress = const [];
   Map<int, double> get calendarProgress => {
     for (final progress in _monthProgress)
       if (!progress.empty) progress.day.day: _dayGoalFraction(progress),
@@ -220,7 +204,7 @@ class ReadingPlanDetailViewModel extends ChangeNotifier {
   Future<void> _loadMonthStats(int delta) async {
     return _monthScope.run((guard) async {
       final month = DateTime(_visibleMonth.year, _visibleMonth.month + delta);
-      final data = await guard(_planService.getMonthProgress(_planId, month));
+      final data = await guard(_readModels.getMonthProgress(_planId, month));
       _setState(() {
         _visibleMonth = month;
         _monthProgress = data;

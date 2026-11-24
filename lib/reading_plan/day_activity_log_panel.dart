@@ -1,7 +1,7 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:gbt/reading_plan/reading_plan_read_models.dart';
 import 'package:gbt/common/book_name.dart';
 import 'package:gbt/l10n/app_localizations.dart';
-import 'package:gbt/reading_plan/rs_model.dart';
 import 'package:gbt/reading_plan/day_activity_log_view_model.dart';
 import 'package:gbt/reading_plan/number_stepper.dart';
 import 'package:gbt/reading_plan/reading_plan_app_bar.dart';
@@ -258,7 +258,7 @@ class _DayActivityLogPanelState extends State<DayActivityLogPanel> {
     );
   }
 
-  String _references(List<DetailedProgess> progress) {
+  String _references(List<VerseRange> progress) {
     final references = <String>[];
     int? previousBookId;
 
@@ -271,7 +271,7 @@ class _DayActivityLogPanelState extends State<DayActivityLogPanel> {
     return references.join(', ');
   }
 
-  String _progressTitle(DetailedProgess entry, {required bool includeBook}) {
+  String _progressTitle(VerseRange entry, {required bool includeBook}) {
     final reference = entry.fromVerse == entry.toVerse
         ? "${entry.chapter}:${entry.fromVerse}"
         : "${entry.chapter}:${entry.fromVerse}-${entry.toVerse}";

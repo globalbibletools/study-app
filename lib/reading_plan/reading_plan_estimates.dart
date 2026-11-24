@@ -1,4 +1,3 @@
-import 'package:gbt/common/reference.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
 
 class ReadingPlanEstimates {
@@ -36,15 +35,4 @@ class ReadingPlanEstimates {
   }
 
   static double monthsForDays(int days) => days / 30.44;
-
-  static Reference resumeTargetFor(ReadingPlanDetails plan) {
-    final resumePosition = plan.resumePosition;
-    if (resumePosition != null) return resumePosition;
-
-    if (plan.books.isNotEmpty) {
-      return Reference(bookId: plan.books.first.bookId, chapter: 1, verse: 1);
-    }
-
-    return const Reference(bookId: 1, chapter: 1, verse: 1);
-  }
 }

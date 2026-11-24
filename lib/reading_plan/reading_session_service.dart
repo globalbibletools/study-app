@@ -36,7 +36,7 @@ class ReadingSessionService {
     if (plan == null) return null;
 
     final now = DateTime.now();
-    final today = _day(now);
+    final today = dayOnly(now);
     final session = await _database.insertSession(
       RsSession(
         rsDate: today,
@@ -250,9 +250,9 @@ class ReadingSessionService {
     final session = await _database.getSessionById(sessionId);
     if (session == null) return null;
 
-    final today = _day(at);
-    final sessionDay = _day(session.rsDate);
-    if (_sameDay(sessionDay, today)) {
+    final today = dayOnly(at);
+    final sessionDay = dayOnly(session.rsDate);
+    if (isSameDay(sessionDay, today)) {
       throw StateError(
         'Session $sessionId is already on '
         '${RsDaySummary.dayString(today)}.',
@@ -308,21 +308,13 @@ class ReadingSessionService {
   }
 
   void _ensureSessionIsCurrent(RsSession session, DateTime at) {
-    final today = _day(at);
-    if (_sameDay(session.rsDate, today)) return;
+    final today = dayOnly(at);
+    if (isSameDay(session.rsDate, today)) return;
 
     throw StateError(
       'Session ${session.id} belongs to '
       '${RsDaySummary.dayString(session.rsDate)}, but the current day is '
       '${RsDaySummary.dayString(today)}. Call rolloverSession first.',
     );
-  }
-
-  static DateTime _day(DateTime date) {
-    return DateTime(date.year, date.month, date.day);
-  }
-
-  static bool _sameDay(DateTime a, DateTime b) {
-    return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 }

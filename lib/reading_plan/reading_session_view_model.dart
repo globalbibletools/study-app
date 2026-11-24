@@ -3,67 +3,35 @@ import 'dart:math' as math;
 
 import 'package:flutter/widgets.dart';
 import 'package:gbt/common/reference.dart';
-import 'package:gbt/reading_plan/reading_plan_config.dart';
+import 'package:gbt/reading_plan/reading_plan_read_models.dart';
 import 'package:gbt/reading_plan/reading_session_service.dart';
+import 'package:gbt/reading_plan/rs_database.dart';
 import 'package:gbt/services/logging/log.dart' as log;
 import 'package:gbt/reading_plan/rs_model.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/home/common/navigation_view_model.dart';
 
 class ReadingSessionUiState {
-  const ReadingSessionUiState({
-    required this.sessionId,
-    required this.config,
-    required this.bookIds,
-    required this.versesToday,
-    required this.goalAlreadyReachedToday,
-    required this.resumePosition,
-    required this.sessionStartTime,
-  });
+  const ReadingSessionUiState({required this.config, required this.session});
 
-  final int sessionId;
   final ReadingPlanConfig config;
-  final Set<int> bookIds;
-  final int versesToday;
-  final bool goalAlreadyReachedToday;
-  final Reference? resumePosition;
-  final DateTime sessionStartTime;
-
-  static const _undefined = Object();
-
-  ReadingSessionUiState copyWith({
-    int? sessionId,
-    int? versesToday,
-    bool? goalAlreadyReachedToday,
-    Object? resumePosition = _undefined,
-    DateTime? sessionStartTime,
-  }) {
-    return ReadingSessionUiState(
-      sessionId: sessionId ?? this.sessionId,
-      config: config,
-      bookIds: bookIds,
-      versesToday: versesToday ?? this.versesToday,
-      goalAlreadyReachedToday:
-          goalAlreadyReachedToday ?? this.goalAlreadyReachedToday,
-      resumePosition: resumePosition == _undefined
-          ? this.resumePosition
-          : resumePosition as Reference?,
-      sessionStartTime: sessionStartTime ?? this.sessionStartTime,
-    );
-  }
+  final ReadingSessionRuntime session;
 }
 
 class ReadingSessionViewModel with WidgetsBindingObserver {
   ReadingSessionViewModel()
     : this.withDependencies(
         service: getIt<ReadingSessionService>(),
+        readModels: getIt<ReadingSessionDatabase>().readModels,
         navigationViewModel: getIt<NavigationViewModel>(),
       );
 
   ReadingSessionViewModel.withDependencies({
     required ReadingSessionService service,
+    required ReadingPlanReadModels readModels,
     required NavigationViewModel navigationViewModel,
   }) : _service = service,
+       _readModels = readModels,
        _navigationViewModel = navigationViewModel {
     WidgetsBinding.instance.addObserver(this);
   }
@@ -71,6 +39,7 @@ class ReadingSessionViewModel with WidgetsBindingObserver {
   static Duration heartbeatInterval = const Duration(seconds: 60);
 
   final ReadingSessionService _service;
+  final ReadingPlanReadModels _readModels;
   final NavigationViewModel _navigationViewModel;
 
   final sessionNotifier = ValueNotifier<ReadingSessionUiState?>(null);
@@ -82,10 +51,12 @@ class ReadingSessionViewModel with WidgetsBindingObserver {
 
   ReadingSessionUiState? get session => sessionNotifier.value;
   ReadingPlanConfig? get planConfig => session?.config;
-  Set<int>? get readingPlanBooks => session?.bookIds;
-  Reference? get nextResumePosition => session?.resumePosition;
+  Set<int>? get readingPlanBooks => session?.config.bookIds.toSet();
+  Reference? get nextResumePosition => _nextResumePosition;
   bool get hasActiveSession => session != null;
-  int? get sessionId => session?.sessionId;
+  int? get sessionId => session?.session.sessionId;
+
+  Reference? _nextResumePosition;
 
   bool _requestLocked = false;
   bool _disposed = false;
@@ -111,39 +82,41 @@ class ReadingSessionViewModel with WidgetsBindingObserver {
         if (_disposed) return;
       }
 
-      final snapshot = await _service.startSession(planId);
+      final sessionId = await _service.startSession(planId);
       if (_disposed) return;
 
-      if (snapshot == null) {
+      if (sessionId == null) {
         throw StateError('Reading plan not found: $planId');
       }
 
-      final progress = snapshot.progress;
-      final config = snapshot.config;
+      final summary = await _readModels.getPlanSummary(planId);
+      final runtime = await _readModels.getSessionRuntime(sessionId);
+      if (_disposed) return;
 
-      _sessionDay = progress.sessionDay;
-      _sessionReadMilliseconds = progress.sessionReadSeconds * 1000;
-      _dayReadMilliseconds = progress.secondsToday * 1000;
-      _lastTickAt = progress.asOf;
-      _lastFlushAt = progress.asOf;
-      _goalLatch = progress.goalAlreadyReachedToday;
+      if (summary == null || runtime == null) {
+        throw StateError('Reading session could not be loaded: $sessionId');
+      }
+
+      final config = summary.config;
+      final now = DateTime.now();
+      _sessionDay = runtime.sessionDay;
+      _sessionReadMilliseconds = runtime.sessionReadSeconds * 1000;
+      _dayReadMilliseconds = runtime.secondsToday * 1000;
+      _lastTickAt = now;
+      _lastFlushAt = now;
+      _goalLatch = runtime.goalAlreadyReachedToday;
 
       sessionNotifier.value = ReadingSessionUiState(
-        sessionId: progress.sessionId,
         config: config,
-        bookIds: config.bookIds,
-        versesToday: progress.versesToday,
-        goalAlreadyReachedToday: progress.goalAlreadyReachedToday,
-        resumePosition: null,
-        sessionStartTime: progress.sessionStartTime,
+        session: runtime,
       );
-      secondsTodayNotifier.value = progress.secondsToday;
+      secondsTodayNotifier.value = runtime.secondsToday;
       sessionSecondsNotifier.value = _sessionReadSeconds;
       goalReachedNotifier.value = false;
       bookCompletedNotifier.value = null;
       hudVisible.value = true;
 
-      _navigationViewModel.navigateTo(snapshot.resumePosition);
+      _navigationViewModel.navigateTo(summary.resumeTarget);
 
       _scheduleNextTick();
     } finally {
@@ -172,7 +145,7 @@ class ReadingSessionViewModel with WidgetsBindingObserver {
       _accumulateElapsed(now);
     }
 
-    final sessionId = session?.sessionId;
+    final sessionId = session?.session.sessionId;
     if (sessionId != null) {
       await _service.endSession(
         sessionId,
@@ -202,7 +175,7 @@ class ReadingSessionViewModel with WidgetsBindingObserver {
         _accumulateElapsed(now);
       }
 
-      final sessionId = session?.sessionId;
+      final sessionId = session?.session.sessionId;
       if (sessionId == null) return null;
 
       final result = await _service.setVerseRead(
@@ -213,21 +186,26 @@ class ReadingSessionViewModel with WidgetsBindingObserver {
       );
       if (_disposed || result == null) return null;
 
-      _applyProgress(result.progress);
+      final runtime = await _readModels.getSessionRuntime(result.sessionId);
+      final verseReadStates = await _readModels.getVerseReadStates(
+        result.sessionId,
+        options.bookId,
+        options.chapter,
+      );
+      if (_disposed) return null;
+
+      if (runtime != null) {
+        _applyProgress(runtime);
+      }
 
       final event = result.bookCompleted;
       if (event != null) {
-        final current = session;
-        if (current != null) {
-          sessionNotifier.value = current.copyWith(
-            resumePosition: event.resumePosition,
-          );
-        }
+        _nextResumePosition = event.resumePosition;
         bookCompletedNotifier.value = event;
       }
 
       _checkGoalReached();
-      return result.verseReadStates;
+      return verseReadStates;
     } finally {
       _unlockRequest();
     }
@@ -237,9 +215,9 @@ class ReadingSessionViewModel with WidgetsBindingObserver {
     int bookId,
     int chapter,
   ) async {
-    final sessionId = session?.sessionId;
+    final sessionId = session?.session.sessionId;
     if (sessionId == null) return const {};
-    return _service.getVerseReadStates(sessionId, bookId, chapter);
+    return _readModels.getVerseReadStates(sessionId, bookId, chapter);
   }
 
   void toggleDisplayGoalProgress() {
@@ -339,11 +317,11 @@ class ReadingSessionViewModel with WidgetsBindingObserver {
     _requestLocked = false;
   }
 
-  void _applyProgress(SessionProgress progress) {
+  void _applyProgress(ReadingSessionRuntime progress) {
     final previousDay = _sessionDay;
     final dayChanged =
-        previousDay != null && !_sameDay(previousDay, progress.sessionDay);
-    final currentSessionId = session?.sessionId;
+        previousDay != null && !isSameDay(previousDay, progress.sessionDay);
+    final currentSessionId = session?.session.sessionId;
     final sessionChanged =
         currentSessionId != null && currentSessionId != progress.sessionId;
 
@@ -356,7 +334,7 @@ class ReadingSessionViewModel with WidgetsBindingObserver {
       // A day/session rollover starts a fresh accumulated duration.
       _sessionReadMilliseconds = progress.sessionReadSeconds * 1000;
       _dayReadMilliseconds = progress.secondsToday * 1000;
-      _lastTickAt = progress.asOf;
+      _lastTickAt = DateTime.now();
     } else {
       _sessionReadMilliseconds = math.max(
         _sessionReadMilliseconds,
@@ -367,20 +345,20 @@ class ReadingSessionViewModel with WidgetsBindingObserver {
         progress.secondsToday * 1000,
       );
     }
-    _lastFlushAt = progress.asOf;
+    _lastFlushAt = DateTime.now();
 
     final current = session;
     if (current != null) {
-      final updated = current.copyWith(
-        sessionId: progress.sessionId,
-        versesToday: progress.versesToday,
-        goalAlreadyReachedToday: progress.goalAlreadyReachedToday,
-        sessionStartTime: progress.sessionStartTime,
+      final updated = ReadingSessionUiState(
+        config: current.config,
+        session: progress,
       );
-      if (updated.sessionId != current.sessionId ||
-          updated.versesToday != current.versesToday ||
-          updated.goalAlreadyReachedToday != current.goalAlreadyReachedToday ||
-          updated.sessionStartTime != current.sessionStartTime) {
+      if (updated.session.sessionId != current.session.sessionId ||
+          updated.session.versesToday != current.session.versesToday ||
+          updated.session.goalAlreadyReachedToday !=
+              current.session.goalAlreadyReachedToday ||
+          updated.session.sessionStartTime !=
+              current.session.sessionStartTime) {
         sessionNotifier.value = updated;
       }
     }
@@ -395,7 +373,7 @@ class ReadingSessionViewModel with WidgetsBindingObserver {
 
     final dailyGoal = current.config.dailyGoal;
     final reached = dailyGoal.type == GoalType.verses
-        ? current.versesToday >= dailyGoal.value
+        ? current.session.versesToday >= dailyGoal.value
         : secondsTodayNotifier.value >= 60 * dailyGoal.value;
 
     if (!reached || _goalLatch) return;
@@ -408,7 +386,7 @@ class ReadingSessionViewModel with WidgetsBindingObserver {
     if (_disposed || _timerPaused || !hasActiveSession) return;
 
     final now = DateTime.now();
-    final dayChanged = _sessionDay != null && !_sameDay(_sessionDay!, now);
+    final dayChanged = _sessionDay != null && !isSameDay(_sessionDay!, now);
 
     if (dayChanged) {
       if (!_tryLockRequest('day rollover')) {
@@ -458,17 +436,20 @@ class ReadingSessionViewModel with WidgetsBindingObserver {
         _accumulateElapsed(now);
       }
 
-      final sessionId = session?.sessionId;
+      final sessionId = session?.session.sessionId;
       if (sessionId == null) return;
 
-      final progress = await _service.heartbeat(
+      final updated = await _service.heartbeat(
         sessionId,
         readSeconds: _sessionReadSeconds,
         at: now,
       );
-      if (_disposed || progress == null) return;
+      if (_disposed || !updated) return;
 
-      _applyProgress(progress);
+      final runtime = await _readModels.getSessionRuntime(sessionId);
+      if (_disposed || runtime == null) return;
+
+      _applyProgress(runtime);
       _checkGoalReached();
     } finally {
       _unlockRequest();
@@ -494,6 +475,7 @@ class ReadingSessionViewModel with WidgetsBindingObserver {
     _lastFlushAt = DateTime.now();
 
     sessionNotifier.value = null;
+    _nextResumePosition = null;
     secondsTodayNotifier.value = 0;
     sessionSecondsNotifier.value = 0;
     goalReachedNotifier.value = false;
@@ -516,9 +498,9 @@ class ReadingSessionViewModel with WidgetsBindingObserver {
     DateTime now, {
     required bool timerActive,
   }) async {
-    final sessionId = session?.sessionId;
+    final sessionId = session?.session.sessionId;
     final sessionDay = _sessionDay;
-    if (sessionId == null || sessionDay == null || _sameDay(sessionDay, now)) {
+    if (sessionId == null || sessionDay == null || isSameDay(sessionDay, now)) {
       return;
     }
 
@@ -526,7 +508,7 @@ class ReadingSessionViewModel with WidgetsBindingObserver {
     var newDayExtra = 0;
     if (timerActive) {
       final elapsed = math.max(0, now.difference(_lastTickAt).inSeconds);
-      final startOfToday = _day(now);
+      final startOfToday = dayOnly(now);
       oldDayExtra = math.min(
         math.max(0, startOfToday.difference(_lastTickAt).inSeconds),
         elapsed,
@@ -534,19 +516,18 @@ class ReadingSessionViewModel with WidgetsBindingObserver {
       newDayExtra = elapsed - oldDayExtra;
     }
 
-    final progress = await _service.rolloverSession(
+    final newSessionId = await _service.rolloverSession(
       sessionId,
       at: now,
       oldReadSeconds: _sessionReadSeconds + oldDayExtra,
       newReadSeconds: newDayExtra,
     );
-    if (_disposed || progress == null) return;
+    if (_disposed || newSessionId == null) return;
 
-    _applyProgress(progress);
-  }
+    final runtime = await _readModels.getSessionRuntime(newSessionId);
+    if (_disposed || runtime == null) return;
 
-  static DateTime _day(DateTime date) {
-    return DateTime(date.year, date.month, date.day);
+    _applyProgress(runtime);
   }
 
   void dispose() {
@@ -560,9 +541,5 @@ class ReadingSessionViewModel with WidgetsBindingObserver {
     goalReachedNotifier.dispose();
     bookCompletedNotifier.dispose();
     hudVisible.dispose();
-  }
-
-  static bool _sameDay(DateTime a, DateTime b) {
-    return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 }

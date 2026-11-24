@@ -30,9 +30,9 @@ class ReadingPlanService {
       throw ArgumentError('Minutes and verses cannot both be zero.');
     }
 
-    final day = _dayOnly(date);
+    final day = dayOnly(date);
     final now = DateTime.now();
-    final isToday = _sameDay(day, now);
+    final isToday = isSameDay(day, now);
 
     final session = await _database.transaction((txn) async {
       final inserted = await _database.insertSession(
@@ -86,17 +86,16 @@ class ReadingPlanService {
         await _database.upsertDaySummary(
           session.readingPlanId,
           session.rsDate,
-          preserveStoredGoalSnapshot: !_sameDay(session.rsDate, DateTime.now()),
+          preserveStoredGoalSnapshot: !isSameDay(
+            session.rsDate,
+            DateTime.now(),
+          ),
           executor: txn,
         );
       }
     });
 
     return true;
-  }
-
-  static bool _sameDay(DateTime a, DateTime b) {
-    return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 
   Future<int> saveReadingPlan({
@@ -148,7 +147,7 @@ class ReadingPlanService {
       existingPlan: existingPlan,
       planName: planName,
       collectionId: collectionId,
-      goalType: goalType.name,
+      goalType: goalType.storedValue,
       goalValue: goalValue,
       orderedBookIds: orderedIds,
     );
@@ -170,7 +169,4 @@ class ReadingPlanService {
   Future<void> deleteReadingPlan(int planId) {
     return _database.deleteReadingPlan(planId);
   }
-
-  static DateTime _dayOnly(DateTime date) =>
-      DateTime(date.year, date.month, date.day);
 }

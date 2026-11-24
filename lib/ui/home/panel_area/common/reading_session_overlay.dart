@@ -1,8 +1,9 @@
 import 'dart:math' as math;
+import 'package:gbt/reading_plan/reading_plan_read_models.dart';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:gbt/l10n/app_localizations.dart';
-import 'package:gbt/reading_plan/rs_model.dart' show DailyGoal, GoalType;
+import 'package:gbt/reading_plan/rs_model.dart' show GoalType;
 import 'package:gbt/reading_plan/reading_session_view_model.dart';
 
 class ReadingSessionOverlay extends StatelessWidget {
@@ -32,7 +33,7 @@ class ReadingSessionOverlay extends StatelessWidget {
                 key: const ValueKey('verses-progress'),
                 viewModel: viewModel,
                 dailyGoal: dailyGoal,
-                versesToday: session.versesToday,
+                versesToday: session.session.versesToday,
               );
             } else {
               child = _MinutesGoalProgressBar(

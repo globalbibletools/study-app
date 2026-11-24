@@ -1,32 +1,36 @@
 import 'package:flutter/foundation.dart';
 import 'package:gbt/asyncutils/cancellation.dart';
+import 'package:gbt/reading_plan/reading_plan_read_models.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
-import 'package:gbt/reading_plan/rs_model.dart';
+import 'package:gbt/reading_plan/rs_database.dart';
 import 'package:gbt/services/service_locator.dart';
 
 class DayActivityLogViewModel extends ChangeNotifier {
   DayActivityLogViewModel._({
     required this.readingPlanId,
     required this.date,
+    required ReadingPlanReadModels readModels,
     required ReadingPlanService planService,
-  }) : _planService = planService;
+  }) : _readModels = readModels,
+       _planService = planService;
 
   static Future<DayActivityLogViewModel> create({
     required int readingPlanId,
     required DateTime date,
+    ReadingPlanReadModels? readModels,
     ReadingPlanService? planService,
   }) async {
-    final service = planService ?? getIt<ReadingPlanService>();
     final viewModel = DayActivityLogViewModel._(
       readingPlanId: readingPlanId,
       date: date,
-      planService: service,
+      readModels: readModels ?? getIt<ReadingSessionDatabase>().readModels,
+      planService: planService ?? getIt<ReadingPlanService>(),
     );
 
     try {
-      viewModel._sessions = await service.getDetailedProgressFor(
-        date,
+      viewModel._sessions = await viewModel._readModels.getDayActivity(
         readingPlanId,
+        date,
       );
     } catch (_) {
       viewModel.dispose();
@@ -36,6 +40,7 @@ class DayActivityLogViewModel extends ChangeNotifier {
     return viewModel;
   }
 
+  final ReadingPlanReadModels _readModels;
   final ReadingPlanService _planService;
 
   final _refreshScope = CancellationScope();
@@ -43,7 +48,7 @@ class DayActivityLogViewModel extends ChangeNotifier {
   Future<void> refresh() {
     return _refreshScope.run((guard) async {
       final sessions = await guard(
-        _planService.getDetailedProgressFor(date, readingPlanId),
+        _readModels.getDayActivity(readingPlanId, date),
       );
       _setState(() {
         _sessions = sessions;
@@ -89,7 +94,7 @@ class DayActivityLogViewModel extends ChangeNotifier {
   double minutesFor(SessionDetails session) =>
       _roundMinutes(session.rsSession.readSeconds / 60);
 
-  List<DetailedProgess> referencesFor(SessionDetails session) {
+  List<VerseRange> referencesFor(SessionDetails session) {
     return [...session.progress]..sort((a, b) {
       final byBook = a.bookId.compareTo(b.bookId);
       if (byBook != 0) return byBook;
