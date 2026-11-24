@@ -131,7 +131,7 @@ class ReadingPlanService {
     final committedPlanId = await _database.readingPlans.commit(plan);
 
     final newlyAddedBookIds = bookIds.toSet().difference(previousBookIds);
-    await _database.materializeVerseStateForPlan(
+    await _database.verseState.materialize(
       committedPlanId,
       bookIds: newlyAddedBookIds,
     );

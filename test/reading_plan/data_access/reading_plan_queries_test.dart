@@ -56,7 +56,7 @@ void main() {
       ),
     );
     if (materialize) {
-      await database.materializeVerseStateForPlan(planId);
+      await database.verseState.materialize(planId);
     }
     return planId;
   }
@@ -173,7 +173,7 @@ void main() {
           books: [63, 64],
           materialize: false,
         );
-        await database.materializeVerseStateForPlan(planId, bookIds: {63});
+        await database.verseState.materialize(planId, bookIds: {63});
         await database.verseState.markRead(planId, 63, 1, 1);
         await database.verseState.markRead(planId, 63, 1, 2);
 
@@ -203,7 +203,7 @@ void main() {
       expect(progress.bookProgress[63]!.isComplete, isTrue);
 
       final multi = await createPlan('Multi', books: [63, 64]);
-      await database.materializeVerseStateForPlan(multi);
+      await database.verseState.materialize(multi);
       for (int verse = 1; verse <= 13; verse++) {
         await database.verseState.markRead(multi, 63, 1, verse);
       }

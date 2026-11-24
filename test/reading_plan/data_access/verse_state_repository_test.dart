@@ -47,7 +47,7 @@ void main() {
     'getBookStats reports the resume position after the last read verse',
     () async {
       final planId = await createPlan('Verse State Repository Test');
-      await database.materializeVerseStateForPlan(planId);
+      await database.verseState.materialize(planId);
 
       await database.verseState.markRead(planId, 63, 1, 1);
       await database.verseState.markRead(planId, 63, 1, 1);
@@ -92,7 +92,7 @@ void main() {
       await database.init();
 
       final planId = await createPlan('Gap', bookIds: [40]);
-      await database.materializeVerseStateForPlan(planId);
+      await database.verseState.materialize(planId);
 
       expect(await database.verseState.getReadCount(planId, 40, 16, 1), 0);
       expect(await database.verseState.getReadCount(planId, 40, 16, 3), isNull);
@@ -105,7 +105,7 @@ void main() {
 
   test('markRead increments the count and records last_read', () async {
     final planId = await createPlan('Verse State Repository Test');
-    await database.materializeVerseStateForPlan(planId);
+    await database.verseState.materialize(planId);
 
     final first = DateTime(2026, 11, 20, 9);
     final second = DateTime(2026, 11, 20, 10);
@@ -127,7 +127,7 @@ void main() {
 
   test('unmarkRead decrements and floors at zero', () async {
     final planId = await createPlan('Verse State Repository Test');
-    await database.materializeVerseStateForPlan(planId);
+    await database.verseState.materialize(planId);
 
     await database.verseState.markRead(planId, 63, 1, 1);
 
@@ -141,7 +141,7 @@ void main() {
 
   test('unmarkRead nulls last_read when the count reaches zero', () async {
     final planId = await createPlan('Verse State Repository Test');
-    await database.materializeVerseStateForPlan(planId);
+    await database.verseState.materialize(planId);
 
     await database.verseState.markRead(planId, 63, 1, 1);
     await database.verseState.markRead(planId, 63, 1, 1);
@@ -163,7 +163,7 @@ void main() {
 
   test('unmarkRead on a never-read verse leaves the count at zero', () async {
     final planId = await createPlan('Verse State Repository Test');
-    await database.materializeVerseStateForPlan(planId);
+    await database.verseState.materialize(planId);
 
     await database.verseState.unmarkRead(planId, 63, 1, 2);
 
@@ -186,7 +186,7 @@ void main() {
     // No rows materialized yet.
     expect(await database.verseState.isBookComplete(planId, 63), isFalse);
 
-    await database.materializeVerseStateForPlan(planId);
+    await database.verseState.materialize(planId);
     expect(await database.verseState.isBookComplete(planId, 63), isFalse);
 
     for (var verse = 1; verse <= 12; verse++) {
@@ -198,24 +198,20 @@ void main() {
     expect(await database.verseState.isBookComplete(planId, 63), isTrue);
   });
 
-  test('bulkInsert inserts zero-count rows and is idempotent', () async {
+  test('materialize inserts zero-count rows and is idempotent', () async {
     final planId = await createPlan('Verse State Repository Test');
-    final inventory = {
-      (63, 1): [1, 2, 3],
-    };
 
-    await database.verseState.bulkInsert(planId, inventory);
+    await database.verseState.materialize(planId);
 
-    for (final verse in [1, 2, 3]) {
+    for (var verse = 1; verse <= 13; verse++) {
       expect(await database.verseState.getReadCount(planId, 63, 1, verse), 0);
     }
-    expect(await database.verseState.getReadCount(planId, 63, 1, 4), isNull);
+    expect(await database.verseState.getReadCount(planId, 63, 1, 14), isNull);
 
     await database.verseState.markRead(planId, 63, 1, 1);
-    await database.verseState.bulkInsert(planId, inventory);
+    await database.verseState.materialize(planId);
 
     expect(await database.verseState.getReadCount(planId, 63, 1, 1), 1);
-    expect(await database.verseState.getReadCount(planId, 63, 1, 4), isNull);
   });
 
   test('deleteForPlanId deletes only the target plan rows', () async {
@@ -224,8 +220,8 @@ void main() {
       'Other Verse State Plan',
       bookIds: [64],
     );
-    await database.materializeVerseStateForPlan(planId);
-    await database.materializeVerseStateForPlan(otherPlanId);
+    await database.verseState.materialize(planId);
+    await database.verseState.materialize(otherPlanId);
 
     expect(await database.verseState.deleteForPlanId(planId), 13);
 
@@ -237,7 +233,7 @@ void main() {
     'methods with an executor participate in the caller transaction',
     () async {
       final planId = await createPlan('Verse State Repository Test');
-      await database.materializeVerseStateForPlan(planId);
+      await database.verseState.materialize(planId);
 
       await database.transaction((txn) async {
         await database.verseState.markRead(planId, 63, 1, 1, executor: txn);

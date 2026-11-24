@@ -2,17 +2,14 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:gbt/services/hebrew_greek/database.dart';
 import 'package:gbt/services/logging/log.dart';
 import 'package:gbt/reading_plan/data_access/day_summary_repository.dart';
-import 'package:gbt/reading_plan/data_access/reading_plan_queries.dart';
-import 'package:gbt/reading_plan/data_access/reading_plan_repository.dart'
-    show ReadingPlanRepository;
+import 'package:gbt/reading_plan/data_access/reading_plan_queries.dart'
+    hide VerseInventoryProvider;
+import 'package:gbt/reading_plan/data_access/reading_plan_repository.dart';
 import 'package:gbt/reading_plan/data_access/session_log_repository.dart';
 import 'package:gbt/reading_plan/data_access/session_repository.dart';
 import 'package:gbt/reading_plan/data_access/verse_state_repository.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:sqflite/sqflite.dart';
-
-typedef VerseInventoryProvider =
-    Future<Map<(int, int), List<int>>> Function(Set<int> bookIds);
 
 class ReadingSessionDatabase {
   ReadingSessionDatabase({String databaseName = _defaultDatabaseName})
@@ -48,7 +45,10 @@ class ReadingSessionDatabase {
 
   late final SessionLogRepository sessionLog = SessionLogRepository(_database);
   late final SessionRepository session = SessionRepository(_database);
-  late final VerseStateRepository verseState = VerseStateRepository(_database);
+  late final VerseStateRepository verseState = VerseStateRepository(
+    _database,
+    verseInventoryProvider: _verseInventoryProvider,
+  );
   late final DaySummaryRepository daySummary = DaySummaryRepository(_database);
   late final ReadingPlanQueries queries = ReadingPlanQueries(
     _database,
@@ -88,8 +88,12 @@ class ReadingSessionDatabase {
           'assets/schemas/reading_session.sql',
         );
         await _executeSqlBatch(db, sql);
+        final verseStateRepository = VerseStateRepository(
+          db,
+          verseInventoryProvider: _verseInventoryProvider,
+        );
         // We have to materialize here because there is a default reading plan that needs verse state setup correctly.
-        await materializeAllVerseState(db);
+        await verseStateRepository.materializeAll(executor: db);
       },
       onUpgrade: (db, oldVersion, newVersion) async {
         info(
@@ -100,7 +104,11 @@ class ReadingSessionDatabase {
           final sql = await rootBundle.loadString(file);
           await _executeSqlBatch(db, sql);
           if (v == 4) {
-            await materializeAllVerseState(db);
+            final verseStateRepository = VerseStateRepository(
+              db,
+              verseInventoryProvider: _verseInventoryProvider,
+            );
+            await verseStateRepository.materializeAll(executor: db);
           }
         }
       },
@@ -119,55 +127,6 @@ class ReadingSessionDatabase {
     }
 
     await batch.commit(noResult: true);
-  }
-
-  Future<void> backfillVerseStateFromLog(DatabaseExecutor db) async {
-    await db.rawInsert(
-      'INSERT OR REPLACE INTO rs_verse_state '
-      '(reading_plan_id, book_id, chapter, verse, read_count, last_read) '
-      'SELECT reading_plan_id, book_id, chapter, verse, '
-      '       COUNT(*), MAX(date_time) '
-      'FROM rs_log '
-      'GROUP BY reading_plan_id, book_id, chapter, verse',
-    );
-  }
-
-  Future<void> materializeAllVerseState(DatabaseExecutor db) async {
-    final plans = await db.query('reading_plan', columns: ['id']);
-    for (final plan in plans) {
-      await _materializeVerseState(db, plan['id'] as int);
-    }
-  }
-
-  Future<void> _materializeVerseState(
-    DatabaseExecutor db,
-    int planId, {
-    Set<int>? bookIds,
-  }) async {
-    final rows = await db.query(
-      'reading_plan_book',
-      columns: ['book_id'],
-      where: 'reading_plan_id = ?',
-      whereArgs: [planId],
-    );
-    final planBookIds = rows.map((row) => row['book_id'] as int).toSet();
-    final targetBookIds = bookIds == null
-        ? planBookIds
-        : planBookIds.intersection(bookIds);
-    if (targetBookIds.isEmpty) return;
-
-    final inventory = await _verseInventoryProvider(targetBookIds);
-    if (inventory.isEmpty) return;
-
-    await VerseStateRepository(db).bulkInsert(planId, inventory);
-  }
-
-  Future<void> materializeVerseStateForPlan(
-    int planId, {
-    Set<int>? bookIds,
-  }) async {
-    await init();
-    await _materializeVerseState(_database, planId, bookIds: bookIds);
   }
 
   Future<T> transaction<T>(Future<T> Function(DatabaseExecutor txn) action) {

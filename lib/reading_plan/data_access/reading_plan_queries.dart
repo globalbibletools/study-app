@@ -1,8 +1,10 @@
 import 'package:gbt/common/reference.dart';
 import 'package:gbt/reading_plan/data_access/reading_plan_read_models.dart';
-import 'package:gbt/reading_plan/data_access/rs_database.dart';
 import 'package:gbt/reading_plan/model.dart' show dayString;
 import 'package:sqflite/sqflite.dart';
+
+typedef VerseInventoryProvider =
+    Future<Map<(int, int), List<int>>> Function(Set<int> bookIds);
 
 class ReadingPlanQueries {
   ReadingPlanQueries(

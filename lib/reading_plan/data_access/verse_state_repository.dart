@@ -1,10 +1,17 @@
 import 'package:gbt/common/reference.dart';
 import 'package:sqflite/sqflite.dart';
 
+typedef VerseInventoryProvider =
+    Future<Map<(int, int), List<int>>> Function(Set<int> bookIds);
+
 class VerseStateRepository {
-  VerseStateRepository(DatabaseExecutor database) : _database = database;
+  VerseStateRepository(
+    this._database, {
+    required VerseInventoryProvider verseInventoryProvider,
+  }) : _verseInventoryProvider = verseInventoryProvider;
 
   final DatabaseExecutor _database;
+  final VerseInventoryProvider _verseInventoryProvider;
 
   Future<void> markRead(
     int readingPlanId,
@@ -61,12 +68,46 @@ class VerseStateRepository {
     return db.delete('rs_verse_state');
   }
 
-  Future<void> bulkInsert(
-    int readingPlanId,
-    Map<(int, int), List<int>> inventory, {
+  Future<void> backfillFromLog({DatabaseExecutor? executor}) async {
+    final db = executor ?? _database;
+    await db.rawInsert(
+      'INSERT OR REPLACE INTO rs_verse_state '
+      '(reading_plan_id, book_id, chapter, verse, read_count, last_read) '
+      'SELECT reading_plan_id, book_id, chapter, verse, '
+      '       COUNT(*), MAX(date_time) '
+      'FROM rs_log '
+      'GROUP BY reading_plan_id, book_id, chapter, verse',
+    );
+  }
+
+  Future<void> materializeAll({DatabaseExecutor? executor}) async {
+    final db = executor ?? _database;
+    final plans = await db.query('reading_plan', columns: ['id']);
+    for (final plan in plans) {
+      await materialize(plan['id'] as int, executor: db);
+    }
+  }
+
+  Future<void> materialize(
+    int planId, {
+    Set<int>? bookIds,
     DatabaseExecutor? executor,
   }) async {
     final db = executor ?? _database;
+    final rows = await db.query(
+      'reading_plan_book',
+      columns: ['book_id'],
+      where: 'reading_plan_id = ?',
+      whereArgs: [planId],
+    );
+    final planBookIds = rows.map((row) => row['book_id'] as int).toSet();
+    final targetBookIds = bookIds == null
+        ? planBookIds
+        : planBookIds.intersection(bookIds);
+    if (targetBookIds.isEmpty) return;
+
+    final inventory = await _verseInventoryProvider(targetBookIds);
+    if (inventory.isEmpty) return;
 
     final batch = db.batch();
     for (final entry in inventory.entries) {
@@ -76,7 +117,7 @@ class VerseStateRepository {
           'INSERT OR IGNORE INTO rs_verse_state '
           '(reading_plan_id, book_id, chapter, verse, read_count, last_read) '
           'VALUES (?, ?, ?, ?, 0, NULL)',
-          [readingPlanId, bookId, chapter, verse],
+          [planId, bookId, chapter, verse],
         );
       }
     }

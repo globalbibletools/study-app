@@ -143,8 +143,8 @@ class ReadingPlanBackupService {
         await _restoreCurrentFormat(tables, txn);
       }
 
-      await _database.backfillVerseStateFromLog(txn);
-      await _database.materializeAllVerseState(txn);
+      await _database.verseState.backfillFromLog(executor: txn);
+      await _database.verseState.materializeAll(executor: txn);
     });
   }
 
