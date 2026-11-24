@@ -4,6 +4,8 @@ import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
 import 'package:gbt/reading_plan/day_activity_log_view_model.dart';
 import 'package:gbt/reading_plan/number_stepper.dart';
+import 'package:gbt/services/service_locator.dart';
+import 'package:gbt/ui/messaging/messenger_view_model.dart';
 
 typedef DayActivityLogNavigator =
     Future<void> Function(BuildContext context, DateTime date);
@@ -18,6 +20,8 @@ class DayActivityLogPanel extends StatefulWidget {
     DateTime date, {
     required int readingPlanId,
   }) async {
+    final l10n = AppLocalizations.of(context)!;
+    final messenger = getIt<MessengerViewModel>();
     final viewModel = DayActivityLogViewModel(
       readingPlanId: readingPlanId,
       date: date,
@@ -27,12 +31,7 @@ class DayActivityLogPanel extends StatefulWidget {
       await viewModel.initialize();
     } catch (_) {
       viewModel.dispose();
-      if (!context.mounted) return;
-
-      final l10n = AppLocalizations.of(context)!;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.errorLoadingContent)));
+      messenger.showError(l10n.errorLoadingContent);
       return;
     }
 
@@ -140,6 +139,7 @@ class _DayActivityLogPanelState extends State<DayActivityLogPanel> {
 
   Future<void> _showAddManualSessionDialog() async {
     final l10n = AppLocalizations.of(context)!;
+    final messenger = getIt<MessengerViewModel>();
     final input = await showDialog<_ManualSessionInput>(
       context: context,
       builder: (context) => const _AddManualSessionDialog(),
@@ -152,10 +152,7 @@ class _DayActivityLogPanelState extends State<DayActivityLogPanel> {
         verses: input.verses,
       );
     } catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.errorMessage(error.toString()))),
-      );
+      messenger.showError(l10n.errorMessage(error.toString()));
     }
   }
 
@@ -163,14 +160,13 @@ class _DayActivityLogPanelState extends State<DayActivityLogPanel> {
     final sessionId = session.rsSession.id;
     if (sessionId == null) return;
 
+    final l10n = AppLocalizations.of(context)!;
+    final messenger = getIt<MessengerViewModel>();
+
     try {
       await viewModel.deleteManualSession(sessionId);
     } catch (error) {
-      if (!mounted) return;
-      final l10n = AppLocalizations.of(context)!;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.errorMessage(error.toString()))),
-      );
+      messenger.showError(l10n.errorMessage(error.toString()));
     }
   }
 

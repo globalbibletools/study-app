@@ -5,6 +5,7 @@ import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/reading_plan/reading_plan_backup_service.dart';
 import 'package:gbt/reading_plan/reading_session_view_model.dart';
 import 'package:gbt/services/service_locator.dart';
+import 'package:gbt/ui/messaging/messenger_view_model.dart';
 
 class BackupRestorePage extends StatefulWidget {
   const BackupRestorePage({super.key});
@@ -16,6 +17,7 @@ class BackupRestorePage extends StatefulWidget {
 class _BackupRestoreState extends State<BackupRestorePage> {
   final _sessionViewModel = getIt<ReadingSessionViewModel>();
   final _backupService = getIt<ReadingPlanBackupService>();
+  final _messenger = getIt<MessengerViewModel>();
   PackageInfo? _packageInfo;
   List<ReadingSessionBackupInfo> _backups = [];
   bool _busy = false;
@@ -45,10 +47,7 @@ class _BackupRestoreState extends State<BackupRestorePage> {
     try {
       final path = await _backupService.createBackup();
       await _loadPageData();
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.backupCreated(path))));
+      _messenger.showSuccess(l10n.backupCreated(path));
     } finally {
       if (mounted) {
         setState(() {
@@ -78,10 +77,7 @@ class _BackupRestoreState extends State<BackupRestorePage> {
         return;
       }
 
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.backupExported(targetUri.path))),
-      );
+      _messenger.showSuccess(l10n.backupExported(targetUri.path));
     } finally {
       if (mounted) {
         setState(() {
@@ -119,10 +115,7 @@ class _BackupRestoreState extends State<BackupRestorePage> {
       }
 
       await _loadPageData();
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.backupImported(label))));
+      _messenger.showSuccess(l10n.backupImported(label));
     } finally {
       if (mounted) {
         setState(() {
@@ -168,10 +161,7 @@ class _BackupRestoreState extends State<BackupRestorePage> {
     try {
       await _restoreDatabase(() => _backupService.restoreBackup(backup.path));
       await _loadPageData();
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.backupRestored(backup.name))));
+      _messenger.showSuccess(l10n.backupRestored(backup.name));
     } finally {
       if (mounted) {
         setState(() {

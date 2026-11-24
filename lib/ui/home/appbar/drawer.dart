@@ -9,6 +9,7 @@ import 'package:gbt/ui/about/about.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/ui/backup_restore/backup_restore.dart';
 import 'package:gbt/ui/download/download_manager_page.dart';
+import 'package:gbt/ui/messaging/messenger_view_model.dart';
 import 'package:gbt/ui/search/search.dart';
 import 'package:gbt/ui/settings/settings_page.dart';
 
@@ -122,7 +123,7 @@ class AppDrawer extends StatelessWidget {
 
   Future<void> _exportLogs(BuildContext context) async {
     final l10n = AppLocalizations.of(context)!;
-    final messenger = ScaffoldMessenger.of(context);
+    final messenger = getIt<MessengerViewModel>();
     final logger = getIt<AppLogger>();
 
     Navigator.pop(context);
@@ -134,7 +135,7 @@ class AppDrawer extends StatelessWidget {
 
       final bytes = await exporter.getExportAsBytes(now: now);
       if (bytes.isEmpty) {
-        messenger.showSnackBar(SnackBar(content: Text(l10n.noLogsToExport)));
+        messenger.showWarning(l10n.noLogsToExport);
         return;
       }
 
@@ -149,10 +150,10 @@ class AppDrawer extends StatelessWidget {
         return;
       }
 
-      messenger.showSnackBar(SnackBar(content: Text(l10n.logsExported)));
+      messenger.showSuccess(l10n.logsExported);
     } catch (e, stackTrace) {
       error('Failed to export logs', error: e, stackTrace: stackTrace);
-      messenger.showSnackBar(SnackBar(content: Text(l10n.logExportFailed)));
+      messenger.showError(l10n.logExportFailed);
     }
   }
 }
