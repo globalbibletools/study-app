@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/l10n/book_names.dart';
-import 'package:gbt/reading_plan/data_access/rs_model.dart';
+import 'package:gbt/reading_plan/data_access/reading_plan_read_models.dart';
 import 'package:gbt/reading_plan/ui/calendar_view.dart';
 import 'package:gbt/reading_plan/ui/day_activity_log_panel.dart';
 import 'package:gbt/reading_plan/ui/edit_reading_plan_panel.dart';
@@ -174,7 +174,7 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
       percent: viewModel.overallProgress,
       secondLine: l10n.booksReadOfTotal(
         viewModel.booksRead,
-        viewModel.books.length,
+        viewModel.bookIds.length,
       ),
       thirdLine: completion,
     );
@@ -277,7 +277,7 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
       return const SizedBox.shrink();
     }
 
-    final books = viewModel.books;
+    final books = viewModel.bookIds;
     return ListView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -286,10 +286,10 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
     );
   }
 
-  Widget _bookRow(ReadingPlanBook book) {
+  Widget _bookRow(int bookId) {
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
-      key: ValueKey(book.bookId),
+      key: ValueKey(bookId),
       margin: const EdgeInsets.symmetric(vertical: 4),
       padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
       decoration: BoxDecoration(
@@ -302,7 +302,7 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
         children: [
           Expanded(
             child: Text(
-              bookNameFromId(context, book.bookId),
+              bookNameFromId(context, bookId),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
@@ -312,7 +312,7 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
             ),
           ),
           ProgressCircle(
-            percent: viewModel.progressForBook(book.bookId),
+            percent: viewModel.progressForBook(bookId),
             size: 36,
             strokeWidth: 4,
             fontSize: 10,

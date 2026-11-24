@@ -33,6 +33,24 @@ class ReadingPlanConfig {
   final DailyGoal dailyGoal;
 
   final List<int> bookIds;
+
+  ReadingPlanConfig copyWith({
+    int? planId,
+    String? planName,
+    bool? isBookmarked,
+    DateTime? createdAt,
+    DailyGoal? dailyGoal,
+    List<int>? bookIds,
+  }) {
+    return ReadingPlanConfig(
+      planId: planId ?? this.planId,
+      planName: planName ?? this.planName,
+      isBookmarked: isBookmarked ?? this.isBookmarked,
+      createdAt: createdAt ?? this.createdAt,
+      dailyGoal: dailyGoal ?? this.dailyGoal,
+      bookIds: bookIds ?? this.bookIds,
+    );
+  }
 }
 
 class ReadingPlanProgress {
@@ -117,6 +135,18 @@ class ReadingPlanSummary {
   final ReadingPlanConfig config;
   final ReadingPlanProgress progress;
   final DailyProgress today;
+
+  ReadingPlanSummary copyWith({
+    ReadingPlanConfig? config,
+    ReadingPlanProgress? progress,
+    DailyProgress? today,
+  }) {
+    return ReadingPlanSummary(
+      config: config ?? this.config,
+      progress: progress ?? this.progress,
+      today: today ?? this.today,
+    );
+  }
 
   int get planId => config.planId;
   String get planName => config.planName;

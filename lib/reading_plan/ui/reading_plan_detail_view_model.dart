@@ -3,7 +3,6 @@ import 'package:gbt/asyncutils/cancellation.dart';
 import 'package:gbt/common/reference.dart';
 import 'package:gbt/reading_plan/data_access/reading_plan_queries.dart';
 import 'package:gbt/reading_plan/data_access/reading_plan_read_models.dart';
-import 'package:gbt/reading_plan/data_access/rs_model.dart';
 import 'package:gbt/reading_plan/reading_plan_estimates.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
 import 'package:gbt/reading_plan/ui/reading_session_view_model.dart';
@@ -51,11 +50,8 @@ class ReadingPlanDetailViewModel extends ChangeNotifier {
 
   Future<void> refresh() {
     return _refreshScope.run((guard) async {
-      final details = await guard(_planService.getReadingPlanById(_planId));
-      if (details == null) throw StateError('Reading plan not found');
-
-      final stats = await guard(_planService.getBooksStats(_planId));
-      final statsByBook = {for (final stat in stats) stat.bookId: stat};
+      final summary = await guard(_queries.getPlanSummary(_planId));
+      if (summary == null) throw StateError('Reading plan not found');
 
       final todaysProgress = await guard(
         _queries.getDayProgress(_planId, DateTime.now()),
@@ -65,8 +61,7 @@ class ReadingPlanDetailViewModel extends ChangeNotifier {
       );
 
       _setState(() {
-        _planDetails = details;
-        _bookStats = statsByBook;
+        _summary = summary;
         _monthProgress = monthProgress;
         _todaysProgress = todaysProgress;
       });
@@ -78,32 +73,28 @@ class ReadingPlanDetailViewModel extends ChangeNotifier {
   final int _planId;
   int get planId => _planId;
 
-  late ReadingPlanDetails _planDetails;
-  String get planName => _planDetails.readingPlan.planName;
+  late ReadingPlanSummary _summary;
+  String get planName => _summary.planName;
 
-  ReadingPlanDetails get planDetails => _planDetails;
-
-  bool get isBookmarked => _planDetails.readingPlan.isBookmarked;
+  bool get isBookmarked => _summary.isBookmarked;
   Future<void> toggleBookmark() async {
-    final currentPlan = _planDetails.readingPlan;
-    final isBookmarked = !currentPlan.isBookmarked;
-    await _planService.setReadingPlanBookmark(currentPlan.id!, isBookmarked);
+    final isBookmarked = !_summary.isBookmarked;
+    await _planService.setReadingPlanBookmark(_planId, isBookmarked);
     _setState(() {
-      _planDetails.readingPlan = currentPlan.copyWith(
-        isBookmarked: isBookmarked,
+      _summary = _summary.copyWith(
+        config: _summary.config.copyWith(isBookmarked: isBookmarked),
       );
     });
   }
 
   // Book progress
 
-  late Map<int, RsBookStats> _bookStats;
-  Map<int, RsBookStats> get bookStats => _bookStats;
+  Map<int, BookProgress> get bookStats => _summary.bookProgress;
 
-  List<ReadingPlanBook> get books => _planDetails.books;
+  List<int> get bookIds => _summary.bookIds;
 
   double progressForBook(int bookId) {
-    final stats = _bookStats[bookId];
+    final stats = _summary.bookProgress[bookId];
     if (stats == null || stats.totalVerses <= 0) return 0;
 
     return (stats.versesRead / stats.totalVerses).clamp(0.0, 1.0);
@@ -111,16 +102,7 @@ class ReadingPlanDetailViewModel extends ChangeNotifier {
 
   // Start session
 
-  Reference get readingReference {
-    final resumePosition = _planDetails.resumePosition;
-    if (resumePosition != null) return resumePosition;
-
-    return Reference(
-      bookId: books.isNotEmpty ? books.first.bookId : 1,
-      chapter: 1,
-      verse: 1,
-    );
-  }
+  Reference get readingReference => _summary.resumeTarget;
 
   Future<void> startReadingSession() {
     return _sessionViewModel.startSession(_planId);
@@ -129,30 +111,9 @@ class ReadingPlanDetailViewModel extends ChangeNotifier {
   // Total Progress
 
   bool get hasStarted => versesRead > 0;
-
-  int get totalVerses {
-    var total = 0;
-    for (final book in books) {
-      total += _bookStats[book.bookId]?.totalVerses ?? 0;
-    }
-    return total;
-  }
-
-  int get versesRead {
-    var read = 0;
-    for (final book in books) {
-      read += _bookStats[book.bookId]?.versesRead ?? 0;
-    }
-    return read;
-  }
-
-  int get booksRead {
-    var read = 0;
-    for (final book in books) {
-      if (_bookStats[book.bookId]?.isComplete ?? false) read += 1;
-    }
-    return read;
-  }
+  int get totalVerses => _summary.totalVerses;
+  int get versesRead => _summary.versesRead;
+  int get booksRead => _summary.booksRead;
 
   double get overallProgress =>
       totalVerses > 0 ? versesRead / totalVerses : 0.0;
@@ -172,8 +133,8 @@ class ReadingPlanDetailViewModel extends ChangeNotifier {
 
   // Day Progress
 
-  GoalType get goalType => _planDetails.dailyGoal.type;
-  int get goalValue => _planDetails.dailyGoal.value;
+  GoalType get goalType => _summary.dailyGoal.type;
+  int get goalValue => _summary.dailyGoal.value;
 
   late DailyProgress _todaysProgress;
   DailyProgress get todaysProgress => _todaysProgress;

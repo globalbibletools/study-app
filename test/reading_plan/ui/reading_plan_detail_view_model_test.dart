@@ -22,6 +22,12 @@ void main() {
     FakeReadingPlanService service, {
     int planId = 7,
   }) async {
+    final plan = service.plans
+        .where((plan) => plan.readingPlan.id == planId)
+        .firstOrNull;
+    queries.plans = [
+      if (plan != null) summaryFor(plan, bookStats: service.bookStats),
+    ];
     final viewModel = await ReadingPlanDetailViewModel.create(
       planId: planId,
       queries: queries,
@@ -64,7 +70,7 @@ void main() {
         expect(viewModel.planId, 7);
         expect(viewModel.planName, 'Ruth Plan');
         expect(viewModel.isBookmarked, isFalse);
-        expect(viewModel.books.map((book) => book.bookId), [63, 64]);
+        expect(viewModel.bookIds, [63, 64]);
         expect(viewModel.bookStats.keys, [63, 64]);
         expect(viewModel.totalVerses, 28);
         expect(viewModel.versesRead, 13);
@@ -88,10 +94,10 @@ void main() {
       final service = FakeReadingPlanService([planDetails()]);
       final viewModel = await newViewModel(service);
 
-      service.plans = [];
+      queries.plans = [];
       await expectLater(viewModel.refresh(), throwsA(isA<StateError>()));
 
-      service.plans = [planDetails(name: 'Recovered Plan')];
+      queries.plans = [summaryFor(planDetails(name: 'Recovered Plan'))];
       await viewModel.refresh();
 
       expect(viewModel.planName, 'Recovered Plan');
@@ -102,24 +108,21 @@ void main() {
       final service = FakeReadingPlanService([details]);
       final viewModel = await newViewModel(service);
 
-      service.queuePlanRequests = true;
-      service.queueStatsRequests = true;
+      final summary = summaryFor(
+        details,
+        bookStats: [bookStats(8, totalVerses: 85, versesRead: 85)],
+      );
+      queries.queueSummaryRequests = true;
 
       final first = viewModel.refresh();
       final second = viewModel.refresh();
 
-      expect(service.planRequests, hasLength(2));
+      expect(queries.summaryRequests, hasLength(2));
 
-      service.planRequests[0].complete(details);
+      queries.summaryRequests[0].complete(summary);
       await expectLater(first, throwsA(isA<CancelledError>()));
 
-      service.planRequests[1].complete(details);
-      await pumpEventQueue();
-      expect(service.statsRequests, hasLength(1));
-
-      service.statsRequests.single.complete([
-        bookStats(8, totalVerses: 85, versesRead: 85),
-      ]);
+      queries.summaryRequests[1].complete(summary);
       await second;
       expect(viewModel.versesRead, 85);
       expect(viewModel.bookStats[8]!.isComplete, isTrue);
@@ -133,23 +136,25 @@ void main() {
       () async {
         final details = planDetails(bookIds: const [8]);
         final service = FakeReadingPlanService([details]);
+        final summary = summaryFor(details);
+        queries.plans = [summary];
         final viewModel = await ReadingPlanDetailViewModel.create(
           planId: 7,
           queries: queries,
           planService: service,
           sessionViewModel: sessionViewModel,
         );
-        service.queuePlanRequests = true;
+        queries.queueSummaryRequests = true;
 
         var notifications = 0;
         viewModel.addListener(() => notifications++);
 
         final future = viewModel.refresh();
-        expect(service.planRequests, hasLength(1));
+        expect(queries.summaryRequests, hasLength(1));
         final notificationsBeforeDispose = notifications;
 
         viewModel.dispose();
-        service.planRequests.single.complete(details);
+        queries.summaryRequests.single.complete(summary);
         await expectLater(future, throwsA(isA<CancelledError>()));
 
         expect(notifications, notificationsBeforeDispose);
@@ -214,7 +219,7 @@ void main() {
       ])..bookStats = [bookStats(63, totalVerses: 13, versesRead: 1)];
       final viewModel = await newViewModel(service);
 
-      expect(viewModel.bookStats.keys, [63]);
+      expect(viewModel.bookStats.keys, [63, 64]);
       expect(viewModel.progressForBook(63), closeTo(1 / 13, 1e-9));
       expect(viewModel.progressForBook(64), 0);
       expect(viewModel.totalVerses, 13);
@@ -578,6 +583,39 @@ ReadingPlanDetails planDetails({
   );
   details.resumePosition = resumePosition;
   return details;
+}
+
+ReadingPlanSummary summaryFor(
+  ReadingPlanDetails details, {
+  List<RsBookStats> bookStats = const [],
+}) {
+  final statsByBook = {for (final stat in bookStats) stat.bookId: stat};
+  final plan = details.readingPlan;
+  final planId = plan.id!;
+  final bookIds = [for (final book in details.books) book.bookId];
+  return ReadingPlanSummary(
+    config: ReadingPlanConfig(
+      planId: planId,
+      planName: plan.planName,
+      isBookmarked: plan.isBookmarked,
+      createdAt: plan.createdAt,
+      dailyGoal: details.dailyGoal,
+      bookIds: bookIds,
+    ),
+    progress: ReadingPlanProgress(
+      planId: planId,
+      bookProgress: {
+        for (final bookId in bookIds)
+          bookId: BookProgress(
+            bookId: bookId,
+            totalVerses: statsByBook[bookId]?.totalVerses ?? 0,
+            versesRead: statsByBook[bookId]?.versesRead ?? 0,
+          ),
+      },
+      resumePosition: details.resumePosition,
+    ),
+    today: DailyProgress.empty(DateTime.now()),
+  );
 }
 
 RsBookStats bookStats(

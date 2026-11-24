@@ -44,6 +44,7 @@ void main() {
     FakeReadingPlanService service,
   ) {
     service.plans = [plan];
+    queries.plans = [summaryFor(plan, bookStats: service.bookStats)];
     return ReadingPlanDetailViewModel.create(
       planId: plan.readingPlan.id!,
       queries: queries,
@@ -94,9 +95,11 @@ void main() {
     });
 
     testWidgets('initializes the view model before navigating', (tester) async {
-      final service = FakeReadingPlanService()
-        ..plans = [planDetails()]
-        ..queuePlanRequests = true;
+      final plan = planDetails();
+      final summary = summaryFor(plan);
+      queries.plans = [summary];
+      queries.queueSummaryRequests = true;
+      final service = FakeReadingPlanService()..plans = [plan];
       final session = FakeReadingSessionViewModel();
       getIt.registerSingleton<ReadingPlanService>(service);
       getIt.registerSingleton<ReadingPlanQueries>(queries);
@@ -109,9 +112,9 @@ void main() {
       await tester.pump();
 
       expect(find.byType(ReadingPlanDetailPanel), findsNothing);
-      expect(service.planRequests, hasLength(1));
+      expect(queries.summaryRequests, hasLength(1));
 
-      service.planRequests.single.complete(service.plans.single);
+      queries.summaryRequests.single.complete(summary);
       await tester.pumpAndSettle();
 
       expect(find.byType(ReadingPlanDetailPanel), findsOneWidget);
@@ -238,7 +241,12 @@ void main() {
         viewModel,
         navigateToEditPlanRoute: (context, planId) async {
           editedPlanIds.add(planId);
-          service.plans = [planDetails(name: 'Renamed Plan')];
+          queries.plans = [
+            summaryFor(
+              planDetails(name: 'Renamed Plan'),
+              bookStats: service.bookStats,
+            ),
+          ];
         },
       );
       await tester.pumpAndSettle();
@@ -515,18 +523,23 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final callsBefore = service.getPlanByIdCalls;
+      final summaryCallsBefore = queries.summaryCalls;
       await tester.tap(find.text('${now.day}'));
       await tester.pumpAndSettle();
       expect(openedDate, DateTime(now.year, now.month, now.day));
       expect(find.text('Activity for ${now.day}'), findsOneWidget);
 
-      service.plans = [planDetails(name: 'Refreshed Plan')];
+      queries.plans = [
+        summaryFor(
+          planDetails(name: 'Refreshed Plan'),
+          bookStats: service.bookStats,
+        ),
+      ];
       await tester.tap(find.text('Close log'));
       await tester.pumpAndSettle();
 
       expect(find.text('Refreshed Plan'), findsOneWidget);
-      expect(service.getPlanByIdCalls, greaterThan(callsBefore));
+      expect(queries.summaryCalls, greaterThan(summaryCallsBefore));
     });
   });
 
@@ -631,6 +644,39 @@ ReadingPlanDetails planDetails({
   );
   details.resumePosition = resumePosition;
   return details;
+}
+
+ReadingPlanSummary summaryFor(
+  ReadingPlanDetails details, {
+  List<RsBookStats> bookStats = const [],
+}) {
+  final statsByBook = {for (final stat in bookStats) stat.bookId: stat};
+  final plan = details.readingPlan;
+  final planId = plan.id!;
+  final bookIds = [for (final book in details.books) book.bookId];
+  return ReadingPlanSummary(
+    config: ReadingPlanConfig(
+      planId: planId,
+      planName: plan.planName,
+      isBookmarked: plan.isBookmarked,
+      createdAt: plan.createdAt,
+      dailyGoal: details.dailyGoal,
+      bookIds: bookIds,
+    ),
+    progress: ReadingPlanProgress(
+      planId: planId,
+      bookProgress: {
+        for (final bookId in bookIds)
+          bookId: BookProgress(
+            bookId: bookId,
+            totalVerses: statsByBook[bookId]?.totalVerses ?? 0,
+            versesRead: statsByBook[bookId]?.versesRead ?? 0,
+          ),
+      },
+      resumePosition: details.resumePosition,
+    ),
+    today: DailyProgress.empty(DateTime.now()),
+  );
 }
 
 Map<int, DailyProgress> currentMonthProgress({

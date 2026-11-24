@@ -6,6 +6,7 @@ import 'package:gbt/reading_plan/ui/reading_plan_detail_panel.dart';
 import 'package:gbt/reading_plan/ui/reading_plan_panel.dart';
 import 'package:gbt/reading_plan/ui/reading_plan_panel_view_model.dart';
 import 'package:gbt/reading_plan/data_access/reading_plan_queries.dart';
+import 'package:gbt/reading_plan/data_access/reading_plan_read_models.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
 import 'package:gbt/reading_plan/ui/reading_session_view_model.dart';
 import 'package:gbt/reading_plan/ui/progress_circle.dart';
@@ -316,9 +317,27 @@ void main() {
       tester,
     ) async {
       planService.plans = [planDetails('Ruth', id: 1)];
-      planService.queuePlanRequests = true;
+      final queries = FakeReadingPlanQueries();
+      final summary = ReadingPlanSummary(
+        config: ReadingPlanConfig(
+          planId: 1,
+          planName: 'Ruth',
+          isBookmarked: false,
+          createdAt: DateTime.now(),
+          dailyGoal: const DailyGoal(GoalType.verses, 10),
+          bookIds: const [],
+        ),
+        progress: ReadingPlanProgress(
+          planId: 1,
+          bookProgress: const {},
+          resumePosition: null,
+        ),
+        today: DailyProgress.empty(DateTime.now()),
+      );
+      queries.plans = [summary];
+      queries.queueSummaryRequests = true;
       getIt.registerSingleton<ReadingPlanService>(planService);
-      getIt.registerSingleton<ReadingPlanQueries>(FakeReadingPlanQueries());
+      getIt.registerSingleton<ReadingPlanQueries>(queries);
       getIt.registerSingleton<ReadingSessionViewModel>(sessionViewModel);
 
       await pumpPanel(tester);
@@ -326,9 +345,9 @@ void main() {
       await tester.pump();
 
       expect(find.byType(ReadingPlanDetailPanel), findsNothing);
-      expect(planService.planRequests, hasLength(1));
+      expect(queries.summaryRequests, hasLength(1));
 
-      planService.planRequests.single.complete(planService.plans.single);
+      queries.summaryRequests.single.complete(summary);
       await tester.pumpAndSettle();
 
       expect(find.byType(ReadingPlanDetailPanel), findsOneWidget);
