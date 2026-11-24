@@ -79,7 +79,6 @@ void main() {
   test('starts at the first verse when the plan has no reads', () async {
     final plan = await planService.saveReadingPlan(
       planName: 'Resume Test',
-      collectionId: 1,
       goalType: GoalType.verses,
       goalValue: 10,
       selectedBookIds: {63, 64},
@@ -96,7 +95,6 @@ void main() {
   test('returns the verse after the last read verse', () async {
     final plan = await planService.saveReadingPlan(
       planName: 'Resume Test',
-      collectionId: 1,
       goalType: GoalType.verses,
       goalValue: 10,
       selectedBookIds: {63, 64},
@@ -116,7 +114,6 @@ void main() {
     () async {
       final plan = await planService.saveReadingPlan(
         planName: 'Resume Test',
-        collectionId: 1,
         goalType: GoalType.verses,
         goalValue: 10,
         selectedBookIds: {63, 64},
@@ -136,7 +133,6 @@ void main() {
   test('plan resume moves to the next book in plan order', () async {
     final plan = await planService.saveReadingPlan(
       planName: 'Resume Test',
-      collectionId: 1,
       goalType: GoalType.verses,
       goalValue: 10,
       selectedBookIds: {63, 64},
@@ -154,7 +150,6 @@ void main() {
   test('plan resume is null after the final verse in the plan', () async {
     final plan = await planService.saveReadingPlan(
       planName: 'Resume Test',
-      collectionId: 1,
       goalType: GoalType.verses,
       goalValue: 10,
       selectedBookIds: {63, 64},
@@ -167,7 +162,6 @@ void main() {
   test('uses the latest log entry in the plan', () async {
     final plan = await planService.saveReadingPlan(
       planName: 'Resume Test',
-      collectionId: 1,
       goalType: GoalType.verses,
       goalValue: 10,
       selectedBookIds: {63, 64},
@@ -186,7 +180,6 @@ void main() {
   test('moves to the next chapter after the last verse', () async {
     final plan = await planService.saveReadingPlan(
       planName: 'Resume Test',
-      collectionId: 1,
       goalType: GoalType.verses,
       goalValue: 10,
       selectedBookIds: {19},
@@ -204,7 +197,6 @@ void main() {
   test('follows plan order after the last verse of the final book', () async {
     final plan = await planService.saveReadingPlan(
       planName: 'Resume Test',
-      collectionId: 1,
       goalType: GoalType.verses,
       goalValue: 10,
       selectedBookIds: {63, 64},
@@ -230,7 +222,6 @@ void main() {
   test('list read model uses the log-derived resume position', () async {
     final plan = await planService.saveReadingPlan(
       planName: 'Resume Test',
-      collectionId: 1,
       goalType: GoalType.verses,
       goalValue: 10,
       selectedBookIds: {63, 64},
@@ -274,7 +265,6 @@ void main() {
 
     final plan = await planService.saveReadingPlan(
       planName: 'Resume Gap Test',
-      collectionId: 1,
       goalType: GoalType.verses,
       goalValue: 10,
       selectedBookIds: {40},

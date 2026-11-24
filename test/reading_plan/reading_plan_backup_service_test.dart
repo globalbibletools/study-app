@@ -57,7 +57,6 @@ void main() {
     final initialPlanCount = (await database.getReadingPlans()).length;
     final plan = await database.saveReadingPlan(
       planName: 'Backup Test',
-      collectionId: 1,
       goalType: 'verses',
       goalValue: 12,
       orderedBookIds: [1, 2],
@@ -148,7 +147,6 @@ void main() {
   test('round trips manual sessions without creating verse progress', () async {
     final plan = await database.saveReadingPlan(
       planName: 'Manual Backup Test',
-      collectionId: 1,
       goalType: 'verses',
       goalValue: 12,
       orderedBookIds: [63],
@@ -217,6 +215,35 @@ void main() {
 
     final defaultedSessions = await database.getSessionsForDate(date, plan.id!);
     expect(defaultedSessions.single.isManual, isFalse);
+  });
+
+  test('ignores the legacy collection id in old v2 backups', () async {
+    final plan = await database.saveReadingPlan(
+      planName: 'Legacy Backup',
+      goalType: 'verses',
+      goalValue: 12,
+      orderedBookIds: [1, 2],
+    );
+
+    final payload =
+        jsonDecode(utf8.decode(await backupService.buildBackupBytes()))
+            as Map<String, dynamic>;
+    final tables = payload['tables'] as Map<String, dynamic>;
+    final planRows = (tables['reading_plan'] as List)
+        .cast<Map<String, dynamic>>();
+    for (final row in planRows) {
+      // Backups written before v8 persisted the denormalized collection id.
+      row['collection_id'] = 1;
+    }
+
+    await database.deleteReadingPlan(plan.id!);
+    await backupService.restoreBackupJson(jsonEncode(payload));
+
+    final restored = (await database.getReadingPlans()).singleWhere(
+      (restored) => restored.readingPlan.planName == 'Legacy Backup',
+    );
+    expect(restored.readingPlan.goalValue, 12);
+    expect(restored.books.map((book) => book.bookId), [1, 2]);
   });
 
   test(

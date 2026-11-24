@@ -28,7 +28,7 @@ class ReadingSessionDatabase {
        _verseInventoryProvider = verseInventoryProvider;
 
   static const _defaultDatabaseName = 'reading_session.db';
-  static const _databaseVersion = 7;
+  static const _databaseVersion = 8;
 
   final String _databaseName;
   final String? _databasePath;
@@ -335,6 +335,9 @@ class ReadingSessionDatabase {
       batch.delete('reading_plan');
 
       for (final row in readingPlanRows) {
+        // Older backups persist the denormalized collection id, which the
+        // current schema no longer has. The ordered book list is authoritative.
+        row.remove('collection_id');
         batch.insert('reading_plan', row);
       }
       for (final row in readingPlanBookRows) {
@@ -448,7 +451,6 @@ class ReadingSessionDatabase {
   Future<ReadingPlan> saveReadingPlan({
     ReadingPlan? existingPlan,
     required String planName,
-    required int collectionId,
     required String goalType,
     required int goalValue,
     required List<int> orderedBookIds,
@@ -469,7 +471,6 @@ class ReadingSessionDatabase {
         planId = existingPlan.id!;
         plan = existingPlan.copyWith(
           planName: planName,
-          collectionId: collectionId,
           goalType: goalType,
           goalValue: goalValue,
         );
@@ -483,7 +484,6 @@ class ReadingSessionDatabase {
         final newPlan = ReadingPlan(
           planName: planName,
           createdAt: DateTime.now(),
-          collectionId: collectionId,
           goalType: goalType,
           goalValue: goalValue,
           isBookmarked: false,

@@ -8,7 +8,6 @@ create table reading_plan (
     plan_name text not null,
     created_at timestamp not null,
     last_read timestamp,
-    collection_id int not null,
     goal_type varchar(1),
     goal_value int not null,
     is_bookmarked int not null
@@ -94,8 +93,8 @@ create table rs_day_summary (
     primary key (reading_plan_id, rs_date)
 );
 
-insert into reading_plan (id, plan_name, created_at, last_read, collection_id, goal_type, goal_value, is_bookmarked)
-values (1, 'Whole Bible', CURRENT_TIMESTAMP, null, 1, 'M', 10, 0);
+insert into reading_plan (id, plan_name, created_at, last_read, goal_type, goal_value, is_bookmarked)
+values (1, 'Whole Bible', CURRENT_TIMESTAMP, null, 'M', 10, 0);
 
 insert into reading_plan_book (reading_plan_id, book_id, ord)
 values

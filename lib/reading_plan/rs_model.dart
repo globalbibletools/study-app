@@ -16,7 +16,6 @@ class ReadingPlan {
   final String planName;
   final DateTime createdAt;
   final DateTime? lastRead;
-  final int collectionId;
   final String goalType;
   final int goalValue;
   final bool isBookmarked;
@@ -26,7 +25,6 @@ class ReadingPlan {
     required this.planName,
     required this.createdAt,
     this.lastRead,
-    required this.collectionId,
     required this.goalType,
     required this.goalValue,
     required this.isBookmarked,
@@ -39,7 +37,6 @@ class ReadingPlan {
     String? planName,
     DateTime? createdAt,
     Object? lastRead = _undefined,
-    int? collectionId,
     String? goalType,
     int? goalValue,
     bool? isBookmarked,
@@ -49,7 +46,6 @@ class ReadingPlan {
       planName: planName ?? this.planName,
       createdAt: createdAt ?? this.createdAt,
       lastRead: lastRead == _undefined ? this.lastRead : lastRead as DateTime?,
-      collectionId: collectionId ?? this.collectionId,
       goalType: goalType ?? this.goalType,
       goalValue: goalValue ?? this.goalValue,
       isBookmarked: isBookmarked ?? this.isBookmarked,
@@ -64,7 +60,6 @@ class ReadingPlan {
       lastRead: map['last_read'] != null
           ? DateTime.parse(map['last_read'])
           : null,
-      collectionId: map['collection_id'],
       goalType: map['goal_type'],
       goalValue: map['goal_value'],
       isBookmarked: map['is_bookmarked'] == 1,
@@ -77,7 +72,6 @@ class ReadingPlan {
       'plan_name': planName,
       'created_at': createdAt.toIso8601String(),
       'last_read': lastRead?.toIso8601String(),
-      'collection_id': collectionId,
       'goal_type': goalType,
       'goal_value': goalValue,
       'is_bookmarked': isBookmarked ? 1 : 0,

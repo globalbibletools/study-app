@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gbt/common/bible_collection.dart';
+import 'package:gbt/reading_plan/bible_collection.dart';
 import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/reading_plan/edit_reading_plan_panel.dart';
@@ -265,7 +265,7 @@ void main() {
     await tester.tap(find.text('New Testament').last);
     await tester.pumpAndSettle();
 
-    expect(viewModel.selectedCollection.id, 3);
+    expect(viewModel.selectedCollection, BibleCollection.newTestament);
     expect(viewModel.selectedBookIds, {for (int i = 40; i <= 66; i++) i});
     expect(find.text('New Testament'), findsOneWidget);
   });
@@ -281,7 +281,7 @@ void main() {
     await tester.tap(find.text('Custom').last);
     await tester.pumpAndSettle();
 
-    expect(viewModel.selectedCollection, same(BibleCollections.custom));
+    expect(viewModel.selectedCollection, same(BibleCollection.custom));
     expect(viewModel.orderedBookIds, isEmpty);
     expect(viewModel.collectionBookCount, 0);
     expect(find.text('Custom'), findsOneWidget);
@@ -309,7 +309,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('New Testament').last);
     await tester.pumpAndSettle();
-    expect(viewModel.selectedCollection.id, 3);
+    expect(viewModel.selectedCollection, BibleCollection.newTestament);
     expect(find.text('New Testament'), findsOneWidget);
 
     await tester.tap(find.byType(DropdownButton<BibleCollection>));
@@ -317,7 +317,7 @@ void main() {
     await tester.tap(find.text('Custom').last);
     await tester.pumpAndSettle();
 
-    expect(viewModel.selectedCollection, same(BibleCollections.custom));
+    expect(viewModel.selectedCollection, same(BibleCollection.custom));
     expect(viewModel.orderedBookIds, [2, 1]);
     expect(find.text('Custom'), findsOneWidget);
   });
@@ -338,9 +338,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(EditReadingPlanPanel), findsNothing);
-    expect(planService.saveCalls.single.collectionId, 0);
     expect(planService.saveCalls.single.orderedBookIds, [8, 2, 1]);
-    expect(planService.plans.single.readingPlan.collectionId, 0);
     expect(planService.plans.single.books.map((b) => b.bookId), [8, 2, 1]);
   });
 

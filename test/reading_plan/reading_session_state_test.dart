@@ -113,7 +113,6 @@ void main() {
       () async {
         final plan = await planService.saveReadingPlan(
           planName: 'Test Psalms Plan',
-          collectionId: 1,
           goalType: GoalType.verses,
           goalValue: 10,
           selectedBookIds: {19, 20},
@@ -156,7 +155,6 @@ void main() {
       () async {
         final plan = await planService.saveReadingPlan(
           planName: 'Test Psalms Plan',
-          collectionId: 1,
           goalType: GoalType.verses,
           goalValue: 10,
           selectedBookIds: {19, 20},
@@ -189,7 +187,6 @@ void main() {
       () async {
         final plan = await planService.saveReadingPlan(
           planName: 'Short Epistles',
-          collectionId: 1,
           goalType: GoalType.verses,
           goalValue: 15,
           selectedBookIds: {63, 64},
@@ -233,7 +230,6 @@ void main() {
       () async {
         final plan = await planService.saveReadingPlan(
           planName: 'Uncheck Test Plan',
-          collectionId: 1,
           goalType: GoalType.verses,
           goalValue: 15,
           selectedBookIds: {63},
@@ -278,7 +274,6 @@ void main() {
       () async {
         final plan = await planService.saveReadingPlan(
           planName: 'Multi Session Uncheck Test Plan',
-          collectionId: 1,
           goalType: GoalType.verses,
           goalValue: 15,
           selectedBookIds: {63},
@@ -316,7 +311,6 @@ void main() {
       () async {
         final plan = await planService.saveReadingPlan(
           planName: 'Order Test',
-          collectionId: 1,
           goalType: GoalType.verses,
           goalValue: 10,
           selectedBookIds: {1, 2, 3},
@@ -343,7 +337,6 @@ void main() {
         await planService.saveReadingPlan(
           existingPlanDetails: details,
           planName: 'Order Test Updated',
-          collectionId: 1,
           goalType: GoalType.verses,
           goalValue: 20,
           selectedBookIds: {3, 1, 4},
@@ -367,14 +360,12 @@ void main() {
       () async {
         final planA = await planService.saveReadingPlan(
           planName: 'Plan A',
-          collectionId: 1,
           goalType: GoalType.verses,
           goalValue: 10,
           selectedBookIds: {1, 2},
         );
         final planB = await planService.saveReadingPlan(
           planName: 'Plan B',
-          collectionId: 1,
           goalType: GoalType.verses,
           goalValue: 10,
           selectedBookIds: {3, 4},
@@ -423,7 +414,6 @@ void main() {
       () async {
         final plan = await planService.saveReadingPlan(
           planName: 'DST November Test',
-          collectionId: 1,
           goalType: GoalType.verses,
           goalValue: 5,
           selectedBookIds: {1},

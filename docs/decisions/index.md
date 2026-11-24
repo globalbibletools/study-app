@@ -1,5 +1,6 @@
 # Architecture Decision Records
 
+* 2026-11-24 [Remove the Persisted Reading Plan Collection Id](2026-11-24-remove-reading-plan-collection-id.md) [In Review]
 * 2026-11-19 [Vertical Slices](2026-11-19-vertical-slices.md) [In Review]
 * 2026-11-18 [Cancel-and-Replace Cancellation](2026-11-18-cancel-and-replace.md) [In Review]
 * 2026-11-18 [Four-Layer Architecture](2026-11-18-four-layer-architecture.md) [Accepted]

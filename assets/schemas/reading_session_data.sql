@@ -1,5 +1,5 @@
-insert into reading_plan (id, plan_name, created_at, last_read, collection_id, goal_type, goal_value, is_bookmarked)
-values (1, 'Whole Bible', CURRENT_TIMESTAMP, null, 1, 'M', 10, 0);
+insert into reading_plan (id, plan_name, created_at, last_read, goal_type, goal_value, is_bookmarked)
+values (1, 'Whole Bible', CURRENT_TIMESTAMP, null, 'M', 10, 0);
 
 insert into reading_plan_book (reading_plan_id, book_id, ord)
 values

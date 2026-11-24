@@ -6,7 +6,6 @@ import 'package:gbt/reading_plan/rs_model.dart';
 class ReadingPlanConfig {
   final int planId;
   final String planName;
-  final int collectionId;
   final DailyGoal dailyGoal;
   final List<ReadingPlanBook> books;
   final Set<int> bookIds;
@@ -16,7 +15,6 @@ class ReadingPlanConfig {
   ReadingPlanConfig._({
     required this.planId,
     required this.planName,
-    required this.collectionId,
     required this.dailyGoal,
     required this.books,
     required this.bookIds,
@@ -40,7 +38,6 @@ class ReadingPlanConfig {
     return ReadingPlanConfig._(
       planId: details.readingPlan.id!,
       planName: details.readingPlan.planName,
-      collectionId: details.readingPlan.collectionId,
       dailyGoal: details.dailyGoal,
       books: books,
       bookIds: Set<int>.unmodifiable(books.map((book) => book.bookId)),
