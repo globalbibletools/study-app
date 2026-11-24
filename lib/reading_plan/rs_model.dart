@@ -1,15 +1,4 @@
-import 'package:gbt/common/reference.dart';
-
 enum GoalType { minutes, verses }
-
-enum ProgressType { byBook, bySection }
-
-class DailyGoal {
-  final GoalType type;
-  final int value;
-
-  const DailyGoal(this.type, this.value);
-}
 
 class ReadingPlan {
   final int? id;
@@ -131,31 +120,6 @@ class ReadingPlanBook {
       'ord': ord,
     };
   }
-}
-
-class ReadingPlanDetails {
-  ReadingPlan readingPlan;
-  final List<ReadingPlanBook> books;
-  int totalChapters;
-  int totalVerses;
-  int versesRead;
-  int booksRead;
-  DailyGoal dailyGoal;
-  DayProgress? todayProgress;
-  Reference? resumePosition;
-
-  ReadingPlanDetails(this.readingPlan, this.books)
-    : totalChapters = 0,
-      totalVerses = 0,
-      versesRead = 0,
-      booksRead = 0,
-      dailyGoal = DailyGoal(
-        (readingPlan.goalType == "M" ||
-                readingPlan.goalType.toLowerCase().startsWith("m"))
-            ? GoalType.minutes
-            : GoalType.verses,
-        readingPlan.goalValue,
-      );
 }
 
 class RsSession {
@@ -408,39 +372,6 @@ class RsVerseState {
   }
 }
 
-class RsBookStats {
-  final int bookId;
-  final int totalVerses;
-  final int versesRead;
-  final DateTime? lastRead;
-  final Reference? resumePosition;
-
-  const RsBookStats({
-    required this.bookId,
-    required this.totalVerses,
-    required this.versesRead,
-    required this.lastRead,
-    this.resumePosition,
-  });
-
-  bool get isComplete => totalVerses > 0 && versesRead == totalVerses;
-}
-
-/// The read state of a single verse as it relates to the active session.
-class VerseReadState {
-  const VerseReadState({
-    required this.readCount,
-    required this.readThisSession,
-  });
-
-  /// Total number of times this verse has ever been read.
-  final int readCount;
-
-  /// Whether this verse has been read in the current session.
-  final bool readThisSession;
-}
-
-/// Options for setting a verse's read state in the active session.
 class VerseReadOptions {
   const VerseReadOptions({
     required this.bookId,
@@ -453,38 +384,4 @@ class VerseReadOptions {
   final int chapter;
   final int verse;
   final bool read;
-}
-
-class DayProgress {
-  final DateTime day;
-  final double minutes;
-  final int verses;
-  final bool goalReached;
-  final bool empty;
-
-  DayProgress(this.day, num minutes, this.verses, this.goalReached)
-    : minutes = minutes.toDouble(),
-      empty = false;
-
-  DayProgress.empty(this.day)
-    : minutes = 0,
-      verses = 0,
-      goalReached = false,
-      empty = true;
-}
-
-class DetailedProgess {
-  final int bookId;
-  final int chapter;
-  final int fromVerse;
-  int toVerse;
-
-  DetailedProgess(this.bookId, this.chapter, this.fromVerse, this.toVerse);
-}
-
-class SessionDetails {
-  final RsSession rsSession;
-  final List<DetailedProgess> progress;
-
-  SessionDetails(this.rsSession, this.progress);
 }

@@ -1,37 +1,29 @@
 import 'dart:async';
+import 'package:gbt/reading_plan/reading_plan_read_models.dart';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gbt/common/reference.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
+
+import 'fake_reading_plan_read_models.dart';
 
 class FakeReadingPlanService extends Fake implements ReadingPlanService {
   FakeReadingPlanService([List<ReadingPlanDetails>? plans])
     : plans = plans ?? [];
 
   List<ReadingPlanDetails> plans;
-  List<RsBookStats> bookStats = const [];
-  List<DayProgress> monthProgress = const [];
-  List<SessionDetails> detailedProgress = const [];
-  Reference? resumePosition;
 
-  final monthProgressByMonth = <DateTime, List<DayProgress>>{};
-  final requestedMonths = <DateTime>[];
-  final detailedProgressDates = <DateTime>[];
-  final detailedProgressPlanIds = <int>[];
+  FakeReadingPlanReadModels? readModels;
+
   final addedManualSessions = <AddManualSessionCall>[];
   final deletedManualSessionIds = <int>[];
   final deletedPlanIds = <int>[];
   final bookmarkedValues = <bool>[];
-  final reorderedBooks = <List<ReadingPlanBook>>[];
   final saveCalls = <SaveReadingPlanCall>[];
   final savedPlans = <ReadingPlan>[];
 
   /// When set, bookmark writes throw this instead of persisting.
   Object? bookmarkError;
-
-  /// When set, reorder writes throw this instead of persisting.
-  Object? reorderError;
 
   /// When set, saves throw this instead of persisting.
   Object? saveError;
@@ -52,99 +44,20 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
   bool queueDeleteRequests = false;
   final deleteRequests = <Completer<void>>[];
 
-  /// When true, calls to [getReadingPlansWithProgress] wait until the
-  /// corresponding completer in [getRequests] is completed.
-  bool queueGetRequests = false;
-  final getRequests = <Completer<List<ReadingPlanDetails>>>[];
-
-  /// When true, calls to [getReadingPlanById] wait until the corresponding
-  /// completer in [planRequests] is completed.
-  bool queuePlanRequests = false;
-  final planRequests = <Completer<ReadingPlanDetails?>>[];
-
-  /// When true, calls to [getBooksStats] wait until the corresponding
-  /// completer in [statsRequests] is completed.
-  bool queueStatsRequests = false;
-  final statsRequests = <Completer<List<RsBookStats>>>[];
-
-  /// When true, calls to [getDetailedProgressFor] wait until the corresponding
-  /// completer in [detailedProgressRequests] is completed.
-  bool queueDetailedProgressRequests = false;
-  final detailedProgressRequests = <Completer<List<SessionDetails>>>[];
-
-  /// When set, detailed progress queries throw this instead of returning data.
-  Object? detailedProgressError;
-
   /// Start time assigned to sessions created through [addManualSession].
   DateTime nextManualSessionStartTime = DateTime(2026, 11, 17, 9, 30);
 
   int _nextSessionId = 1000;
 
-  /// Number of times [getReadingPlanById] has been called.
-  int getPlanByIdCalls = 0;
-
   ReadingPlanDetails? _detailsFor(int planId) =>
       plans.where((plan) => plan.readingPlan.id == planId).firstOrNull;
 
-  @override
-  Future<List<ReadingPlanDetails>> getReadingPlansWithProgress({
-    DateTime? today,
-  }) {
-    if (queueGetRequests) {
-      final request = Completer<List<ReadingPlanDetails>>();
-      getRequests.add(request);
-      return request.future;
-    }
-    return Future.value(List.of(plans));
+  void _syncReadModels() {
+    readModels?.plans = plans;
   }
 
   @override
-  Future<ReadingPlanDetails?> getReadingPlanById(int planId) {
-    getPlanByIdCalls++;
-    if (queuePlanRequests) {
-      final request = Completer<ReadingPlanDetails?>();
-      planRequests.add(request);
-      return request.future;
-    }
-    return Future.value(_detailsFor(planId));
-  }
-
-  @override
-  Future<List<RsBookStats>> getBooksStats(int readingPlanId) {
-    if (queueStatsRequests) {
-      final request = Completer<List<RsBookStats>>();
-      statsRequests.add(request);
-      return request.future;
-    }
-    return Future.value(List.of(bookStats));
-  }
-
-  @override
-  Future<List<SessionDetails>> getDetailedProgressFor(
-    DateTime date,
-    int readingPlanId,
-  ) {
-    detailedProgressDates.add(date);
-    detailedProgressPlanIds.add(readingPlanId);
-
-    if (queueDetailedProgressRequests) {
-      final request = Completer<List<SessionDetails>>();
-      detailedProgressRequests.add(request);
-      return request.future;
-    }
-
-    final error = detailedProgressError;
-    if (error != null) return Future.error(error);
-    return Future.value(List.of(detailedProgress));
-  }
-
-  @override
-  Future<Reference?> getResumeReference(int planId) async {
-    return _detailsFor(planId)?.resumePosition ?? resumePosition;
-  }
-
-  @override
-  Future<SessionDetails> addManualSession({
+  Future<int> addManualSession({
     required int readingPlanId,
     required DateTime date,
     required double minutes,
@@ -159,61 +72,41 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
     addedManualSessions.add(call);
 
     final readSeconds = (minutes * 60).round();
-    final session = SessionDetails(
-      RsSession(
-        id: _nextSessionId++,
-        rsDate: DateTime(date.year, date.month, date.day),
-        startTime: nextManualSessionStartTime,
-        endTime: nextManualSessionStartTime.add(Duration(seconds: readSeconds)),
-        readSeconds: readSeconds,
-        verses: verses,
-        readingPlanId: readingPlanId,
-        isManual: true,
-      ),
-      const [],
+    final session = RsSession(
+      id: _nextSessionId++,
+      rsDate: DateTime(date.year, date.month, date.day),
+      startTime: nextManualSessionStartTime,
+      endTime: nextManualSessionStartTime.add(Duration(seconds: readSeconds)),
+      readSeconds: readSeconds,
+      verses: verses,
+      readingPlanId: readingPlanId,
+      isManual: true,
     );
-    detailedProgress = [...detailedProgress, session];
-    return session;
+    final fakeReadModels = readModels;
+    if (fakeReadModels != null) {
+      fakeReadModels.detailedProgress = [
+        ...fakeReadModels.detailedProgress,
+        SessionDetails(session, const []),
+      ];
+    }
+    return session.id!;
   }
 
   @override
   Future<bool> deleteManualSession(int sessionId) async {
     deletedManualSessionIds.add(sessionId);
-    detailedProgress = detailedProgress
-        .where((session) => session.rsSession.id != sessionId)
-        .toList();
+    final fakeReadModels = readModels;
+    if (fakeReadModels != null) {
+      fakeReadModels.detailedProgress = fakeReadModels.detailedProgress
+          .where((session) => session.rsSession.id != sessionId)
+          .toList();
+    }
     return true;
   }
 
   @override
-  Future<DayProgress> getDayProgress(int readingPlanId, DateTime date) async {
-    final progress =
-        [
-          ...monthProgress,
-          for (final month in monthProgressByMonth.values) ...month,
-        ].where(
-          (progress) =>
-              progress.day.year == date.year &&
-              progress.day.month == date.month &&
-              progress.day.day == date.day,
-        );
-
-    return progress.firstOrNull ?? DayProgress.empty(date);
-  }
-
-  @override
-  Future<List<DayProgress>> getMonthProgress(
-    int readingPlanId,
-    DateTime month,
-  ) async {
-    final normalized = DateTime(month.year, month.month);
-    requestedMonths.add(normalized);
-    return monthProgressByMonth[normalized] ?? monthProgress;
-  }
-
-  @override
-  Future<ReadingPlan> saveReadingPlan({
-    ReadingPlanDetails? existingPlanDetails,
+  Future<int> saveReadingPlan({
+    int? planId,
     required String planName,
     required int collectionId,
     required GoalType goalType,
@@ -222,7 +115,7 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
     List<int>? orderedBookIds,
   }) async {
     final call = SaveReadingPlanCall(
-      existingPlanDetails: existingPlanDetails,
+      planId: planId,
       planName: planName,
       collectionId: collectionId,
       goalType: goalType,
@@ -244,15 +137,17 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
       saveRequests.add(request);
       final queuedPlan = await request.future;
       _storeSavedPlan(call, queuedPlan);
-      return queuedPlan;
+      return queuedPlan.id!;
     }
 
     _storeSavedPlan(call, plan);
-    return plan;
+    return plan.id!;
   }
 
   ReadingPlan _planFor(SaveReadingPlanCall call) {
-    final existing = call.existingPlanDetails?.readingPlan;
+    final existing = call.planId == null
+        ? null
+        : _detailsFor(call.planId!)?.readingPlan;
     final plan = ReadingPlan(
       id: existing?.id ?? _nextPlanId++,
       planName: call.planName,
@@ -287,42 +182,23 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
     } else {
       plans[index] = details;
     }
+    _syncReadModels();
   }
 
   int _nextPlanId = 100;
 
   @override
-  Future<ReadingPlan> setReadingPlanBookmark(
-    ReadingPlan readingPlan,
-    bool isBookmarked,
-  ) async {
+  Future<void> setReadingPlanBookmark(int planId, bool isBookmarked) async {
     final error = bookmarkError;
     if (error != null) throw error;
 
+    final details = _detailsFor(planId);
+    if (details == null) throw StateError('Reading plan not found: $planId');
+
     bookmarkedValues.add(isBookmarked);
-    final updated = readingPlan.copyWith(isBookmarked: isBookmarked);
-    _detailsFor(readingPlan.id!)?.readingPlan = updated;
-    return updated;
-  }
-
-  @override
-  Future<void> reorderReadingPlanBooks(
-    int readingPlanId,
-    List<ReadingPlanBook> books,
-  ) async {
-    final error = reorderError;
-    if (error != null) throw error;
-
-    final ordered = List<ReadingPlanBook>.of(books);
-    reorderedBooks.add(ordered);
-    final details = _detailsFor(readingPlanId);
-    if (details != null) {
-      final index = plans.indexWhere(
-        (plan) => plan.readingPlan.id == readingPlanId,
-      );
-      plans[index] = ReadingPlanDetails(details.readingPlan, ordered)
-        ..resumePosition = details.resumePosition;
-    }
+    final updated = details.readingPlan.copyWith(isBookmarked: isBookmarked);
+    details.readingPlan = updated;
+    _syncReadModels();
   }
 
   @override
@@ -338,12 +214,13 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
 
     deletedPlanIds.add(planId);
     plans = plans.where((plan) => plan.readingPlan.id != planId).toList();
+    _syncReadModels();
   }
 }
 
 class SaveReadingPlanCall {
   const SaveReadingPlanCall({
-    required this.existingPlanDetails,
+    required this.planId,
     required this.planName,
     required this.collectionId,
     required this.goalType,
@@ -352,7 +229,7 @@ class SaveReadingPlanCall {
     required this.orderedBookIds,
   });
 
-  final ReadingPlanDetails? existingPlanDetails;
+  final int? planId;
   final String planName;
   final int collectionId;
   final GoalType goalType;

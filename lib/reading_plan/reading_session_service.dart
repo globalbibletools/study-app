@@ -1,45 +1,15 @@
 import 'dart:math' as math;
 
-import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/common/reference.dart';
-import 'package:gbt/reading_plan/reading_plan_config.dart';
-import 'package:gbt/reading_plan/reading_plan_estimates.dart';
 import 'package:gbt/reading_plan/rs_database.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
 import 'package:gbt/services/service_locator.dart';
 
-class SessionProgress {
-  const SessionProgress({
-    required this.sessionId,
-    required this.sessionDay,
-    required this.sessionStartTime,
-    required this.sessionReadSeconds,
-    required this.versesToday,
-    required this.secondsToday,
-    required this.goalAlreadyReachedToday,
-    required this.asOf,
-  });
+class VerseReadResult {
+  const VerseReadResult({required this.sessionId, this.bookCompleted});
 
   final int sessionId;
-  final DateTime sessionDay;
-  final DateTime sessionStartTime;
-  final int sessionReadSeconds;
-  final int versesToday;
-  final int secondsToday;
-  final bool goalAlreadyReachedToday;
-  final DateTime asOf;
-}
-
-class ActiveSessionSnapshot {
-  const ActiveSessionSnapshot({
-    required this.config,
-    required this.progress,
-    required this.resumePosition,
-  });
-
-  final ReadingPlanConfig config;
-  final SessionProgress progress;
-  final Reference resumePosition;
+  final BookCompletedEvent? bookCompleted;
 }
 
 class BookCompletedEvent {
@@ -54,31 +24,16 @@ class BookCompletedEvent {
   final Reference? resumePosition;
 }
 
-class VerseReadResult {
-  const VerseReadResult({
-    required this.progress,
-    required this.verseReadStates,
-    this.bookCompleted,
-  });
-
-  final SessionProgress progress;
-  final Map<int, VerseReadState> verseReadStates;
-  final BookCompletedEvent? bookCompleted;
-}
-
 class ReadingSessionService {
   ReadingSessionService() : this.withDatabase(getIt<ReadingSessionDatabase>());
 
   ReadingSessionService.withDatabase(this._database);
 
   final ReadingSessionDatabase _database;
-  late final _bibleNavigation = getIt<BibleNavigation>();
 
-  Future<ActiveSessionSnapshot?> startSession(int planId) async {
-    final details = await _database.getReadingPlanById(planId);
-    if (details == null) return null;
-
-    final config = ReadingPlanConfig.fromPlanDetails(details, _bibleNavigation);
+  Future<int?> startSession(int planId) async {
+    final plan = await _database.getReadingPlanById(planId);
+    if (plan == null) return null;
 
     final now = DateTime.now();
     final today = _day(now);
@@ -93,14 +48,7 @@ class ReadingSessionService {
       ),
     );
 
-    final progress = await _readProgress(session, now);
-    final resumePosition = await _database.getResumeReference(planId);
-    return ActiveSessionSnapshot(
-      config: config,
-      progress: progress,
-      resumePosition:
-          resumePosition ?? ReadingPlanEstimates.resumeTargetFor(details),
-    );
+    return session.id;
   }
 
   Future<void> endSession(
@@ -108,7 +56,7 @@ class ReadingSessionService {
     required int readSeconds,
     DateTime? at,
   }) async {
-    var session = await _database.getSessionById(sessionId);
+    final session = await _database.getSessionById(sessionId);
     if (session == null) return;
 
     final now = at ?? DateTime.now();
@@ -146,22 +94,13 @@ class ReadingSessionService {
 
     _ensureSessionIsCurrent(session, now);
 
-    final details = await _database.getReadingPlanById(session.readingPlanId);
-    if (details == null) return null;
+    final plan = await _database.getReadingPlanById(session.readingPlanId);
+    if (plan == null) return null;
 
-    final config = ReadingPlanConfig.fromPlanDetails(details, _bibleNavigation);
     final planId = session.readingPlanId;
 
-    if (!config.bookIds.contains(bookId)) {
-      return VerseReadResult(
-        progress: await _readProgress(session, now),
-        verseReadStates: await _database.getVerseReadStatesForChapter(
-          planId,
-          session.id!,
-          bookId,
-          chapter,
-        ),
-      );
+    if (!plan.books.any((book) => book.bookId == bookId)) {
+      return VerseReadResult(sessionId: session.id!);
     }
 
     final effectiveReadSeconds = math.max(session.readSeconds, readSeconds);
@@ -219,12 +158,12 @@ class ReadingSessionService {
 
         if (existingCount == 0 &&
             await _database.isBookComplete(planId, bookId, executor: txn)) {
-          final completedIndex = config.books.indexWhere(
+          final completedIndex = plan.books.indexWhere(
             (book) => book.bookId == bookId,
           );
           final nextBookId =
-              completedIndex >= 0 && completedIndex + 1 < config.books.length
-              ? config.books[completedIndex + 1].bookId
+              completedIndex >= 0 && completedIndex + 1 < plan.books.length
+              ? plan.books[completedIndex + 1].bookId
               : null;
           final resumePosition = nextBookId == null
               ? null
@@ -265,34 +204,23 @@ class ReadingSessionService {
         await _database.upsertDaySummary(planId, session.rsDate, executor: txn);
       }
 
-      return (
-        session: updatedSession,
-        states: await _database.getVerseReadStatesForChapter(
-          planId,
-          updatedSession.id!,
-          bookId,
-          chapter,
-          executor: txn,
-        ),
-        event: event,
-      );
+      return (sessionId: updatedSession.id!, event: event);
     });
 
     return VerseReadResult(
-      progress: await _readProgress(outcome.session, now),
-      verseReadStates: outcome.states,
+      sessionId: outcome.sessionId,
       bookCompleted: outcome.event,
     );
   }
 
-  Future<SessionProgress?> heartbeat(
+  Future<bool> heartbeat(
     int sessionId, {
     required int readSeconds,
     DateTime? at,
   }) async {
     final now = at ?? DateTime.now();
     final session = await _database.getSessionById(sessionId);
-    if (session == null) return null;
+    if (session == null) return false;
 
     _ensureSessionIsCurrent(session, now);
 
@@ -310,10 +238,10 @@ class ReadingSessionService {
       );
     });
 
-    return _readProgress(updated, now);
+    return true;
   }
 
-  Future<SessionProgress?> rolloverSession(
+  Future<int?> rolloverSession(
     int sessionId, {
     required DateTime at,
     required int oldReadSeconds,
@@ -376,23 +304,7 @@ class ReadingSessionService {
       return inserted;
     });
 
-    return _readProgress(inserted, at);
-  }
-
-  Future<Map<int, VerseReadState>> getVerseReadStates(
-    int sessionId,
-    int bookId,
-    int chapter,
-  ) async {
-    final session = await _database.getSessionById(sessionId);
-    if (session == null) return const {};
-
-    return _database.getVerseReadStatesForChapter(
-      session.readingPlanId,
-      session.id!,
-      bookId,
-      chapter,
-    );
+    return inserted.id;
   }
 
   void _ensureSessionIsCurrent(RsSession session, DateTime at) {
@@ -403,28 +315,6 @@ class ReadingSessionService {
       'Session ${session.id} belongs to '
       '${RsDaySummary.dayString(session.rsDate)}, but the current day is '
       '${RsDaySummary.dayString(today)}. Call rolloverSession first.',
-    );
-  }
-
-  Future<SessionProgress> _readProgress(
-    RsSession session,
-    DateTime asOf,
-  ) async {
-    final planId = session.readingPlanId;
-    final summary = await _database.getDaySummary(planId, session.rsDate);
-
-    return SessionProgress(
-      sessionId: session.id!,
-      sessionDay: _day(session.rsDate),
-      sessionStartTime: session.startTime,
-      sessionReadSeconds: session.readSeconds,
-      versesToday: await _database.getVersesReadToday(planId, session.rsDate),
-      secondsToday: await _database.getTotalSecondsReadToday(
-        planId,
-        session.rsDate,
-      ),
-      goalAlreadyReachedToday: summary?.goalReached ?? false,
-      asOf: asOf,
     );
   }
 
