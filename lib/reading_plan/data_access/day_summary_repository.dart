@@ -1,4 +1,4 @@
-import 'package:gbt/reading_plan/rs_model.dart' show GoalType;
+import 'package:gbt/reading_plan/data_access/rs_model.dart' show GoalType;
 import 'package:sqflite/sqflite.dart';
 
 class DaySummaryRepository {

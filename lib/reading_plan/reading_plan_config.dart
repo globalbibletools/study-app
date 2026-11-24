@@ -1,5 +1,5 @@
 import 'package:gbt/common/bible_navigation.dart';
-import 'package:gbt/reading_plan/rs_model.dart';
+import 'package:gbt/reading_plan/data_access/rs_model.dart';
 
 /// Immutable snapshot of the parts of a reading plan that do not change while
 /// a reading session is active.

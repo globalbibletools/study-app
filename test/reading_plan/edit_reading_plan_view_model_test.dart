@@ -3,7 +3,7 @@ import 'package:gbt/asyncutils/cancellation.dart';
 import 'package:gbt/reading_plan/bible_collection.dart';
 import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/reading_plan/edit_reading_plan_view_model.dart';
-import 'package:gbt/reading_plan/rs_model.dart';
+import 'package:gbt/reading_plan/data_access/rs_model.dart';
 
 import '../fixtures/bible_navigation_fixture.dart';
 import 'fake_reading_plan_service.dart';

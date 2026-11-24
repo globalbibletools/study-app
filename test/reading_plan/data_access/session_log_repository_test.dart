@@ -1,12 +1,13 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gbt/reading_plan/reading_plan_repository.dart' as repo;
-import 'package:gbt/reading_plan/rs_database.dart';
-import 'package:gbt/reading_plan/rs_model.dart' show GoalType;
-import 'package:gbt/reading_plan/session_log_repository.dart';
-import 'package:gbt/reading_plan/session_repository.dart';
+import 'package:gbt/reading_plan/data_access/reading_plan_repository.dart'
+    as repo;
+import 'package:gbt/reading_plan/data_access/rs_database.dart';
+import 'package:gbt/reading_plan/data_access/rs_model.dart' show GoalType;
+import 'package:gbt/reading_plan/data_access/session_log_repository.dart';
+import 'package:gbt/reading_plan/data_access/session_repository.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
-import '../fixtures/bible_navigation_fixture.dart';
+import '../../fixtures/bible_navigation_fixture.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

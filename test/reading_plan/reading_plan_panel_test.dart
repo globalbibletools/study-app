@@ -8,7 +8,7 @@ import 'package:gbt/reading_plan/reading_plan_panel_view_model.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
 import 'package:gbt/reading_plan/reading_session_view_model.dart';
 import 'package:gbt/reading_plan/progress_circle.dart';
-import 'package:gbt/reading_plan/rs_model.dart';
+import 'package:gbt/reading_plan/data_access/rs_model.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/messaging/messenger_view_model.dart';
 import 'package:material_ui/material_ui.dart';

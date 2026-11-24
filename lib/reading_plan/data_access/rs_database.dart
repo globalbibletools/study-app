@@ -2,13 +2,13 @@ import 'package:flutter/services.dart';
 import 'package:gbt/common/reference.dart';
 import 'package:gbt/services/hebrew_greek/database.dart';
 import 'package:gbt/services/logging/log.dart';
-import 'package:gbt/reading_plan/day_summary_repository.dart';
-import 'package:gbt/reading_plan/reading_plan_repository.dart'
+import 'package:gbt/reading_plan/data_access/day_summary_repository.dart';
+import 'package:gbt/reading_plan/data_access/reading_plan_repository.dart'
     show ReadingPlanRepository;
-import 'package:gbt/reading_plan/rs_model.dart';
-import 'package:gbt/reading_plan/session_log_repository.dart';
-import 'package:gbt/reading_plan/session_repository.dart';
-import 'package:gbt/reading_plan/verse_state_repository.dart';
+import 'package:gbt/reading_plan/data_access/rs_model.dart';
+import 'package:gbt/reading_plan/data_access/session_log_repository.dart';
+import 'package:gbt/reading_plan/data_access/session_repository.dart';
+import 'package:gbt/reading_plan/data_access/verse_state_repository.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:sqflite/sqflite.dart';
 

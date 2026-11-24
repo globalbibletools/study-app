@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:gbt/asyncutils/cancellation.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
 import 'package:gbt/reading_plan/reading_session_view_model.dart';
-import 'package:gbt/reading_plan/rs_model.dart';
+import 'package:gbt/reading_plan/data_access/rs_model.dart';
 import 'package:gbt/services/service_locator.dart';
 
 class ReadingPlanPanelViewModel extends ChangeNotifier {
