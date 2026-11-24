@@ -1,22 +1,28 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gbt/reading_plan/reading_plan_read_models.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/reading_plan/day_activity_log_panel.dart';
 import 'package:gbt/reading_plan/day_activity_log_view_model.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
+import 'package:gbt/reading_plan/rs_database.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:material_ui/material_ui.dart';
 
+import 'fake_reading_plan_read_models.dart';
 import 'fake_reading_plan_service.dart';
+import 'fake_reading_session_database.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late FakeReadingPlanService planService;
+  late FakeReadingPlanReadModels readModels;
   late DateTime date;
 
   setUp(() {
-    planService = FakeReadingPlanService();
+    readModels = FakeReadingPlanReadModels();
+    planService = FakeReadingPlanService()..readModels = readModels;
     date = DateTime(2026, 11, 17);
   });
 
@@ -24,6 +30,7 @@ void main() {
     return DayActivityLogViewModel.create(
       readingPlanId: 1,
       date: date,
+      readModels: readModels,
       planService: planService,
     );
   }
@@ -43,7 +50,7 @@ void main() {
     testWidgets('renders sessions and totals from the view model', (
       tester,
     ) async {
-      planService.detailedProgress = [
+      readModels.detailedProgress = [
         SessionDetails(
           RsSession(
             rsDate: date,
@@ -53,10 +60,10 @@ void main() {
             readingPlanId: 1,
           ),
           [
-            DetailedProgess(63, 1, 4, 4),
-            DetailedProgess(63, 1, 1, 2),
-            DetailedProgess(63, 2, 1, 3),
-            DetailedProgess(64, 1, 1, 1),
+            VerseRange(63, 1, 4, 4),
+            VerseRange(63, 1, 1, 2),
+            VerseRange(63, 2, 1, 3),
+            VerseRange(64, 1, 1, 1),
           ],
         ),
       ];
@@ -76,7 +83,7 @@ void main() {
     testWidgets(
       'shows manual sessions with start time, description, and trash icon',
       (tester) async {
-        planService.detailedProgress = [
+        readModels.detailedProgress = [
           session(
             id: 1,
             startTime: DateTime(2026, 11, 17, 9, 5),
@@ -135,7 +142,7 @@ void main() {
     testWidgets('plus button opens the dialog and submits totals', (
       tester,
     ) async {
-      planService.detailedProgress = [];
+      readModels.detailedProgress = [];
       final viewModel = await newViewModel();
 
       await tester.pumpWidget(
@@ -213,7 +220,7 @@ void main() {
     testWidgets('cancel closes the dialog without adding a session', (
       tester,
     ) async {
-      planService.detailedProgress = [];
+      readModels.detailedProgress = [];
       final viewModel = await newViewModel();
 
       await tester.pumpWidget(
@@ -235,7 +242,7 @@ void main() {
     testWidgets('rejects a submission with no minutes or verses', (
       tester,
     ) async {
-      planService.detailedProgress = [];
+      readModels.detailedProgress = [];
       final viewModel = await newViewModel();
 
       await tester.pumpWidget(
@@ -258,7 +265,7 @@ void main() {
     });
 
     testWidgets('trash icon deletes a manual session', (tester) async {
-      planService.detailedProgress = [
+      readModels.detailedProgress = [
         session(
           id: 7,
           isManual: true,
@@ -286,6 +293,9 @@ void main() {
   group('navigation', () {
     setUp(() {
       getIt.registerSingleton<ReadingPlanService>(planService);
+      getIt.registerSingleton<ReadingSessionDatabase>(
+        FakeReadingSessionDatabase(readModels),
+      );
     });
 
     tearDown(() async {
@@ -295,7 +305,7 @@ void main() {
     testWidgets('shows a snackbar and keeps the panel closed on load error', (
       tester,
     ) async {
-      planService.detailedProgressError = StateError('load failed');
+      readModels.detailedProgressError = StateError('load failed');
 
       await tester.pumpWidget(buildApp(const _NavigateToLauncher()));
       await tester.tap(find.text('Open activity'));
@@ -314,7 +324,7 @@ void main() {
   });
 
   testWidgets('back closes the panel', (tester) async {
-    planService.detailedProgress = [session()];
+    readModels.detailedProgress = [session()];
     final viewModel = await newViewModel();
 
     await tester.pumpWidget(
@@ -385,7 +395,7 @@ SessionDetails session({
   int readSeconds = 0,
   int verses = 0,
   bool isManual = false,
-  List<DetailedProgess> progress = const [],
+  List<VerseRange> progress = const [],
 }) {
   return SessionDetails(
     RsSession(

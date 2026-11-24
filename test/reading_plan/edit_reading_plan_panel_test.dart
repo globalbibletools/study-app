@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gbt/reading_plan/reading_plan_read_models.dart';
 import 'package:gbt/common/bible_collection.dart';
 import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/l10n/app_localizations.dart';
@@ -6,38 +7,45 @@ import 'package:gbt/reading_plan/edit_reading_plan_panel.dart';
 import 'package:gbt/reading_plan/edit_reading_plan_view_model.dart';
 import 'package:gbt/reading_plan/number_stepper.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
-import 'package:gbt/reading_plan/rs_model.dart';
+import 'package:gbt/reading_plan/rs_database.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../fixtures/bible_navigation_fixture.dart';
+import 'fake_reading_plan_read_models.dart';
 import 'fake_reading_plan_service.dart';
+import 'reading_plan_fixtures.dart';
+import 'fake_reading_session_database.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late FakeReadingPlanService planService;
+  late FakeReadingPlanReadModels readModels;
   late BibleNavigation bibleNavigation;
 
   setUp(() {
-    planService = FakeReadingPlanService();
+    readModels = FakeReadingPlanReadModels();
+    planService = FakeReadingPlanService()..readModels = readModels;
     bibleNavigation = createTestBibleNavigation();
   });
 
   Future<EditReadingPlanViewModel> newViewModel([String name = 'Plan']) {
     return EditReadingPlanViewModel.createNew(
       name,
+      readModels: readModels,
       planService: planService,
       bibleNavigation: bibleNavigation,
     );
   }
 
   Future<EditReadingPlanViewModel> existingViewModel(
-    ReadingPlanDetails details,
+    ReadingPlanSummary details,
   ) {
-    planService.plans = [details];
+    readModels.plans = [details];
     return EditReadingPlanViewModel.createExisting(
-      details.readingPlan.id!,
+      details.planId,
+      readModels: readModels,
       planService: planService,
       bibleNavigation: bibleNavigation,
     );
@@ -212,7 +220,7 @@ void main() {
         find.byType(FilledButton),
       );
       expect(submitButton.onPressed, isNull);
-      expect(planService.saveCalls.single.existingPlanDetails, same(details));
+      expect(planService.saveCalls.single.planId, details.planId);
 
       planService.saveRequests.single.complete();
       await tester.pumpAndSettle();
@@ -340,7 +348,7 @@ void main() {
     expect(find.byType(EditReadingPlanPanel), findsNothing);
     expect(planService.saveCalls.single.collectionId, 0);
     expect(planService.saveCalls.single.orderedBookIds, [8, 2, 1]);
-    expect(planService.plans.single.readingPlan.collectionId, 0);
+    expect(planService.plans.single.config.collectionId, 0);
     expect(planService.plans.single.books.map((b) => b.bookId), [8, 2, 1]);
   });
 
@@ -359,6 +367,9 @@ void main() {
     setUp(() {
       getIt.registerSingleton<ReadingPlanService>(planService);
       getIt.registerSingleton<BibleNavigation>(bibleNavigation);
+      getIt.registerSingleton<ReadingSessionDatabase>(
+        FakeReadingSessionDatabase(readModels),
+      );
     });
 
     tearDown(() async {
@@ -389,14 +400,14 @@ void main() {
       'navigateToExisting opens an initialized existing plan editor',
       (tester) async {
         final details = existingPlan(id: 4, name: 'Existing Plan');
-        planService.plans = [details];
+        readModels.plans = [details];
 
         await tester.pumpWidget(
           buildApp(
             _EditorLauncher(
               onOpen: (context) => EditReadingPlanPanel.navigateToExisting(
                 context,
-                details.readingPlan.id!,
+                details.planId,
               ),
             ),
           ),
@@ -456,10 +467,10 @@ class _EditorLauncher extends StatelessWidget {
   }
 }
 
-ReadingPlanDetails existingPlan({int id = 1, String name = 'Existing Plan'}) {
-  final details = EditReadingPlanViewModel.defaultPlan(name);
-  return ReadingPlanDetails(
-    details.readingPlan.copyWith(id: id),
-    details.books,
+ReadingPlanSummary existingPlan({int id = 1, String name = 'Existing Plan'}) {
+  return planSummary(
+    id: id,
+    name: name,
+    bookIds: [for (int i = 1; i <= 66; i++) i],
   );
 }

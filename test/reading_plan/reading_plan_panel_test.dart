@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gbt/reading_plan/reading_plan_read_models.dart';
 import 'package:gbt/common/reference.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/reading_plan/reading_plan_card.dart';
@@ -6,29 +7,33 @@ import 'package:gbt/reading_plan/reading_plan_detail_panel.dart';
 import 'package:gbt/reading_plan/reading_plan_panel.dart';
 import 'package:gbt/reading_plan/reading_plan_panel_view_model.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
+import 'package:gbt/reading_plan/rs_database.dart';
 import 'package:gbt/reading_plan/reading_session_view_model.dart';
 import 'package:gbt/reading_plan/progress_circle.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:material_ui/material_ui.dart';
 
+import 'fake_reading_plan_read_models.dart';
 import 'fake_reading_plan_service.dart';
+import 'fake_reading_session_database.dart';
 import 'fake_reading_session_view_model.dart';
+import 'reading_plan_fixtures.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  late FakeReadingPlanService planService;
+  late FakeReadingPlanReadModels readModels;
   late FakeReadingSessionViewModel sessionViewModel;
 
   setUp(() {
-    planService = FakeReadingPlanService();
+    readModels = FakeReadingPlanReadModels();
     sessionViewModel = FakeReadingSessionViewModel();
   });
 
   Future<ReadingPlanPanelViewModel> createViewModel() {
     return ReadingPlanPanelViewModel.create(
-      planService: planService,
+      readModels: readModels,
       sessionViewModel: sessionViewModel,
     );
   }
@@ -99,7 +104,7 @@ void main() {
     });
 
     testWidgets('shows one card per plan', (tester) async {
-      planService.plans = [
+      readModels.plans = [
         planDetails('Ruth', id: 1),
         planDetails('Psalms', id: 2),
       ];
@@ -118,7 +123,7 @@ void main() {
     testWidgets('shows the bookmark ribbon only for bookmarked plans', (
       tester,
     ) async {
-      planService.plans = [
+      readModels.plans = [
         planDetails('Bookmarked', id: 1, isBookmarked: true),
         planDetails('Plain', id: 2),
       ];
@@ -136,13 +141,13 @@ void main() {
     });
 
     testWidgets('shows the remaining verses for today', (tester) async {
-      planService.plans = [
+      readModels.plans = [
         planDetails(
           'Ruth',
           id: 1,
           goalType: GoalType.verses,
           goalValue: 10,
-          todayProgress: DayProgress(day, 0, 3, false),
+          todayProgress: DayProgress.minutes(day, 0, 3, false),
         ),
       ];
 
@@ -152,13 +157,13 @@ void main() {
     });
 
     testWidgets('shows the remaining minutes for today', (tester) async {
-      planService.plans = [
+      readModels.plans = [
         planDetails(
           'Ruth',
           id: 1,
           goalType: GoalType.minutes,
           goalValue: 30,
-          todayProgress: DayProgress(day, 18, 0, false),
+          todayProgress: DayProgress.minutes(day, 18, 0, false),
         ),
       ];
 
@@ -170,13 +175,13 @@ void main() {
     testWidgets('shows a check and completion label when the goal is reached', (
       tester,
     ) async {
-      planService.plans = [
+      readModels.plans = [
         planDetails(
           'Ruth',
           id: 1,
           goalType: GoalType.verses,
           goalValue: 10,
-          todayProgress: DayProgress(day, 0, 12, true),
+          todayProgress: DayProgress.minutes(day, 0, 12, true),
         ),
       ];
 
@@ -194,13 +199,13 @@ void main() {
     testWidgets('shows overall progress circle and read over total verses', (
       tester,
     ) async {
-      planService.plans = [
+      readModels.plans = [
         planDetails(
           'Ruth',
           id: 1,
           totalVerses: 100,
           versesRead: 66,
-          todayProgress: DayProgress(day, 0, 0, false),
+          todayProgress: DayProgress.minutes(day, 0, 0, false),
         ),
       ];
 
@@ -221,7 +226,7 @@ void main() {
         tester,
         navigateToCreatePlanRoute: (context, name) async {
           openedNames.add(name);
-          planService.plans = [planDetails('New Plan', id: 2)];
+          readModels.plans = [planDetails('New Plan', id: 2)];
         },
       );
 
@@ -236,12 +241,12 @@ void main() {
       tester,
     ) async {
       final editedPlanIds = <int>[];
-      planService.plans = [planDetails('Ruth', id: 1)];
+      readModels.plans = [planDetails('Ruth', id: 1)];
       await pumpPanel(
         tester,
         navigateToEditPlanRoute: (context, planId) async {
           editedPlanIds.add(planId);
-          planService.plans = [planDetails('Edited Ruth', id: 1)];
+          readModels.plans = [planDetails('Edited Ruth', id: 1)];
         },
       );
 
@@ -255,7 +260,7 @@ void main() {
 
   group('card actions', () {
     testWidgets('shows edit but no delete action', (tester) async {
-      planService.plans = [planDetails('Ruth', id: 1)];
+      readModels.plans = [planDetails('Ruth', id: 1)];
       await pumpPanel(tester);
 
       final card = find.byType(ReadingPlanCard);
@@ -278,12 +283,12 @@ void main() {
       tester,
     ) async {
       final openedPlanIds = <int>[];
-      planService.plans = [planDetails('Ruth', id: 1)];
+      readModels.plans = [planDetails('Ruth', id: 1)];
       await pumpPanel(
         tester,
         navigateToPlanDetailsRoute: (context, planId) async {
           openedPlanIds.add(planId);
-          planService.plans = [planDetails('Renamed Ruth', id: 1)];
+          readModels.plans = [planDetails('Renamed Ruth', id: 1)];
         },
       );
 
@@ -303,19 +308,24 @@ void main() {
     testWidgets('initializes the detail view model before navigating', (
       tester,
     ) async {
-      planService.plans = [planDetails('Ruth', id: 1)];
-      planService.queuePlanRequests = true;
+      final summary = planDetails('Ruth', id: 1);
+      readModels.plans = [summary];
+      readModels.queueSummaryRequests = true;
+      final planService = FakeReadingPlanService();
       getIt.registerSingleton<ReadingPlanService>(planService);
       getIt.registerSingleton<ReadingSessionViewModel>(sessionViewModel);
+      getIt.registerSingleton<ReadingSessionDatabase>(
+        FakeReadingSessionDatabase(readModels),
+      );
 
       await pumpPanel(tester);
       await tester.tap(find.text('Ruth'));
       await tester.pump();
 
       expect(find.byType(ReadingPlanDetailPanel), findsNothing);
-      expect(planService.planRequests, hasLength(1));
+      expect(readModels.summaryRequests, hasLength(1));
 
-      planService.planRequests.single.complete(planService.plans.single);
+      readModels.summaryRequests.single.complete(summary);
       await tester.pumpAndSettle();
 
       expect(find.byType(ReadingPlanDetailPanel), findsOneWidget);
@@ -327,7 +337,7 @@ void main() {
     testWidgets('resume starts the session and closes the panel', (
       tester,
     ) async {
-      planService.plans = [
+      readModels.plans = [
         planDetails(
           'Ruth',
           id: 7,
@@ -392,9 +402,9 @@ class _PanelLauncher extends StatelessWidget {
   }
 }
 
-ReadingPlanDetails planDetails(
+ReadingPlanSummary planDetails(
   String name, {
-  int? id = 1,
+  int id = 1,
   int totalVerses = 0,
   int versesRead = 0,
   bool isBookmarked = false,
@@ -403,21 +413,16 @@ ReadingPlanDetails planDetails(
   DayProgress? todayProgress,
   Reference? resumePosition,
 }) {
-  final details = ReadingPlanDetails(
-    ReadingPlan(
-      id: id,
-      planName: name,
-      createdAt: DateTime.now(),
-      collectionId: 1,
-      goalType: goalType.name,
-      goalValue: goalValue,
-      isBookmarked: isBookmarked,
-    ),
-    const [],
+  return planSummary(
+    name: name,
+    id: id,
+    bookIds: const [],
+    totalVerses: totalVerses,
+    versesRead: versesRead,
+    isBookmarked: isBookmarked,
+    goalType: goalType,
+    goalValue: goalValue,
+    today: todayProgress,
+    resumePosition: resumePosition,
   );
-  details.totalVerses = totalVerses;
-  details.versesRead = versesRead;
-  details.todayProgress = todayProgress;
-  details.resumePosition = resumePosition;
-  return details;
 }

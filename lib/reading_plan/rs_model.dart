@@ -1,7 +1,4 @@
-enum GoalType {
-    minutes,
-    verses
-}
+enum GoalType { minutes, verses }
 
 /// The single-character goal encoding stored in the reading-plan database.
 extension GoalTypeStorage on GoalType {

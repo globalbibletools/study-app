@@ -234,7 +234,9 @@ PRAGMA user_version = 3;
 
       expect(countForPlan(), expectedVerseCountFor({63, 64, 66}));
       expect(
-        (await database.getReadingPlanBooks(plan.id!)).map((b) => b.bookId),
+        (await database.readModels.getPlanConfig(
+          plan.id!,
+        ))!.books.map((b) => b.bookId),
         [63, 66],
       );
     },
@@ -273,6 +275,8 @@ PRAGMA user_version = 3;
       0,
     );
     expect(await database.isBookComplete(plan.id!, 67), isFalse);
-    expect((await database.getBookStats(plan.id!))[67], isNull);
+    final summary = (await database.readModels.getPlanSummary(plan.id!))!;
+    expect(summary.bookProgress[67]!.totalVerses, 0);
+    expect(summary.bookProgress[67]!.isComplete, isFalse);
   });
 }

@@ -8,10 +8,10 @@ import 'package:gbt/reading_plan/rs_model.dart';
 import 'fake_reading_plan_read_models.dart';
 
 class FakeReadingPlanService extends Fake implements ReadingPlanService {
-  FakeReadingPlanService([List<ReadingPlanDetails>? plans])
+  FakeReadingPlanService([List<ReadingPlanSummary>? plans])
     : plans = plans ?? [];
 
-  List<ReadingPlanDetails> plans;
+  List<ReadingPlanSummary> plans;
 
   FakeReadingPlanReadModels? readModels;
 
@@ -20,7 +20,6 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
   final deletedPlanIds = <int>[];
   final bookmarkedValues = <bool>[];
   final saveCalls = <SaveReadingPlanCall>[];
-  final savedPlans = <ReadingPlan>[];
 
   /// When set, bookmark writes throw this instead of persisting.
   Object? bookmarkError;
@@ -48,9 +47,10 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
   DateTime nextManualSessionStartTime = DateTime(2026, 11, 17, 9, 30);
 
   int _nextSessionId = 1000;
+  int _nextPlanId = 100;
 
-  ReadingPlanDetails? _detailsFor(int planId) =>
-      plans.where((plan) => plan.readingPlan.id == planId).firstOrNull;
+  ReadingPlanSummary? _summaryFor(int planId) =>
+      plans.where((plan) => plan.planId == planId).firstOrNull;
 
   void _syncReadModels() {
     readModels?.plans = plans;
@@ -74,7 +74,7 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
     final readSeconds = (minutes * 60).round();
     final session = RsSession(
       id: _nextSessionId++,
-      rsDate: DateTime(date.year, date.month, date.day),
+      rsDate: dayOnly(date),
       startTime: nextManualSessionStartTime,
       endTime: nextManualSessionStartTime.add(Duration(seconds: readSeconds)),
       readSeconds: readSeconds,
@@ -137,67 +137,92 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
       saveRequests.add(request);
       final queuedPlan = await request.future;
       _storeSavedPlan(call, queuedPlan);
-      return queuedPlan.id!;
+      return queuedPlan.planId;
     }
 
     _storeSavedPlan(call, plan);
-    return plan.id!;
+    return plan.planId;
   }
 
-  ReadingPlan _planFor(SaveReadingPlanCall call) {
-    final existing = call.planId == null
-        ? null
-        : _detailsFor(call.planId!)?.readingPlan;
-    final plan = ReadingPlan(
-      id: existing?.id ?? _nextPlanId++,
-      planName: call.planName,
-      createdAt: existing?.createdAt ?? DateTime.now(),
-      lastRead: existing?.lastRead,
-      collectionId: call.collectionId,
-      goalType: call.goalType.name,
-      goalValue: call.goalValue,
-      isBookmarked: existing?.isBookmarked ?? false,
-    );
-    savedPlans.add(plan);
-    return plan;
-  }
-
-  void _storeSavedPlan(SaveReadingPlanCall call, ReadingPlan plan) {
+  ReadingPlanSummary _planFor(SaveReadingPlanCall call) {
+    final existing = call.planId == null ? null : _summaryFor(call.planId!);
     final orderedBookIds =
         call.orderedBookIds ?? (call.selectedBookIds.toList()..sort());
-    final details = ReadingPlanDetails(plan, [
+    final planId = existing?.planId ?? _nextPlanId++;
+    final books = [
       for (var i = 0; i < orderedBookIds.length; i++)
         ReadingPlanBook(
-          readingPlanId: plan.id!,
+          readingPlanId: planId,
           bookId: orderedBookIds[i],
           ord: i + 1,
         ),
-    ]);
+    ];
+    final existingProgress = existing?.progress.bookProgress ?? const {};
+    final config = ReadingPlanConfig(
+      planId: planId,
+      planName: call.planName,
+      collectionId: call.collectionId,
+      isBookmarked: existing?.isBookmarked ?? false,
+      createdAt: existing?.config.createdAt ?? DateTime.now(),
+      dailyGoal: DailyGoal(call.goalType, call.goalValue),
+      books: books,
+    );
+    final progress = ReadingPlanProgress(
+      planId: planId,
+      bookProgress: {
+        for (final book in books)
+          book.bookId: BookProgress(
+            bookId: book.bookId,
+            totalVerses: existingProgress[book.bookId]?.totalVerses ?? 0,
+            versesRead: existingProgress[book.bookId]?.versesRead ?? 0,
+          ),
+      },
+      resumePosition: existing?.progress.resumePosition,
+    );
+    return ReadingPlanSummary(
+      config: config,
+      progress: progress,
+      today: existing?.today ?? DayProgress.empty(DateTime.now()),
+    );
+  }
 
+  void _storeSavedPlan(SaveReadingPlanCall call, ReadingPlanSummary plan) {
     final index = plans.indexWhere(
-      (existing) => existing.readingPlan.id == plan.id,
+      (existing) => existing.planId == plan.planId,
     );
     if (index == -1) {
-      plans.add(details);
+      plans.add(plan);
     } else {
-      plans[index] = details;
+      plans[index] = plan;
     }
     _syncReadModels();
   }
-
-  int _nextPlanId = 100;
 
   @override
   Future<void> setReadingPlanBookmark(int planId, bool isBookmarked) async {
     final error = bookmarkError;
     if (error != null) throw error;
 
-    final details = _detailsFor(planId);
-    if (details == null) throw StateError('Reading plan not found: $planId');
+    final summary = _summaryFor(planId);
+    if (summary == null) throw StateError('Reading plan not found: $planId');
 
     bookmarkedValues.add(isBookmarked);
-    final updated = details.readingPlan.copyWith(isBookmarked: isBookmarked);
-    details.readingPlan = updated;
+    final config = summary.config;
+    final updated = ReadingPlanSummary(
+      config: ReadingPlanConfig(
+        planId: config.planId,
+        planName: config.planName,
+        collectionId: config.collectionId,
+        isBookmarked: isBookmarked,
+        createdAt: config.createdAt,
+        dailyGoal: config.dailyGoal,
+        books: config.books,
+      ),
+      progress: summary.progress,
+      today: summary.today,
+    );
+    final index = plans.indexWhere((existing) => existing.planId == planId);
+    plans[index] = updated;
     _syncReadModels();
   }
 
@@ -213,7 +238,7 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
     }
 
     deletedPlanIds.add(planId);
-    plans = plans.where((plan) => plan.readingPlan.id != planId).toList();
+    plans = plans.where((plan) => plan.planId != planId).toList();
     _syncReadModels();
   }
 }
@@ -241,12 +266,13 @@ class SaveReadingPlanCall {
 class SaveReadingPlanRequest {
   SaveReadingPlanRequest(this.plan);
 
-  final ReadingPlan plan;
-  final _completer = Completer<ReadingPlan>();
+  final ReadingPlanSummary plan;
+  final _completer = Completer<ReadingPlanSummary>();
 
-  Future<ReadingPlan> get future => _completer.future;
+  Future<ReadingPlanSummary> get future => _completer.future;
 
-  void complete([ReadingPlan? plan]) => _completer.complete(plan ?? this.plan);
+  void complete([ReadingPlanSummary? plan]) =>
+      _completer.complete(plan ?? this.plan);
 
   void completeError(Object error) => _completer.completeError(error);
 }

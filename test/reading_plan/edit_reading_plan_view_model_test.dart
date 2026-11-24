@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gbt/reading_plan/reading_plan_read_models.dart';
 import 'package:gbt/asyncutils/cancellation.dart';
 import 'package:gbt/common/bible_collection.dart';
 import 'package:gbt/common/bible_navigation.dart';
@@ -6,77 +7,58 @@ import 'package:gbt/reading_plan/edit_reading_plan_view_model.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
 
 import '../fixtures/bible_navigation_fixture.dart';
+import 'fake_reading_plan_read_models.dart';
 import 'fake_reading_plan_service.dart';
+import 'reading_plan_fixtures.dart';
 
 void main() {
   late FakeReadingPlanService planService;
+  late FakeReadingPlanReadModels readModels;
   late BibleNavigation bibleNavigation;
 
   setUp(() {
-    planService = FakeReadingPlanService();
+    readModels = FakeReadingPlanReadModels();
+    planService = FakeReadingPlanService()..readModels = readModels;
     bibleNavigation = createTestBibleNavigation();
   });
 
   Future<EditReadingPlanViewModel> newViewModel([String name = 'Test Plan']) {
     return EditReadingPlanViewModel.createNew(
       name,
+      readModels: readModels,
       planService: planService,
       bibleNavigation: bibleNavigation,
     );
   }
 
   Future<EditReadingPlanViewModel> existingViewModel(
-    ReadingPlanDetails details,
+    ReadingPlanSummary details,
   ) {
-    planService.plans = [details];
+    readModels.plans = [details];
     return EditReadingPlanViewModel.createExisting(
-      details.readingPlan.id!,
+      details.planId,
+      readModels: readModels,
       planService: planService,
       bibleNavigation: bibleNavigation,
     );
   }
 
-  Future<ReadingPlanDetails> savePlan({
+  Future<ReadingPlanSummary> savePlan({
     String name = 'Saved Plan',
     int collectionId = 1,
     GoalType goalType = GoalType.verses,
     int goalValue = 10,
     Set<int> bookIds = const {1, 2},
   }) async {
-    final plan = await planService.saveReadingPlan(
+    final planId = await planService.saveReadingPlan(
       planName: name,
       collectionId: collectionId,
       goalType: goalType,
       goalValue: goalValue,
       selectedBookIds: bookIds,
     );
-    return (await planService.getReadingPlanById(plan.id!))!;
+    return readModels.plans.singleWhere((details) => details.planId == planId);
   }
-
-  group('defaultPlan', () {
-    test(
-      'creates an unsaved whole-Bible plan with a 10-verse daily goal',
-      () async {
-        final details = EditReadingPlanViewModel.defaultPlan('Morning Reading');
-
-        final plan = details.readingPlan;
-        expect(plan.id, isNull);
-        expect(plan.planName, 'Morning Reading');
-        expect(plan.collectionId, 1);
-        expect(plan.goalType, GoalType.verses.name);
-        expect(plan.goalValue, 10);
-
-        expect(details.books.map((b) => b.bookId), [
-          for (int i = 1; i <= 66; i++) i,
-        ]);
-        expect(details.books.map((b) => b.ord), [
-          for (int i = 1; i <= 66; i++) i,
-        ]);
-        expect(details.dailyGoal.type, GoalType.verses);
-        expect(details.dailyGoal.value, 10);
-      },
-    );
-  });
 
   group('initialization', () {
     test('seeds a new-plan view model with whole-Bible defaults', () async {
@@ -115,6 +97,46 @@ void main() {
       expect(vm.canSubmit, isTrue);
     });
 
+    test(
+      'loads an existing plan from the read-model config on initialize',
+      () async {
+        final details = await savePlan(
+          name: 'Original',
+          collectionId: 8,
+          goalType: GoalType.minutes,
+          goalValue: 20,
+          bookIds: {1, 2},
+        );
+        readModels.plans = [
+          planSummary(
+            id: details.planId,
+            name: 'Reloaded',
+            goalType: GoalType.minutes,
+            goalValue: 20,
+            bookIds: const [3, 4],
+          ),
+        ];
+
+        final vm = await EditReadingPlanViewModel.createExisting(
+          details.planId,
+          readModels: readModels,
+          planService: planService,
+          bibleNavigation: bibleNavigation,
+        );
+
+        expect(vm.name, 'Reloaded');
+        expect(vm.goalType, GoalType.minutes);
+        expect(vm.goalValue, 20);
+        expect(vm.orderedBookIds, [3, 4]);
+
+        expect(await vm.submit(), isTrue);
+        final call = planService.saveCalls.last;
+        expect(call.planId, details.planId);
+        expect(call.planName, 'Reloaded');
+        expect(call.orderedBookIds, [3, 4]);
+      },
+    );
+
     test('always offers Custom as a collection option', () async {
       final vm = await newViewModel();
       expect(vm.collectionOptions.last, same(BibleCollections.custom));
@@ -125,7 +147,7 @@ void main() {
     });
 
     test('initializes the custom draft from an existing custom plan', () async {
-      final plan = await planService.saveReadingPlan(
+      final planId = await planService.saveReadingPlan(
         planName: 'Custom Plan',
         collectionId: BibleCollections.custom.id,
         goalType: GoalType.verses,
@@ -133,7 +155,9 @@ void main() {
         selectedBookIds: {46, 45},
         orderedBookIds: [46, 45],
       );
-      final details = (await planService.getReadingPlanById(plan.id!))!;
+      final details = readModels.plans.singleWhere(
+        (details) => details.planId == planId,
+      );
 
       final vm = await existingViewModel(details);
       expect(vm.selectedCollection, same(BibleCollections.custom));
@@ -421,7 +445,7 @@ void main() {
       expect(notifications, 2);
 
       final call = planService.saveCalls.single;
-      expect(call.existingPlanDetails, isNull);
+      expect(call.planId, isNull);
       expect(call.planName, 'Daily Bread');
       expect(call.collectionId, 7);
       expect(call.goalType, GoalType.verses);
@@ -430,7 +454,7 @@ void main() {
       expect(call.orderedBookIds, [40, 41, 42, 43]);
 
       final saved = planService.plans.single;
-      expect(saved.readingPlan.id, isNotNull);
+      expect(saved.planId, isNotNull);
       expect(saved.books.map((b) => b.bookId), [40, 41, 42, 43]);
       expect(saved.books.map((b) => b.ord), [1, 2, 3, 4]);
     });
@@ -456,7 +480,7 @@ void main() {
       expect(call.orderedBookIds, [3, 1, 2]);
 
       final saved = planService.plans.single;
-      expect(saved.readingPlan.collectionId, BibleCollections.custom.id);
+      expect(saved.config.collectionId, BibleCollections.custom.id);
       expect(saved.books.map((b) => b.bookId), [3, 1, 2]);
     });
 
@@ -481,7 +505,7 @@ void main() {
 
     test('passes the existing plan through when updating', () async {
       final saved = await savePlan(name: 'Original', bookIds: {2, 1});
-      final originalId = saved.readingPlan.id;
+      final originalId = saved.planId;
 
       final vm = await existingViewModel(saved);
       vm.setPlanName('Revised');
@@ -490,13 +514,13 @@ void main() {
       expect(await vm.submit(), isTrue);
 
       final call = planService.saveCalls.last;
-      expect(call.existingPlanDetails, same(saved));
+      expect(call.planId, saved.planId);
       expect(call.planName, 'Revised');
       expect(call.orderedBookIds, [1, 3]);
 
       final updated = planService.plans.single;
-      expect(updated.readingPlan.id, originalId);
-      expect(updated.readingPlan.planName, 'Revised');
+      expect(updated.planId, originalId);
+      expect(updated.planName, 'Revised');
       expect(updated.books.map((b) => b.bookId), [1, 3]);
       expect(updated.books.map((b) => b.ord), [1, 2]);
     });

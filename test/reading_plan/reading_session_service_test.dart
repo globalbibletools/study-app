@@ -103,9 +103,9 @@ void main() {
     expect(config.dailyGoal.type, GoalType.verses);
     expect(config.dailyGoal.value, 15);
     expect(config.books.map((book) => book.bookId), [63, 64]);
-    expect(config.bookIds, {63, 64});
-    expect(config.totalChapters, 2);
-    expect(config.totalVerses, 28);
+    expect(config.bookIds, [63, 64]);
+    final summary = (await database.readModels.getPlanSummary(planId))!;
+    expect(summary.totalVerses, 28);
     expect(() => config.books.add(config.books.first), throwsUnsupportedError);
 
     final runtime = (await database.readModels.getSessionRuntime(sessionId!))!;
@@ -208,8 +208,14 @@ void main() {
       expect((await runtimeFor(secondSessionId)).versesToday, 1);
       expect(unchecked.bookCompleted, isNull);
 
-      expect(await database.getRsLogForSession(firstSessionId), hasLength(1));
-      expect(await database.getRsLogForSession(secondSessionId), isEmpty);
+      expect(
+        await database.getRsLogForSessionAndVerse(firstSessionId, 63, 1, 1),
+        hasLength(1),
+      );
+      expect(
+        await database.getRsLogForSessionAndVerse(secondSessionId, 63, 1, 1),
+        isEmpty,
+      );
     },
   );
 
@@ -301,15 +307,24 @@ void main() {
       expect(uncheckedStates[1]?.readThisSession, isFalse);
       expect((await runtimeFor(newSessionId)).versesToday, 0);
       expect(unchecked.bookCompleted, isNull);
-      expect(await database.getRsLogForSession(oldSession.id!), hasLength(1));
+      expect(
+        await database.getRsLogForSessionAndVerse(oldSession.id!, 63, 1, 1),
+        hasLength(1),
+      );
 
       await setVerseRead(newSessionId, _readOptions(63, 1, 1, read: true));
       final checkedStates = await statesFor(newSessionId, 63, 1);
       expect(checkedStates[1]?.readCount, 2);
       expect(checkedStates[1]?.readThisSession, isTrue);
       expect((await runtimeFor(newSessionId)).versesToday, 1);
-      expect(await database.getRsLogForSession(oldSession.id!), hasLength(1));
-      expect(await database.getRsLogForSession(newSessionId), hasLength(1));
+      expect(
+        await database.getRsLogForSessionAndVerse(oldSession.id!, 63, 1, 1),
+        hasLength(1),
+      );
+      expect(
+        await database.getRsLogForSessionAndVerse(newSessionId, 63, 1, 1),
+        hasLength(1),
+      );
     },
   );
 
@@ -410,21 +425,26 @@ void main() {
 
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final beforeEnd = (await database.getSessionsForDate(
-      today,
+    final beforeActivity = await database.readModels.getDayActivity(
       planId,
-    )).single.endTime;
+      today,
+    );
+    final beforeEnd = beforeActivity.single.rsSession.endTime;
     expect(beforeEnd, isNotNull);
 
     await sessionService.endSession(sessionId, readSeconds: 0);
 
-    final sessions = await database.getSessionsForDate(today, planId);
+    final activity = await database.readModels.getDayActivity(planId, today);
+    final sessions = [for (final session in activity) session.rsSession];
     expect(sessions, hasLength(1));
     expect(sessions.single.endTime, isNotNull);
 
-    final summary = await database.getDaySummariesBetween(planId, today, today);
-    expect(summary, hasLength(1));
-    expect(summary.single.rsSeconds, greaterThanOrEqualTo(1));
+    final summary = (await database.readModels.getPlanSummary(
+      planId,
+      today: today,
+    ))!.today;
+    expect(summary.hasSummary, isTrue);
+    expect(summary.seconds, greaterThanOrEqualTo(1));
   });
 
   test('returns null for actions on a missing session', () async {

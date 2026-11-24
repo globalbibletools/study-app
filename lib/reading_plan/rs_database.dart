@@ -19,28 +19,16 @@ class ReadingSessionDatabase {
         },
       );
 
-  ReadingSessionDatabase.inMemory({
-    String databaseName = _defaultDatabaseName,
-    required VerseInventoryProvider verseInventoryProvider,
-  }) : this.withDependencies(
-         databaseName: databaseName,
-         databasePath: inMemoryDatabasePath,
-         verseInventoryProvider: verseInventoryProvider,
-       );
-
   ReadingSessionDatabase.withDependencies({
     String databaseName = _defaultDatabaseName,
-    String? databasePath,
     required VerseInventoryProvider verseInventoryProvider,
   }) : _databaseName = databaseName,
-       _databasePath = databasePath,
        _verseInventoryProvider = verseInventoryProvider;
 
   static const _defaultDatabaseName = 'reading_session.db';
   static const _databaseVersion = 7;
 
   final String _databaseName;
-  final String? _databasePath;
   final VerseInventoryProvider _verseInventoryProvider;
 
   late Database _database;
@@ -60,7 +48,7 @@ class ReadingSessionDatabase {
       return _initFuture;
     }
 
-    _initFuture = _initDatabase(_databasePath ?? _databaseName);
+    _initFuture = _initDatabase(_databaseName);
     try {
       await _initFuture;
     } catch (_) {
@@ -72,7 +60,7 @@ class ReadingSessionDatabase {
 
   Future<void> resetDatabase() async {
     final path = await getDatabasesPath();
-    final dbPath = _databasePath ?? '$path/$_databaseName';
+    final dbPath = '$path/$_databaseName';
 
     _initFuture = null;
     await deleteDatabase(dbPath);

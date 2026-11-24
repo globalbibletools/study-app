@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gbt/reading_plan/reading_plan_read_models.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
 
 void main() {
@@ -79,90 +80,24 @@ void main() {
     });
   });
 
-  group('RsBookStats', () {
+  group('BookProgress', () {
     test('derives completion from verse totals', () {
-      final complete = RsBookStats(
+      const complete = BookProgress(
         bookId: 63,
         totalVerses: 13,
         versesRead: 13,
-        lastRead: DateTime.parse('2026-05-01T10:15:30.000'),
       );
-      final empty = RsBookStats(
-        bookId: 67,
-        totalVerses: 0,
-        versesRead: 0,
-        lastRead: null,
-      );
+      const empty = BookProgress(bookId: 67, totalVerses: 0, versesRead: 0);
 
       expect(complete.isComplete, isTrue);
       expect(empty.isComplete, isFalse);
     });
   });
 
-  test(
-    'ReadingPlanDetails daily goal handles legacy and named goal strings',
-    () {
-      final now = DateTime.now();
-
-      final legacyMinutes = ReadingPlanDetails(
-        ReadingPlan(
-          id: 1,
-          planName: 'Legacy M',
-          createdAt: now,
-          collectionId: 1,
-          goalType: 'M',
-          goalValue: 15,
-          isBookmarked: false,
-        ),
-        [],
-      );
-      expect(legacyMinutes.dailyGoal.type, GoalType.minutes);
-      expect(legacyMinutes.dailyGoal.value, 15);
-
-      final legacyVerses = ReadingPlanDetails(
-        ReadingPlan(
-          id: 2,
-          planName: 'Legacy V',
-          createdAt: now,
-          collectionId: 1,
-          goalType: 'V',
-          goalValue: 25,
-          isBookmarked: false,
-        ),
-        [],
-      );
-      expect(legacyVerses.dailyGoal.type, GoalType.verses);
-      expect(legacyVerses.dailyGoal.value, 25);
-
-      final namedMinutes = ReadingPlanDetails(
-        ReadingPlan(
-          id: 3,
-          planName: 'Named Minutes',
-          createdAt: now,
-          collectionId: 1,
-          goalType: 'minutes',
-          goalValue: 20,
-          isBookmarked: false,
-        ),
-        [],
-      );
-      expect(namedMinutes.dailyGoal.type, GoalType.minutes);
-      expect(namedMinutes.dailyGoal.value, 20);
-
-      final namedVerses = ReadingPlanDetails(
-        ReadingPlan(
-          id: 4,
-          planName: 'Named Verses',
-          createdAt: now,
-          collectionId: 1,
-          goalType: 'verses',
-          goalValue: 30,
-          isBookmarked: false,
-        ),
-        [],
-      );
-      expect(namedVerses.dailyGoal.type, GoalType.verses);
-      expect(namedVerses.dailyGoal.value, 30);
-    },
-  );
+  test('DailyGoal reads legacy and named goal strings', () {
+    expect(DailyGoal.fromStored('M', 15).type, GoalType.minutes);
+    expect(DailyGoal.fromStored('V', 25).type, GoalType.verses);
+    expect(DailyGoal.fromStored('minutes', 20).type, GoalType.minutes);
+    expect(DailyGoal.fromStored('verses', 30).type, GoalType.verses);
+  });
 }
