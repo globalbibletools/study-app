@@ -202,7 +202,10 @@ void main() {
     expect(details.readSeconds, 750);
     expect(details.verses, 8);
     expect(details.ranges, isEmpty);
-    expect(await database.getRsLogForSession(details.sessionId), isEmpty);
+    expect(
+      await database.sessionLog.listForSession(details.sessionId),
+      isEmpty,
+    );
 
     final day = await database.queries.getDayProgress(savedPlanId, date);
     expect(day.hasSummary, isTrue);
@@ -222,12 +225,12 @@ void main() {
     expect(ruth.versesRead, 0);
     expect(ruth.isComplete, isFalse);
 
-    final counts = await database.getVerseReadCountsForChapter(
-      savedPlanId,
-      63,
-      1,
-    );
-    expect(counts.values.every((count) => count == 0), isTrue);
+    for (int verse = 1; verse <= 13; verse++) {
+      expect(
+        await database.verseState.getReadCount(savedPlanId, 63, 1, verse),
+        0,
+      );
+    }
     expect(
       (await database.queries.getPlanSummary(savedPlanId))!.resumePosition,
       const Reference(bookId: 63, chapter: 1, verse: 1),
@@ -278,7 +281,7 @@ void main() {
 
     day = await database.queries.getDayProgress(savedPlanId, date);
     expect(day.hasSummary, isFalse);
-    expect(await database.getDaySummary(savedPlanId, date), isNull);
+    expect(await database.daySummary.get(savedPlanId, date), isNull);
   });
 
   test('rejects deleting a normal session', () async {
@@ -344,6 +347,6 @@ void main() {
       throwsArgumentError,
     );
 
-    expect(await database.getSessionsForDate(date, savedPlanId), isEmpty);
+    expect(await database.session.listForDate(date, savedPlanId), isEmpty);
   });
 }

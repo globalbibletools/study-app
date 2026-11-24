@@ -1,3 +1,4 @@
+import 'package:gbt/common/reference.dart';
 import 'package:sqflite/sqflite.dart';
 
 class VerseStateRepository {
@@ -97,6 +98,59 @@ class VerseStateRepository {
     return rows.isEmpty ? null : rows.first['read_count'] as int;
   }
 
+  Future<Map<int, BookStats>> getBookStats(
+    int readingPlanId, {
+    DatabaseExecutor? executor,
+  }) async {
+    final db = executor ?? _database;
+    final rows = await db.rawQuery(
+      'SELECT v.book_id AS book_id, '
+      '       COUNT(*) AS total_verses, '
+      '       SUM(CASE WHEN v.read_count > 0 THEN 1 ELSE 0 END) AS verses_read, '
+      '       MAX(v.last_read) AS last_read, '
+      '       (SELECT v2.chapter '
+      '        FROM rs_verse_state v2 '
+      '        WHERE v2.reading_plan_id = v.reading_plan_id '
+      '          AND v2.book_id = v.book_id '
+      '          AND v2.read_count = 0 '
+      '        ORDER BY v2.chapter, v2.verse '
+      '        LIMIT 1) AS resume_chapter, '
+      '       (SELECT v2.verse '
+      '        FROM rs_verse_state v2 '
+      '        WHERE v2.reading_plan_id = v.reading_plan_id '
+      '          AND v2.book_id = v.book_id '
+      '          AND v2.read_count = 0 '
+      '        ORDER BY v2.chapter, v2.verse '
+      '        LIMIT 1) AS resume_verse '
+      'FROM rs_verse_state v '
+      'JOIN reading_plan_book b '
+      '  ON b.reading_plan_id = v.reading_plan_id '
+      ' AND b.book_id = v.book_id '
+      'WHERE v.reading_plan_id = ? '
+      'GROUP BY v.book_id',
+      [readingPlanId],
+    );
+
+    return {
+      for (final row in rows)
+        row['book_id'] as int: BookStats(
+          bookId: row['book_id'] as int,
+          totalVerses: row['total_verses'] as int,
+          versesRead: row['verses_read'] as int? ?? 0,
+          lastRead: row['last_read'] != null
+              ? DateTime.parse(row['last_read'] as String)
+              : null,
+          resumePosition: row['resume_chapter'] == null
+              ? null
+              : Reference(
+                  bookId: row['book_id'] as int,
+                  chapter: row['resume_chapter'] as int,
+                  verse: row['resume_verse'] as int,
+                ),
+        ),
+    };
+  }
+
   Future<bool> isBookComplete(
     int readingPlanId,
     int bookId, {
@@ -115,4 +169,22 @@ class VerseStateRepository {
     final read = rows.first['read_verses'] as int? ?? 0;
     return total > 0 && read == total;
   }
+}
+
+class BookStats {
+  const BookStats({
+    required this.bookId,
+    required this.totalVerses,
+    required this.versesRead,
+    required this.lastRead,
+    this.resumePosition,
+  });
+
+  final int bookId;
+  final int totalVerses;
+  final int versesRead;
+  final DateTime? lastRead;
+  final Reference? resumePosition;
+
+  bool get isComplete => totalVerses > 0 && versesRead == totalVerses;
 }

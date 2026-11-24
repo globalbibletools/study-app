@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
 import 'package:gbt/reading_plan/reading_session_service.dart';
+import 'package:gbt/reading_plan/data_access/day_summary_repository.dart';
 import 'package:gbt/reading_plan/data_access/rs_database.dart';
 import 'package:gbt/reading_plan/data_access/rs_model.dart';
 import 'package:gbt/reading_plan/data_access/session_repository.dart';
@@ -76,8 +77,8 @@ void main() {
     }
   });
 
-  Future<RsDaySummary> summaryFor(int planId, DateTime date) async {
-    final summaries = await rsDb.getDaySummariesBetween(planId, date, date);
+  Future<DaySummary> summaryFor(int planId, DateTime date) async {
+    final summaries = await rsDb.daySummary.listBetween(planId, date, date);
     expect(summaries, hasLength(1));
     return summaries.single;
   }
@@ -97,7 +98,7 @@ void main() {
 
       final now = DateTime.now();
       final today = DateTime(now.year, now.month, now.day);
-      final sessions = await rsDb.getSessionsForDate(today, planId);
+      final sessions = await rsDb.session.listForDate(today, planId);
       expect(sessions, hasLength(1));
       expect(sessions.single.verses, 0);
       expect(sessions.single.endTime, isNotNull);
@@ -125,7 +126,7 @@ void main() {
 
         final now = DateTime.now();
         final today = DateTime(now.year, now.month, now.day);
-        final killedSessions = await rsDb.getSessionsForDate(today, planId);
+        final killedSessions = await rsDb.session.listForDate(today, planId);
         expect(killedSessions, hasLength(1));
         expect(killedSessions.single.verses, 3);
         expect(killedSessions.single.endTime, isNotNull);
@@ -140,9 +141,15 @@ void main() {
         expect(summary.rsVerses, 3);
         expect(summary.rsSeconds, greaterThanOrEqualTo(1));
 
-        expect(await rsDb.getVersesReadToday(planId, today), 3);
         expect(
-          await rsDb.getTotalSecondsReadToday(planId, today),
+          killedSessions.fold<int>(0, (sum, session) => sum + session.verses),
+          3,
+        );
+        expect(
+          killedSessions.fold<int>(
+            0,
+            (sum, session) => sum + session.readSeconds,
+          ),
           greaterThanOrEqualTo(1),
         );
       },
@@ -223,7 +230,7 @@ void main() {
 
         final now = DateTime.now();
         final today = DateTime(now.year, now.month, now.day);
-        final endBefore = (await rsDb.getSessionsForDate(
+        final endBefore = (await rsDb.session.listForDate(
           today,
           planId,
         )).single.endTime;
@@ -231,7 +238,7 @@ void main() {
 
         await Future<void>.delayed(const Duration(milliseconds: 2500));
 
-        final endAfter = (await rsDb.getSessionsForDate(
+        final endAfter = (await rsDb.session.listForDate(
           today,
           planId,
         )).single.endTime;
@@ -261,7 +268,7 @@ void main() {
 
         final now = DateTime.now();
         final today = DateTime(now.year, now.month, now.day);
-        final pausedSession = (await rsDb.getSessionsForDate(
+        final pausedSession = (await rsDb.session.listForDate(
           today,
           planId,
         )).single;
@@ -275,7 +282,7 @@ void main() {
         await Future<void>.delayed(const Duration(seconds: 2));
         await viewModel.endSession();
 
-        final endedSession = (await rsDb.getSessionsForDate(
+        final endedSession = (await rsDb.session.listForDate(
           today,
           planId,
         )).single;

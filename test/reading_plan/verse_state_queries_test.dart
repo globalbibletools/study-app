@@ -58,12 +58,11 @@ void main() {
       await database.verseState.markRead(planId, 63, 1, 1);
       await database.verseState.markRead(planId, 63, 1, 2);
 
-      var counts = await database.getVerseReadCountsForChapter(planId, 63, 1);
-      expect(counts[1], 2);
-      expect(counts[2], 1);
-      expect(counts[3], 0);
+      expect(await database.verseState.getReadCount(planId, 63, 1, 1), 2);
+      expect(await database.verseState.getReadCount(planId, 63, 1, 2), 1);
+      expect(await database.verseState.getReadCount(planId, 63, 1, 3), 0);
 
-      var aggregate = (await database.getBookStats(planId))[63]!;
+      var aggregate = (await database.verseState.getBookStats(planId))[63]!;
       expect(aggregate.versesRead, 2);
       expect(aggregate.lastRead, isNotNull);
       expect(aggregate.resumePosition?.bookId, 63);
@@ -71,16 +70,14 @@ void main() {
       expect(aggregate.resumePosition?.verse, 3);
 
       await database.verseState.unmarkRead(planId, 63, 1, 1);
-      counts = await database.getVerseReadCountsForChapter(planId, 63, 1);
-      expect(counts[1], 1);
-      aggregate = (await database.getBookStats(planId))[63]!;
+      expect(await database.verseState.getReadCount(planId, 63, 1, 1), 1);
+      aggregate = (await database.verseState.getBookStats(planId))[63]!;
       expect(aggregate.versesRead, 2);
 
       await database.verseState.unmarkRead(planId, 63, 1, 1);
       await database.verseState.unmarkRead(planId, 63, 1, 1);
-      counts = await database.getVerseReadCountsForChapter(planId, 63, 1);
-      expect(counts[1], 0);
-      aggregate = (await database.getBookStats(planId))[63]!;
+      expect(await database.verseState.getReadCount(planId, 63, 1, 1), 0);
+      aggregate = (await database.verseState.getBookStats(planId))[63]!;
       expect(aggregate.versesRead, 1);
       expect(aggregate.resumePosition?.verse, 1);
     },
@@ -107,13 +104,11 @@ void main() {
 
     final planId = await createPlan([40]);
 
-    final counts = await database.getVerseReadCountsForChapter(planId, 40, 16);
-    expect(counts, hasLength(27));
-    expect(counts.containsKey(3), isFalse);
-    expect(counts[1], 0);
-    expect(counts[28], 0);
+    expect(await database.verseState.getReadCount(planId, 40, 16, 1), 0);
+    expect(await database.verseState.getReadCount(planId, 40, 16, 3), isNull);
+    expect(await database.verseState.getReadCount(planId, 40, 16, 28), 0);
 
-    final aggregate = (await database.getBookStats(planId))[40]!;
+    final aggregate = (await database.verseState.getBookStats(planId))[40]!;
     expect(aggregate.totalVerses, 1067);
   });
   test('book completion and verse unmark update completion state', () async {
@@ -124,14 +119,20 @@ void main() {
     }
 
     expect(await database.verseState.isBookComplete(planId, 63), isTrue);
-    expect((await database.getBookStats(planId))[63]!.isComplete, isTrue);
+    expect(
+      (await database.verseState.getBookStats(planId))[63]!.isComplete,
+      isTrue,
+    );
     await database.verseState.unmarkRead(planId, 63, 1, 7);
     expect(await database.verseState.isBookComplete(planId, 63), isFalse);
-    expect((await database.getBookStats(planId))[63]!.versesRead, 12);
+    expect(
+      (await database.verseState.getBookStats(planId))[63]!.versesRead,
+      12,
+    );
   });
 
   test(
-    'getVerseReadStatesForChapter flags only the given session and deletes only that session log',
+    'verse read state flags only the given session and deletes only that session log',
     () async {
       final planId = await createPlan([63]);
       final now = DateTime.now();
@@ -179,27 +180,44 @@ void main() {
         ),
       );
 
-      var states = await database.getVerseReadStatesForChapter(
-        planId,
-        firstSession.id!,
-        63,
-        1,
+      expect(await database.verseState.getReadCount(planId, 63, 1, 1), 1);
+      expect(await database.verseState.getReadCount(planId, 63, 1, 3), 0);
+      expect(
+        await database.sessionLog.getVerseLogForSession(
+          firstSession.id!,
+          63,
+          1,
+          1,
+        ),
+        isNotNull,
       );
-      expect(states[1]!.readCount, 1);
-      expect(states[1]!.readThisSession, isTrue);
-      expect(states[2]!.readThisSession, isTrue);
-      expect(states[3]!.readCount, 0);
-      expect(states[3]!.readThisSession, isFalse);
-
-      states = await database.getVerseReadStatesForChapter(
-        planId,
-        secondSession.id!,
-        63,
-        1,
+      expect(
+        await database.sessionLog.getVerseLogForSession(
+          firstSession.id!,
+          63,
+          1,
+          2,
+        ),
+        isNotNull,
       );
-      expect(states[1]!.readCount, 1);
-      expect(states[1]!.readThisSession, isFalse);
-      expect(states[2]!.readThisSession, isFalse);
+      expect(
+        await database.sessionLog.getVerseLogForSession(
+          secondSession.id!,
+          63,
+          1,
+          1,
+        ),
+        isNull,
+      );
+      expect(
+        await database.sessionLog.getVerseLogForSession(
+          secondSession.id!,
+          63,
+          1,
+          2,
+        ),
+        isNull,
+      );
 
       await database.sessionLog.remove(firstLogId);
 
@@ -221,7 +239,10 @@ void main() {
         ))?.id,
         secondLogId,
       );
-      expect(await database.getRsLogForSession(secondSession.id!), isEmpty);
+      expect(
+        await database.sessionLog.listForSession(secondSession.id!),
+        isEmpty,
+      );
     },
   );
 
@@ -237,7 +258,7 @@ void main() {
       var plan = await database.readingPlans.getById(planId);
       await database.readingPlans.commit(plan!.copyWith(bookIds: [63]));
 
-      var aggregates = await database.getBookStats(planId);
+      var aggregates = await database.verseState.getBookStats(planId);
       expect(aggregates.containsKey(64), isFalse);
       expect(aggregates.containsKey(63), isTrue);
       expect(await database.verseState.isBookComplete(planId, 64), isTrue);
@@ -245,7 +266,7 @@ void main() {
       plan = await database.readingPlans.getById(planId);
       await database.readingPlans.commit(plan!.copyWith(bookIds: [63, 64]));
 
-      aggregates = await database.getBookStats(planId);
+      aggregates = await database.verseState.getBookStats(planId);
       expect(aggregates[64]!.versesRead, 15);
       expect(await database.verseState.isBookComplete(planId, 64), isTrue);
     },

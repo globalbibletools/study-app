@@ -81,13 +81,13 @@ void main() {
 
     await database.daySummary.upsert(planId, day);
 
-    final summary = (await database.getDaySummary(planId, day))!;
+    final summary = (await database.daySummary.get(planId, day))!;
     expect(summary.rsSeconds, 120);
     expect(summary.rsVerses, 5);
     expect(summary.rsDate, day);
 
     expect(
-      await database.getDaySummary(planId, DateTime(2026, 11, 21)),
+      await database.daySummary.get(planId, DateTime(2026, 11, 21)),
       isNull,
     );
   });
@@ -99,9 +99,9 @@ void main() {
 
     await database.daySummary.upsert(planId, day);
 
-    final summary = (await database.getDaySummary(planId, day))!;
+    final summary = (await database.daySummary.get(planId, day))!;
     expect(summary.goalReached, isTrue);
-    expect(summary.goalType, 'verses');
+    expect(summary.goalType, GoalType.verses);
     expect(summary.goalValue, 10);
   });
 
@@ -121,31 +121,29 @@ void main() {
 
     await database.daySummary.upsert(minutesPlanId, day);
 
-    final summary = (await database.getDaySummary(minutesPlanId, day))!;
+    final summary = (await database.daySummary.get(minutesPlanId, day))!;
     expect(summary.goalReached, isTrue);
-    expect(summary.goalType, 'minutes');
+    expect(summary.goalType, GoalType.minutes);
     expect(summary.goalValue, 5);
 
     // The verses goal on the first plan is not reached by seconds alone.
     await database.session.commit(sessionFor(planId, day, readSeconds: 600));
     await database.daySummary.upsert(planId, day);
-    expect((await database.getDaySummary(planId, day))!.goalReached, isFalse);
+    expect((await database.daySummary.get(planId, day))!.goalReached, isFalse);
   });
 
   test('upsert replaces an existing row', () async {
     final day = DateTime(2026, 11, 20);
     await database.session.commit(sessionFor(planId, day, verses: 2));
     await database.daySummary.upsert(planId, day);
-    expect((await database.getDaySummary(planId, day))!.rsVerses, 2);
+    expect((await database.daySummary.get(planId, day))!.rsVerses, 2);
 
     await database.session.commit(
       sessionFor(planId, day, hour: 10, readSeconds: 60, verses: 1),
     );
     await database.daySummary.upsert(planId, day);
 
-    final summaries = await database.getDaySummariesForDate(day);
-    expect(summaries, hasLength(1));
-    final summary = summaries[planId]!;
+    final summary = (await database.daySummary.get(planId, day))!;
     expect(summary.rsVerses, 3);
     expect(summary.rsSeconds, 60);
   });
@@ -171,15 +169,15 @@ void main() {
       preserveStoredGoalSnapshot: true,
     );
 
-    final summary = (await database.getDaySummary(planId, day))!;
-    expect(summary.goalType, 'verses');
+    final summary = (await database.daySummary.get(planId, day))!;
+    expect(summary.goalType, GoalType.verses);
     expect(summary.goalValue, 10);
     expect(summary.goalReached, isFalse);
 
     // Without the flag the snapshot follows the plan's current goal.
     await database.daySummary.upsert(planId, day);
-    final refreshed = (await database.getDaySummary(planId, day))!;
-    expect(refreshed.goalType, 'minutes');
+    final refreshed = (await database.daySummary.get(planId, day))!;
+    expect(refreshed.goalType, GoalType.minutes);
     expect(refreshed.goalValue, 5);
     expect(refreshed.goalReached, isTrue);
   });
@@ -195,8 +193,8 @@ void main() {
       preserveStoredGoalSnapshot: true,
     );
 
-    final summary = (await database.getDaySummary(planId, day))!;
-    expect(summary.goalType, 'verses');
+    final summary = (await database.daySummary.get(planId, day))!;
+    expect(summary.goalType, GoalType.verses);
     expect(summary.goalValue, 10);
     expect(summary.goalReached, isTrue);
   });
@@ -211,8 +209,8 @@ void main() {
 
     expect(await database.daySummary.deleteForDay(planId, firstDay), 1);
 
-    expect(await database.getDaySummary(planId, firstDay), isNull);
-    expect(await database.getDaySummary(planId, secondDay), isNotNull);
+    expect(await database.daySummary.get(planId, firstDay), isNull);
+    expect(await database.daySummary.get(planId, secondDay), isNotNull);
   });
 
   test('delete returns zero when no row exists', () async {
@@ -232,8 +230,8 @@ void main() {
 
     expect(await database.daySummary.deleteForPlanId(planId), 1);
 
-    expect(await database.getDaySummary(planId, day), isNull);
-    expect(await database.getDaySummary(otherPlanId, day), isNotNull);
+    expect(await database.daySummary.get(planId, day), isNull);
+    expect(await database.daySummary.get(otherPlanId, day), isNotNull);
   });
 
   test(
@@ -254,7 +252,7 @@ void main() {
         expect(rows.first['rs_verses'], 4);
       });
 
-      expect(await database.getDaySummary(planId, day), isNotNull);
+      expect(await database.daySummary.get(planId, day), isNotNull);
     },
   );
 
@@ -273,13 +271,13 @@ void main() {
         }),
         throwsStateError,
       );
-      expect(await database.getDaySummary(planId, day), isNotNull);
+      expect(await database.daySummary.get(planId, day), isNotNull);
 
       // A successful transaction commits it.
       await database.transaction((txn) async {
         await database.daySummary.deleteForDay(planId, day, executor: txn);
       });
-      expect(await database.getDaySummary(planId, day), isNull);
+      expect(await database.daySummary.get(planId, day), isNull);
     },
   );
 }

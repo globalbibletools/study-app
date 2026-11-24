@@ -49,6 +49,22 @@ class SessionRepository {
     return rows.isEmpty ? null : Session.fromMap(rows.first);
   }
 
+  Future<List<Session>> listForDate(
+    DateTime date,
+    int readingPlanId, {
+    DatabaseExecutor? executor,
+  }) async {
+    final db = executor ?? _database;
+    final rows = await db.query(
+      'rs_session',
+      where: 'date(rs_date) = date(?) AND reading_plan_id = ?',
+      whereArgs: [date.toIso8601String(), readingPlanId],
+      orderBy: 'start_time, id',
+    );
+
+    return [for (final row in rows) Session.fromMap(row)];
+  }
+
   Future<int> countForDate(
     DateTime date,
     int readingPlanId, {

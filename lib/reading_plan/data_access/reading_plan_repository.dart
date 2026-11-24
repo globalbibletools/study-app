@@ -26,6 +26,37 @@ class ReadingPlanRepository {
     return ReadingPlan.fromMaps(plan: planRows.first, books: bookRows);
   }
 
+  Future<List<ReadingPlan>> list() async {
+    final planRows = await _database.query(
+      'reading_plan',
+      orderBy: 'is_bookmarked desc, created_at desc',
+    );
+    if (planRows.isEmpty) return const [];
+
+    final planIds = [for (final row in planRows) row['id'] as int];
+    final placeholders = List.filled(planIds.length, '?').join(', ');
+    final bookRows = await _database.query(
+      'reading_plan_book',
+      columns: ['reading_plan_id', 'book_id'],
+      where: 'reading_plan_id IN ($placeholders)',
+      whereArgs: planIds,
+      orderBy: 'reading_plan_id, ord',
+    );
+
+    final booksByPlan = <int, List<Map<String, dynamic>>>{};
+    for (final row in bookRows) {
+      (booksByPlan[row['reading_plan_id'] as int] ??= []).add(row);
+    }
+
+    return [
+      for (final row in planRows)
+        ReadingPlan.fromMaps(
+          plan: row,
+          books: booksByPlan[row['id'] as int] ?? const [],
+        ),
+    ];
+  }
+
   Future<int> commit(ReadingPlan plan) {
     return _database.transaction((txn) async {
       final planMap = plan.toPlanMap();

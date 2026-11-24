@@ -10,6 +10,7 @@ import 'package:gbt/reading_plan/data_access/reading_plan_read_models.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
 import 'package:gbt/reading_plan/ui/reading_session_view_model.dart';
 import 'package:gbt/reading_plan/data_access/rs_model.dart';
+import 'package:gbt/reading_plan/data_access/verse_state_repository.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/messaging/messenger_host.dart';
 import 'package:gbt/ui/messaging/messenger_view_model.dart';
@@ -646,7 +647,7 @@ ReadingPlanDetails planDetails({
 
 ReadingPlanSummary summaryFor(
   ReadingPlanDetails details, {
-  List<RsBookStats> bookStats = const [],
+  List<BookStats> bookStats = const [],
   Reference? resumePosition,
 }) {
   final statsByBook = {for (final stat in bookStats) stat.bookId: stat};
@@ -697,9 +698,9 @@ Map<int, DailyProgress> currentMonthProgress({
 
 DateTime monthStart(DateTime value) => DateTime(value.year, value.month);
 
-List<RsBookStats> bookStats({int versesRead = 0}) {
+List<BookStats> bookStats({int versesRead = 0}) {
   return [
-    RsBookStats(
+    BookStats(
       bookId: 8,
       totalVerses: 85,
       versesRead: versesRead,

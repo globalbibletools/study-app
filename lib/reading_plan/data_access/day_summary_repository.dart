@@ -83,6 +83,43 @@ class DaySummaryRepository {
     }
   }
 
+  Future<DaySummary?> get(
+    int readingPlanId,
+    DateTime date, {
+    DatabaseExecutor? executor,
+  }) async {
+    final db = executor ?? _database;
+    final rows = await db.query(
+      'rs_day_summary',
+      where: 'reading_plan_id = ? AND rs_date = ?',
+      whereArgs: [readingPlanId, DaySummary.dayString(date)],
+      limit: 1,
+    );
+
+    return rows.isEmpty ? null : DaySummary.fromMap(rows.first);
+  }
+
+  Future<List<DaySummary>> listBetween(
+    int readingPlanId,
+    DateTime start,
+    DateTime end, {
+    DatabaseExecutor? executor,
+  }) async {
+    final db = executor ?? _database;
+    final rows = await db.query(
+      'rs_day_summary',
+      where: 'reading_plan_id = ? AND rs_date BETWEEN ? AND ?',
+      whereArgs: [
+        readingPlanId,
+        DaySummary.dayString(start),
+        DaySummary.dayString(end),
+      ],
+      orderBy: 'rs_date asc',
+    );
+
+    return [for (final row in rows) DaySummary.fromMap(row)];
+  }
+
   Future<int> deleteForDay(
     int readingPlanId,
     DateTime date, {
@@ -124,6 +161,18 @@ class DaySummary {
   final GoalType goalType;
   final int goalValue;
   final bool goalReached;
+
+  factory DaySummary.fromMap(Map<String, Object?> map) {
+    return DaySummary(
+      readingPlanId: map['reading_plan_id'] as int,
+      rsDate: DateTime.parse(map['rs_date'] as String),
+      rsSeconds: map['rs_seconds'] as int,
+      rsVerses: map['rs_verses'] as int,
+      goalType: _goalTypeFromStorage(map['goal_type'] as String?),
+      goalValue: map['goal_value'] as int? ?? 0,
+      goalReached: map['goal_reached'] == 1,
+    );
+  }
 
   Map<String, Object?> toMap() {
     return {

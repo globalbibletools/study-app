@@ -30,6 +30,21 @@ class SessionLogRepository {
     );
   }
 
+  Future<List<SessionLogEntry>> listForSession(
+    int sessionId, {
+    DatabaseExecutor? executor,
+  }) async {
+    final db = executor ?? _database;
+    final rows = await db.query(
+      'rs_log',
+      where: 'rs_session_id = ?',
+      whereArgs: [sessionId],
+      orderBy: 'book_id, chapter, verse',
+    );
+
+    return [for (final row in rows) SessionLogEntry.fromMap(row)];
+  }
+
   Future<SessionLogEntry?> getVerseLogForSession(
     int sessionId,
     int bookId,

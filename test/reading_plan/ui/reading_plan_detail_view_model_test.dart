@@ -4,6 +4,7 @@ import 'package:gbt/common/reference.dart';
 import 'package:gbt/reading_plan/data_access/reading_plan_read_models.dart';
 import 'package:gbt/reading_plan/ui/reading_plan_detail_view_model.dart';
 import 'package:gbt/reading_plan/data_access/rs_model.dart';
+import 'package:gbt/reading_plan/data_access/verse_state_repository.dart';
 
 import '../fake_reading_plan_queries.dart';
 import '../fake_reading_plan_service.dart';
@@ -585,7 +586,7 @@ ReadingPlanDetails planDetails({
 
 ReadingPlanSummary summaryFor(
   ReadingPlanDetails details, {
-  List<RsBookStats> bookStats = const [],
+  List<BookStats> bookStats = const [],
   Reference? resumePosition,
 }) {
   final statsByBook = {for (final stat in bookStats) stat.bookId: stat};
@@ -617,12 +618,12 @@ ReadingPlanSummary summaryFor(
   );
 }
 
-RsBookStats bookStats(
+BookStats bookStats(
   int bookId, {
   required int totalVerses,
   required int versesRead,
 }) {
-  return RsBookStats(
+  return BookStats(
     bookId: bookId,
     totalVerses: totalVerses,
     versesRead: versesRead,

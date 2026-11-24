@@ -134,7 +134,7 @@ void main() {
         expect(bookCompletedCount, 0);
         expect(lastCompletion, isNull);
 
-        final stats = await rsDb.getBookStats(planId);
+        final stats = await rsDb.verseState.getBookStats(planId);
         expect(stats[19]!.versesRead, 6);
         final resume = (await rsDb.queries.getPlanSummary(
           planId,
@@ -168,7 +168,7 @@ void main() {
         expect(bookCompletedCount, 0);
         expect(viewModel.bookCompletedNotifier.value, isNull);
 
-        final stats = await rsDb.getBookStats(planId);
+        final stats = await rsDb.verseState.getBookStats(planId);
         expect(stats[19]!.versesRead, 1);
       },
     );
@@ -195,7 +195,7 @@ void main() {
         }
         expect(completionReceived, isNull);
 
-        var stats = await rsDb.getBookStats(planId);
+        var stats = await rsDb.verseState.getBookStats(planId);
         expect(stats[63]!.versesRead, 12);
 
         await viewModel.setVerseRead(_readOptions(63, 1, 1, read: true));
@@ -206,7 +206,7 @@ void main() {
         expect(viewModel.nextResumePosition!.bookId, 64);
         expect(viewModel.nextResumePosition!.chapter, 1);
         expect(viewModel.nextResumePosition!.verse, 1);
-        stats = await rsDb.getBookStats(planId);
+        stats = await rsDb.verseState.getBookStats(planId);
         expect(stats[63]!.versesRead, 13);
       },
     );
@@ -226,25 +226,26 @@ void main() {
           await viewModel.setVerseRead(_readOptions(63, 1, v, read: true));
         }
 
-        var stats = await rsDb.getBookStats(planId);
+        var stats = await rsDb.verseState.getBookStats(planId);
         expect(stats[63]!.versesRead, 13);
         expect(viewModel.session!.versesToday, 13);
 
         await viewModel.setVerseRead(_readOptions(63, 1, 1, read: false));
 
-        final chapterCounts = await rsDb.getVerseReadCountsForChapter(
-          planId,
-          63,
-          1,
-        );
-        expect(chapterCounts[1], 0);
-        expect(chapterCounts.values.where((count) => count > 0).length, 12);
+        expect(await rsDb.verseState.getReadCount(planId, 63, 1, 1), 0);
+        var readCount = 0;
+        for (int verse = 1; verse <= 13; verse++) {
+          if ((await rsDb.verseState.getReadCount(planId, 63, 1, verse))! > 0) {
+            readCount++;
+          }
+        }
+        expect(readCount, 12);
 
         final states = await viewModel.getVerseReadStates(63, 1);
         expect(states[1]!.readCount, 0);
         expect(states[1]!.readThisSession, isFalse);
 
-        stats = await rsDb.getBookStats(planId);
+        stats = await rsDb.verseState.getBookStats(planId);
         expect(stats[63]!.versesRead, 12);
         expect(viewModel.session!.versesToday, 12);
       },
@@ -275,9 +276,12 @@ void main() {
         final statesAfter = await viewModel.getVerseReadStates(63, 1);
         expect(statesAfter[1]!.readCount, 1);
         expect(statesAfter[1]!.readThisSession, isFalse);
-        expect(await rsDb.getRsLogForSession(firstSessionId), hasLength(1));
+        expect(
+          await rsDb.sessionLog.listForSession(firstSessionId),
+          hasLength(1),
+        );
 
-        final stats = await rsDb.getBookStats(planId);
+        final stats = await rsDb.verseState.getBookStats(planId);
         expect(stats[63]!.versesRead, 1);
       },
     );
@@ -298,7 +302,7 @@ void main() {
 
         await viewModel.startSession(planId);
         await viewModel.setVerseRead(_readOptions(2, 1, 1, read: true));
-        expect((await rsDb.getBookStats(planId))[2]!.versesRead, 1);
+        expect((await rsDb.verseState.getBookStats(planId))[2]!.versesRead, 1);
 
         await planService.saveReadingPlan(
           planId: planId,
@@ -308,11 +312,10 @@ void main() {
           bookIds: [3, 1, 4],
         );
 
-        final updatedBooks = await rsDb.getReadingPlanBooks(planId);
-        expect(updatedBooks.map((b) => b.bookId).toList(), [3, 1, 4]);
-        expect(updatedBooks.map((b) => b.ord).toList(), [1, 2, 3]);
+        final updatedPlan = (await rsDb.readingPlans.getById(planId))!;
+        expect(updatedPlan.bookIds, [3, 1, 4]);
 
-        final book2Aggregates = await rsDb.getBookStats(planId);
+        final book2Aggregates = await rsDb.verseState.getBookStats(planId);
         expect(book2Aggregates.containsKey(2), isFalse);
 
         final reloadedPlan = (await rsDb.readingPlans.getById(planId))!;
@@ -343,14 +346,16 @@ void main() {
 
         await planService.deleteReadingPlan(planAId);
 
-        final planAResult = await rsDb.getReadingPlanById(planAId);
+        final planAResult = await rsDb.readingPlans.getById(planAId);
         expect(planAResult, isNull);
-        expect(await rsDb.getReadingPlanBooks(planAId), isEmpty);
-        expect(await rsDb.getBookStats(planAId), isEmpty);
-        expect(await rsDb.getVerseReadCountsForChapter(planAId, 1, 1), isEmpty);
-        expect(await rsDb.getSessionsForDate(DateTime.now(), planAId), isEmpty);
+        expect(await rsDb.verseState.getBookStats(planAId), isEmpty);
+        expect(await rsDb.verseState.getReadCount(planAId, 1, 1, 1), isNull);
         expect(
-          await rsDb.getDaySummariesBetween(
+          await rsDb.session.listForDate(DateTime.now(), planAId),
+          isEmpty,
+        );
+        expect(
+          await rsDb.daySummary.listBetween(
             planAId,
             DateTime(2020),
             DateTime(2030),
@@ -358,9 +363,9 @@ void main() {
           isEmpty,
         );
 
-        final planBResult = await rsDb.getReadingPlanById(planBId);
+        final planBResult = await rsDb.readingPlans.getById(planBId);
         expect(planBResult, isNotNull);
-        expect(await rsDb.getReadingPlanBooks(planBId), isNotEmpty);
+        expect(planBResult!.bookIds, isNotEmpty);
       },
     );
 

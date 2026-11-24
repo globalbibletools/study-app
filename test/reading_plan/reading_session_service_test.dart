@@ -225,7 +225,7 @@ void main() {
 
       final now = DateTime.now();
       final today = DateTime(now.year, now.month, now.day);
-      final sessions = await database.getSessionsForDate(today, planId);
+      final sessions = await database.session.listForDate(today, planId);
       expect(sessions, hasLength(2));
       expect(
         sessions.firstWhere((session) => session.id == firstSessionId).endTime,
@@ -314,8 +314,14 @@ void main() {
       expect((await runtimeFor(secondSessionId)).dayProgress.verses, 1);
       expect(unchecked.bookCompleted, isNull);
 
-      expect(await database.getRsLogForSession(firstSessionId), hasLength(1));
-      expect(await database.getRsLogForSession(secondSessionId), isEmpty);
+      expect(
+        await database.sessionLog.listForSession(firstSessionId),
+        hasLength(1),
+      );
+      expect(
+        await database.sessionLog.listForSession(secondSessionId),
+        isEmpty,
+      );
     },
   );
 
@@ -401,15 +407,24 @@ void main() {
       expect(uncheckedStates[1]?.readThisSession, isFalse);
       expect((await runtimeFor(newSessionId)).dayProgress.verses, 0);
       expect(unchecked.bookCompleted, isNull);
-      expect(await database.getRsLogForSession(oldSession.id!), hasLength(1));
+      expect(
+        await database.sessionLog.listForSession(oldSession.id!),
+        hasLength(1),
+      );
 
       await setVerseRead(newSessionId, _readOptions(63, 1, 1, read: true));
       final checkedStates = await statesFor(newSessionId);
       expect(checkedStates[1]?.readCount, 2);
       expect(checkedStates[1]?.readThisSession, isTrue);
       expect((await runtimeFor(newSessionId)).dayProgress.verses, 1);
-      expect(await database.getRsLogForSession(oldSession.id!), hasLength(1));
-      expect(await database.getRsLogForSession(newSessionId), hasLength(1));
+      expect(
+        await database.sessionLog.listForSession(oldSession.id!),
+        hasLength(1),
+      );
+      expect(
+        await database.sessionLog.listForSession(newSessionId),
+        hasLength(1),
+      );
     },
   );
 
@@ -541,7 +556,7 @@ void main() {
 
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final beforeEnd = (await database.getSessionsForDate(
+    final beforeEnd = (await database.session.listForDate(
       today,
       planId,
     )).single.endTime;
@@ -549,11 +564,11 @@ void main() {
 
     await sessionService.endSession(sessionId, readSeconds: 0);
 
-    final sessions = await database.getSessionsForDate(today, planId);
+    final sessions = await database.session.listForDate(today, planId);
     expect(sessions, hasLength(1));
     expect(sessions.single.endTime, isNotNull);
 
-    final summary = await database.getDaySummariesBetween(planId, today, today);
+    final summary = await database.daySummary.listBetween(planId, today, today);
     expect(summary, hasLength(1));
     expect(summary.single.rsSeconds, greaterThanOrEqualTo(1));
   });

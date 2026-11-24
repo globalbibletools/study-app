@@ -88,7 +88,7 @@ void main() {
 
     final savedId = await database.sessionLog.append(entry);
 
-    final logs = await database.getRsLogForSession(session.id!);
+    final logs = await database.sessionLog.listForSession(session.id!);
     expect(logs, hasLength(1));
     expect(logs.single.id, savedId);
     expect(logs.single.sessionId, session.id);
@@ -106,7 +106,7 @@ void main() {
       await database.sessionLog.append(entryFor(session.id!, 1), executor: txn);
     });
 
-    expect(await database.getRsLogForSession(session.id!), hasLength(1));
+    expect(await database.sessionLog.listForSession(session.id!), hasLength(1));
 
     await expectLater(
       database.transaction((txn) async {
@@ -119,7 +119,7 @@ void main() {
       throwsStateError,
     );
 
-    final logs = await database.getRsLogForSession(session.id!);
+    final logs = await database.sessionLog.listForSession(session.id!);
     expect(logs, hasLength(1));
     expect(logs.single.verse, 1);
   });
@@ -178,10 +178,10 @@ void main() {
 
     expect(await database.sessionLog.remove(firstId), 1);
 
-    final remaining = await database.getRsLogForSession(session.id!);
+    final remaining = await database.sessionLog.listForSession(session.id!);
     expect(remaining.map((log) => log.verse), [2]);
 
-    final otherSessionLogs = await database.getRsLogForSession(
+    final otherSessionLogs = await database.sessionLog.listForSession(
       otherSession.id!,
     );
     expect(otherSessionLogs.map((log) => log.verse), [1]);
@@ -203,13 +203,13 @@ void main() {
       throwsStateError,
     );
 
-    expect(await database.getRsLogForSession(session.id!), hasLength(1));
+    expect(await database.sessionLog.listForSession(session.id!), hasLength(1));
 
     await database.transaction((txn) async {
       await database.sessionLog.remove(savedId, executor: txn);
     });
 
-    expect(await database.getRsLogForSession(session.id!), isEmpty);
+    expect(await database.sessionLog.listForSession(session.id!), isEmpty);
   });
 
   test('deleteForPlanId deletes only the entries for that plan', () async {
@@ -227,8 +227,10 @@ void main() {
 
     expect(await database.sessionLog.deleteForPlanId(planId), 2);
 
-    expect(await database.getRsLogForSession(session.id!), isEmpty);
-    final otherLogs = await database.getRsLogForSession(otherSession.id!);
+    expect(await database.sessionLog.listForSession(session.id!), isEmpty);
+    final otherLogs = await database.sessionLog.listForSession(
+      otherSession.id!,
+    );
     expect(otherLogs, hasLength(1));
     expect(otherLogs.single.readingPlanId, otherPlanId);
   });
@@ -245,12 +247,12 @@ void main() {
       throwsStateError,
     );
 
-    expect(await database.getRsLogForSession(session.id!), hasLength(1));
+    expect(await database.sessionLog.listForSession(session.id!), hasLength(1));
 
     await database.transaction((txn) async {
       await database.sessionLog.deleteForPlanId(planId, executor: txn);
     });
 
-    expect(await database.getRsLogForSession(session.id!), isEmpty);
+    expect(await database.sessionLog.listForSession(session.id!), isEmpty);
   });
 }

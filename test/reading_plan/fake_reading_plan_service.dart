@@ -7,6 +7,7 @@ import 'package:gbt/reading_plan/data_access/reading_plan_repository.dart'
 import 'package:gbt/reading_plan/reading_plan_service.dart';
 import 'package:gbt/reading_plan/data_access/reading_plan_read_models.dart';
 import 'package:gbt/reading_plan/data_access/rs_model.dart';
+import 'package:gbt/reading_plan/data_access/verse_state_repository.dart';
 
 import 'fake_reading_plan_queries.dart';
 
@@ -15,7 +16,7 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
     : plans = plans ?? [];
 
   List<ReadingPlanDetails> plans;
-  List<RsBookStats> bookStats = const [];
+  List<BookStats> bookStats = const [];
   Reference? resumePosition;
 
   /// When set, commands that change day activity update this fake too.
