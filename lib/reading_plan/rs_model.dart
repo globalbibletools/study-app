@@ -1,4 +1,32 @@
-enum GoalType { minutes, verses }
+enum GoalType {
+    minutes,
+    verses
+}
+
+/// The single-character goal encoding stored in the reading-plan database.
+extension GoalTypeStorage on GoalType {
+  String get storedValue => this == GoalType.minutes ? 'M' : 'V';
+}
+
+/// Reads both the stored `M`/`V` encoding and older `minutes`/`verses` rows.
+GoalType goalTypeFromStored(String? value) {
+  return value != null && value.toLowerCase().startsWith('m')
+      ? GoalType.minutes
+      : GoalType.verses;
+}
+
+DateTime dayOnly(DateTime date) => DateTime(date.year, date.month, date.day);
+
+bool isSameDay(DateTime a, DateTime b) =>
+    a.year == b.year && a.month == b.month && a.day == b.day;
+
+/// A persisted plan together with its ordered books.
+class ReadingPlanRecord {
+  const ReadingPlanRecord(this.readingPlan, this.books);
+
+  final ReadingPlan readingPlan;
+  final List<ReadingPlanBook> books;
+}
 
 class ReadingPlan {
   final int? id;
