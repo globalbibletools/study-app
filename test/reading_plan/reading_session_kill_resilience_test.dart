@@ -173,7 +173,7 @@ void main() {
             readingPlanId: planId,
           ),
         );
-        await rsDb.upsertDaySummary(planId, yesterday);
+        await rsDb.daySummary.upsert(planId, yesterday);
         expect((await summaryFor(planId, yesterday)).goalReached, isTrue);
 
         await viewModel.startSession(planId);

@@ -109,7 +109,7 @@ void main() {
         readingPlanId: versePlanId,
       ),
     );
-    await database.upsertDaySummary(versePlanId, today);
+    await database.daySummary.upsert(versePlanId, today);
 
     await database.session.commit(
       Session(
@@ -121,7 +121,7 @@ void main() {
         readingPlanId: minutePlanId,
       ),
     );
-    await database.upsertDaySummary(minutePlanId, today);
+    await database.daySummary.upsert(minutePlanId, today);
 
     final plans = await planService.getReadingPlansWithProgress(
       today: DateTime(2026, 11, 23, 15, 30),
@@ -166,7 +166,7 @@ void main() {
         readingPlanId: savedPlanId,
       ),
     );
-    await database.upsertDaySummary(savedPlanId, date);
+    await database.daySummary.upsert(savedPlanId, date);
 
     final progress = await planService.getDayProgress(savedPlanId, date);
     expect(progress.empty, isFalse);

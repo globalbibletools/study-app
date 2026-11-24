@@ -123,7 +123,7 @@ class ReadingSessionService {
 
     await _database.transaction((txn) async {
       await _database.session.commit(closed, executor: txn);
-      await _database.upsertDaySummary(
+      await _database.daySummary.upsert(
         session.readingPlanId,
         session.rsDate,
         executor: txn,
@@ -262,7 +262,11 @@ class ReadingSessionService {
           updatedSession = updatedSession.copyWith(endTime: now);
         }
         await _database.session.commit(updatedSession, executor: txn);
-        await _database.upsertDaySummary(planId, session.rsDate, executor: txn);
+        await _database.daySummary.upsert(
+          planId,
+          session.rsDate,
+          executor: txn,
+        );
       }
 
       return (
@@ -303,7 +307,7 @@ class ReadingSessionService {
 
     await _database.transaction((txn) async {
       await _database.session.commit(updated, executor: txn);
-      await _database.upsertDaySummary(
+      await _database.daySummary.upsert(
         session.readingPlanId,
         session.rsDate,
         executor: txn,
@@ -358,7 +362,7 @@ class ReadingSessionService {
 
     final inserted = await _database.transaction((txn) async {
       await _database.session.commit(closed, executor: txn);
-      await _database.upsertDaySummary(
+      await _database.daySummary.upsert(
         session.readingPlanId,
         closed.rsDate,
         preserveStoredGoalSnapshot: true,
@@ -370,7 +374,7 @@ class ReadingSessionService {
         executor: txn,
       );
       if (inserted.readSeconds > 0) {
-        await _database.upsertDaySummary(
+        await _database.daySummary.upsert(
           session.readingPlanId,
           inserted.rsDate,
           executor: txn,

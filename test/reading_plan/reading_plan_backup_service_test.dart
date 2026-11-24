@@ -93,7 +93,7 @@ void main() {
         readingPlanId: planId,
       ),
     );
-    await database.upsertDaySummary(planId, today);
+    await database.daySummary.upsert(planId, today);
 
     final bytes = await backupService.buildBackupBytes();
     final payload = jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>;
@@ -171,7 +171,7 @@ void main() {
         isManual: true,
       ),
     );
-    await database.upsertDaySummary(planId, date);
+    await database.daySummary.upsert(planId, date);
 
     final payload =
         jsonDecode(utf8.decode(await backupService.buildBackupBytes()))
