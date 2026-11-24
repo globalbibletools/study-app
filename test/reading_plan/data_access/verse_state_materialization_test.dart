@@ -8,7 +8,7 @@ import 'package:path/path.dart' as p;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:sqlite3/sqlite3.dart' as sqlite;
 
-import '../fixtures/bible_navigation_fixture.dart';
+import '../../fixtures/bible_navigation_fixture.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

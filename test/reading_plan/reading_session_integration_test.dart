@@ -49,7 +49,7 @@ void main() {
     getIt.registerSingleton<BibleNavigation>(createTestBibleNavigation());
 
     rsDb = ReadingSessionDatabase.withDependencies(
-      databaseName: 'reading_session_kill_resilience_test.db',
+      databaseName: 'reading_session_integration_test.db',
       verseInventoryProvider: (bookIds) async =>
           createTestVerseInventory(bookIds: bookIds),
     );

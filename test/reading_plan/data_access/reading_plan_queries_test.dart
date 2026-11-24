@@ -240,6 +240,59 @@ void main() {
         const Reference(bookId: 64, chapter: 1, verse: 1),
       );
     });
+
+    test(
+      'plan resume advances to the next verse even when that verse is read',
+      () async {
+        final planId = await createPlan('Reread', books: [63, 64]);
+        final session = await addSession(planId, DateTime(2026, 5, 1, 9));
+        await addLog(session, 63, 1, 5, DateTime(2026, 5, 1, 9));
+        await database.verseState.markRead(planId, 63, 1, 6);
+
+        final summary = (await database.queries.getPlanSummary(planId))!;
+
+        expect(
+          summary.resumePosition,
+          const Reference(bookId: 63, chapter: 1, verse: 6),
+        );
+      },
+    );
+
+    test(
+      'resume skips verse numbers missing from the chapter inventory',
+      () async {
+        // The log points at Matthew 16:2, whose inventory skips verse 3, so
+        // the resume position must land on the next verse that exists.
+        database.dispose();
+        database = ReadingSessionDatabase.withDependencies(
+          databaseName: 'reading_plan_queries_gap_test.db',
+          verseInventoryProvider: (bookIds) async {
+            final inventory = createTestVerseInventory(bookIds: bookIds);
+            if (bookIds.contains(40)) {
+              inventory[(40, 16)] = [
+                1,
+                2,
+                for (int verse = 4; verse <= 28; verse++) verse,
+              ];
+            }
+            return inventory;
+          },
+        );
+        await database.resetDatabase();
+        await database.init();
+
+        final planId = await createPlan('Gap', books: [40]);
+        final session = await addSession(planId, DateTime(2026, 5, 1, 10));
+        await addLog(session, 40, 16, 2, DateTime(2026, 5, 1, 10));
+
+        final summary = (await database.queries.getPlanSummary(planId))!;
+
+        expect(
+          summary.resumePosition,
+          const Reference(bookId: 40, chapter: 16, verse: 4),
+        );
+      },
+    );
   });
 
   group('day progress', () {
@@ -340,6 +393,32 @@ void main() {
 
       expect(month.keys, [29]);
       expect(month[29]!.day, DateTime(2028, 2, 29));
+    });
+
+    test('maps November daylight saving days one to one', () async {
+      // November 2026 crosses the DST fallback; every day must still map
+      // to exactly its own calendar cell.
+      final planId = await createPlan('DST', goalValue: 5);
+      final day = DateTime(2026, 11, 5);
+      await addSession(
+        planId,
+        DateTime(2026, 11, 5, 10),
+        readSeconds: 750,
+        verses: 7,
+      );
+      await database.daySummary.upsert(planId, day);
+
+      final month = await database.queries.getMonthDayProgress(
+        planId,
+        DateTime(2026, 11, 1),
+      );
+
+      expect(month.keys, [5]);
+      expect(month[5]!.day, day);
+      expect(month[5]!.verses, 7);
+      expect(month[5]!.minutes, 12.5);
+      expect(month[5]!.goalReached, isTrue);
+      expect(month.containsKey(6), isFalse);
     });
   });
 

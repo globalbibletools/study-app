@@ -50,6 +50,42 @@ void main() {
     expect(find.byIcon(Icons.check_rounded), findsOneWidget);
     expect(find.text('42%'), findsOneWidget);
     expect(find.textContaining('%'), findsOneWidget);
+
+    // The check and the day number must fit their cell together, so both
+    // render at small fixed sizes.
+    final checkIcon = tester.widget<Icon>(find.byIcon(Icons.check_rounded));
+    expect(checkIcon.size, 18);
+
+    final dayNumber = tester.widget<Text>(find.text('5'));
+    expect(dayNumber.style?.fontSize, 12);
+  });
+
+  testWidgets('renders reached-day content in adaptive theme colors', (
+    tester,
+  ) async {
+    final lightTheme = ThemeData(
+      brightness: Brightness.light,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: Colors.teal,
+        brightness: Brightness.light,
+      ),
+    );
+
+    await tester.pumpWidget(
+      buildCalendar(progressByDay: {5: 1}, themeData: lightTheme),
+    );
+
+    final checkIcon = tester.widget<Icon>(find.byIcon(Icons.check_rounded));
+    expect(checkIcon.color, lightTheme.colorScheme.onPrimary);
+
+    // A reached day sits on the primary color, so its content is onPrimary.
+    final reachedDay = tester.widget<Text>(find.text('5'));
+    expect(reachedDay.style?.color, lightTheme.colorScheme.onPrimary);
+
+    // An unreached day sits on the default surface, so its content is
+    // onSurface.
+    final unreachedDay = tester.widget<Text>(find.text('6'));
+    expect(unreachedDay.style?.color, lightTheme.colorScheme.onSurface);
   });
 
   testWidgets('days without an entry render neither a check nor a percentage', (

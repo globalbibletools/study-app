@@ -43,6 +43,66 @@ void main() {
     database.dispose();
   });
 
+  test(
+    'getBookStats reports the resume position after the last read verse',
+    () async {
+      final planId = await createPlan('Verse State Repository Test');
+      await database.materializeVerseStateForPlan(planId);
+
+      await database.verseState.markRead(planId, 63, 1, 1);
+      await database.verseState.markRead(planId, 63, 1, 1);
+      await database.verseState.markRead(planId, 63, 1, 2);
+
+      var aggregate = (await database.verseState.getBookStats(planId))[63]!;
+      expect(aggregate.versesRead, 2);
+      expect(aggregate.resumePosition?.bookId, 63);
+      expect(aggregate.resumePosition?.chapter, 1);
+      expect(aggregate.resumePosition?.verse, 3);
+
+      await database.verseState.unmarkRead(planId, 63, 1, 1);
+      await database.verseState.unmarkRead(planId, 63, 1, 1);
+      expect(await database.verseState.getReadCount(planId, 63, 1, 1), 0);
+
+      aggregate = (await database.verseState.getBookStats(planId))[63]!;
+      expect(aggregate.versesRead, 1);
+      expect(aggregate.resumePosition?.verse, 1);
+    },
+  );
+
+  test(
+    'book stats count only inventory verses including numbering gaps',
+    () async {
+      // A chapter whose inventory skips a verse number (3) must neither
+      // materialize nor count that verse.
+      database.dispose();
+      database = ReadingSessionDatabase.withDependencies(
+        databasePath: inMemoryDatabasePath,
+        verseInventoryProvider: (bookIds) async {
+          final inventory = createTestVerseInventory(bookIds: bookIds);
+          if (bookIds.contains(40)) {
+            inventory[(40, 16)] = [
+              1,
+              2,
+              for (int verse = 4; verse <= 28; verse++) verse,
+            ];
+          }
+          return inventory;
+        },
+      );
+      await database.init();
+
+      final planId = await createPlan('Gap', bookIds: [40]);
+      await database.materializeVerseStateForPlan(planId);
+
+      expect(await database.verseState.getReadCount(planId, 40, 16, 1), 0);
+      expect(await database.verseState.getReadCount(planId, 40, 16, 3), isNull);
+      expect(await database.verseState.getReadCount(planId, 40, 16, 28), 0);
+
+      final aggregate = (await database.verseState.getBookStats(planId))[40]!;
+      expect(aggregate.totalVerses, 1067);
+    },
+  );
+
   test('markRead increments the count and records last_read', () async {
     final planId = await createPlan('Verse State Repository Test');
     await database.materializeVerseStateForPlan(planId);
