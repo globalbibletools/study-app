@@ -128,28 +128,10 @@ class ReadingPlanBook {
 }
 
 class ReadingPlanDetails {
-  ReadingPlan readingPlan;
-  final List<ReadingPlanBook> books;
-  int totalChapters;
-  int totalVerses;
-  int versesRead;
-  int booksRead;
-  DailyGoal dailyGoal;
-  DayProgress? todayProgress;
-  Reference? resumePosition;
+  ReadingPlanDetails(this.readingPlan, this.books);
 
-  ReadingPlanDetails(this.readingPlan, this.books)
-    : totalChapters = 0,
-      totalVerses = 0,
-      versesRead = 0,
-      booksRead = 0,
-      dailyGoal = DailyGoal(
-        (readingPlan.goalType == "M" ||
-                readingPlan.goalType.toLowerCase().startsWith("m"))
-            ? GoalType.minutes
-            : GoalType.verses,
-        readingPlan.goalValue,
-      );
+  final ReadingPlan readingPlan;
+  final List<ReadingPlanBook> books;
 }
 
 class RsSession {

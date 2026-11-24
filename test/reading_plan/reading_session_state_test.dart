@@ -72,10 +72,7 @@ void main() {
     await rsDb.resetDatabase();
     await rsDb.init();
     getIt.registerSingleton<ReadingSessionDatabase>(rsDb);
-    planService = ReadingPlanService.withDependencies(
-      database: rsDb,
-      bibleNavigation: createTestBibleNavigation(),
-    );
+    planService = ReadingPlanService.withDependencies(database: rsDb);
     getIt.registerSingleton<ReadingPlanService>(planService);
 
     sessionService = ReadingSessionService.withDatabase(rsDb);
@@ -318,9 +315,9 @@ void main() {
         final book2Aggregates = await rsDb.getBookStats(planId);
         expect(book2Aggregates.containsKey(2), isFalse);
 
-        final reloadedPlan = await planService.getReadingPlanById(planId);
-        expect(reloadedPlan!.readingPlan.goalValue, 20);
-        expect(reloadedPlan.books.map((b) => b.bookId), [3, 1, 4]);
+        final reloadedPlan = (await rsDb.readingPlans.getById(planId))!;
+        expect(reloadedPlan.goalValue, 20);
+        expect(reloadedPlan.bookIds, [3, 1, 4]);
       },
     );
 
@@ -392,30 +389,18 @@ void main() {
         await rsDb.daySummary.upsert(planId, sessionDate);
 
         // November 2026 has 30 days
-        final monthData = await planService.getMonthProgress(
+        final monthData = await rsDb.queries.getMonthDayProgress(
           planId,
           DateTime(2026, 11, 1),
         );
 
-        expect(monthData.length, 30);
-        for (int i = 0; i < 30; i++) {
-          expect(monthData[i].day.year, 2026);
-          expect(monthData[i].day.month, 11);
-          expect(monthData[i].day.day, i + 1);
-        }
-
-        // The seeded summary maps to exactly one calendar cell.
-        final day5 = monthData[4];
-        expect(day5.empty, isFalse);
+        expect(monthData.keys, [5]);
+        final day5 = monthData[5]!;
+        expect(day5.day, DateTime(2026, 11, 5));
         expect(day5.verses, 7);
         expect(day5.minutes, 12.5);
         expect(day5.goalReached, isTrue);
-
-        for (int i = 0; i < 30; i++) {
-          if (i == 4) continue;
-          expect(monthData[i].empty, isTrue);
-          expect(monthData[i].goalReached, isFalse);
-        }
+        expect(monthData.containsKey(6), isFalse);
       },
     );
   });

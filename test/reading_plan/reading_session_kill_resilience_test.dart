@@ -54,10 +54,7 @@ void main() {
     );
     await rsDb.resetDatabase();
     await rsDb.init();
-    planService = ReadingPlanService.withDependencies(
-      database: rsDb,
-      bibleNavigation: createTestBibleNavigation(),
-    );
+    planService = ReadingPlanService.withDependencies(database: rsDb);
     sessionService = ReadingSessionService.withDatabase(rsDb);
     navigationViewModel = FakeNavigationViewModel();
     viewModel = ReadingSessionViewModel.withDependencies(
@@ -310,15 +307,14 @@ void main() {
       final now = DateTime.now();
       final month = DateTime(now.year, now.month);
 
-      final before = await planService.getMonthProgress(planId, month);
-      expect(before[now.day - 1].empty, isTrue);
+      final before = await rsDb.queries.getMonthDayProgress(planId, month);
+      expect(before.containsKey(now.day), isFalse);
 
       await viewModel.startSession(planId);
       await viewModel.setVerseRead(_readOptions(63, 1, 1, read: true));
 
-      final after = await planService.getMonthProgress(planId, month);
-      final todayCell = after[now.day - 1];
-      expect(todayCell.empty, isFalse);
+      final after = await rsDb.queries.getMonthDayProgress(planId, month);
+      final todayCell = after[now.day]!;
       expect(todayCell.verses, 1);
       expect(todayCell.goalReached, isFalse);
     });

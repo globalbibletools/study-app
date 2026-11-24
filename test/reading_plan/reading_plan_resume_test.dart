@@ -35,10 +35,7 @@ void main() {
     );
     await database.resetDatabase();
     await database.init();
-    planService = ReadingPlanService.withDependencies(
-      database: database,
-      bibleNavigation: createTestBibleNavigation(),
-    );
+    planService = ReadingPlanService.withDependencies(database: database);
   });
 
   tearDown(() {
@@ -73,10 +70,6 @@ void main() {
         readingPlanId: planId,
       ),
     );
-  }
-
-  Future<ReadingPlanDetails> detailsFor(int planId) async {
-    return (await planService.getReadingPlanById(planId))!;
   }
 
   Future<Reference?> resumeFor(int planId) async {
@@ -212,10 +205,10 @@ void main() {
 
     expect(await resumeFor(planId), isNull);
 
-    final details = await detailsFor(planId);
+    final plan = (await database.readingPlans.getById(planId))!;
     await planService.reorderReadingPlanBooks(
       planId,
-      details.books.reversed.map((book) => book.bookId).toList(),
+      plan.bookIds.reversed.toList(),
     );
 
     final resume = await resumeFor(planId);
@@ -265,10 +258,7 @@ void main() {
     );
     await database.resetDatabase();
     await database.init();
-    planService = ReadingPlanService.withDependencies(
-      database: database,
-      bibleNavigation: createTestBibleNavigation(),
-    );
+    planService = ReadingPlanService.withDependencies(database: database);
 
     final planId = await planService.saveReadingPlan(
       planName: 'Resume Gap Test',

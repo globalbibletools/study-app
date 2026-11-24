@@ -623,7 +623,7 @@ void seedConfig(FakeReadingPlanQueries queries, ReadingPlanDetails details) {
     planName: plan.planName,
     isBookmarked: plan.isBookmarked,
     createdAt: plan.createdAt,
-    dailyGoal: details.dailyGoal,
+    dailyGoal: DailyGoal(goalTypeFromStored(plan.goalType), plan.goalValue),
     bookIds: [for (final book in details.books) book.bookId],
   );
 }

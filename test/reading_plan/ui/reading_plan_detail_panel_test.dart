@@ -626,7 +626,6 @@ ReadingPlanDetails planDetails({
   GoalType goalType = GoalType.verses,
   int goalValue = 10,
   List<int> bookIds = const [8],
-  Reference? resumePosition,
 }) {
   final details = ReadingPlanDetails(
     ReadingPlan(
@@ -642,13 +641,13 @@ ReadingPlanDetails planDetails({
         ReadingPlanBook(readingPlanId: id, bookId: bookIds[i], ord: i + 1),
     ],
   );
-  details.resumePosition = resumePosition;
   return details;
 }
 
 ReadingPlanSummary summaryFor(
   ReadingPlanDetails details, {
   List<RsBookStats> bookStats = const [],
+  Reference? resumePosition,
 }) {
   final statsByBook = {for (final stat in bookStats) stat.bookId: stat};
   final plan = details.readingPlan;
@@ -660,7 +659,7 @@ ReadingPlanSummary summaryFor(
       planName: plan.planName,
       isBookmarked: plan.isBookmarked,
       createdAt: plan.createdAt,
-      dailyGoal: details.dailyGoal,
+      dailyGoal: DailyGoal(goalTypeFromStored(plan.goalType), plan.goalValue),
       bookIds: bookIds,
     ),
     progress: ReadingPlanProgress(
@@ -673,7 +672,7 @@ ReadingPlanSummary summaryFor(
             versesRead: statsByBook[bookId]?.versesRead ?? 0,
           ),
       },
-      resumePosition: details.resumePosition,
+      resumePosition: resumePosition,
     ),
     today: DailyProgress.empty(DateTime.now()),
   );

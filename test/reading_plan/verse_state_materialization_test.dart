@@ -191,10 +191,7 @@ PRAGMA user_version = 3;
       final name = 'verse_state_save_test.db';
       final database = await openDatabase(name);
       addTearDown(database.dispose);
-      final service = ReadingPlanService.withDependencies(
-        database: database,
-        bibleNavigation: createTestBibleNavigation(),
-      );
+      final service = ReadingPlanService.withDependencies(database: database);
 
       final planId = await service.saveReadingPlan(
         planName: 'Materialization Test',
@@ -216,9 +213,8 @@ PRAGMA user_version = 3;
 
       expect(countForPlan(), expectedVerseCountFor({63, 64}));
 
-      final details = await service.getReadingPlanById(planId);
       await service.saveReadingPlan(
-        planId: details!.readingPlan.id,
+        planId: planId,
         planName: 'Materialization Test',
         goalType: GoalType.verses,
         goalValue: 10,
@@ -226,9 +222,8 @@ PRAGMA user_version = 3;
       );
       expect(countForPlan(), expectedVerseCountFor({63, 64, 66}));
 
-      final withAddedBook = await service.getReadingPlanById(planId);
       await service.saveReadingPlan(
-        planId: withAddedBook!.readingPlan.id,
+        planId: planId,
         planName: 'Materialization Test',
         goalType: GoalType.verses,
         goalValue: 10,
@@ -247,10 +242,7 @@ PRAGMA user_version = 3;
     final name = 'verse_state_empty_book_test.db';
     final database = await openDatabase(name);
     addTearDown(database.dispose);
-    final service = ReadingPlanService.withDependencies(
-      database: database,
-      bibleNavigation: createTestBibleNavigation(),
-    );
+    final service = ReadingPlanService.withDependencies(database: database);
 
     final planId = await service.saveReadingPlan(
       planName: 'Empty Book Test',

@@ -1,8 +1,6 @@
 import 'dart:math' as math;
 
-import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/common/reference.dart';
-import 'package:gbt/reading_plan/reading_plan_config.dart';
 import 'package:gbt/reading_plan/data_access/rs_database.dart';
 import 'package:gbt/reading_plan/data_access/rs_model.dart';
 import 'package:gbt/reading_plan/data_access/session_log_repository.dart';
@@ -33,7 +31,6 @@ class ReadingSessionService {
   ReadingSessionService.withDatabase(this._database);
 
   final ReadingSessionDatabase _database;
-  late final _bibleNavigation = getIt<BibleNavigation>();
 
   Future<int?> startSession(int planId) async {
     final plan = await _database.readingPlans.getById(planId);
@@ -97,13 +94,12 @@ class ReadingSessionService {
 
     _ensureSessionIsCurrent(session, now);
 
-    final details = await _database.getReadingPlanById(session.readingPlanId);
-    if (details == null) return null;
+    final plan = await _database.readingPlans.getById(session.readingPlanId);
+    if (plan == null) return null;
 
-    final config = ReadingPlanConfig.fromPlanDetails(details, _bibleNavigation);
     final planId = session.readingPlanId;
 
-    if (!config.bookIds.contains(bookId)) {
+    if (!plan.bookIds.contains(bookId)) {
       return const VerseReadResult();
     }
 
@@ -166,12 +162,10 @@ class ReadingSessionService {
               bookId,
               executor: txn,
             )) {
-          final completedIndex = config.books.indexWhere(
-            (book) => book.bookId == bookId,
-          );
+          final completedIndex = plan.bookIds.indexOf(bookId);
           final nextBookId =
-              completedIndex >= 0 && completedIndex + 1 < config.books.length
-              ? config.books[completedIndex + 1].bookId
+              completedIndex >= 0 && completedIndex + 1 < plan.bookIds.length
+              ? plan.bookIds[completedIndex + 1]
               : null;
           final resumePosition = nextBookId == null
               ? null

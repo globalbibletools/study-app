@@ -26,7 +26,12 @@ void main() {
         .where((plan) => plan.readingPlan.id == planId)
         .firstOrNull;
     queries.plans = [
-      if (plan != null) summaryFor(plan, bookStats: service.bookStats),
+      if (plan != null)
+        summaryFor(
+          plan,
+          bookStats: service.bookStats,
+          resumePosition: service.resumePosition,
+        ),
     ];
     final viewModel = await ReadingPlanDetailViewModel.create(
       planId: planId,
@@ -45,15 +50,13 @@ void main() {
         final today = dateOnly(DateTime.now());
         final service =
             FakeReadingPlanService([
-                planDetails(
-                  bookIds: const [63, 64],
-                  resumePosition: const Reference(
-                    bookId: 63,
-                    chapter: 1,
-                    verse: 1,
-                  ),
-                ),
+                planDetails(bookIds: const [63, 64]),
               ])
+              ..resumePosition = const Reference(
+                bookId: 63,
+                chapter: 1,
+                verse: 1,
+              )
               ..bookStats = [
                 bookStats(63, totalVerses: 13, versesRead: 13),
                 bookStats(64, totalVerses: 15, versesRead: 0),
@@ -323,11 +326,8 @@ void main() {
   group('reading reference', () {
     test('uses the resume position loaded with the plan', () async {
       final service = FakeReadingPlanService([
-        planDetails(
-          bookIds: const [8, 20],
-          resumePosition: const Reference(bookId: 20, chapter: 3, verse: 4),
-        ),
-      ]);
+        planDetails(bookIds: const [8, 20]),
+      ])..resumePosition = const Reference(bookId: 20, chapter: 3, verse: 4);
       final viewModel = await newViewModel(service);
 
       expect(
@@ -564,7 +564,6 @@ ReadingPlanDetails planDetails({
   GoalType goalType = GoalType.verses,
   int goalValue = 10,
   List<int> bookIds = const [8],
-  Reference? resumePosition,
   bool isBookmarked = false,
 }) {
   final details = ReadingPlanDetails(
@@ -581,13 +580,13 @@ ReadingPlanDetails planDetails({
         ReadingPlanBook(readingPlanId: id, bookId: bookIds[i], ord: i + 1),
     ],
   );
-  details.resumePosition = resumePosition;
   return details;
 }
 
 ReadingPlanSummary summaryFor(
   ReadingPlanDetails details, {
   List<RsBookStats> bookStats = const [],
+  Reference? resumePosition,
 }) {
   final statsByBook = {for (final stat in bookStats) stat.bookId: stat};
   final plan = details.readingPlan;
@@ -599,7 +598,7 @@ ReadingPlanSummary summaryFor(
       planName: plan.planName,
       isBookmarked: plan.isBookmarked,
       createdAt: plan.createdAt,
-      dailyGoal: details.dailyGoal,
+      dailyGoal: DailyGoal(goalTypeFromStored(plan.goalType), plan.goalValue),
       bookIds: bookIds,
     ),
     progress: ReadingPlanProgress(
@@ -612,7 +611,7 @@ ReadingPlanSummary summaryFor(
             versesRead: statsByBook[bookId]?.versesRead ?? 0,
           ),
       },
-      resumePosition: details.resumePosition,
+      resumePosition: resumePosition,
     ),
     today: DailyProgress.empty(DateTime.now()),
   );

@@ -1,4 +1,3 @@
-import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/reading_plan/data_access/reading_plan_repository.dart'
     as repo;
 import 'package:gbt/reading_plan/data_access/rs_database.dart';
@@ -8,52 +7,13 @@ import 'package:gbt/services/service_locator.dart';
 
 class ReadingPlanService {
   ReadingPlanService()
-    : this.withDependencies(
-        database: getIt<ReadingSessionDatabase>(),
-        bibleNavigation: getIt<BibleNavigation>(),
-      );
+    : this.withDependencies(database: getIt<ReadingSessionDatabase>());
 
   ReadingPlanService.withDependencies({
     required ReadingSessionDatabase database,
-    required BibleNavigation bibleNavigation,
-  }) : _database = database,
-       _bibleNavigation = bibleNavigation;
+  }) : _database = database;
 
   final ReadingSessionDatabase _database;
-  final BibleNavigation _bibleNavigation;
-
-  Future<ReadingPlanDetails?> getReadingPlanById(int planId) async {
-    final details = await _database.getReadingPlanById(planId);
-    if (details == null) return null;
-
-    details.resumePosition = await _database.getResumeReference(planId);
-    return details;
-  }
-
-  Future<List<RsBookStats>> getBooksStats(int readingPlanId) async {
-    final stats = await _database.getBookStats(readingPlanId);
-
-    return [
-      for (int bookId = 1; bookId <= _bibleNavigation.getBooksCount(); bookId++)
-        stats[bookId] ?? _emptyStats(bookId),
-    ];
-  }
-
-  Future<DayProgress> getDayProgress(int readingPlanId, DateTime date) async {
-    final day = DateTime(date.year, date.month, date.day);
-    final summary = await _database.getDaySummary(readingPlanId, day);
-
-    if (summary == null) return DayProgress.empty(day);
-
-    return DayProgress(
-      day,
-      _roundedMinutes(summary.rsSeconds),
-      summary.rsVerses,
-      summary.goalReached,
-    );
-  }
-
-  double _roundedMinutes(int seconds) => (seconds / 6).round() / 10;
 
   Future<void> addManualSession({
     required int readingPlanId,
@@ -136,53 +96,8 @@ class ReadingPlanService {
     return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 
-  Future<List<DayProgress>> getMonthProgress(
-    int readingPlanId,
-    DateTime month,
-  ) async {
-    final int daysInMonth = DateTime(month.year, month.month + 1, 0).day;
-    final DateTime startOfMonth = DateTime(month.year, month.month, 1);
-    final DateTime endOfMonth = DateTime(month.year, month.month + 1, 0);
-
-    final List<RsDaySummary> daySummariesForCurrentMonth = await _database
-        .getDaySummariesBetween(readingPlanId, startOfMonth, endOfMonth);
-
-    final monthData = <DayProgress>[];
-    for (int day = 1; day <= daysInMonth; day++) {
-      final date = DateTime(month.year, month.month, day);
-      final summary = daySummariesForCurrentMonth
-          .where((summary) => summary.rsDate.day == day)
-          .firstOrNull;
-
-      if (summary == null) {
-        monthData.add(DayProgress.empty(date));
-      } else {
-        monthData.add(
-          DayProgress(
-            date,
-            _roundedMinutes(summary.rsSeconds),
-            summary.rsVerses,
-            summary.goalReached,
-          ),
-        );
-      }
-    }
-
-    return monthData;
-  }
-
   static DateTime _dayOnly(DateTime date) =>
       DateTime(date.year, date.month, date.day);
-
-  RsBookStats _emptyStats(int bookId) {
-    return RsBookStats(
-      bookId: bookId,
-      totalVerses: 0,
-      versesRead: 0,
-      lastRead: null,
-      resumePosition: null,
-    );
-  }
 
   Future<int> saveReadingPlan({
     int? planId,

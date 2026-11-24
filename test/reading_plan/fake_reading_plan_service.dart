@@ -16,14 +16,11 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
 
   List<ReadingPlanDetails> plans;
   List<RsBookStats> bookStats = const [];
-  List<DayProgress> monthProgress = const [];
   Reference? resumePosition;
 
   /// When set, commands that change day activity update this fake too.
   FakeReadingPlanQueries? queries;
 
-  final monthProgressByMonth = <DateTime, List<DayProgress>>{};
-  final requestedMonths = <DateTime>[];
   final addedManualSessions = <AddManualSessionCall>[];
   final deletedManualSessionIds = <int>[];
   final deletedPlanIds = <int>[];
@@ -57,16 +54,6 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
   bool queueDeleteRequests = false;
   final deleteRequests = <Completer<void>>[];
 
-  /// When true, calls to [getReadingPlanById] wait until the corresponding
-  /// completer in [planRequests] is completed.
-  bool queuePlanRequests = false;
-  final planRequests = <Completer<ReadingPlanDetails?>>[];
-
-  /// When true, calls to [getBooksStats] wait until the corresponding
-  /// completer in [statsRequests] is completed.
-  bool queueStatsRequests = false;
-  final statsRequests = <Completer<List<RsBookStats>>>[];
-
   /// When true, calls to [getDayActivity] wait until the corresponding
   /// completer in [dayActivityRequests] is completed.
   bool queueDayActivityRequests = false;
@@ -86,25 +73,9 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
   ReadingPlanDetails? _detailsFor(int planId) =>
       plans.where((plan) => plan.readingPlan.id == planId).firstOrNull;
 
-  @override
   Future<ReadingPlanDetails?> getReadingPlanById(int planId) {
     getPlanByIdCalls++;
-    if (queuePlanRequests) {
-      final request = Completer<ReadingPlanDetails?>();
-      planRequests.add(request);
-      return request.future;
-    }
     return Future.value(_detailsFor(planId));
-  }
-
-  @override
-  Future<List<RsBookStats>> getBooksStats(int readingPlanId) {
-    if (queueStatsRequests) {
-      final request = Completer<List<RsBookStats>>();
-      statsRequests.add(request);
-      return request.future;
-    }
-    return Future.value(List.of(bookStats));
   }
 
   @override
@@ -143,32 +114,6 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
           .where((session) => session.sessionId != sessionId)
           .toList();
     }
-  }
-
-  @override
-  Future<DayProgress> getDayProgress(int readingPlanId, DateTime date) async {
-    final progress =
-        [
-          ...monthProgress,
-          for (final month in monthProgressByMonth.values) ...month,
-        ].where(
-          (progress) =>
-              progress.day.year == date.year &&
-              progress.day.month == date.month &&
-              progress.day.day == date.day,
-        );
-
-    return progress.firstOrNull ?? DayProgress.empty(date);
-  }
-
-  @override
-  Future<List<DayProgress>> getMonthProgress(
-    int readingPlanId,
-    DateTime month,
-  ) async {
-    final normalized = DateTime(month.year, month.month);
-    requestedMonths.add(normalized);
-    return monthProgressByMonth[normalized] ?? monthProgress;
   }
 
   @override
@@ -273,9 +218,13 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
     bookmarkedValues.add(isBookmarked);
     final details = _detailsFor(planId);
     if (details != null) {
-      details.readingPlan = details.readingPlan.copyWith(
-        isBookmarked: isBookmarked,
-      );
+      final index = plans.indexWhere((plan) => plan.readingPlan.id == planId);
+      final plan = details.readingPlan.copyWith(isBookmarked: isBookmarked);
+      plans[index] = ReadingPlanDetails(plan, details.books);
+      final config = queries?.configs[planId];
+      if (config != null) {
+        queries!.configs[planId] = config.copyWith(isBookmarked: isBookmarked);
+      }
     }
   }
 
@@ -301,7 +250,7 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
             bookId: ordered[i],
             ord: i + 1,
           ),
-      ])..resumePosition = details.resumePosition;
+      ]);
     }
   }
 
