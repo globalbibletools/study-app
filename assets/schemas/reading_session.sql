@@ -7,7 +7,6 @@ create table reading_plan (
     id integer primary key autoincrement,
     plan_name text not null,
     created_at timestamp not null,
-    last_read timestamp,
     goal_type varchar(1),
     goal_value int not null,
     is_bookmarked int not null
@@ -19,11 +18,11 @@ create table reading_plan (
 --table to link different books to a reading plan
 
 create table reading_plan_book (
-    id integer primary key autoincrement,
     reading_plan_id int not null,
     book_id int not null,
     ord int not null,
-    foreign key (reading_plan_id) references reading_plan(id)
+    foreign key (reading_plan_id) references reading_plan(id),
+    primary key (reading_plan_id, book_id)
 );
 
 -----------------------------
@@ -93,8 +92,8 @@ create table rs_day_summary (
     primary key (reading_plan_id, rs_date)
 );
 
-insert into reading_plan (id, plan_name, created_at, last_read, goal_type, goal_value, is_bookmarked)
-values (1, 'Whole Bible', CURRENT_TIMESTAMP, null, 'M', 10, 0);
+insert into reading_plan (id, plan_name, created_at, goal_type, goal_value, is_bookmarked)
+values (1, 'Whole Bible', CURRENT_TIMESTAMP, 'M', 10, 0);
 
 insert into reading_plan_book (reading_plan_id, book_id, ord)
 values
