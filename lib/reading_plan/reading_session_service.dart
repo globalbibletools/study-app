@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:gbt/common/reference.dart';
 import 'package:gbt/reading_plan/data_access/rs_database.dart';
-import 'package:gbt/reading_plan/data_access/rs_model.dart' show dayString;
+import 'package:gbt/reading_plan/model.dart' show dayString;
 import 'package:gbt/reading_plan/data_access/session_log_repository.dart';
 import 'package:gbt/reading_plan/data_access/session_repository.dart';
 import 'package:gbt/services/service_locator.dart';

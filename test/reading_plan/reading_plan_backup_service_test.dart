@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:gbt/reading_plan/reading_plan_backup_service.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
 import 'package:gbt/reading_plan/data_access/rs_database.dart';
-import 'package:gbt/reading_plan/data_access/rs_model.dart' show GoalType;
+import 'package:gbt/reading_plan/model.dart' show GoalType;
 import 'package:gbt/reading_plan/data_access/session_log_repository.dart';
 import 'package:gbt/reading_plan/data_access/session_repository.dart';
 import 'package:gbt/services/service_locator.dart';

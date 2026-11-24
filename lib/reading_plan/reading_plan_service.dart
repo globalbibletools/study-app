@@ -1,7 +1,7 @@
 import 'package:gbt/reading_plan/data_access/reading_plan_repository.dart'
     as repo;
 import 'package:gbt/reading_plan/data_access/rs_database.dart';
-import 'package:gbt/reading_plan/data_access/rs_model.dart';
+import 'package:gbt/reading_plan/model.dart';
 import 'package:gbt/reading_plan/data_access/session_repository.dart';
 import 'package:gbt/services/service_locator.dart';
 

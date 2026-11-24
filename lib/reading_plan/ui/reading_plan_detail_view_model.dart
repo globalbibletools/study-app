@@ -3,7 +3,7 @@ import 'package:gbt/asyncutils/cancellation.dart';
 import 'package:gbt/common/reference.dart';
 import 'package:gbt/reading_plan/data_access/reading_plan_queries.dart';
 import 'package:gbt/reading_plan/data_access/reading_plan_read_models.dart';
-import 'package:gbt/reading_plan/reading_plan_estimates.dart';
+import 'package:gbt/reading_plan/model.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
 import 'package:gbt/reading_plan/ui/reading_session_view_model.dart';
 import 'package:gbt/services/service_locator.dart';

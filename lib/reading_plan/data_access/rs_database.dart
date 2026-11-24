@@ -2,6 +2,7 @@ import 'package:flutter/services.dart';
 import 'package:gbt/services/hebrew_greek/database.dart';
 import 'package:gbt/services/logging/log.dart';
 import 'package:gbt/reading_plan/data_access/day_summary_repository.dart';
+import 'package:gbt/reading_plan/model.dart' show GoalType;
 import 'package:gbt/reading_plan/data_access/reading_plan_queries.dart';
 import 'package:gbt/reading_plan/data_access/reading_plan_repository.dart'
     show ReadingPlanRepository;
@@ -298,7 +299,7 @@ class ReadingSessionDatabase {
       if (storedFlag != null) {
         goalReached = storedFlag;
       } else {
-        final reached = _isMinutesGoal(goalType)
+        final reached = GoalType.fromStorage(goalType) == GoalType.minutes
             ? rsSeconds >= (goalValue ?? 0) * 60
             : rsVerses >= (goalValue ?? 0);
         goalReached = reached ? 1 : 0;
@@ -415,10 +416,6 @@ class ReadingSessionDatabase {
 
   Future<T> transaction<T>(Future<T> Function(DatabaseExecutor txn) action) {
     return _database.transaction(action);
-  }
-
-  static bool _isMinutesGoal(String? goalType) {
-    return goalType != null && goalType.toLowerCase().startsWith('m');
   }
 
   void dispose() {

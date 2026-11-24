@@ -1,7 +1,7 @@
 import 'package:gbt/common/reference.dart';
 import 'package:gbt/reading_plan/data_access/reading_plan_read_models.dart';
 import 'package:gbt/reading_plan/data_access/rs_database.dart';
-import 'package:gbt/reading_plan/data_access/rs_model.dart' show dayString;
+import 'package:gbt/reading_plan/model.dart' show dayString;
 import 'package:sqflite/sqflite.dart';
 
 class ReadingPlanQueries {
@@ -240,7 +240,7 @@ class ReadingPlanQueries {
           isBookmarked: row['is_bookmarked'] == 1,
           createdAt: DateTime.parse(row['created_at'] as String),
           dailyGoal: DailyGoal(
-            goalTypeFromStored(row['goal_type'] as String?),
+            GoalType.fromStorage(row['goal_type'] as String?),
             row['goal_value'] as int? ?? 0,
           ),
           bookIds: booksByPlan[row['id'] as int] ?? const [],

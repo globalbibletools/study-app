@@ -10,7 +10,7 @@ import 'package:gbt/reading_plan/ui/reading_plan_panel_view_model.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
 import 'package:gbt/reading_plan/data_access/rs_database.dart';
 import 'package:gbt/reading_plan/reading_session_service.dart';
-import 'package:gbt/reading_plan/data_access/rs_model.dart';
+import 'package:gbt/reading_plan/model.dart';
 import 'package:gbt/reading_plan/data_access/session_repository.dart';
 import 'package:gbt/reading_plan/ui/reading_session_view_model.dart';
 import 'package:gbt/services/service_locator.dart';

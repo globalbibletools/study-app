@@ -1,4 +1,4 @@
-import 'package:gbt/reading_plan/data_access/rs_model.dart' show GoalType;
+import 'package:gbt/reading_plan/model.dart' show GoalType;
 import 'package:sqflite/sqflite.dart';
 
 class ReadingPlanRepository {
@@ -154,7 +154,7 @@ class ReadingPlan {
       id: plan['id'] as int,
       planName: plan['plan_name'],
       createdAt: DateTime.parse(plan['created_at']),
-      goalType: _goalTypeFromStorage(plan['goal_type'] as String?),
+      goalType: GoalType.fromStorage(plan['goal_type'] as String?),
       goalValue: plan['goal_value'],
       isBookmarked: plan['is_bookmarked'] == 1,
       bookIds: [for (final book in books) book['book_id'] as int],
@@ -166,7 +166,7 @@ class ReadingPlan {
       'id': id,
       'plan_name': planName,
       'created_at': createdAt.toIso8601String(),
-      'goal_type': _goalTypeToStorage(goalType),
+      'goal_type': goalType.storageValue,
       'goal_value': goalValue,
       'is_bookmarked': isBookmarked ? 1 : 0,
     };
@@ -178,13 +178,4 @@ class ReadingPlan {
         {'reading_plan_id': id, 'book_id': bookIds[i], 'ord': i + 1},
     ];
   }
-
-  static GoalType _goalTypeFromStorage(String? stored) {
-    // Legacy rows use the single-letter codes 'M'/'V'; newer rows use the
-    // enum names. Both map back onto the enum here.
-    final value = stored?.toLowerCase() ?? '';
-    return value.startsWith('m') ? GoalType.minutes : GoalType.verses;
-  }
-
-  static String _goalTypeToStorage(GoalType goalType) => goalType.name;
 }

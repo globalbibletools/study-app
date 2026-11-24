@@ -1,7 +1,5 @@
-import 'package:gbt/reading_plan/data_access/rs_model.dart' show GoalType;
-import 'package:gbt/reading_plan/data_access/rs_model.dart'
-    as rs_model
-    show dayString;
+import 'package:gbt/reading_plan/model.dart';
+import 'package:gbt/reading_plan/model.dart' as model show dayString;
 import 'package:sqflite/sqflite.dart';
 
 class DaySummaryRepository {
@@ -58,7 +56,7 @@ class DaySummaryRepository {
             : plan.first['goal_value'] as int?;
       }
 
-      final goalType = _goalTypeFromStorage(storedGoalType);
+      final goalType = GoalType.fromStorage(storedGoalType);
       final goalValue = storedGoalValue ?? 0;
       final goalReached = goalType == GoalType.minutes
           ? rsSeconds >= goalValue * 60
@@ -171,7 +169,7 @@ class DaySummary {
       rsDate: DateTime.parse(map['rs_date'] as String),
       rsSeconds: map['rs_seconds'] as int,
       rsVerses: map['rs_verses'] as int,
-      goalType: _goalTypeFromStorage(map['goal_type'] as String?),
+      goalType: GoalType.fromStorage(map['goal_type'] as String?),
       goalValue: map['goal_value'] as int? ?? 0,
       goalReached: map['goal_reached'] == 1,
     );
@@ -183,22 +181,12 @@ class DaySummary {
       'rs_date': dayString(rsDate),
       'rs_seconds': rsSeconds,
       'rs_verses': rsVerses,
-      'goal_type': _goalTypeToStorage(goalType),
+      'goal_type': goalType.storageValue,
       'goal_value': goalValue,
       'goal_reached': goalReached ? 1 : 0,
     };
   }
 
   /// Formats a local date as the `YYYY-MM-DD` string stored in `rs_date`.
-  static String dayString(DateTime date) => rs_model.dayString(date);
-}
-
-String _goalTypeToStorage(GoalType goalType) => goalType.name;
-
-GoalType _goalTypeFromStorage(String? stored) {
-  // Legacy rows use the single-letter codes 'M'/'V'; newer rows use the enum
-  // names. Both map back onto the enum here.
-  return stored != null && stored.toLowerCase().startsWith('m')
-      ? GoalType.minutes
-      : GoalType.verses;
+  static String dayString(DateTime date) => model.dayString(date);
 }

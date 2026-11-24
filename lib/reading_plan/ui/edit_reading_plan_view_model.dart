@@ -5,8 +5,7 @@ import 'package:gbt/asyncutils/cancellation.dart';
 import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/reading_plan/bible_collection.dart';
 import 'package:gbt/reading_plan/data_access/reading_plan_queries.dart';
-import 'package:gbt/reading_plan/data_access/reading_plan_read_models.dart';
-import 'package:gbt/reading_plan/reading_plan_estimates.dart';
+import 'package:gbt/reading_plan/model.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
 import 'package:gbt/services/service_locator.dart';
 

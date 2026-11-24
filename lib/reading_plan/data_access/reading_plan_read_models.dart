@@ -1,7 +1,7 @@
 import 'package:gbt/common/reference.dart';
-import 'package:gbt/reading_plan/data_access/rs_model.dart' show GoalType;
+import 'package:gbt/reading_plan/model.dart' show GoalType;
 
-export 'package:gbt/reading_plan/data_access/rs_model.dart' show GoalType;
+export 'package:gbt/reading_plan/model.dart' show GoalType;
 
 class DailyGoal {
   const DailyGoal(this.type, this.value);
@@ -10,15 +10,9 @@ class DailyGoal {
   final int value;
 }
 
-GoalType goalTypeFromStored(String? stored) {
-  return stored != null && stored.toLowerCase().startsWith('m')
-      ? GoalType.minutes
-      : GoalType.verses;
-}
-
 DailyGoal? dailyGoalFromStored(String? storedType, int? value) {
   if (value == null) return null;
-  return DailyGoal(goalTypeFromStored(storedType), value);
+  return DailyGoal(GoalType.fromStorage(storedType), value);
 }
 
 class ReadingPlanConfig {
