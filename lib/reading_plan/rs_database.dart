@@ -3,11 +3,13 @@ import 'package:gbt/common/reference.dart';
 import 'package:gbt/services/hebrew_greek/database.dart';
 import 'package:gbt/services/logging/log.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
+import 'package:gbt/reading_plan/session_log_repository.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:sqflite/sqflite.dart';
 
-typedef VerseInventoryProvider =
-    Future<Map<(int, int), List<int>>> Function(Set<int> bookIds);
+typedef VerseInventoryProvider = Future<Map<(int, int), List<int>>> Function(
+  Set<int> bookIds,
+);
 
 class ReadingSessionDatabase {
   ReadingSessionDatabase({String databaseName = _defaultDatabaseName})
@@ -36,6 +38,8 @@ class ReadingSessionDatabase {
 
   late Database _database;
   Future<void>? _initFuture;
+
+  late final SessionLogRepository sessionLog = SessionLogRepository(_database);
 
   Future<void> init() async {
     if (_initFuture != null) {
