@@ -68,7 +68,7 @@ void main() {
 
   group('commit', () {
     test('creates a plan and its books, returning the new id', () async {
-      final before = await database.exportBackupTables();
+      final before = await database.readingPlans.exportAll();
       final beforePlanIds = before['reading_plan']!
           .map((row) => row['id'] as int)
           .toSet();
@@ -84,7 +84,7 @@ void main() {
       expect(persisted!.planName, 'Repository Test');
       expect(persisted.bookIds, [1, 2, 3]);
 
-      final tables = await database.exportBackupTables();
+      final tables = await database.readingPlans.exportAll();
       final bookRows = tables['reading_plan_book']!
           .where((row) => row['reading_plan_id'] == planId)
           .toList();
@@ -121,7 +121,7 @@ void main() {
     );
 
     test('rolls back both tables when a book insert fails', () async {
-      final before = await database.exportBackupTables();
+      final before = await database.readingPlans.exportAll();
       final beforePlanCount = before['reading_plan']!.length;
       final beforeBookCount = before['reading_plan_book']!.length;
 
@@ -131,7 +131,7 @@ void main() {
         throwsA(isA<DatabaseException>()),
       );
 
-      final after = await database.exportBackupTables();
+      final after = await database.readingPlans.exportAll();
       expect(after['reading_plan']!.length, beforePlanCount);
       expect(after['reading_plan_book']!.length, beforeBookCount);
       expect(
@@ -177,7 +177,7 @@ void main() {
 
         expect(await database.readingPlans.getById(planA), isNull);
 
-        final tables = await database.exportBackupTables();
+        final tables = await database.readingPlans.exportAll();
         expect(
           tables['reading_plan_book']!.where(
             (row) => row['reading_plan_id'] == planA,

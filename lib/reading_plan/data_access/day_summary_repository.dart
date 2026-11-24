@@ -1,3 +1,4 @@
+import 'package:gbt/reading_plan/data_access/backup_rows.dart';
 import 'package:gbt/reading_plan/model.dart';
 import 'package:gbt/reading_plan/model.dart' as model show dayString;
 import 'package:sqflite/sqflite.dart';
@@ -119,6 +120,38 @@ class DaySummaryRepository {
     );
 
     return [for (final row in rows) DaySummary.fromMap(row)];
+  }
+
+  Future<List<Map<String, Object?>>> exportAll({
+    DatabaseExecutor? executor,
+  }) async {
+    final db = executor ?? _database;
+    return db.query('rs_day_summary', orderBy: 'reading_plan_id, rs_date');
+  }
+
+  static const _summaryColumns = [
+    'reading_plan_id',
+    'rs_date',
+    'rs_seconds',
+    'rs_verses',
+    'goal_type',
+    'goal_value',
+    'goal_reached',
+  ];
+
+  Future<void> importAll(
+    Object? rows, {
+    required DatabaseExecutor executor,
+  }) async {
+    final summaryRows = parseBackupRows(rows, 'rs_day_summary');
+
+    await executor.delete('rs_day_summary');
+
+    final batch = executor.batch();
+    for (final row in summaryRows) {
+      batch.insert('rs_day_summary', pickBackupColumns(row, _summaryColumns));
+    }
+    await batch.commit(noResult: true);
   }
 
   Future<int> deleteForDay(
