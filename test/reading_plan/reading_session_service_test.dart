@@ -5,6 +5,7 @@ import 'package:gbt/reading_plan/reading_plan_service.dart';
 import 'package:gbt/reading_plan/reading_session_service.dart';
 import 'package:gbt/reading_plan/rs_database.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
+import 'package:gbt/reading_plan/session_log_repository.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/reading_plan/reading_session_view_model.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -179,8 +180,8 @@ void main() {
         readingPlanId: plan.id!,
       ),
     );
-    await database.insertLog(
-      RsLog(
+    await database.sessionLog.append(
+      SessionLogEntry(
         sessionId: session.id!,
         bookId: 19,
         chapter: 1,
@@ -379,8 +380,8 @@ void main() {
         ),
       );
       await database.markVerseRead(plan.id!, 63, 1, 1);
-      await database.insertLog(
-        RsLog(
+      await database.sessionLog.append(
+        SessionLogEntry(
           sessionId: oldSession.id!,
           bookId: 63,
           chapter: 1,
