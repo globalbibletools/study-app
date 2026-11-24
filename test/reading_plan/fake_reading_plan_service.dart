@@ -5,7 +5,10 @@ import 'package:gbt/common/reference.dart';
 import 'package:gbt/reading_plan/data_access/reading_plan_repository.dart'
     as repo;
 import 'package:gbt/reading_plan/reading_plan_service.dart';
+import 'package:gbt/reading_plan/data_access/reading_plan_read_models.dart';
 import 'package:gbt/reading_plan/data_access/rs_model.dart';
+
+import 'fake_reading_plan_queries.dart';
 
 class FakeReadingPlanService extends Fake implements ReadingPlanService {
   FakeReadingPlanService([List<ReadingPlanDetails>? plans])
@@ -14,13 +17,13 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
   List<ReadingPlanDetails> plans;
   List<RsBookStats> bookStats = const [];
   List<DayProgress> monthProgress = const [];
-  List<SessionDetails> detailedProgress = const [];
   Reference? resumePosition;
+
+  /// When set, commands that change day activity update this fake too.
+  FakeReadingPlanQueries? queries;
 
   final monthProgressByMonth = <DateTime, List<DayProgress>>{};
   final requestedMonths = <DateTime>[];
-  final detailedProgressDates = <DateTime>[];
-  final detailedProgressPlanIds = <int>[];
   final addedManualSessions = <AddManualSessionCall>[];
   final deletedManualSessionIds = <int>[];
   final deletedPlanIds = <int>[];
@@ -69,13 +72,13 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
   bool queueStatsRequests = false;
   final statsRequests = <Completer<List<RsBookStats>>>[];
 
-  /// When true, calls to [getDetailedProgressFor] wait until the corresponding
-  /// completer in [detailedProgressRequests] is completed.
-  bool queueDetailedProgressRequests = false;
-  final detailedProgressRequests = <Completer<List<SessionDetails>>>[];
+  /// When true, calls to [getDayActivity] wait until the corresponding
+  /// completer in [dayActivityRequests] is completed.
+  bool queueDayActivityRequests = false;
+  final dayActivityRequests = <Completer<DayActivity>>[];
 
-  /// When set, detailed progress queries throw this instead of returning data.
-  Object? detailedProgressError;
+  /// When set, day activity queries throw this instead of returning data.
+  Object? dayActivityError;
 
   /// Start time assigned to sessions created through [addManualSession].
   DateTime nextManualSessionStartTime = DateTime(2026, 11, 17, 9, 30);
@@ -122,31 +125,12 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
   }
 
   @override
-  Future<List<SessionDetails>> getDetailedProgressFor(
-    DateTime date,
-    int readingPlanId,
-  ) {
-    detailedProgressDates.add(date);
-    detailedProgressPlanIds.add(readingPlanId);
-
-    if (queueDetailedProgressRequests) {
-      final request = Completer<List<SessionDetails>>();
-      detailedProgressRequests.add(request);
-      return request.future;
-    }
-
-    final error = detailedProgressError;
-    if (error != null) return Future.error(error);
-    return Future.value(List.of(detailedProgress));
-  }
-
-  @override
   Future<Reference?> getResumeReference(int planId) async {
     return _detailsFor(planId)?.resumePosition ?? resumePosition;
   }
 
   @override
-  Future<SessionDetails> addManualSession({
+  Future<void> addManualSession({
     required int readingPlanId,
     required DateTime date,
     required double minutes,
@@ -161,30 +145,26 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
     addedManualSessions.add(call);
 
     final readSeconds = (minutes * 60).round();
-    final session = SessionDetails(
-      RsSession(
-        id: _nextSessionId++,
-        rsDate: DateTime(date.year, date.month, date.day),
-        startTime: nextManualSessionStartTime,
-        endTime: nextManualSessionStartTime.add(Duration(seconds: readSeconds)),
-        readSeconds: readSeconds,
-        verses: verses,
-        readingPlanId: readingPlanId,
-        isManual: true,
-      ),
-      const [],
+    final session = SessionActivity(
+      sessionId: _nextSessionId++,
+      startTime: nextManualSessionStartTime,
+      readSeconds: readSeconds,
+      verses: verses,
+      isManual: true,
+      ranges: const [],
     );
-    detailedProgress = [...detailedProgress, session];
-    return session;
+    queries?.dayActivity = [...?queries?.dayActivity, session];
   }
 
   @override
-  Future<bool> deleteManualSession(int sessionId) async {
+  Future<void> deleteManualSession(int sessionId) async {
     deletedManualSessionIds.add(sessionId);
-    detailedProgress = detailedProgress
-        .where((session) => session.rsSession.id != sessionId)
-        .toList();
-    return true;
+    final current = queries?.dayActivity;
+    if (current != null) {
+      queries!.dayActivity = current
+          .where((session) => session.sessionId != sessionId)
+          .toList();
+    }
   }
 
   @override

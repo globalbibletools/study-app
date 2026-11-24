@@ -3,6 +3,7 @@ import 'package:gbt/common/reference.dart';
 import 'package:gbt/services/hebrew_greek/database.dart';
 import 'package:gbt/services/logging/log.dart';
 import 'package:gbt/reading_plan/data_access/day_summary_repository.dart';
+import 'package:gbt/reading_plan/data_access/reading_plan_queries.dart';
 import 'package:gbt/reading_plan/data_access/reading_plan_repository.dart'
     show ReadingPlanRepository;
 import 'package:gbt/reading_plan/data_access/rs_model.dart';
@@ -51,6 +52,10 @@ class ReadingSessionDatabase {
   late final SessionRepository session = SessionRepository(_database);
   late final VerseStateRepository verseState = VerseStateRepository(_database);
   late final DaySummaryRepository daySummary = DaySummaryRepository(_database);
+  late final ReadingPlanQueries queries = ReadingPlanQueries(
+    _database,
+    verseInventoryProvider: _verseInventoryProvider,
+  );
 
   Future<void> init() async {
     if (_initFuture != null) {

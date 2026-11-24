@@ -64,7 +64,7 @@ class ReadingPlanService {
 
   double _roundedMinutes(int seconds) => (seconds / 6).round() / 10;
 
-  Future<SessionDetails> addManualSession({
+  Future<void> addManualSession({
     required int readingPlanId,
     required DateTime date,
     required double minutes,
@@ -86,8 +86,8 @@ class ReadingPlanService {
     final now = DateTime.now();
     final isToday = _sameDay(day, now);
 
-    final session = await _database.transaction((txn) async {
-      final inserted = await _database.session.commit(
+    await _database.transaction((txn) async {
+      await _database.session.commit(
         Session(
           rsDate: day,
           startTime: now,
@@ -106,29 +106,12 @@ class ReadingPlanService {
         preserveStoredGoalSnapshot: !isToday,
         executor: txn,
       );
-
-      return inserted;
     });
-
-    return SessionDetails(_toRsSession(session), const []);
   }
 
-  RsSession _toRsSession(Session session) {
-    return RsSession(
-      id: session.id,
-      rsDate: session.rsDate,
-      startTime: session.startTime,
-      endTime: session.endTime,
-      readSeconds: session.readSeconds,
-      verses: session.verses,
-      readingPlanId: session.readingPlanId,
-      isManual: session.isManual,
-    );
-  }
-
-  Future<bool> deleteManualSession(int sessionId) async {
+  Future<void> deleteManualSession(int sessionId) async {
     final session = await _database.session.getById(sessionId);
-    if (session == null) return false;
+    if (session == null) return;
     if (!session.isManual) {
       throw StateError('Only manual sessions can be deleted.');
     }
@@ -156,8 +139,6 @@ class ReadingPlanService {
         );
       }
     });
-
-    return true;
   }
 
   static bool _sameDay(DateTime a, DateTime b) {
@@ -197,46 +178,6 @@ class ReadingPlanService {
     }
 
     return monthData;
-  }
-
-  Future<List<SessionDetails>> getDetailedProgressFor(
-    DateTime date,
-    int readingPlanId,
-  ) async {
-    final List<RsSession> sessions = await _database.getSessionsForDate(
-      date,
-      readingPlanId,
-    );
-
-    final result = <SessionDetails>[];
-
-    for (final session in sessions) {
-      final List<RsLog> logs = await _database.getRsLogForSession(session.id!);
-
-      final progress = <DetailedProgess>[];
-      DetailedProgess? current;
-
-      for (final entry in logs) {
-        if (current == null ||
-            current.bookId != entry.bookId ||
-            current.chapter != entry.chapter ||
-            entry.verse - current.toVerse > 1) {
-          current = DetailedProgess(
-            entry.bookId,
-            entry.chapter,
-            entry.verse,
-            entry.verse,
-          );
-          progress.add(current);
-        } else {
-          current.toVerse = entry.verse;
-        }
-      }
-
-      result.add(SessionDetails(session, progress));
-    }
-
-    return result;
   }
 
   Future<List<ReadingPlanDetails>> getReadingPlansWithProgress({

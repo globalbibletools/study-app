@@ -1,7 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:gbt/common/book_name.dart';
 import 'package:gbt/l10n/app_localizations.dart';
-import 'package:gbt/reading_plan/data_access/rs_model.dart';
+import 'package:gbt/reading_plan/data_access/reading_plan_read_models.dart';
 import 'package:gbt/reading_plan/ui/day_activity_log_view_model.dart';
 import 'package:gbt/reading_plan/ui/number_stepper.dart';
 import 'package:gbt/reading_plan/ui/reading_plan_app_bar.dart';
@@ -150,9 +150,8 @@ class _DayActivityLogPanelState extends State<DayActivityLogPanel> {
     }
   }
 
-  Future<void> _deleteManualSession(SessionDetails session) async {
-    final sessionId = session.rsSession.id;
-    if (sessionId == null) return;
+  Future<void> _deleteManualSession(SessionActivity session) async {
+    final sessionId = session.sessionId;
 
     final l10n = AppLocalizations.of(context)!;
 
@@ -167,7 +166,7 @@ class _DayActivityLogPanelState extends State<DayActivityLogPanel> {
     return ListView(children: viewModel.sessions.map(_sessionCard).toList());
   }
 
-  Widget _sessionCard(SessionDetails session) {
+  Widget _sessionCard(SessionActivity session) {
     final l10n = AppLocalizations.of(context)!;
     final style = TextStyle(
       fontSize: 15,
@@ -175,7 +174,7 @@ class _DayActivityLogPanelState extends State<DayActivityLogPanel> {
       fontWeight: FontWeight.bold,
     );
     final references = _references(viewModel.referencesFor(session));
-    final description = session.rsSession.isManual
+    final description = session.isManual
         ? l10n.manuallyAdded
         : references.isEmpty
         ? l10n.noVersesRead
@@ -199,7 +198,7 @@ class _DayActivityLogPanelState extends State<DayActivityLogPanel> {
               Text(
                 "${_formatMinutes(viewModel.minutesFor(session))} "
                 "${l10n.minutesShort} • "
-                "${session.rsSession.verses} ${l10n.verses}",
+                "${session.verses} ${l10n.verses}",
                 style: style,
                 textAlign: TextAlign.end,
               ),
@@ -211,8 +210,7 @@ class _DayActivityLogPanelState extends State<DayActivityLogPanel> {
     );
   }
 
-  Widget _sessionLabel(SessionDetails session, TextStyle style) {
-    final rsSession = session.rsSession;
+  Widget _sessionLabel(SessionActivity session, TextStyle style) {
     final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
 
@@ -221,18 +219,18 @@ class _DayActivityLogPanelState extends State<DayActivityLogPanel> {
       children: [
         Flexible(
           child: Text(
-            _formatTime(session.rsSession.startTime),
+            _formatTime(session.startTime),
             style: style,
             overflow: TextOverflow.ellipsis,
           ),
         ),
-        if (rsSession.isManual) ...[
+        if (session.isManual) ...[
           const SizedBox(width: 4),
           SizedBox(
             width: 18,
             height: 18,
             child: IconButton(
-              key: ValueKey('deleteManualSession-${rsSession.id}'),
+              key: ValueKey('deleteManualSession-${session.sessionId}'),
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints.tightFor(width: 18, height: 18),
               visualDensity: VisualDensity.compact,
@@ -266,7 +264,7 @@ class _DayActivityLogPanelState extends State<DayActivityLogPanel> {
     );
   }
 
-  String _references(List<DetailedProgess> progress) {
+  String _references(List<VerseRange> progress) {
     final references = <String>[];
     int? previousBookId;
 
@@ -279,7 +277,7 @@ class _DayActivityLogPanelState extends State<DayActivityLogPanel> {
     return references.join(', ');
   }
 
-  String _progressTitle(DetailedProgess entry, {required bool includeBook}) {
+  String _progressTitle(VerseRange entry, {required bool includeBook}) {
     final reference = entry.fromVerse == entry.toVerse
         ? "${entry.chapter}:${entry.fromVerse}"
         : "${entry.chapter}:${entry.fromVerse}-${entry.toVerse}";

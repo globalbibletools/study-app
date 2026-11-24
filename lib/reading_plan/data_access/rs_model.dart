@@ -466,19 +466,3 @@ class DayProgress {
       goalReached = false,
       empty = true;
 }
-
-class DetailedProgess {
-  final int bookId;
-  final int chapter;
-  final int fromVerse;
-  int toVerse;
-
-  DetailedProgess(this.bookId, this.chapter, this.fromVerse, this.toVerse);
-}
-
-class SessionDetails {
-  final RsSession rsSession;
-  final List<DetailedProgess> progress;
-
-  SessionDetails(this.rsSession, this.progress);
-}

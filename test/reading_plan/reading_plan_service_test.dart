@@ -192,18 +192,23 @@ void main() {
     );
     final date = DateTime(2026, 11, 20);
 
-    final details = await planService.addManualSession(
+    await planService.addManualSession(
       readingPlanId: savedPlanId,
       date: date,
       minutes: 12.5,
       verses: 8,
     );
 
-    expect(details.rsSession.isManual, isTrue);
-    expect(details.rsSession.rsDate, date);
-    expect(details.rsSession.readSeconds, 750);
-    expect(details.rsSession.verses, 8);
-    expect(await database.getRsLogForSession(details.rsSession.id!), isEmpty);
+    final details = (await database.queries.getDayActivity(
+      savedPlanId,
+      date,
+    )).sessions.single;
+
+    expect(details.isManual, isTrue);
+    expect(details.readSeconds, 750);
+    expect(details.verses, 8);
+    expect(details.ranges, isEmpty);
+    expect(await database.getRsLogForSession(details.sessionId), isEmpty);
 
     final day = await planService.getDayProgress(savedPlanId, date);
     expect(day.empty, isFalse);
@@ -242,30 +247,38 @@ void main() {
     );
     final date = DateTime(2026, 11, 20);
 
-    final first = await planService.addManualSession(
+    await planService.addManualSession(
       readingPlanId: savedPlanId,
       date: date,
       minutes: 6,
       verses: 4,
     );
-    final second = await planService.addManualSession(
+    final first = (await database.queries.getDayActivity(
+      savedPlanId,
+      date,
+    )).sessions.single;
+    await planService.addManualSession(
       readingPlanId: savedPlanId,
       date: date,
       minutes: 5,
       verses: 2,
     );
+    final second = (await database.queries.getDayActivity(
+      savedPlanId,
+      date,
+    )).sessions.singleWhere((session) => session.sessionId != first.sessionId);
 
     var day = await planService.getDayProgress(savedPlanId, date);
     expect(day.minutes, 11);
     expect(day.verses, 6);
 
-    expect(await planService.deleteManualSession(first.rsSession.id!), isTrue);
+    await planService.deleteManualSession(first.sessionId);
 
     day = await planService.getDayProgress(savedPlanId, date);
     expect(day.minutes, 5);
     expect(day.verses, 2);
 
-    expect(await planService.deleteManualSession(second.rsSession.id!), isTrue);
+    await planService.deleteManualSession(second.sessionId);
 
     day = await planService.getDayProgress(savedPlanId, date);
     expect(day.empty, isTrue);

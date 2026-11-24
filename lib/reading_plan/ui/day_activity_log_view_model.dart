@@ -1,32 +1,36 @@
 import 'package:flutter/foundation.dart';
 import 'package:gbt/asyncutils/cancellation.dart';
+import 'package:gbt/reading_plan/data_access/reading_plan_queries.dart';
+import 'package:gbt/reading_plan/data_access/reading_plan_read_models.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
-import 'package:gbt/reading_plan/data_access/rs_model.dart';
 import 'package:gbt/services/service_locator.dart';
 
 class DayActivityLogViewModel extends ChangeNotifier {
   DayActivityLogViewModel._({
     required this.readingPlanId,
     required this.date,
+    required ReadingPlanQueries queries,
     required ReadingPlanService planService,
-  }) : _planService = planService;
+  }) : _queries = queries,
+       _planService = planService;
 
   static Future<DayActivityLogViewModel> create({
     required int readingPlanId,
     required DateTime date,
+    ReadingPlanQueries? queries,
     ReadingPlanService? planService,
   }) async {
-    final service = planService ?? getIt<ReadingPlanService>();
     final viewModel = DayActivityLogViewModel._(
       readingPlanId: readingPlanId,
       date: date,
-      planService: service,
+      queries: queries ?? getIt<ReadingPlanQueries>(),
+      planService: planService ?? getIt<ReadingPlanService>(),
     );
 
     try {
-      viewModel._sessions = await service.getDetailedProgressFor(
-        date,
+      viewModel._activity = await viewModel._queries.getDayActivity(
         readingPlanId,
+        date,
       );
     } catch (_) {
       viewModel.dispose();
@@ -36,17 +40,18 @@ class DayActivityLogViewModel extends ChangeNotifier {
     return viewModel;
   }
 
+  final ReadingPlanQueries _queries;
   final ReadingPlanService _planService;
 
   final _refreshScope = CancellationScope();
 
   Future<void> refresh() {
     return _refreshScope.run((guard) async {
-      final sessions = await guard(
-        _planService.getDetailedProgressFor(date, readingPlanId),
+      final activity = await guard(
+        _queries.getDayActivity(readingPlanId, date),
       );
       _setState(() {
-        _sessions = sessions;
+        _activity = activity;
       });
     });
   }
@@ -72,34 +77,16 @@ class DayActivityLogViewModel extends ChangeNotifier {
   final int readingPlanId;
   final DateTime date;
 
-  late List<SessionDetails> _sessions;
-  List<SessionDetails> get sessions => _sessions;
+  late DayActivity _activity;
+  List<SessionActivity> get sessions => _activity.sessions;
 
-  double get totalMinutes {
-    final totalSeconds = _sessions.fold(
-      0,
-      (sum, session) => sum + session.rsSession.readSeconds,
-    );
-    return _roundMinutes(totalSeconds / 60);
-  }
+  double get totalMinutes => _activity.totalMinutes;
 
-  int get totalVerses =>
-      _sessions.fold(0, (sum, session) => sum + session.rsSession.verses);
+  int get totalVerses => _activity.totalVerses;
 
-  double minutesFor(SessionDetails session) =>
-      _roundMinutes(session.rsSession.readSeconds / 60);
+  double minutesFor(SessionActivity session) => session.minutes;
 
-  List<DetailedProgess> referencesFor(SessionDetails session) {
-    return [...session.progress]..sort((a, b) {
-      final byBook = a.bookId.compareTo(b.bookId);
-      if (byBook != 0) return byBook;
-      final byChapter = a.chapter.compareTo(b.chapter);
-      if (byChapter != 0) return byChapter;
-      return a.fromVerse.compareTo(b.fromVerse);
-    });
-  }
-
-  double _roundMinutes(num minutes) => (minutes * 10).round() / 10;
+  List<VerseRange> referencesFor(SessionActivity session) => session.ranges;
 
   void _setState(VoidCallback fn) {
     if (_disposed) return;

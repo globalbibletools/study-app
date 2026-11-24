@@ -1,18 +1,21 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gbt/asyncutils/cancellation.dart';
+import 'package:gbt/reading_plan/data_access/reading_plan_read_models.dart';
 import 'package:gbt/reading_plan/ui/day_activity_log_view_model.dart';
-import 'package:gbt/reading_plan/data_access/rs_model.dart';
 
+import '../fake_reading_plan_queries.dart';
 import '../fake_reading_plan_service.dart';
 
 void main() {
   late FakeReadingPlanService planService;
+  late FakeReadingPlanQueries queries;
   late DateTime date;
 
   const planId = 1;
 
   setUp(() {
-    planService = FakeReadingPlanService();
+    queries = FakeReadingPlanQueries();
+    planService = FakeReadingPlanService()..queries = queries;
     date = DateTime(2026, 11, 17);
   });
 
@@ -20,6 +23,7 @@ void main() {
     final viewModel = await DayActivityLogViewModel.create(
       readingPlanId: planId,
       date: date,
+      queries: queries,
       planService: planService,
     );
     addTearDown(viewModel.dispose);
@@ -36,7 +40,7 @@ void main() {
           startTime: DateTime(2026, 11, 17, 14),
         ),
       ];
-      planService.detailedProgress = sessions;
+      queries.dayActivity = sessions;
 
       final viewModel = await newViewModel();
 
@@ -47,12 +51,12 @@ void main() {
       expect(viewModel.totalVerses, 5);
       expect(viewModel.minutesFor(viewModel.sessions.first), 10);
       expect(viewModel.minutesFor(viewModel.sessions.last), 5);
-      expect(planService.detailedProgressDates, [date]);
-      expect(planService.detailedProgressPlanIds, [planId]);
+      expect(queries.dayActivityDates, [date]);
+      expect(queries.dayActivityPlanIds, [planId]);
     });
 
     test('rounds session and total minutes to one decimal place', () async {
-      planService.detailedProgress = [
+      queries.dayActivity = [
         session(readSeconds: 90, verses: 1),
         session(
           readSeconds: 100,
@@ -68,14 +72,14 @@ void main() {
       expect(viewModel.totalMinutes, 3.2);
     });
 
-    test('sorts references by book, chapter, and verse', () async {
-      planService.detailedProgress = [
+    test('returns references already folded and sorted by the query', () async {
+      queries.dayActivity = [
         session(
-          progress: [
-            DetailedProgess(64, 1, 1, 1),
-            DetailedProgess(63, 2, 1, 1),
-            DetailedProgess(63, 1, 4, 4),
-            DetailedProgess(63, 1, 1, 2),
+          ranges: const [
+            VerseRange(63, 1, 1, 2),
+            VerseRange(63, 1, 4, 4),
+            VerseRange(63, 2, 1, 1),
+            VerseRange(64, 1, 1, 1),
           ],
         ),
       ];
@@ -88,12 +92,12 @@ void main() {
       expect(progress.map((entry) => entry.fromVerse), [1, 4, 1, 1]);
     });
 
-    test('refresh replaces sessions with the latest service data', () async {
-      planService.detailedProgress = [session(verses: 1)];
+    test('refresh replaces sessions with the latest query data', () async {
+      queries.dayActivity = [session(verses: 1)];
       final viewModel = await newViewModel();
       expect(viewModel.sessions, hasLength(1));
 
-      planService.detailedProgress = [
+      queries.dayActivity = [
         session(verses: 2),
         session(
           readSeconds: 60,
@@ -108,9 +112,7 @@ void main() {
     });
 
     test('adds a manual session and refreshes the session list', () async {
-      planService.detailedProgress = [
-        session(id: 1, readSeconds: 60, verses: 1),
-      ];
+      queries.dayActivity = [session(id: 1, readSeconds: 60, verses: 1)];
       final viewModel = await newViewModel();
 
       await viewModel.addManualSession(minutes: 5.5, verses: 2);
@@ -121,14 +123,14 @@ void main() {
       expect(call.minutes, 5.5);
       expect(call.verses, 2);
       expect(viewModel.sessions, hasLength(2));
-      expect(viewModel.sessions.last.rsSession.isManual, isTrue);
-      expect(viewModel.sessions.last.rsSession.readSeconds, 330);
+      expect(viewModel.sessions.last.isManual, isTrue);
+      expect(viewModel.sessions.last.readSeconds, 330);
       expect(viewModel.totalMinutes, 6.5);
       expect(viewModel.totalVerses, 3);
     });
 
     test('deletes a manual session and refreshes the session list', () async {
-      planService.detailedProgress = [
+      queries.dayActivity = [
         session(id: 1, readSeconds: 60, verses: 1),
         session(id: 2, isManual: true, readSeconds: 300, verses: 2),
       ];
@@ -137,30 +139,26 @@ void main() {
       await viewModel.deleteManualSession(2);
 
       expect(planService.deletedManualSessionIds, [2]);
-      expect(viewModel.sessions.map((entry) => entry.rsSession.id), [1]);
+      expect(viewModel.sessions.map((entry) => entry.sessionId), [1]);
       expect(viewModel.totalMinutes, 1);
       expect(viewModel.totalVerses, 1);
     });
 
     test('propagates a load error from create', () async {
-      planService.detailedProgressError = StateError(
-        'detailed progress query failed',
-      );
+      queries.dayActivityError = StateError('day activity query failed');
 
       await expectLater(newViewModel(), throwsA(isA<StateError>()));
     });
 
     test('refresh can recover after a load error', () async {
-      planService.detailedProgress = [session(verses: 1)];
+      queries.dayActivity = [session(verses: 1)];
       final viewModel = await newViewModel();
 
-      planService.detailedProgressError = StateError(
-        'detailed progress query failed',
-      );
+      queries.dayActivityError = StateError('day activity query failed');
       await expectLater(viewModel.refresh(), throwsA(isA<StateError>()));
 
-      planService.detailedProgressError = null;
-      planService.detailedProgress = [session(readSeconds: 120, verses: 1)];
+      queries.dayActivityError = null;
+      queries.dayActivity = [session(readSeconds: 120, verses: 1)];
       await viewModel.refresh();
 
       expect(viewModel.sessions, hasLength(1));
@@ -171,43 +169,50 @@ void main() {
 
   group('concurrency', () {
     test('a newer refresh cancels the in-flight one and wins', () async {
-      planService.detailedProgress = [session(verses: 1)];
+      queries.dayActivity = [session(verses: 1)];
       final viewModel = await newViewModel();
-      planService.queueDetailedProgressRequests = true;
+      queries.queueDayActivityRequests = true;
 
       final first = viewModel.refresh();
       final second = viewModel.refresh();
 
-      expect(planService.detailedProgressRequests, hasLength(2));
+      expect(queries.dayActivityRequests, hasLength(2));
 
-      planService.detailedProgressRequests[0].complete([session(verses: 1)]);
+      queries.dayActivityRequests[0].complete(
+        DayActivity(day: date, sessions: [session(verses: 1)]),
+      );
       await expectLater(first, throwsA(isA<CancelledError>()));
 
-      planService.detailedProgressRequests[1].complete([session(verses: 2)]);
+      queries.dayActivityRequests[1].complete(
+        DayActivity(day: date, sessions: [session(verses: 2)]),
+      );
       await second;
 
-      expect(viewModel.sessions.single.rsSession.verses, 2);
+      expect(viewModel.sessions.single.verses, 2);
     });
 
     test(
       'does not notify after dispose while a refresh is in flight',
       () async {
-        planService.detailedProgress = [session()];
+        queries.dayActivity = [session()];
         final viewModel = await DayActivityLogViewModel.create(
           readingPlanId: planId,
           date: date,
+          queries: queries,
           planService: planService,
         );
-        planService.queueDetailedProgressRequests = true;
+        queries.queueDayActivityRequests = true;
         var notifications = 0;
         viewModel.addListener(() => notifications++);
 
         final future = viewModel.refresh();
-        expect(planService.detailedProgressRequests, hasLength(1));
+        expect(queries.dayActivityRequests, hasLength(1));
         final notificationsBeforeDispose = notifications;
 
         viewModel.dispose();
-        planService.detailedProgressRequests.single.complete([session()]);
+        queries.dayActivityRequests.single.complete(
+          DayActivity(day: date, sessions: [session()]),
+        );
         await expectLater(future, throwsA(isA<CancelledError>()));
 
         expect(notifications, notificationsBeforeDispose);
@@ -216,25 +221,20 @@ void main() {
   });
 }
 
-SessionDetails session({
+SessionActivity session({
   int? id,
   int readSeconds = 0,
   int verses = 0,
   DateTime? startTime,
   bool isManual = false,
-  List<DetailedProgess> progress = const [],
+  List<VerseRange> ranges = const [],
 }) {
-  final day = DateTime(2026, 11, 17);
-  return SessionDetails(
-    RsSession(
-      id: id,
-      rsDate: day,
-      startTime: startTime ?? DateTime(2026, 11, 17, 9),
-      readSeconds: readSeconds,
-      verses: verses,
-      readingPlanId: 1,
-      isManual: isManual,
-    ),
-    progress,
+  return SessionActivity(
+    sessionId: id ?? 1,
+    startTime: startTime ?? DateTime(2026, 11, 17, 9),
+    readSeconds: readSeconds,
+    verses: verses,
+    isManual: isManual,
+    ranges: ranges,
   );
 }
