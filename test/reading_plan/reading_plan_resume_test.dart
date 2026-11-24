@@ -4,6 +4,7 @@ import 'package:gbt/reading_plan/reading_plan_service.dart';
 import 'package:gbt/reading_plan/rs_database.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
 import 'package:gbt/reading_plan/session_log_repository.dart';
+import 'package:gbt/reading_plan/session_repository.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
@@ -53,8 +54,8 @@ void main() {
     int verse,
     DateTime dateTime,
   ) async {
-    final dailyLog = await database.insertSession(
-      RsSession(
+    final dailyLog = await database.session.commit(
+      Session(
         rsDate: DateTime(dateTime.year, dateTime.month, dateTime.day),
         startTime: dateTime,
         verses: 1,

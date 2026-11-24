@@ -11,6 +11,7 @@ import 'package:gbt/reading_plan/reading_plan_service.dart';
 import 'package:gbt/reading_plan/rs_database.dart';
 import 'package:gbt/reading_plan/reading_session_service.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
+import 'package:gbt/reading_plan/session_repository.dart';
 import 'package:gbt/reading_plan/reading_session_view_model.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/home/panel_area/common/book_completed_overlay.dart';
@@ -405,8 +406,8 @@ void main() {
 
         // Seed a closed session on November 5th and its day summary.
         final sessionDate = DateTime(2026, 11, 5);
-        await rsDb.insertSession(
-          RsSession(
+        await rsDb.session.commit(
+          Session(
             rsDate: sessionDate,
             startTime: DateTime(2026, 11, 5, 10, 0),
             endTime: DateTime(2026, 11, 5, 10, 12, 30),

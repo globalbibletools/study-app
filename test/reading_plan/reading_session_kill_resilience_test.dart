@@ -4,6 +4,7 @@ import 'package:gbt/reading_plan/reading_plan_service.dart';
 import 'package:gbt/reading_plan/reading_session_service.dart';
 import 'package:gbt/reading_plan/rs_database.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
+import 'package:gbt/reading_plan/session_repository.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/reading_plan/reading_session_view_model.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -162,8 +163,8 @@ void main() {
         final now = DateTime.now();
         final today = DateTime(now.year, now.month, now.day);
         final yesterday = today.subtract(const Duration(days: 1));
-        await rsDb.insertSession(
-          RsSession(
+        await rsDb.session.commit(
+          Session(
             rsDate: yesterday,
             startTime: yesterday.add(const Duration(hours: 9)),
             endTime: yesterday.add(const Duration(hours: 9, minutes: 5)),

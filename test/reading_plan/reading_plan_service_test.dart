@@ -3,6 +3,7 @@ import 'package:gbt/common/reference.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
 import 'package:gbt/reading_plan/rs_database.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
+import 'package:gbt/reading_plan/session_repository.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import '../fixtures/bible_navigation_fixture.dart';
@@ -98,8 +99,8 @@ void main() {
       bookIds: [65],
     );
 
-    await database.insertSession(
-      RsSession(
+    await database.session.commit(
+      Session(
         rsDate: today,
         startTime: DateTime(2026, 11, 23, 8),
         endTime: DateTime(2026, 11, 23, 8, 10),
@@ -110,8 +111,8 @@ void main() {
     );
     await database.upsertDaySummary(versePlanId, today);
 
-    await database.insertSession(
-      RsSession(
+    await database.session.commit(
+      Session(
         rsDate: today,
         startTime: DateTime(2026, 11, 23, 9),
         endTime: DateTime(2026, 11, 23, 9, 5),
@@ -155,8 +156,8 @@ void main() {
     );
     final date = DateTime(2026, 11, 5, 13, 30);
 
-    await database.insertSession(
-      RsSession(
+    await database.session.commit(
+      Session(
         rsDate: DateTime(date.year, date.month, date.day),
         startTime: date,
         endTime: date.add(const Duration(minutes: 12)),
@@ -279,8 +280,8 @@ void main() {
       bookIds: [63],
     );
     final now = DateTime.now();
-    final normal = await database.insertSession(
-      RsSession(
+    final normal = await database.session.commit(
+      Session(
         rsDate: DateTime(now.year, now.month, now.day),
         startTime: now,
         endTime: now,
@@ -294,7 +295,7 @@ void main() {
       planService.deleteManualSession(normal.id!),
       throwsA(isA<StateError>()),
     );
-    expect(await database.getSessionById(normal.id!), isNotNull);
+    expect(await database.session.getById(normal.id!), isNotNull);
   });
 
   test('rejects invalid manual session input', () async {
