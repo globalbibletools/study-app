@@ -20,14 +20,12 @@ class ReadingPlanDetailPanel extends StatefulWidget {
   final ReadingPlanDetailViewModel viewModel;
   final NavigateToExistingReadingPlanRoute? navigateToEditPlanRoute;
   final NavigateToDayActivityLogRoute? navigateToDayActivityLogRoute;
-  final MessengerViewModel? messenger;
 
   const ReadingPlanDetailPanel({
     super.key,
     required this.viewModel,
     this.navigateToEditPlanRoute,
     this.navigateToDayActivityLogRoute,
-    this.messenger,
   });
 
   static Future<void> navigateTo(
@@ -55,10 +53,7 @@ class ReadingPlanDetailPanel extends StatefulWidget {
     try {
       await Navigator.of(context).push<void>(
         MaterialPageRoute(
-          builder: (_) => ReadingPlanDetailPanel(
-            viewModel: viewModel,
-            messenger: messengerViewModel,
-          ),
+          builder: (_) => ReadingPlanDetailPanel(viewModel: viewModel),
         ),
       );
     } catch (_) {
@@ -158,11 +153,7 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
   Future<void> _editPlan() async {
     final navigate =
         widget.navigateToEditPlanRoute ??
-        (context, planId) => EditReadingPlanPanel.navigateToExisting(
-          context,
-          planId,
-          messenger: widget.messenger,
-        );
+        EditReadingPlanPanel.navigateToExisting;
     await navigate(context, viewModel.planId);
 
     if (!mounted) return;
@@ -344,13 +335,7 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
     try {
       final navigate =
           widget.navigateToDayActivityLogRoute ??
-          (context, date, {required readingPlanId}) =>
-              DayActivityLogPanel.navigateTo(
-                context,
-                date,
-                readingPlanId: readingPlanId,
-                messenger: widget.messenger,
-              );
+          DayActivityLogPanel.navigateTo;
       await navigate(context, date, readingPlanId: viewModel.planId);
     } finally {
       _openingActivityLog = false;

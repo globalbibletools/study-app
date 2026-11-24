@@ -40,12 +40,8 @@ class ReadingSheet extends StatelessWidget {
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
         ),
-        builder: (context) => ReadingSheet(
-          child: ReadingPlanPanel(
-            viewModel: viewModel,
-            messenger: messengerViewModel,
-          ),
-        ),
+        builder: (context) =>
+            ReadingSheet(child: ReadingPlanPanel(viewModel: viewModel)),
       );
     } catch (_) {
       viewModel.dispose();

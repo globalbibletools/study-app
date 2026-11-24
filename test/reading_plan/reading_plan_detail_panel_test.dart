@@ -10,6 +10,7 @@ import 'package:gbt/reading_plan/reading_session_view_model.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/messaging/messenger_host.dart';
+import 'package:gbt/ui/messaging/messenger_view_model.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../fixtures/fake_messenger_view_model.dart';
@@ -25,6 +26,7 @@ void main() {
   setUp(() {
     sessionViewModel = FakeReadingSessionViewModel();
     messenger = FakeMessengerViewModel();
+    getIt.registerSingleton<MessengerViewModel>(messenger);
   });
 
   tearDown(() async {
@@ -72,7 +74,6 @@ void main() {
           viewModel: viewModel,
           navigateToEditPlanRoute: navigateToEditPlanRoute,
           navigateToDayActivityLogRoute: navigateToDayActivityLogRoute,
-          messenger: messenger,
         ),
       ),
     );
@@ -577,13 +578,11 @@ class _DetailLauncher extends StatelessWidget {
     required this.viewModel,
     this.navigateToEditPlanRoute,
     this.navigateToDayActivityLogRoute,
-    this.messenger,
   });
 
   final ReadingPlanDetailViewModel viewModel;
   final NavigateToExistingReadingPlanRoute? navigateToEditPlanRoute;
   final NavigateToDayActivityLogRoute? navigateToDayActivityLogRoute;
-  final FakeMessengerViewModel? messenger;
 
   @override
   Widget build(BuildContext context) {
@@ -597,7 +596,6 @@ class _DetailLauncher extends StatelessWidget {
                   viewModel: viewModel,
                   navigateToEditPlanRoute: navigateToEditPlanRoute,
                   navigateToDayActivityLogRoute: navigateToDayActivityLogRoute,
-                  messenger: messenger,
                 ),
               ),
             );

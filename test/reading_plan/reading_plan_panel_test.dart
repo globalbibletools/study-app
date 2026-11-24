@@ -28,6 +28,7 @@ void main() {
     planService = FakeReadingPlanService();
     sessionViewModel = FakeReadingSessionViewModel();
     fakeMessenger = FakeMessengerViewModel();
+    getIt.registerSingleton<MessengerViewModel>(fakeMessenger);
   });
 
   tearDown(() async {
@@ -50,14 +51,12 @@ void main() {
     navigateToPlanDetailsRoute,
     Future<void> Function(BuildContext context, int planId)?
     navigateToEditPlanRoute,
-    MessengerViewModel? messenger,
   }) {
     return ReadingPlanPanel.withDependencies(
       viewModel: viewModel,
       navigateToCreatePlanRoute: navigateToCreatePlanRoute,
       navigateToPlanDetailsRoute: navigateToPlanDetailsRoute,
       navigateToEditPlanRoute: navigateToEditPlanRoute,
-      messenger: messenger,
     );
   }
 
@@ -90,7 +89,6 @@ void main() {
             navigateToCreatePlanRoute: navigateToCreatePlanRoute,
             navigateToPlanDetailsRoute: navigateToPlanDetailsRoute,
             navigateToEditPlanRoute: navigateToEditPlanRoute,
-            messenger: fakeMessenger,
           ),
         ),
       ),

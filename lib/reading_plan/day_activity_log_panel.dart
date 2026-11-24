@@ -134,7 +134,6 @@ class _DayActivityLogPanelState extends State<DayActivityLogPanel> {
 
   Future<void> _showAddManualSessionDialog() async {
     final l10n = AppLocalizations.of(context)!;
-    final messenger = _messenger;
     final input = await showDialog<_ManualSessionInput>(
       context: context,
       builder: (context) => const _AddManualSessionDialog(),
@@ -147,7 +146,7 @@ class _DayActivityLogPanelState extends State<DayActivityLogPanel> {
         verses: input.verses,
       );
     } catch (error) {
-      messenger.showError(l10n.errorMessage(error.toString()));
+      _messenger.showError(l10n.errorMessage(error.toString()));
     }
   }
 
@@ -156,12 +155,11 @@ class _DayActivityLogPanelState extends State<DayActivityLogPanel> {
     if (sessionId == null) return;
 
     final l10n = AppLocalizations.of(context)!;
-    final messenger = _messenger;
 
     try {
       await viewModel.deleteManualSession(sessionId);
     } catch (error) {
-      messenger.showError(l10n.errorMessage(error.toString()));
+      _messenger.showError(l10n.errorMessage(error.toString()));
     }
   }
 
