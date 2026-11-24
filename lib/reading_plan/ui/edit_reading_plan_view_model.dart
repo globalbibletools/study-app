@@ -4,70 +4,71 @@ import 'package:flutter/foundation.dart';
 import 'package:gbt/asyncutils/cancellation.dart';
 import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/reading_plan/bible_collection.dart';
+import 'package:gbt/reading_plan/data_access/reading_plan_queries.dart';
+import 'package:gbt/reading_plan/data_access/reading_plan_read_models.dart';
 import 'package:gbt/reading_plan/reading_plan_estimates.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
-import 'package:gbt/reading_plan/data_access/rs_model.dart';
 import 'package:gbt/services/service_locator.dart';
 
 class EditReadingPlanViewModel extends ChangeNotifier {
-  static ReadingPlanDetails defaultPlan(String name) {
-    final plan = ReadingPlan(
-      planName: name,
-      createdAt: DateTime.now(),
-      goalType: GoalType.verses.name,
-      goalValue: 10,
-      isBookmarked: false,
-    );
-    final books = BibleCollection.wholeBible.books;
-    return ReadingPlanDetails(plan, [
-      for (int i = 0; i < books.length; i++)
-        // Not persisted until the plan is saved.
-        ReadingPlanBook(readingPlanId: 0, bookId: books[i], ord: i + 1),
-    ]);
-  }
-
-  EditReadingPlanViewModel._(
-    this.readingPlan, {
-    required ReadingPlanService planService,
-    required BibleNavigation bibleNavigation,
-  }) : _planService = planService,
-       _bibleNavigation = bibleNavigation {
-    _orderedBookIds = [for (final book in readingPlan.books) book.bookId];
+  EditReadingPlanViewModel._({
+    required int? planId,
+    required String planName,
+    required GoalType goalType,
+    required int goalValue,
+    required List<int> bookIds,
+    ReadingPlanService? planService,
+    BibleNavigation? bibleNavigation,
+  }) : _planId = planId,
+       _planService = planService ?? getIt<ReadingPlanService>(),
+       _bibleNavigation = bibleNavigation ?? getIt<BibleNavigation>() {
+    _name = planName;
+    _goalType = goalType;
+    _goalValue = goalValue;
+    _orderedBookIds = List.of(bookIds);
     _customBookIds = selectedCollection == BibleCollection.custom
         ? List.of(_orderedBookIds)
         : [];
-    _goalType = readingPlan.dailyGoal.type;
-    _goalValue = readingPlan.dailyGoal.value;
-    _name = readingPlan.readingPlan.planName;
   }
 
   static Future<EditReadingPlanViewModel> createNew(
     String name, {
+    ReadingPlanQueries? queries,
     ReadingPlanService? planService,
     BibleNavigation? bibleNavigation,
   }) async {
     return EditReadingPlanViewModel._(
-      defaultPlan(name),
-      planService: planService ?? getIt<ReadingPlanService>(),
-      bibleNavigation: bibleNavigation ?? getIt<BibleNavigation>(),
+      planId: null,
+      planName: name,
+      goalType: GoalType.verses,
+      goalValue: 10,
+      bookIds: BibleCollection.wholeBible.books,
+      planService: planService,
+      bibleNavigation: bibleNavigation,
     );
   }
 
   static Future<EditReadingPlanViewModel> createExisting(
     int planId, {
+    ReadingPlanQueries? queries,
     ReadingPlanService? planService,
     BibleNavigation? bibleNavigation,
   }) async {
-    final service = planService ?? getIt<ReadingPlanService>();
-    final planDetails = await service.getReadingPlanById(planId);
-    if (planDetails == null) {
+    final config = await (queries ?? getIt<ReadingPlanQueries>()).getPlanConfig(
+      planId,
+    );
+    if (config == null) {
       throw StateError('Reading plan not found');
     }
 
     return EditReadingPlanViewModel._(
-      planDetails,
-      planService: service,
-      bibleNavigation: bibleNavigation ?? getIt<BibleNavigation>(),
+      planId: config.planId,
+      planName: config.planName,
+      goalType: config.dailyGoal.type,
+      goalValue: config.dailyGoal.value,
+      bookIds: config.bookIds,
+      planService: planService,
+      bibleNavigation: bibleNavigation,
     );
   }
 
@@ -76,8 +77,8 @@ class EditReadingPlanViewModel extends ChangeNotifier {
 
   // Plan basics
 
-  final ReadingPlanDetails readingPlan;
-  bool get isExisting => readingPlan.readingPlan.id != null;
+  final int? _planId;
+  bool get isExisting => _planId != null;
 
   String _name = '';
   String get name => _name;
@@ -196,7 +197,7 @@ class EditReadingPlanViewModel extends ChangeNotifier {
       try {
         await guard(
           _planService.saveReadingPlan(
-            planId: readingPlan.readingPlan.id,
+            planId: _planId,
             planName: _name,
             goalType: _goalType,
             goalValue: _goalValue,
@@ -215,7 +216,7 @@ class EditReadingPlanViewModel extends ChangeNotifier {
   final _deleteScope = CancellationScope();
 
   Future<void> delete() {
-    final planId = readingPlan.readingPlan.id;
+    final planId = _planId;
     if (planId == null) return Future.value();
 
     return _deleteScope.run((guard) async {

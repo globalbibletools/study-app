@@ -427,9 +427,7 @@ class _EditReadingPlanPanelState extends State<EditReadingPlanPanel> {
   Future<void> _confirmDelete() async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (_) => DeleteReadingPlanConfirmDialog(
-        planName: viewModel.readingPlan.readingPlan.planName,
-      ),
+      builder: (_) => DeleteReadingPlanConfirmDialog(planName: viewModel.name),
     );
     if (confirmed != true) return;
 

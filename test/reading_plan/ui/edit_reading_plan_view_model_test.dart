@@ -3,23 +3,28 @@ import 'package:gbt/asyncutils/cancellation.dart';
 import 'package:gbt/reading_plan/bible_collection.dart';
 import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/reading_plan/ui/edit_reading_plan_view_model.dart';
+import 'package:gbt/reading_plan/data_access/reading_plan_read_models.dart';
 import 'package:gbt/reading_plan/data_access/rs_model.dart';
 
 import '../../fixtures/bible_navigation_fixture.dart';
+import '../fake_reading_plan_queries.dart';
 import '../fake_reading_plan_service.dart';
 
 void main() {
   late FakeReadingPlanService planService;
+  late FakeReadingPlanQueries queries;
   late BibleNavigation bibleNavigation;
 
   setUp(() {
-    planService = FakeReadingPlanService();
+    queries = FakeReadingPlanQueries();
+    planService = FakeReadingPlanService()..queries = queries;
     bibleNavigation = createTestBibleNavigation();
   });
 
   Future<EditReadingPlanViewModel> newViewModel([String name = 'Test Plan']) {
     return EditReadingPlanViewModel.createNew(
       name,
+      queries: queries,
       planService: planService,
       bibleNavigation: bibleNavigation,
     );
@@ -29,8 +34,10 @@ void main() {
     ReadingPlanDetails details,
   ) {
     planService.plans = [details];
+    seedConfig(queries, details);
     return EditReadingPlanViewModel.createExisting(
       details.readingPlan.id!,
+      queries: queries,
       planService: planService,
       bibleNavigation: bibleNavigation,
     );
@@ -50,30 +57,6 @@ void main() {
     );
     return (await planService.getReadingPlanById(planId))!;
   }
-
-  group('defaultPlan', () {
-    test(
-      'creates an unsaved whole-Bible plan with a 10-verse daily goal',
-      () async {
-        final details = EditReadingPlanViewModel.defaultPlan('Morning Reading');
-
-        final plan = details.readingPlan;
-        expect(plan.id, isNull);
-        expect(plan.planName, 'Morning Reading');
-        expect(plan.goalType, GoalType.verses.name);
-        expect(plan.goalValue, 10);
-
-        expect(details.books.map((b) => b.bookId), [
-          for (int i = 1; i <= 66; i++) i,
-        ]);
-        expect(details.books.map((b) => b.ord), [
-          for (int i = 1; i <= 66; i++) i,
-        ]);
-        expect(details.dailyGoal.type, GoalType.verses);
-        expect(details.dailyGoal.value, 10);
-      },
-    );
-  });
 
   group('initialization', () {
     test('seeds a new-plan view model with whole-Bible defaults', () async {
@@ -109,6 +92,44 @@ void main() {
       expect(vm.goalValue, 20);
       expect(vm.selectedBookCount, 2);
       expect(vm.canSubmit, isTrue);
+    });
+
+    test('loads an existing plan from the read-model config', () async {
+      final details = await savePlan(
+        name: 'Original',
+        goalType: GoalType.minutes,
+        goalValue: 20,
+        bookIds: [1, 2],
+      );
+      final planId = details.readingPlan.id!;
+      queries.configs[planId] = ReadingPlanConfig(
+        planId: planId,
+        planName: 'Reloaded',
+        isBookmarked: false,
+        createdAt: DateTime(2026, 1, 1),
+        dailyGoal: const DailyGoal(GoalType.minutes, 15),
+        bookIds: const [3, 4],
+      );
+      final serviceReadsBefore = planService.getPlanByIdCalls;
+
+      final vm = await EditReadingPlanViewModel.createExisting(
+        planId,
+        queries: queries,
+        planService: planService,
+        bibleNavigation: bibleNavigation,
+      );
+
+      expect(vm.name, 'Reloaded');
+      expect(vm.goalType, GoalType.minutes);
+      expect(vm.goalValue, 15);
+      expect(vm.orderedBookIds, [3, 4]);
+      expect(planService.getPlanByIdCalls, serviceReadsBefore);
+
+      expect(await vm.submit(), isTrue);
+      final call = planService.saveCalls.last;
+      expect(call.planId, planId);
+      expect(call.planName, 'Reloaded');
+      expect(call.bookIds, [3, 4]);
     });
 
     test('always offers Custom as a collection option', () async {
@@ -593,4 +614,16 @@ void main() {
       await expectLater(future, throwsA(isA<CancelledError>()));
     });
   });
+}
+
+void seedConfig(FakeReadingPlanQueries queries, ReadingPlanDetails details) {
+  final plan = details.readingPlan;
+  queries.configs[plan.id!] = ReadingPlanConfig(
+    planId: plan.id!,
+    planName: plan.planName,
+    isBookmarked: plan.isBookmarked,
+    createdAt: plan.createdAt,
+    dailyGoal: details.dailyGoal,
+    bookIds: [for (final book in details.books) book.bookId],
+  );
 }

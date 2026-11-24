@@ -274,6 +274,15 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
     } else {
       plans[index] = details;
     }
+
+    queries?.configs[plan.id] = ReadingPlanConfig(
+      planId: plan.id,
+      planName: plan.planName,
+      isBookmarked: plan.isBookmarked,
+      createdAt: plan.createdAt,
+      dailyGoal: DailyGoal(plan.goalType, plan.goalValue),
+      bookIds: plan.bookIds,
+    );
   }
 
   int _nextPlanId = 100;
@@ -331,6 +340,7 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
 
     deletedPlanIds.add(planId);
     plans = plans.where((plan) => plan.readingPlan.id != planId).toList();
+    queries?.configs.remove(planId);
   }
 }
 

@@ -6,6 +6,8 @@ import 'package:gbt/reading_plan/ui/edit_reading_plan_panel.dart';
 import 'package:gbt/reading_plan/ui/edit_reading_plan_view_model.dart';
 import 'package:gbt/reading_plan/ui/number_stepper.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
+import 'package:gbt/reading_plan/data_access/reading_plan_queries.dart';
+import 'package:gbt/reading_plan/data_access/reading_plan_read_models.dart';
 import 'package:gbt/reading_plan/data_access/rs_model.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/messaging/messenger_host.dart';
@@ -13,17 +15,20 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../fixtures/bible_navigation_fixture.dart';
 import '../../fixtures/fake_messenger_view_model.dart';
+import '../fake_reading_plan_queries.dart';
 import '../fake_reading_plan_service.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late FakeReadingPlanService planService;
+  late FakeReadingPlanQueries queries;
   late BibleNavigation bibleNavigation;
   late FakeMessengerViewModel messenger;
 
   setUp(() {
-    planService = FakeReadingPlanService();
+    queries = FakeReadingPlanQueries();
+    planService = FakeReadingPlanService()..queries = queries;
     bibleNavigation = createTestBibleNavigation();
     messenger = FakeMessengerViewModel();
   });
@@ -36,6 +41,7 @@ void main() {
   Future<EditReadingPlanViewModel> newViewModel([String name = 'Plan']) {
     return EditReadingPlanViewModel.createNew(
       name,
+      queries: queries,
       planService: planService,
       bibleNavigation: bibleNavigation,
     );
@@ -45,8 +51,10 @@ void main() {
     ReadingPlanDetails details,
   ) {
     planService.plans = [details];
+    seedConfig(queries, details);
     return EditReadingPlanViewModel.createExisting(
       details.readingPlan.id!,
+      queries: queries,
       planService: planService,
       bibleNavigation: bibleNavigation,
     );
@@ -370,6 +378,7 @@ void main() {
   group('navigation helpers', () {
     setUp(() {
       getIt.registerSingleton<ReadingPlanService>(planService);
+      getIt.registerSingleton<ReadingPlanQueries>(queries);
       getIt.registerSingleton<BibleNavigation>(bibleNavigation);
     });
 
@@ -405,6 +414,7 @@ void main() {
       (tester) async {
         final details = existingPlan(id: 4, name: 'Existing Plan');
         planService.plans = [details];
+        seedConfig(queries, details);
 
         await tester.pumpWidget(
           buildApp(
@@ -477,9 +487,31 @@ class _EditorLauncher extends StatelessWidget {
 }
 
 ReadingPlanDetails existingPlan({int id = 1, String name = 'Existing Plan'}) {
-  final details = EditReadingPlanViewModel.defaultPlan(name);
+  final books = BibleCollection.wholeBible.books;
   return ReadingPlanDetails(
-    details.readingPlan.copyWith(id: id),
-    details.books,
+    ReadingPlan(
+      id: id,
+      planName: name,
+      createdAt: DateTime(2026, 1, 1),
+      goalType: GoalType.verses.name,
+      goalValue: 10,
+      isBookmarked: false,
+    ),
+    [
+      for (var i = 0; i < books.length; i++)
+        ReadingPlanBook(readingPlanId: id, bookId: books[i], ord: i + 1),
+    ],
+  );
+}
+
+void seedConfig(FakeReadingPlanQueries queries, ReadingPlanDetails details) {
+  final plan = details.readingPlan;
+  queries.configs[plan.id!] = ReadingPlanConfig(
+    planId: plan.id!,
+    planName: plan.planName,
+    isBookmarked: plan.isBookmarked,
+    createdAt: plan.createdAt,
+    dailyGoal: details.dailyGoal,
+    bookIds: [for (final book in details.books) book.bookId],
   );
 }

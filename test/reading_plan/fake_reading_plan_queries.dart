@@ -10,6 +10,7 @@ class FakeReadingPlanQueries extends Fake implements ReadingPlanQueries {
     : plans = plans ?? [];
 
   List<ReadingPlanSummary> plans;
+  final configs = <int, ReadingPlanConfig>{};
   List<BookProgress> bookStats = const [];
   List<SessionActivity> dayActivity = [];
   Reference? resumePosition;
@@ -72,7 +73,7 @@ class FakeReadingPlanQueries extends Fake implements ReadingPlanQueries {
   @override
   Future<ReadingPlanConfig?> getPlanConfig(int planId) async {
     planConfigCalls++;
-    return _summaryFor(planId)?.config;
+    return configs[planId] ?? _summaryFor(planId)?.config;
   }
 
   @override
