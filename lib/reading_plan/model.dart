@@ -1,5 +1,20 @@
-import 'package:gbt/common/reference.dart';
-import 'package:gbt/reading_plan/data_access/rs_model.dart';
+enum GoalType {
+  minutes,
+  verses;
+
+  static GoalType fromStorage(String? stored) {
+    return stored != null && stored.toLowerCase().startsWith('m')
+        ? GoalType.minutes
+        : GoalType.verses;
+  }
+
+  String get storageValue => name;
+}
+
+String dayString(DateTime date) {
+  String pad2(int value) => value.toString().padLeft(2, '0');
+  return '${date.year.toString().padLeft(4, '0')}-${pad2(date.month)}-${pad2(date.day)}';
+}
 
 class ReadingPlanEstimates {
   const ReadingPlanEstimates._();
@@ -36,15 +51,4 @@ class ReadingPlanEstimates {
   }
 
   static double monthsForDays(int days) => days / 30.44;
-
-  static Reference resumeTargetFor(ReadingPlanDetails plan) {
-    final resumePosition = plan.resumePosition;
-    if (resumePosition != null) return resumePosition;
-
-    if (plan.books.isNotEmpty) {
-      return Reference(bookId: plan.books.first.bookId, chapter: 1, verse: 1);
-    }
-
-    return const Reference(bookId: 1, chapter: 1, verse: 1);
-  }
 }

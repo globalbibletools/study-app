@@ -4,6 +4,7 @@ import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/services/app_guide/app_guide_manager.dart';
 import 'package:gbt/reading_plan/reading_plan_backup_service.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
+import 'package:gbt/reading_plan/data_access/reading_plan_queries.dart';
 import 'package:gbt/reading_plan/data_access/rs_database.dart';
 import 'package:gbt/reading_plan/reading_session_service.dart';
 import 'package:gbt/services/resources/remote_asset_service.dart';
@@ -44,6 +45,9 @@ void setupServiceLocator() {
     await database.init();
     return database;
   });
+  getIt.registerLazySingleton<ReadingPlanQueries>(
+    () => getIt<ReadingSessionDatabase>().queries,
+  );
   getIt.registerLazySingleton<FileService>(() => FileService());
   getIt.registerLazySingleton<RemoteAssetService>(() => RemoteAssetService());
   getIt.registerLazySingletonAsync<HebrewGreekDatabase>(

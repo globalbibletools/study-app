@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
 import 'package:gbt/reading_plan/data_access/rs_database.dart';
-import 'package:gbt/reading_plan/data_access/rs_model.dart';
+import 'package:gbt/reading_plan/model.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:sqlite3/sqlite3.dart' as sqlite;
@@ -191,10 +191,7 @@ PRAGMA user_version = 3;
       final name = 'verse_state_save_test.db';
       final database = await openDatabase(name);
       addTearDown(database.dispose);
-      final service = ReadingPlanService.withDependencies(
-        database: database,
-        bibleNavigation: createTestBibleNavigation(),
-      );
+      final service = ReadingPlanService.withDependencies(database: database);
 
       final planId = await service.saveReadingPlan(
         planName: 'Materialization Test',
@@ -216,9 +213,8 @@ PRAGMA user_version = 3;
 
       expect(countForPlan(), expectedVerseCountFor({63, 64}));
 
-      final details = await service.getReadingPlanById(planId);
       await service.saveReadingPlan(
-        planId: details!.readingPlan.id,
+        planId: planId,
         planName: 'Materialization Test',
         goalType: GoalType.verses,
         goalValue: 10,
@@ -226,9 +222,8 @@ PRAGMA user_version = 3;
       );
       expect(countForPlan(), expectedVerseCountFor({63, 64, 66}));
 
-      final withAddedBook = await service.getReadingPlanById(planId);
       await service.saveReadingPlan(
-        planId: withAddedBook!.readingPlan.id,
+        planId: planId,
         planName: 'Materialization Test',
         goalType: GoalType.verses,
         goalValue: 10,
@@ -236,10 +231,7 @@ PRAGMA user_version = 3;
       );
 
       expect(countForPlan(), expectedVerseCountFor({63, 64, 66}));
-      expect(
-        (await database.getReadingPlanBooks(planId)).map((b) => b.bookId),
-        [63, 66],
-      );
+      expect((await database.readingPlans.getById(planId))!.bookIds, [63, 66]);
     },
   );
 
@@ -247,10 +239,7 @@ PRAGMA user_version = 3;
     final name = 'verse_state_empty_book_test.db';
     final database = await openDatabase(name);
     addTearDown(database.dispose);
-    final service = ReadingPlanService.withDependencies(
-      database: database,
-      bibleNavigation: createTestBibleNavigation(),
-    );
+    final service = ReadingPlanService.withDependencies(database: database);
 
     final planId = await service.saveReadingPlan(
       planName: 'Empty Book Test',
@@ -279,6 +268,6 @@ PRAGMA user_version = 3;
       0,
     );
     expect(await database.verseState.isBookComplete(planId, 67), isFalse);
-    expect((await database.getBookStats(planId))[67], isNull);
+    expect((await database.verseState.getBookStats(planId))[67], isNull);
   });
 }

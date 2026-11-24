@@ -6,7 +6,7 @@ import 'package:gbt/reading_plan/ui/edit_book_list_panel.dart';
 import 'package:gbt/reading_plan/ui/edit_reading_plan_view_model.dart';
 import 'package:gbt/reading_plan/ui/number_stepper.dart';
 import 'package:gbt/reading_plan/ui/reading_plan_app_bar.dart';
-import 'package:gbt/reading_plan/data_access/rs_model.dart';
+import 'package:gbt/reading_plan/model.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/messaging/messenger_view_model.dart';
 
@@ -427,9 +427,7 @@ class _EditReadingPlanPanelState extends State<EditReadingPlanPanel> {
   Future<void> _confirmDelete() async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (_) => DeleteReadingPlanConfirmDialog(
-        planName: viewModel.readingPlan.readingPlan.planName,
-      ),
+      builder: (_) => DeleteReadingPlanConfirmDialog(planName: viewModel.name),
     );
     if (confirmed != true) return;
 

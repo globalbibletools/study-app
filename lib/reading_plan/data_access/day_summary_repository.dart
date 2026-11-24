@@ -1,4 +1,5 @@
-import 'package:gbt/reading_plan/data_access/rs_model.dart' show GoalType;
+import 'package:gbt/reading_plan/model.dart';
+import 'package:gbt/reading_plan/model.dart' as model show dayString;
 import 'package:sqflite/sqflite.dart';
 
 class DaySummaryRepository {
@@ -55,7 +56,7 @@ class DaySummaryRepository {
             : plan.first['goal_value'] as int?;
       }
 
-      final goalType = _goalTypeFromStorage(storedGoalType);
+      final goalType = GoalType.fromStorage(storedGoalType);
       final goalValue = storedGoalValue ?? 0;
       final goalReached = goalType == GoalType.minutes
           ? rsSeconds >= goalValue * 60
@@ -81,6 +82,43 @@ class DaySummaryRepository {
     } else {
       await _database.transaction(upsert);
     }
+  }
+
+  Future<DaySummary?> get(
+    int readingPlanId,
+    DateTime date, {
+    DatabaseExecutor? executor,
+  }) async {
+    final db = executor ?? _database;
+    final rows = await db.query(
+      'rs_day_summary',
+      where: 'reading_plan_id = ? AND rs_date = ?',
+      whereArgs: [readingPlanId, DaySummary.dayString(date)],
+      limit: 1,
+    );
+
+    return rows.isEmpty ? null : DaySummary.fromMap(rows.first);
+  }
+
+  Future<List<DaySummary>> listBetween(
+    int readingPlanId,
+    DateTime start,
+    DateTime end, {
+    DatabaseExecutor? executor,
+  }) async {
+    final db = executor ?? _database;
+    final rows = await db.query(
+      'rs_day_summary',
+      where: 'reading_plan_id = ? AND rs_date BETWEEN ? AND ?',
+      whereArgs: [
+        readingPlanId,
+        DaySummary.dayString(start),
+        DaySummary.dayString(end),
+      ],
+      orderBy: 'rs_date asc',
+    );
+
+    return [for (final row in rows) DaySummary.fromMap(row)];
   }
 
   Future<int> deleteForDay(
@@ -125,31 +163,30 @@ class DaySummary {
   final int goalValue;
   final bool goalReached;
 
+  factory DaySummary.fromMap(Map<String, Object?> map) {
+    return DaySummary(
+      readingPlanId: map['reading_plan_id'] as int,
+      rsDate: DateTime.parse(map['rs_date'] as String),
+      rsSeconds: map['rs_seconds'] as int,
+      rsVerses: map['rs_verses'] as int,
+      goalType: GoalType.fromStorage(map['goal_type'] as String?),
+      goalValue: map['goal_value'] as int? ?? 0,
+      goalReached: map['goal_reached'] == 1,
+    );
+  }
+
   Map<String, Object?> toMap() {
     return {
       'reading_plan_id': readingPlanId,
       'rs_date': dayString(rsDate),
       'rs_seconds': rsSeconds,
       'rs_verses': rsVerses,
-      'goal_type': _goalTypeToStorage(goalType),
+      'goal_type': goalType.storageValue,
       'goal_value': goalValue,
       'goal_reached': goalReached ? 1 : 0,
     };
   }
 
   /// Formats a local date as the `YYYY-MM-DD` string stored in `rs_date`.
-  static String dayString(DateTime date) {
-    String pad2(int value) => value.toString().padLeft(2, '0');
-    return '${date.year.toString().padLeft(4, '0')}-${pad2(date.month)}-${pad2(date.day)}';
-  }
-}
-
-String _goalTypeToStorage(GoalType goalType) => goalType.name;
-
-GoalType _goalTypeFromStorage(String? stored) {
-  // Legacy rows use the single-letter codes 'M'/'V'; newer rows use the enum
-  // names. Both map back onto the enum here.
-  return stored != null && stored.toLowerCase().startsWith('m')
-      ? GoalType.minutes
-      : GoalType.verses;
+  static String dayString(DateTime date) => model.dayString(date);
 }

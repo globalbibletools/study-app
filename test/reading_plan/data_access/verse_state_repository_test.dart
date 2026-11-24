@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gbt/reading_plan/data_access/reading_plan_repository.dart';
 import 'package:gbt/reading_plan/data_access/rs_database.dart';
-import 'package:gbt/reading_plan/data_access/rs_model.dart' show GoalType;
+import 'package:gbt/reading_plan/model.dart' show GoalType;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import '../../fixtures/bible_navigation_fixture.dart';
@@ -52,11 +52,17 @@ void main() {
 
     await database.verseState.markRead(planId, 63, 1, 1, timestamp: first);
     expect(await database.verseState.getReadCount(planId, 63, 1, 1), 1);
-    expect((await database.getBookStats(planId))[63]!.lastRead, first);
+    expect(
+      (await database.verseState.getBookStats(planId))[63]!.lastRead,
+      first,
+    );
 
     await database.verseState.markRead(planId, 63, 1, 1, timestamp: second);
     expect(await database.verseState.getReadCount(planId, 63, 1, 1), 2);
-    expect((await database.getBookStats(planId))[63]!.lastRead, second);
+    expect(
+      (await database.verseState.getBookStats(planId))[63]!.lastRead,
+      second,
+    );
   });
 
   test('unmarkRead decrements and floors at zero', () async {
@@ -82,11 +88,17 @@ void main() {
 
     await database.verseState.unmarkRead(planId, 63, 1, 1);
     expect(await database.verseState.getReadCount(planId, 63, 1, 1), 1);
-    expect((await database.getBookStats(planId))[63]!.lastRead, isNotNull);
+    expect(
+      (await database.verseState.getBookStats(planId))[63]!.lastRead,
+      isNotNull,
+    );
 
     await database.verseState.unmarkRead(planId, 63, 1, 1);
     expect(await database.verseState.getReadCount(planId, 63, 1, 1), 0);
-    expect((await database.getBookStats(planId))[63]!.lastRead, isNull);
+    expect(
+      (await database.verseState.getBookStats(planId))[63]!.lastRead,
+      isNull,
+    );
   });
 
   test('unmarkRead on a never-read verse leaves the count at zero', () async {
@@ -96,7 +108,10 @@ void main() {
     await database.verseState.unmarkRead(planId, 63, 1, 2);
 
     expect(await database.verseState.getReadCount(planId, 63, 1, 2), 0);
-    expect((await database.getBookStats(planId))[63]!.lastRead, isNull);
+    expect(
+      (await database.verseState.getBookStats(planId))[63]!.lastRead,
+      isNull,
+    );
   });
 
   test('getReadCount returns null for a missing row', () async {
@@ -134,19 +149,13 @@ void main() {
     for (final verse in [1, 2, 3]) {
       expect(await database.verseState.getReadCount(planId, 63, 1, verse), 0);
     }
-    expect(
-      await database.getVerseReadCountsForChapter(planId, 63, 1),
-      hasLength(3),
-    );
+    expect(await database.verseState.getReadCount(planId, 63, 1, 4), isNull);
 
     await database.verseState.markRead(planId, 63, 1, 1);
     await database.verseState.bulkInsert(planId, inventory);
 
     expect(await database.verseState.getReadCount(planId, 63, 1, 1), 1);
-    expect(
-      await database.getVerseReadCountsForChapter(planId, 63, 1),
-      hasLength(3),
-    );
+    expect(await database.verseState.getReadCount(planId, 63, 1, 4), isNull);
   });
 
   test('deleteForPlanId deletes only the target plan rows', () async {

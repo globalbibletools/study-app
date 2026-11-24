@@ -3,23 +3,27 @@ import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/reading_plan/ui/day_activity_log_panel.dart';
 import 'package:gbt/reading_plan/ui/day_activity_log_view_model.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
-import 'package:gbt/reading_plan/data_access/rs_model.dart';
+import 'package:gbt/reading_plan/data_access/reading_plan_queries.dart';
+import 'package:gbt/reading_plan/data_access/reading_plan_read_models.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/messaging/messenger_host.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../fixtures/fake_messenger_view_model.dart';
+import '../fake_reading_plan_queries.dart';
 import '../fake_reading_plan_service.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late FakeReadingPlanService planService;
+  late FakeReadingPlanQueries queries;
   late DateTime date;
   late FakeMessengerViewModel messenger;
 
   setUp(() {
-    planService = FakeReadingPlanService();
+    queries = FakeReadingPlanQueries();
+    planService = FakeReadingPlanService()..queries = queries;
     date = DateTime(2026, 11, 17);
     messenger = FakeMessengerViewModel();
   });
@@ -33,6 +37,7 @@ void main() {
     return DayActivityLogViewModel.create(
       readingPlanId: 1,
       date: date,
+      queries: queries,
       planService: planService,
     );
   }
@@ -57,20 +62,16 @@ void main() {
     testWidgets('renders sessions and totals from the view model', (
       tester,
     ) async {
-      planService.detailedProgress = [
-        SessionDetails(
-          RsSession(
-            rsDate: date,
-            startTime: DateTime(2026, 11, 17, 9, 5),
-            readSeconds: 90,
-            verses: 3,
-            readingPlanId: 1,
-          ),
-          [
-            DetailedProgess(63, 1, 4, 4),
-            DetailedProgess(63, 1, 1, 2),
-            DetailedProgess(63, 2, 1, 3),
-            DetailedProgess(64, 1, 1, 1),
+      queries.dayActivity = [
+        session(
+          startTime: DateTime(2026, 11, 17, 9, 5),
+          readSeconds: 90,
+          verses: 3,
+          ranges: const [
+            VerseRange(63, 1, 1, 2),
+            VerseRange(63, 1, 4, 4),
+            VerseRange(63, 2, 1, 3),
+            VerseRange(64, 1, 1, 1),
           ],
         ),
       ];
@@ -92,7 +93,7 @@ void main() {
     testWidgets(
       'shows manual sessions with start time, description, and trash icon',
       (tester) async {
-        planService.detailedProgress = [
+        queries.dayActivity = [
           session(
             id: 1,
             startTime: DateTime(2026, 11, 17, 9, 5),
@@ -153,7 +154,7 @@ void main() {
     testWidgets('plus button opens the dialog and submits totals', (
       tester,
     ) async {
-      planService.detailedProgress = [];
+      queries.dayActivity = [];
       final viewModel = await newViewModel();
 
       await tester.pumpWidget(
@@ -225,7 +226,7 @@ void main() {
       expect(find.text('Nov 17, 2026'), findsOneWidget);
       expect(find.text('09:30'), findsOneWidget);
       expect(find.text('Manually added'), findsOneWidget);
-      expect(viewModel.sessions.single.rsSession.isManual, isTrue);
+      expect(viewModel.sessions.single.isManual, isTrue);
       expect(viewModel.totalMinutes, 5.5);
       expect(viewModel.totalVerses, 2);
     });
@@ -233,7 +234,7 @@ void main() {
     testWidgets('cancel closes the dialog without adding a session', (
       tester,
     ) async {
-      planService.detailedProgress = [];
+      queries.dayActivity = [];
       final viewModel = await newViewModel();
 
       await tester.pumpWidget(
@@ -257,7 +258,7 @@ void main() {
     testWidgets('rejects a submission with no minutes or verses', (
       tester,
     ) async {
-      planService.detailedProgress = [];
+      queries.dayActivity = [];
       final viewModel = await newViewModel();
 
       await tester.pumpWidget(
@@ -282,7 +283,7 @@ void main() {
     });
 
     testWidgets('trash icon deletes a manual session', (tester) async {
-      planService.detailedProgress = [
+      queries.dayActivity = [
         session(
           id: 7,
           isManual: true,
@@ -312,6 +313,7 @@ void main() {
   group('navigation', () {
     setUp(() {
       getIt.registerSingleton<ReadingPlanService>(planService);
+      getIt.registerSingleton<ReadingPlanQueries>(queries);
     });
 
     tearDown(() async {
@@ -321,7 +323,7 @@ void main() {
     testWidgets(
       'shows an error message and keeps the panel closed on load error',
       (tester) async {
-        planService.detailedProgressError = StateError('load failed');
+        queries.dayActivityError = StateError('load failed');
 
         await tester.pumpWidget(
           buildApp(_NavigateToLauncher(messenger: messenger)),
@@ -344,7 +346,7 @@ void main() {
   });
 
   testWidgets('back closes the panel', (tester) async {
-    planService.detailedProgress = [session()];
+    queries.dayActivity = [session()];
     final viewModel = await newViewModel();
 
     await tester.pumpWidget(
@@ -418,24 +420,20 @@ class _NavigateToLauncher extends StatelessWidget {
   }
 }
 
-SessionDetails session({
+SessionActivity session({
   int? id,
   DateTime? startTime,
   int readSeconds = 0,
   int verses = 0,
   bool isManual = false,
-  List<DetailedProgess> progress = const [],
+  List<VerseRange> ranges = const [],
 }) {
-  return SessionDetails(
-    RsSession(
-      id: id,
-      rsDate: DateTime(2026, 11, 17),
-      startTime: startTime ?? DateTime(2026, 11, 17, 9),
-      readSeconds: readSeconds,
-      verses: verses,
-      readingPlanId: 1,
-      isManual: isManual,
-    ),
-    progress,
+  return SessionActivity(
+    sessionId: id ?? 1,
+    startTime: startTime ?? DateTime(2026, 11, 17, 9),
+    readSeconds: readSeconds,
+    verses: verses,
+    isManual: isManual,
+    ranges: ranges,
   );
 }

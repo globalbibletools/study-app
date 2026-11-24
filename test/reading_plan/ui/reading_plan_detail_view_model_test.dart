@@ -1,25 +1,41 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gbt/asyncutils/cancellation.dart';
 import 'package:gbt/common/reference.dart';
+import 'package:gbt/reading_plan/data_access/reading_plan_read_models.dart';
 import 'package:gbt/reading_plan/ui/reading_plan_detail_view_model.dart';
-import 'package:gbt/reading_plan/data_access/rs_model.dart';
+import 'package:gbt/reading_plan/data_access/reading_plan_repository.dart'
+    as repo;
+import 'package:gbt/reading_plan/data_access/verse_state_repository.dart';
 
+import '../fake_reading_plan_queries.dart';
 import '../fake_reading_plan_service.dart';
 import '../fake_reading_session_view_model.dart';
 
 void main() {
   late FakeReadingSessionViewModel sessionViewModel;
+  late FakeReadingPlanQueries queries;
 
   setUp(() {
     sessionViewModel = FakeReadingSessionViewModel();
+    queries = FakeReadingPlanQueries();
   });
 
   Future<ReadingPlanDetailViewModel> newViewModel(
     FakeReadingPlanService service, {
     int planId = 7,
   }) async {
+    final plan = service.plans.where((plan) => plan.id == planId).firstOrNull;
+    queries.plans = [
+      if (plan != null)
+        summaryFor(
+          plan,
+          bookStats: service.bookStats,
+          resumePosition: service.resumePosition,
+        ),
+    ];
     final viewModel = await ReadingPlanDetailViewModel.create(
       planId: planId,
+      queries: queries,
       planService: service,
       sessionViewModel: sessionViewModel,
     );
@@ -34,25 +50,30 @@ void main() {
         final today = dateOnly(DateTime.now());
         final service =
             FakeReadingPlanService([
-                planDetails(
-                  bookIds: const [63, 64],
-                  resumePosition: const Reference(
-                    bookId: 63,
-                    chapter: 1,
-                    verse: 1,
-                  ),
-                ),
+                planDetails(bookIds: const [63, 64]),
               ])
+              ..resumePosition = const Reference(
+                bookId: 63,
+                chapter: 1,
+                verse: 1,
+              )
               ..bookStats = [
                 bookStats(63, totalVerses: 13, versesRead: 13),
                 bookStats(64, totalVerses: 15, versesRead: 0),
-              ]
-              ..monthProgress = [DayProgress(today, 10, 13, true)];
+              ];
+        queries.monthProgressByMonth[monthStart(today)] = {
+          today.day: dailyProgress(
+            today,
+            minutes: 10,
+            verses: 13,
+            goalReached: true,
+          ),
+        };
         final viewModel = await newViewModel(service);
         expect(viewModel.planId, 7);
         expect(viewModel.planName, 'Ruth Plan');
         expect(viewModel.isBookmarked, isFalse);
-        expect(viewModel.books.map((book) => book.bookId), [63, 64]);
+        expect(viewModel.bookIds, [63, 64]);
         expect(viewModel.bookStats.keys, [63, 64]);
         expect(viewModel.totalVerses, 28);
         expect(viewModel.versesRead, 13);
@@ -76,10 +97,10 @@ void main() {
       final service = FakeReadingPlanService([planDetails()]);
       final viewModel = await newViewModel(service);
 
-      service.plans = [];
+      queries.plans = [];
       await expectLater(viewModel.refresh(), throwsA(isA<StateError>()));
 
-      service.plans = [planDetails(name: 'Recovered Plan')];
+      queries.plans = [summaryFor(planDetails(name: 'Recovered Plan'))];
       await viewModel.refresh();
 
       expect(viewModel.planName, 'Recovered Plan');
@@ -90,24 +111,21 @@ void main() {
       final service = FakeReadingPlanService([details]);
       final viewModel = await newViewModel(service);
 
-      service.queuePlanRequests = true;
-      service.queueStatsRequests = true;
+      final summary = summaryFor(
+        details,
+        bookStats: [bookStats(8, totalVerses: 85, versesRead: 85)],
+      );
+      queries.queueSummaryRequests = true;
 
       final first = viewModel.refresh();
       final second = viewModel.refresh();
 
-      expect(service.planRequests, hasLength(2));
+      expect(queries.summaryRequests, hasLength(2));
 
-      service.planRequests[0].complete(details);
+      queries.summaryRequests[0].complete(summary);
       await expectLater(first, throwsA(isA<CancelledError>()));
 
-      service.planRequests[1].complete(details);
-      await pumpEventQueue();
-      expect(service.statsRequests, hasLength(1));
-
-      service.statsRequests.single.complete([
-        bookStats(8, totalVerses: 85, versesRead: 85),
-      ]);
+      queries.summaryRequests[1].complete(summary);
       await second;
       expect(viewModel.versesRead, 85);
       expect(viewModel.bookStats[8]!.isComplete, isTrue);
@@ -121,22 +139,25 @@ void main() {
       () async {
         final details = planDetails(bookIds: const [8]);
         final service = FakeReadingPlanService([details]);
+        final summary = summaryFor(details);
+        queries.plans = [summary];
         final viewModel = await ReadingPlanDetailViewModel.create(
           planId: 7,
+          queries: queries,
           planService: service,
           sessionViewModel: sessionViewModel,
         );
-        service.queuePlanRequests = true;
+        queries.queueSummaryRequests = true;
 
         var notifications = 0;
         viewModel.addListener(() => notifications++);
 
         final future = viewModel.refresh();
-        expect(service.planRequests, hasLength(1));
+        expect(queries.summaryRequests, hasLength(1));
         final notificationsBeforeDispose = notifications;
 
         viewModel.dispose();
-        service.planRequests.single.complete(details);
+        queries.summaryRequests.single.complete(summary);
         await expectLater(future, throwsA(isA<CancelledError>()));
 
         expect(notifications, notificationsBeforeDispose);
@@ -201,7 +222,7 @@ void main() {
       ])..bookStats = [bookStats(63, totalVerses: 13, versesRead: 1)];
       final viewModel = await newViewModel(service);
 
-      expect(viewModel.bookStats.keys, [63]);
+      expect(viewModel.bookStats.keys, [63, 64]);
       expect(viewModel.progressForBook(63), closeTo(1 / 13, 1e-9));
       expect(viewModel.progressForBook(64), 0);
       expect(viewModel.totalVerses, 13);
@@ -212,7 +233,10 @@ void main() {
       final today = dateOnly(DateTime.now());
       final service = FakeReadingPlanService([
         planDetails(goalType: GoalType.verses, goalValue: 10),
-      ])..monthProgress = [DayProgress(today, 7, 3, false)];
+      ]);
+      queries.monthProgressByMonth[monthStart(today)] = {
+        today.day: dailyProgress(today, minutes: 7, verses: 3),
+      };
       final viewModel = await newViewModel(service);
 
       expect(viewModel.goalType, GoalType.verses);
@@ -226,7 +250,10 @@ void main() {
       final today = dateOnly(DateTime.now());
       final service = FakeReadingPlanService([
         planDetails(goalType: GoalType.minutes, goalValue: 20),
-      ])..monthProgress = [DayProgress(today, 7, 3, false)];
+      ]);
+      queries.monthProgressByMonth[monthStart(today)] = {
+        today.day: dailyProgress(today, minutes: 7, verses: 3),
+      };
       final viewModel = await newViewModel(service);
 
       expect(viewModel.goalType, GoalType.minutes);
@@ -239,7 +266,10 @@ void main() {
       final today = dateOnly(DateTime.now());
       final service = FakeReadingPlanService([
         planDetails(goalType: GoalType.verses, goalValue: 0),
-      ])..monthProgress = [DayProgress(today, 7, 3, false)];
+      ]);
+      queries.monthProgressByMonth[monthStart(today)] = {
+        today.day: dailyProgress(today, minutes: 7, verses: 3),
+      };
       final viewModel = await newViewModel(service);
 
       expect(viewModel.todaysGoalProgress, 0);
@@ -296,11 +326,8 @@ void main() {
   group('reading reference', () {
     test('uses the resume position loaded with the plan', () async {
       final service = FakeReadingPlanService([
-        planDetails(
-          bookIds: const [8, 20],
-          resumePosition: const Reference(bookId: 20, chapter: 3, verse: 4),
-        ),
-      ]);
+        planDetails(bookIds: const [8, 20]),
+      ])..resumePosition = const Reference(bookId: 20, chapter: 3, verse: 4);
       final viewModel = await newViewModel(service);
 
       expect(
@@ -347,11 +374,15 @@ void main() {
     test('exposes calendar days for the visible month', () async {
       final month = monthStart(DateTime.now());
       final service = FakeReadingPlanService([planDetails()]);
-      service.monthProgressByMonth[month] = [
-        DayProgress(DateTime(month.year, month.month, 1), 10, 10, true),
-        DayProgress.empty(DateTime(month.year, month.month, 2)),
-        DayProgress(DateTime(month.year, month.month, 3), 0, 0, false),
-      ];
+      queries.monthProgressByMonth[month] = {
+        1: dailyProgress(
+          DateTime(month.year, month.month, 1),
+          minutes: 10,
+          verses: 10,
+          goalReached: true,
+        ),
+        3: dailyProgress(DateTime(month.year, month.month, 3)),
+      };
       final viewModel = await newViewModel(service);
 
       expect(viewModel.visibleMonth, month);
@@ -361,19 +392,31 @@ void main() {
       expect(progress.containsKey(2), isFalse);
       expect(progress[3], 0);
       expect(viewModel.dayProgress(1)!.goalReached, isTrue);
-      expect(viewModel.dayProgress(2)!.empty, isTrue);
+      expect(viewModel.dayProgress(2), isNull);
     });
 
     test('omits empty days and exposes clamped fractions', () async {
       final month = monthStart(DateTime.now());
       final service = FakeReadingPlanService([planDetails()]);
-      service.monthProgressByMonth[month] = [
-        DayProgress(DateTime(month.year, month.month, 1), 10, 4, false),
-        DayProgress.empty(DateTime(month.year, month.month, 2)),
-        DayProgress(DateTime(month.year, month.month, 3), 0, 0, false),
-        DayProgress(DateTime(month.year, month.month, 4), 10, 10, true),
-        DayProgress(DateTime(month.year, month.month, 5), 10, 20, false),
-      ];
+      queries.monthProgressByMonth[month] = {
+        1: dailyProgress(
+          DateTime(month.year, month.month, 1),
+          minutes: 10,
+          verses: 4,
+        ),
+        3: dailyProgress(DateTime(month.year, month.month, 3)),
+        4: dailyProgress(
+          DateTime(month.year, month.month, 4),
+          minutes: 10,
+          verses: 10,
+          goalReached: true,
+        ),
+        5: dailyProgress(
+          DateTime(month.year, month.month, 5),
+          minutes: 10,
+          verses: 20,
+        ),
+      };
       final viewModel = await newViewModel(service);
 
       final progress = viewModel.calendarProgress;
@@ -390,12 +433,53 @@ void main() {
       final service = FakeReadingPlanService([
         planDetails(goalType: GoalType.minutes, goalValue: 20),
       ]);
-      service.monthProgressByMonth[month] = [
-        DayProgress(DateTime(month.year, month.month, 1), 7, 3, false),
-      ];
+      queries.monthProgressByMonth[month] = {
+        1: dailyProgress(
+          DateTime(month.year, month.month, 1),
+          minutes: 7,
+          verses: 3,
+        ),
+      };
       final viewModel = await newViewModel(service);
 
       expect(viewModel.calendarProgress[1], closeTo(0.35, 1e-9));
+    });
+
+    test('uses the stored goal snapshot for calendar fractions', () async {
+      final month = monthStart(DateTime.now());
+      final service = FakeReadingPlanService([
+        planDetails(goalType: GoalType.verses, goalValue: 20),
+      ]);
+      queries.monthProgressByMonth[month] = {
+        1: dailyProgress(
+          DateTime(month.year, month.month, 1),
+          minutes: 10,
+          verses: 10,
+          goal: const DailyGoal(GoalType.verses, 10),
+        ),
+      };
+      final viewModel = await newViewModel(service);
+
+      expect(viewModel.calendarProgress[1], 1);
+    });
+
+    test('reads today separately from the visible month', () async {
+      final month = monthStart(DateTime.now());
+      final today = dateOnly(DateTime.now());
+      final service = FakeReadingPlanService([planDetails()]);
+      queries.monthProgressByMonth[month] = {
+        today.day: dailyProgress(today, minutes: 3, verses: 1),
+      };
+      queries.dayProgressByDay[today] = dailyProgress(
+        today,
+        minutes: 9,
+        verses: 5,
+      );
+      final viewModel = await newViewModel(service);
+
+      expect(viewModel.todaysProgress.verses, 5);
+      expect(viewModel.todaysProgress.minutes, 9);
+      expect(viewModel.calendarProgress[today.day], closeTo(0.1, 1e-9));
     });
 
     test(
@@ -404,16 +488,21 @@ void main() {
         final current = monthStart(DateTime.now());
         final next = DateTime(current.year, current.month + 1);
         final service = FakeReadingPlanService([planDetails()]);
-        service.monthProgressByMonth[current] = const [];
-        service.monthProgressByMonth[next] = [
-          DayProgress(DateTime(next.year, next.month, 1), 5, 5, true),
-        ];
+        queries.monthProgressByMonth[current] = const {};
+        queries.monthProgressByMonth[next] = {
+          1: dailyProgress(
+            DateTime(next.year, next.month, 1),
+            minutes: 5,
+            verses: 5,
+            goalReached: true,
+          ),
+        };
         final viewModel = await newViewModel(service);
 
         await viewModel.showNextMonth();
 
         expect(viewModel.visibleMonth, next);
-        expect(service.requestedMonths.last, next);
+        expect(queries.requestedMonths.last, next);
         expect(viewModel.calendarProgress[1], 1);
         expect(
           viewModel.dayProgress(1)!.day,
@@ -422,56 +511,111 @@ void main() {
       },
     );
 
+    test(
+      'refresh keeps today\'s progress while viewing another month',
+      () async {
+        final current = monthStart(DateTime.now());
+        final next = DateTime(current.year, current.month + 1);
+        final today = dateOnly(DateTime.now());
+        final service = FakeReadingPlanService([planDetails()]);
+        queries.dayProgressByDay[today] = dailyProgress(
+          today,
+          minutes: 7,
+          verses: 3,
+        );
+        queries.monthProgressByMonth[next] = const {};
+        final viewModel = await newViewModel(service);
+
+        await viewModel.showNextMonth();
+        queries.dayProgressByDay[today] = dailyProgress(
+          today,
+          minutes: 9,
+          verses: 5,
+        );
+        await viewModel.refresh();
+
+        expect(viewModel.visibleMonth, next);
+        expect(viewModel.todaysProgress.verses, 5);
+        expect(viewModel.todaysProgress.minutes, 9);
+        expect(queries.requestedDays, [today, today]);
+      },
+    );
+
     test('navigating back restores the previous month', () async {
       final current = monthStart(DateTime.now());
       final next = DateTime(current.year, current.month + 1);
       final service = FakeReadingPlanService([planDetails()]);
-      service.monthProgressByMonth[current] = const [];
-      service.monthProgressByMonth[next] = const [];
+      queries.monthProgressByMonth[current] = const {};
+      queries.monthProgressByMonth[next] = const {};
       final viewModel = await newViewModel(service);
 
       await viewModel.showNextMonth();
       await viewModel.showPreviousMonth();
 
       expect(viewModel.visibleMonth, current);
-      expect(service.requestedMonths.last, current);
+      expect(queries.requestedMonths.last, current);
     });
   });
 }
 
-ReadingPlanDetails planDetails({
+repo.ReadingPlan planDetails({
   int id = 7,
   String name = 'Ruth Plan',
   GoalType goalType = GoalType.verses,
   int goalValue = 10,
   List<int> bookIds = const [8],
-  Reference? resumePosition,
   bool isBookmarked = false,
 }) {
-  final details = ReadingPlanDetails(
-    ReadingPlan(
-      id: id,
-      planName: name,
-      createdAt: DateTime(2026, 1, 1),
-      goalType: goalType.name,
-      goalValue: goalValue,
-      isBookmarked: isBookmarked,
-    ),
-    [
-      for (var i = 0; i < bookIds.length; i++)
-        ReadingPlanBook(readingPlanId: id, bookId: bookIds[i], ord: i + 1),
-    ],
+  return repo.ReadingPlan(
+    id: id,
+    planName: name,
+    createdAt: DateTime(2026, 1, 1),
+    goalType: goalType,
+    goalValue: goalValue,
+    isBookmarked: isBookmarked,
+    bookIds: bookIds,
   );
-  details.resumePosition = resumePosition;
-  return details;
 }
 
-RsBookStats bookStats(
+ReadingPlanSummary summaryFor(
+  repo.ReadingPlan plan, {
+  List<BookStats> bookStats = const [],
+  Reference? resumePosition,
+}) {
+  final statsByBook = {for (final stat in bookStats) stat.bookId: stat};
+  final planId = plan.id;
+  final bookIds = plan.bookIds;
+  return ReadingPlanSummary(
+    config: ReadingPlanConfig(
+      planId: planId,
+      planName: plan.planName,
+      isBookmarked: plan.isBookmarked,
+      createdAt: plan.createdAt,
+      dailyGoal: DailyGoal(plan.goalType, plan.goalValue),
+      bookIds: bookIds,
+    ),
+    progress: ReadingPlanProgress(
+      planId: planId,
+      bookProgress: {
+        for (final bookId in bookIds)
+          bookId: BookProgress(
+            bookId: bookId,
+            totalVerses: statsByBook[bookId]?.totalVerses ?? 0,
+            versesRead: statsByBook[bookId]?.versesRead ?? 0,
+          ),
+      },
+      resumePosition: resumePosition,
+    ),
+    today: DailyProgress.empty(DateTime.now()),
+  );
+}
+
+BookStats bookStats(
   int bookId, {
   required int totalVerses,
   required int versesRead,
 }) {
-  return RsBookStats(
+  return BookStats(
     bookId: bookId,
     totalVerses: totalVerses,
     versesRead: versesRead,
@@ -483,3 +627,19 @@ DateTime dateOnly(DateTime value) =>
     DateTime(value.year, value.month, value.day);
 
 DateTime monthStart(DateTime value) => DateTime(value.year, value.month);
+
+DailyProgress dailyProgress(
+  DateTime day, {
+  int minutes = 0,
+  int verses = 0,
+  bool goalReached = false,
+  DailyGoal? goal,
+}) {
+  return DailyProgress(
+    day: day,
+    seconds: minutes * 60,
+    verses: verses,
+    goalReached: goalReached,
+    goal: goal,
+  );
+}

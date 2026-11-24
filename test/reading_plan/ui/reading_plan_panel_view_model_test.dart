@@ -1,28 +1,28 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gbt/asyncutils/cancellation.dart';
 import 'package:gbt/common/reference.dart';
+import 'package:gbt/reading_plan/data_access/reading_plan_read_models.dart';
 import 'package:gbt/reading_plan/ui/reading_plan_panel_view_model.dart';
-import 'package:gbt/reading_plan/data_access/rs_model.dart';
 
-import '../fake_reading_plan_service.dart';
+import '../fake_reading_plan_queries.dart';
 import '../fake_reading_session_view_model.dart';
 
 void main() {
-  late FakeReadingPlanService planService;
+  late FakeReadingPlanQueries queries;
   late FakeReadingSessionViewModel sessionViewModel;
   late ReadingPlanPanelViewModel viewModel;
 
   Future<ReadingPlanPanelViewModel> newViewModel({
-    FakeReadingPlanService? service,
+    FakeReadingPlanQueries? querySource,
   }) {
     return ReadingPlanPanelViewModel.create(
-      planService: service ?? planService,
+      queries: querySource ?? queries,
       sessionViewModel: sessionViewModel,
     );
   }
 
   setUp(() async {
-    planService = FakeReadingPlanService();
+    queries = FakeReadingPlanQueries();
     sessionViewModel = FakeReadingSessionViewModel();
     viewModel = await newViewModel();
   });
@@ -32,70 +32,79 @@ void main() {
   });
 
   group('initialization', () {
-    test('create loads plans with progress fields populated', () async {
-      final today = DateTime(2026, 11, 23);
-      planService.plans = [
-        planDetails(
-          'Ruth',
-          totalVerses: 85,
-          todayProgress: DayProgress(today, 0, 3, false),
-          resumePosition: const Reference(bookId: 8, chapter: 1, verse: 1),
-        ),
-      ];
-      final localViewModel = await newViewModel();
-      addTearDown(localViewModel.dispose);
+    test(
+      'create loads plan summaries with progress fields populated',
+      () async {
+        final today = DateTime(2026, 11, 23);
+        queries.plans = [
+          planSummary(
+            'Ruth',
+            totalVerses: 85,
+            today: DailyProgress(
+              day: today,
+              seconds: 0,
+              verses: 3,
+              goalReached: false,
+              goal: null,
+            ),
+            resumePosition: const Reference(bookId: 8, chapter: 1, verse: 1),
+          ),
+        ];
+        final localViewModel = await newViewModel();
+        addTearDown(localViewModel.dispose);
 
-      expect(localViewModel.plans, hasLength(1));
+        expect(localViewModel.plans, hasLength(1));
 
-      final plan = localViewModel.plans.single;
-      expect(plan.readingPlan.planName, 'Ruth');
-      expect(plan.totalVerses, 85);
-      expect(plan.versesRead, 0);
-      expect(plan.todayProgress?.verses, 3);
-      expect(plan.todayProgress?.goalReached, isFalse);
-      expect(
-        plan.resumePosition,
-        const Reference(bookId: 8, chapter: 1, verse: 1),
-      );
-    });
+        final plan = localViewModel.plans.single;
+        expect(plan.planName, 'Ruth');
+        expect(plan.totalVerses, 85);
+        expect(plan.versesRead, 0);
+        expect(plan.today.verses, 3);
+        expect(plan.today.goalReached, isFalse);
+        expect(
+          plan.resumePosition,
+          const Reference(bookId: 8, chapter: 1, verse: 1),
+        );
+      },
+    );
 
     test(
       'refresh replaces the plan list with the latest database state',
       () async {
         expect(viewModel.plans, isEmpty);
 
-        planService.plans = [planDetails('First')];
+        queries.plans = [planSummary('First')];
         await viewModel.refresh();
 
         expect(viewModel.plans, hasLength(1));
-        expect(viewModel.plans.single.readingPlan.planName, 'First');
+        expect(viewModel.plans.single.planName, 'First');
       },
     );
 
     test('a newer refresh cancels the in-flight one and wins', () async {
-      final service = FakeReadingPlanService();
-      final localViewModel = await newViewModel(service: service);
+      final querySource = FakeReadingPlanQueries();
+      final localViewModel = await newViewModel(querySource: querySource);
       addTearDown(localViewModel.dispose);
-      service.queueGetRequests = true;
+      querySource.queueGetRequests = true;
 
       final first = localViewModel.refresh();
       final second = localViewModel.refresh();
 
-      expect(service.getRequests, hasLength(2));
+      expect(querySource.getRequests, hasLength(2));
 
-      service.getRequests[0].complete([planDetails('Stale')]);
+      querySource.getRequests[0].complete([planSummary('Stale')]);
       await expectLater(first, throwsA(isA<CancelledError>()));
 
-      service.getRequests[1].complete([planDetails('Fresh')]);
+      querySource.getRequests[1].complete([planSummary('Fresh')]);
       await second;
 
-      expect(localViewModel.plans.single.readingPlan.planName, 'Fresh');
+      expect(localViewModel.plans.single.planName, 'Fresh');
     });
   });
 
   group('startReadingSession', () {
     test('starts a session for the selected plan', () async {
-      planService.plans = [planDetails('Ruth', id: 7)];
+      queries.plans = [planSummary('Ruth', id: 7)];
       final localViewModel = await newViewModel();
       addTearDown(localViewModel.dispose);
       final plan = localViewModel.plans.single;
@@ -104,21 +113,15 @@ void main() {
 
       expect(sessionViewModel.startedPlanIds, [7]);
     });
-
-    test('does not start a session when the plan has no id', () async {
-      await viewModel.startReadingSession(planDetails('Unsaved', id: null));
-
-      expect(sessionViewModel.startedPlanIds, isEmpty);
-    });
   });
 
   group('dispose', () {
     test(
       'does not notify after dispose while a refresh is in flight',
       () async {
-        final service = FakeReadingPlanService();
-        final localViewModel = await newViewModel(service: service);
-        service.queueGetRequests = true;
+        final querySource = FakeReadingPlanQueries();
+        final localViewModel = await newViewModel(querySource: querySource);
+        querySource.queueGetRequests = true;
         var notifications = 0;
         localViewModel.addListener(() => notifications++);
 
@@ -126,7 +129,7 @@ void main() {
         final notificationsBeforeDispose = notifications;
 
         localViewModel.dispose();
-        service.getRequests.single.complete([planDetails('Late')]);
+        querySource.getRequests.single.complete([planSummary('Late')]);
         await expectLater(future, throwsA(isA<CancelledError>()));
 
         expect(notifications, notificationsBeforeDispose);
@@ -135,28 +138,34 @@ void main() {
   });
 }
 
-ReadingPlanDetails planDetails(
+ReadingPlanSummary planSummary(
   String name, {
-  int? id = 1,
+  int id = 1,
   int totalVerses = 0,
   int versesRead = 0,
-  DayProgress? todayProgress,
+  DailyProgress? today,
   Reference? resumePosition,
 }) {
-  final details = ReadingPlanDetails(
-    ReadingPlan(
-      id: id,
+  return ReadingPlanSummary(
+    config: ReadingPlanConfig(
+      planId: id,
       planName: name,
-      createdAt: DateTime.now(),
-      goalType: GoalType.verses.name,
-      goalValue: 10,
       isBookmarked: false,
+      createdAt: DateTime.now(),
+      dailyGoal: const DailyGoal(GoalType.verses, 10),
+      bookIds: const [8],
     ),
-    const [],
+    progress: ReadingPlanProgress(
+      planId: id,
+      bookProgress: {
+        8: BookProgress(
+          bookId: 8,
+          totalVerses: totalVerses,
+          versesRead: versesRead,
+        ),
+      },
+      resumePosition: resumePosition,
+    ),
+    today: today ?? DailyProgress.empty(DateTime.now()),
   );
-  details.totalVerses = totalVerses;
-  details.versesRead = versesRead;
-  details.todayProgress = todayProgress;
-  details.resumePosition = resumePosition;
-  return details;
 }

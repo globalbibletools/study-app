@@ -1,4 +1,4 @@
-import 'package:gbt/reading_plan/data_access/rs_model.dart' show GoalType;
+import 'package:gbt/reading_plan/model.dart' show GoalType;
 import 'package:sqflite/sqflite.dart';
 
 class ReadingPlanRepository {
@@ -24,6 +24,37 @@ class ReadingPlanRepository {
     );
 
     return ReadingPlan.fromMaps(plan: planRows.first, books: bookRows);
+  }
+
+  Future<List<ReadingPlan>> list() async {
+    final planRows = await _database.query(
+      'reading_plan',
+      orderBy: 'is_bookmarked desc, created_at desc',
+    );
+    if (planRows.isEmpty) return const [];
+
+    final planIds = [for (final row in planRows) row['id'] as int];
+    final placeholders = List.filled(planIds.length, '?').join(', ');
+    final bookRows = await _database.query(
+      'reading_plan_book',
+      columns: ['reading_plan_id', 'book_id'],
+      where: 'reading_plan_id IN ($placeholders)',
+      whereArgs: planIds,
+      orderBy: 'reading_plan_id, ord',
+    );
+
+    final booksByPlan = <int, List<Map<String, dynamic>>>{};
+    for (final row in bookRows) {
+      (booksByPlan[row['reading_plan_id'] as int] ??= []).add(row);
+    }
+
+    return [
+      for (final row in planRows)
+        ReadingPlan.fromMaps(
+          plan: row,
+          books: booksByPlan[row['id'] as int] ?? const [],
+        ),
+    ];
   }
 
   Future<int> commit(ReadingPlan plan) {
@@ -123,7 +154,7 @@ class ReadingPlan {
       id: plan['id'] as int,
       planName: plan['plan_name'],
       createdAt: DateTime.parse(plan['created_at']),
-      goalType: _goalTypeFromStorage(plan['goal_type'] as String?),
+      goalType: GoalType.fromStorage(plan['goal_type'] as String?),
       goalValue: plan['goal_value'],
       isBookmarked: plan['is_bookmarked'] == 1,
       bookIds: [for (final book in books) book['book_id'] as int],
@@ -135,7 +166,7 @@ class ReadingPlan {
       'id': id,
       'plan_name': planName,
       'created_at': createdAt.toIso8601String(),
-      'goal_type': _goalTypeToStorage(goalType),
+      'goal_type': goalType.storageValue,
       'goal_value': goalValue,
       'is_bookmarked': isBookmarked ? 1 : 0,
     };
@@ -147,13 +178,4 @@ class ReadingPlan {
         {'reading_plan_id': id, 'book_id': bookIds[i], 'ord': i + 1},
     ];
   }
-
-  static GoalType _goalTypeFromStorage(String? stored) {
-    // Legacy rows use the single-letter codes 'M'/'V'; newer rows use the
-    // enum names. Both map back onto the enum here.
-    final value = stored?.toLowerCase() ?? '';
-    return value.startsWith('m') ? GoalType.minutes : GoalType.verses;
-  }
-
-  static String _goalTypeToStorage(GoalType goalType) => goalType.name;
 }

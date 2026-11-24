@@ -2,7 +2,6 @@ import 'package:material_ui/material_ui.dart';
 import 'package:gbt/common/word.dart';
 import 'package:gbt/services/gloss/gloss_service.dart';
 import 'package:gbt/services/hebrew_greek/database.dart';
-import 'package:gbt/reading_plan/data_access/rs_model.dart';
 import 'package:gbt/reading_plan/ui/reading_session_view_model.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/services/settings/user_settings.dart';

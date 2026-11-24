@@ -5,22 +5,21 @@ import 'package:gbt/common/reference.dart';
 import 'package:gbt/reading_plan/data_access/reading_plan_repository.dart'
     as repo;
 import 'package:gbt/reading_plan/reading_plan_service.dart';
-import 'package:gbt/reading_plan/data_access/rs_model.dart';
+import 'package:gbt/reading_plan/data_access/reading_plan_read_models.dart';
+import 'package:gbt/reading_plan/data_access/verse_state_repository.dart';
+
+import 'fake_reading_plan_queries.dart';
 
 class FakeReadingPlanService extends Fake implements ReadingPlanService {
-  FakeReadingPlanService([List<ReadingPlanDetails>? plans])
-    : plans = plans ?? [];
+  FakeReadingPlanService([List<repo.ReadingPlan>? plans]) : plans = plans ?? [];
 
-  List<ReadingPlanDetails> plans;
-  List<RsBookStats> bookStats = const [];
-  List<DayProgress> monthProgress = const [];
-  List<SessionDetails> detailedProgress = const [];
+  List<repo.ReadingPlan> plans;
+  List<BookStats> bookStats = const [];
   Reference? resumePosition;
 
-  final monthProgressByMonth = <DateTime, List<DayProgress>>{};
-  final requestedMonths = <DateTime>[];
-  final detailedProgressDates = <DateTime>[];
-  final detailedProgressPlanIds = <int>[];
+  /// When set, commands that change day activity update this fake too.
+  FakeReadingPlanQueries? queries;
+
   final addedManualSessions = <AddManualSessionCall>[];
   final deletedManualSessionIds = <int>[];
   final deletedPlanIds = <int>[];
@@ -54,99 +53,24 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
   bool queueDeleteRequests = false;
   final deleteRequests = <Completer<void>>[];
 
-  /// When true, calls to [getReadingPlansWithProgress] wait until the
-  /// corresponding completer in [getRequests] is completed.
-  bool queueGetRequests = false;
-  final getRequests = <Completer<List<ReadingPlanDetails>>>[];
+  /// When true, calls to [getDayActivity] wait until the corresponding
+  /// completer in [dayActivityRequests] is completed.
+  bool queueDayActivityRequests = false;
+  final dayActivityRequests = <Completer<DayActivity>>[];
 
-  /// When true, calls to [getReadingPlanById] wait until the corresponding
-  /// completer in [planRequests] is completed.
-  bool queuePlanRequests = false;
-  final planRequests = <Completer<ReadingPlanDetails?>>[];
-
-  /// When true, calls to [getBooksStats] wait until the corresponding
-  /// completer in [statsRequests] is completed.
-  bool queueStatsRequests = false;
-  final statsRequests = <Completer<List<RsBookStats>>>[];
-
-  /// When true, calls to [getDetailedProgressFor] wait until the corresponding
-  /// completer in [detailedProgressRequests] is completed.
-  bool queueDetailedProgressRequests = false;
-  final detailedProgressRequests = <Completer<List<SessionDetails>>>[];
-
-  /// When set, detailed progress queries throw this instead of returning data.
-  Object? detailedProgressError;
+  /// When set, day activity queries throw this instead of returning data.
+  Object? dayActivityError;
 
   /// Start time assigned to sessions created through [addManualSession].
   DateTime nextManualSessionStartTime = DateTime(2026, 11, 17, 9, 30);
 
   int _nextSessionId = 1000;
 
-  /// Number of times [getReadingPlanById] has been called.
-  int getPlanByIdCalls = 0;
-
-  ReadingPlanDetails? _detailsFor(int planId) =>
-      plans.where((plan) => plan.readingPlan.id == planId).firstOrNull;
+  repo.ReadingPlan? _planForId(int planId) =>
+      plans.where((plan) => plan.id == planId).firstOrNull;
 
   @override
-  Future<List<ReadingPlanDetails>> getReadingPlansWithProgress({
-    DateTime? today,
-  }) {
-    if (queueGetRequests) {
-      final request = Completer<List<ReadingPlanDetails>>();
-      getRequests.add(request);
-      return request.future;
-    }
-    return Future.value(List.of(plans));
-  }
-
-  @override
-  Future<ReadingPlanDetails?> getReadingPlanById(int planId) {
-    getPlanByIdCalls++;
-    if (queuePlanRequests) {
-      final request = Completer<ReadingPlanDetails?>();
-      planRequests.add(request);
-      return request.future;
-    }
-    return Future.value(_detailsFor(planId));
-  }
-
-  @override
-  Future<List<RsBookStats>> getBooksStats(int readingPlanId) {
-    if (queueStatsRequests) {
-      final request = Completer<List<RsBookStats>>();
-      statsRequests.add(request);
-      return request.future;
-    }
-    return Future.value(List.of(bookStats));
-  }
-
-  @override
-  Future<List<SessionDetails>> getDetailedProgressFor(
-    DateTime date,
-    int readingPlanId,
-  ) {
-    detailedProgressDates.add(date);
-    detailedProgressPlanIds.add(readingPlanId);
-
-    if (queueDetailedProgressRequests) {
-      final request = Completer<List<SessionDetails>>();
-      detailedProgressRequests.add(request);
-      return request.future;
-    }
-
-    final error = detailedProgressError;
-    if (error != null) return Future.error(error);
-    return Future.value(List.of(detailedProgress));
-  }
-
-  @override
-  Future<Reference?> getResumeReference(int planId) async {
-    return _detailsFor(planId)?.resumePosition ?? resumePosition;
-  }
-
-  @override
-  Future<SessionDetails> addManualSession({
+  Future<void> addManualSession({
     required int readingPlanId,
     required DateTime date,
     required double minutes,
@@ -161,56 +85,26 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
     addedManualSessions.add(call);
 
     final readSeconds = (minutes * 60).round();
-    final session = SessionDetails(
-      RsSession(
-        id: _nextSessionId++,
-        rsDate: DateTime(date.year, date.month, date.day),
-        startTime: nextManualSessionStartTime,
-        endTime: nextManualSessionStartTime.add(Duration(seconds: readSeconds)),
-        readSeconds: readSeconds,
-        verses: verses,
-        readingPlanId: readingPlanId,
-        isManual: true,
-      ),
-      const [],
+    final session = SessionActivity(
+      sessionId: _nextSessionId++,
+      startTime: nextManualSessionStartTime,
+      readSeconds: readSeconds,
+      verses: verses,
+      isManual: true,
+      ranges: const [],
     );
-    detailedProgress = [...detailedProgress, session];
-    return session;
+    queries?.dayActivity = [...?queries?.dayActivity, session];
   }
 
   @override
-  Future<bool> deleteManualSession(int sessionId) async {
+  Future<void> deleteManualSession(int sessionId) async {
     deletedManualSessionIds.add(sessionId);
-    detailedProgress = detailedProgress
-        .where((session) => session.rsSession.id != sessionId)
-        .toList();
-    return true;
-  }
-
-  @override
-  Future<DayProgress> getDayProgress(int readingPlanId, DateTime date) async {
-    final progress =
-        [
-          ...monthProgress,
-          for (final month in monthProgressByMonth.values) ...month,
-        ].where(
-          (progress) =>
-              progress.day.year == date.year &&
-              progress.day.month == date.month &&
-              progress.day.day == date.day,
-        );
-
-    return progress.firstOrNull ?? DayProgress.empty(date);
-  }
-
-  @override
-  Future<List<DayProgress>> getMonthProgress(
-    int readingPlanId,
-    DateTime month,
-  ) async {
-    final normalized = DateTime(month.year, month.month);
-    requestedMonths.add(normalized);
-    return monthProgressByMonth[normalized] ?? monthProgress;
+    final current = queries?.dayActivity;
+    if (current != null) {
+      queries!.dayActivity = current
+          .where((session) => session.sessionId != sessionId)
+          .toList();
+    }
   }
 
   @override
@@ -252,7 +146,7 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
   repo.ReadingPlan _planFor(SaveReadingPlanCall call) {
     final existing = call.planId == null || call.planId == 0
         ? null
-        : _detailsFor(call.planId!)?.readingPlan;
+        : _planForId(call.planId!);
     final plan = repo.ReadingPlan(
       id: existing?.id ?? _nextPlanId++,
       planName: call.planName,
@@ -267,33 +161,21 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
   }
 
   void _storeSavedPlan(SaveReadingPlanCall call, repo.ReadingPlan plan) {
-    final details = ReadingPlanDetails(
-      ReadingPlan(
-        id: plan.id,
-        planName: plan.planName,
-        createdAt: plan.createdAt,
-        goalType: plan.goalType.name,
-        goalValue: plan.goalValue,
-        isBookmarked: plan.isBookmarked,
-      ),
-      [
-        for (var i = 0; i < plan.bookIds.length; i++)
-          ReadingPlanBook(
-            readingPlanId: plan.id,
-            bookId: plan.bookIds[i],
-            ord: i + 1,
-          ),
-      ],
-    );
-
-    final index = plans.indexWhere(
-      (existing) => existing.readingPlan.id == plan.id,
-    );
+    final index = plans.indexWhere((existing) => existing.id == plan.id);
     if (index == -1) {
-      plans.add(details);
+      plans.add(plan);
     } else {
-      plans[index] = details;
+      plans[index] = plan;
     }
+
+    queries?.configs[plan.id] = ReadingPlanConfig(
+      planId: plan.id,
+      planName: plan.planName,
+      isBookmarked: plan.isBookmarked,
+      createdAt: plan.createdAt,
+      dailyGoal: DailyGoal(plan.goalType, plan.goalValue),
+      bookIds: plan.bookIds,
+    );
   }
 
   int _nextPlanId = 100;
@@ -304,11 +186,14 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
     if (error != null) throw error;
 
     bookmarkedValues.add(isBookmarked);
-    final details = _detailsFor(planId);
-    if (details != null) {
-      details.readingPlan = details.readingPlan.copyWith(
-        isBookmarked: isBookmarked,
-      );
+    final index = plans.indexWhere((plan) => plan.id == planId);
+    if (index != -1) {
+      final plan = plans[index].copyWith(isBookmarked: isBookmarked);
+      plans[index] = plan;
+      final config = queries?.configs[planId];
+      if (config != null) {
+        queries!.configs[planId] = config.copyWith(isBookmarked: isBookmarked);
+      }
     }
   }
 
@@ -322,19 +207,14 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
 
     final ordered = List<int>.of(bookIds);
     reorderedBooks.add(ordered);
-    final details = _detailsFor(readingPlanId);
-    if (details != null) {
-      final index = plans.indexWhere(
-        (plan) => plan.readingPlan.id == readingPlanId,
-      );
-      plans[index] = ReadingPlanDetails(details.readingPlan, [
-        for (var i = 0; i < ordered.length; i++)
-          ReadingPlanBook(
-            readingPlanId: readingPlanId,
-            bookId: ordered[i],
-            ord: i + 1,
-          ),
-      ])..resumePosition = details.resumePosition;
+    final index = plans.indexWhere((plan) => plan.id == readingPlanId);
+    if (index != -1) {
+      final plan = plans[index].copyWith(bookIds: ordered);
+      plans[index] = plan;
+      final config = queries?.configs[readingPlanId];
+      if (config != null) {
+        queries!.configs[readingPlanId] = config.copyWith(bookIds: ordered);
+      }
     }
   }
 
@@ -350,7 +230,8 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
     }
 
     deletedPlanIds.add(planId);
-    plans = plans.where((plan) => plan.readingPlan.id != planId).toList();
+    plans = plans.where((plan) => plan.id != planId).toList();
+    queries?.configs.remove(planId);
   }
 }
 

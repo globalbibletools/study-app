@@ -5,15 +5,17 @@ import 'package:gbt/reading_plan/ui/reading_plan_card.dart';
 import 'package:gbt/reading_plan/ui/reading_plan_detail_panel.dart';
 import 'package:gbt/reading_plan/ui/reading_plan_panel.dart';
 import 'package:gbt/reading_plan/ui/reading_plan_panel_view_model.dart';
+import 'package:gbt/reading_plan/data_access/reading_plan_queries.dart';
+import 'package:gbt/reading_plan/data_access/reading_plan_read_models.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
 import 'package:gbt/reading_plan/ui/reading_session_view_model.dart';
 import 'package:gbt/reading_plan/ui/progress_circle.dart';
-import 'package:gbt/reading_plan/data_access/rs_model.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/messaging/messenger_view_model.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../fixtures/fake_messenger_view_model.dart';
+import '../fake_reading_plan_queries.dart';
 import '../fake_reading_plan_service.dart';
 import '../fake_reading_session_view_model.dart';
 
@@ -21,11 +23,13 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late FakeReadingPlanService planService;
+  late FakeReadingPlanQueries queries;
   late FakeReadingSessionViewModel sessionViewModel;
   late FakeMessengerViewModel fakeMessenger;
 
   setUp(() {
     planService = FakeReadingPlanService();
+    queries = FakeReadingPlanQueries();
     sessionViewModel = FakeReadingSessionViewModel();
     fakeMessenger = FakeMessengerViewModel();
     getIt.registerSingleton<MessengerViewModel>(fakeMessenger);
@@ -38,7 +42,7 @@ void main() {
 
   Future<ReadingPlanPanelViewModel> createViewModel() {
     return ReadingPlanPanelViewModel.create(
-      planService: planService,
+      queries: queries,
       sessionViewModel: sessionViewModel,
     );
   }
@@ -109,9 +113,9 @@ void main() {
     });
 
     testWidgets('shows one card per plan', (tester) async {
-      planService.plans = [
-        planDetails('Ruth', id: 1),
-        planDetails('Psalms', id: 2),
+      queries.plans = [
+        planSummary('Ruth', id: 1),
+        planSummary('Psalms', id: 2),
       ];
 
       await pumpPanel(tester);
@@ -128,9 +132,9 @@ void main() {
     testWidgets('shows the bookmark ribbon only for bookmarked plans', (
       tester,
     ) async {
-      planService.plans = [
-        planDetails('Bookmarked', id: 1, isBookmarked: true),
-        planDetails('Plain', id: 2),
+      queries.plans = [
+        planSummary('Bookmarked', id: 1, isBookmarked: true),
+        planSummary('Plain', id: 2),
       ];
 
       await pumpPanel(tester);
@@ -146,13 +150,13 @@ void main() {
     });
 
     testWidgets('shows the remaining verses for today', (tester) async {
-      planService.plans = [
-        planDetails(
+      queries.plans = [
+        planSummary(
           'Ruth',
           id: 1,
           goalType: GoalType.verses,
           goalValue: 10,
-          todayProgress: DayProgress(day, 0, 3, false),
+          today: dailyProgress(day, verses: 3),
         ),
       ];
 
@@ -162,13 +166,13 @@ void main() {
     });
 
     testWidgets('shows the remaining minutes for today', (tester) async {
-      planService.plans = [
-        planDetails(
+      queries.plans = [
+        planSummary(
           'Ruth',
           id: 1,
           goalType: GoalType.minutes,
           goalValue: 30,
-          todayProgress: DayProgress(day, 18, 0, false),
+          today: dailyProgress(day, minutes: 18),
         ),
       ];
 
@@ -180,13 +184,13 @@ void main() {
     testWidgets('shows a check and completion label when the goal is reached', (
       tester,
     ) async {
-      planService.plans = [
-        planDetails(
+      queries.plans = [
+        planSummary(
           'Ruth',
           id: 1,
           goalType: GoalType.verses,
           goalValue: 10,
-          todayProgress: DayProgress(day, 0, 12, true),
+          today: dailyProgress(day, verses: 12, goalReached: true),
         ),
       ];
 
@@ -204,13 +208,13 @@ void main() {
     testWidgets('shows overall progress circle and read over total verses', (
       tester,
     ) async {
-      planService.plans = [
-        planDetails(
+      queries.plans = [
+        planSummary(
           'Ruth',
           id: 1,
           totalVerses: 100,
           versesRead: 66,
-          todayProgress: DayProgress(day, 0, 0, false),
+          today: dailyProgress(day),
         ),
       ];
 
@@ -231,7 +235,7 @@ void main() {
         tester,
         navigateToCreatePlanRoute: (context, name) async {
           openedNames.add(name);
-          planService.plans = [planDetails('New Plan', id: 2)];
+          queries.plans = [planSummary('New Plan', id: 2)];
         },
       );
 
@@ -246,12 +250,12 @@ void main() {
       tester,
     ) async {
       final editedPlanIds = <int>[];
-      planService.plans = [planDetails('Ruth', id: 1)];
+      queries.plans = [planSummary('Ruth', id: 1)];
       await pumpPanel(
         tester,
         navigateToEditPlanRoute: (context, planId) async {
           editedPlanIds.add(planId);
-          planService.plans = [planDetails('Edited Ruth', id: 1)];
+          queries.plans = [planSummary('Edited Ruth', id: 1)];
         },
       );
 
@@ -265,7 +269,7 @@ void main() {
 
   group('card actions', () {
     testWidgets('shows edit but no delete action', (tester) async {
-      planService.plans = [planDetails('Ruth', id: 1)];
+      queries.plans = [planSummary('Ruth', id: 1)];
       await pumpPanel(tester);
 
       final card = find.byType(ReadingPlanCard);
@@ -288,12 +292,12 @@ void main() {
       tester,
     ) async {
       final openedPlanIds = <int>[];
-      planService.plans = [planDetails('Ruth', id: 1)];
+      queries.plans = [planSummary('Ruth', id: 1)];
       await pumpPanel(
         tester,
         navigateToPlanDetailsRoute: (context, planId) async {
           openedPlanIds.add(planId);
-          planService.plans = [planDetails('Renamed Ruth', id: 1)];
+          queries.plans = [planSummary('Renamed Ruth', id: 1)];
         },
       );
 
@@ -313,9 +317,11 @@ void main() {
     testWidgets('initializes the detail view model before navigating', (
       tester,
     ) async {
-      planService.plans = [planDetails('Ruth', id: 1)];
-      planService.queuePlanRequests = true;
+      final summary = planSummary('Ruth', id: 1);
+      queries.plans = [summary];
+      queries.queueSummaryRequests = true;
       getIt.registerSingleton<ReadingPlanService>(planService);
+      getIt.registerSingleton<ReadingPlanQueries>(queries);
       getIt.registerSingleton<ReadingSessionViewModel>(sessionViewModel);
 
       await pumpPanel(tester);
@@ -323,13 +329,19 @@ void main() {
       await tester.pump();
 
       expect(find.byType(ReadingPlanDetailPanel), findsNothing);
-      expect(planService.planRequests, hasLength(1));
+      expect(queries.summaryRequests, hasLength(1));
 
-      planService.planRequests.single.complete(planService.plans.single);
+      queries.summaryRequests.single.complete(summary);
       await tester.pumpAndSettle();
 
       expect(find.byType(ReadingPlanDetailPanel), findsOneWidget);
-      expect(find.text('Ruth'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(ReadingPlanDetailPanel),
+          matching: find.text('Ruth'),
+        ),
+        findsWidgets,
+      );
     });
   });
 
@@ -337,8 +349,8 @@ void main() {
     testWidgets('resume starts the session and closes the panel', (
       tester,
     ) async {
-      planService.plans = [
-        planDetails(
+      queries.plans = [
+        planSummary(
           'Ruth',
           id: 7,
           resumePosition: const Reference(bookId: 8, chapter: 1, verse: 1),
@@ -402,31 +414,52 @@ class _PanelLauncher extends StatelessWidget {
   }
 }
 
-ReadingPlanDetails planDetails(
+ReadingPlanSummary planSummary(
   String name, {
-  int? id = 1,
+  int id = 1,
   int totalVerses = 0,
   int versesRead = 0,
   bool isBookmarked = false,
   GoalType goalType = GoalType.verses,
   int goalValue = 10,
-  DayProgress? todayProgress,
+  DailyProgress? today,
   Reference? resumePosition,
 }) {
-  final details = ReadingPlanDetails(
-    ReadingPlan(
-      id: id,
+  return ReadingPlanSummary(
+    config: ReadingPlanConfig(
+      planId: id,
       planName: name,
-      createdAt: DateTime.now(),
-      goalType: goalType.name,
-      goalValue: goalValue,
       isBookmarked: isBookmarked,
+      createdAt: DateTime.now(),
+      dailyGoal: DailyGoal(goalType, goalValue),
+      bookIds: const [8],
     ),
-    const [],
+    progress: ReadingPlanProgress(
+      planId: id,
+      bookProgress: {
+        8: BookProgress(
+          bookId: 8,
+          totalVerses: totalVerses,
+          versesRead: versesRead,
+        ),
+      },
+      resumePosition: resumePosition,
+    ),
+    today: today ?? DailyProgress.empty(DateTime.now()),
   );
-  details.totalVerses = totalVerses;
-  details.versesRead = versesRead;
-  details.todayProgress = todayProgress;
-  details.resumePosition = resumePosition;
-  return details;
+}
+
+DailyProgress dailyProgress(
+  DateTime day, {
+  int minutes = 0,
+  int verses = 0,
+  bool goalReached = false,
+}) {
+  return DailyProgress(
+    day: day,
+    seconds: minutes * 60,
+    verses: verses,
+    goalReached: goalReached,
+    goal: null,
+  );
 }

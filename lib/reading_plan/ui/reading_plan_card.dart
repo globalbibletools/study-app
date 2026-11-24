@@ -1,11 +1,10 @@
 import 'dart:math' as math;
 
 import 'package:material_ui/material_ui.dart';
-import 'package:gbt/common/reference.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/l10n/book_names.dart';
 import 'package:gbt/reading_plan/ui/progress_circle.dart';
-import 'package:gbt/reading_plan/data_access/rs_model.dart';
+import 'package:gbt/reading_plan/data_access/reading_plan_read_models.dart';
 
 class ReadingPlanCard extends StatelessWidget {
   const ReadingPlanCard({
@@ -16,7 +15,7 @@ class ReadingPlanCard extends StatelessWidget {
     required this.onStartSession,
   });
 
-  final ReadingPlanDetails plan;
+  final ReadingPlanSummary plan;
   final VoidCallback onOpenDetails;
   final VoidCallback onEdit;
   final VoidCallback onStartSession;
@@ -72,7 +71,7 @@ class ReadingPlanCard extends StatelessWidget {
               const SizedBox(height: resumeOverhangBoxHeight),
             ],
           ),
-          if (plan.readingPlan.isBookmarked)
+          if (plan.isBookmarked)
             Positioned(left: 20, top: -8, child: _bookmarkRibbon(context)),
           Positioned(right: 16, bottom: 0, child: _resumeButton(context)),
         ],
@@ -85,7 +84,7 @@ class ReadingPlanCard extends StatelessWidget {
 
     return Icon(
       Icons.bookmark,
-      key: ValueKey('plan-bookmark-ribbon-${plan.readingPlan.id}'),
+      key: ValueKey('plan-bookmark-ribbon-${plan.planId}'),
       color: colorScheme.primary,
       size: 28,
     );
@@ -94,13 +93,11 @@ class ReadingPlanCard extends StatelessWidget {
   Widget _todayGoalProgress(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
-    final today = plan.todayProgress;
-    final goalReached = today?.goalReached ?? false;
+    final today = plan.today;
+    final goalReached = today.goalReached;
     final remaining =
         plan.dailyGoal.value -
-        (plan.dailyGoal.type == GoalType.verses
-            ? today?.verses ?? 0
-            : today?.minutes ?? 0);
+        (plan.dailyGoal.type == GoalType.verses ? today.verses : today.minutes);
     final remainingCount = math.max(remaining, 0).ceil();
     final label = goalReached
         ? l10n.dailyGoalReached
@@ -109,7 +106,7 @@ class ReadingPlanCard extends StatelessWidget {
         : l10n.minutesLeft(remainingCount);
 
     return Row(
-      key: ValueKey('plan-daily-goal-${plan.readingPlan.id}'),
+      key: ValueKey('plan-daily-goal-${plan.planId}'),
       mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.end,
       spacing: 4,
@@ -149,7 +146,7 @@ class ReadingPlanCard extends StatelessWidget {
         children: [
           Flexible(
             child: Text(
-              plan.readingPlan.planName,
+              plan.planName,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
@@ -208,19 +205,13 @@ class ReadingPlanCard extends StatelessWidget {
   }
 
   Widget _resumeButton(BuildContext context) {
-    final resumeTarget =
-        plan.resumePosition ??
-        Reference(
-          bookId: plan.books.isNotEmpty ? plan.books.first.bookId : 1,
-          chapter: 1,
-          verse: 1,
-        );
+    final resumeTarget = plan.resumeTarget;
     final bookName = bookNameFromId(context, resumeTarget.bookId);
     final resumeReference =
         '$bookName ${resumeTarget.chapter}:${resumeTarget.verse}';
 
     return FilledButton(
-      key: ValueKey('plan-resume-${plan.readingPlan.id}'),
+      key: ValueKey('plan-resume-${plan.planId}'),
       onPressed: onStartSession,
       style: FilledButton.styleFrom(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),

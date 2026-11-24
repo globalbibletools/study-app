@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:gbt/common/reference.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
 import 'package:gbt/reading_plan/data_access/rs_database.dart';
-import 'package:gbt/reading_plan/data_access/rs_model.dart';
+import 'package:gbt/reading_plan/model.dart';
 import 'package:gbt/reading_plan/data_access/session_repository.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
@@ -27,10 +27,7 @@ void main() {
     );
     await database.resetDatabase();
     await database.init();
-    planService = ReadingPlanService.withDependencies(
-      database: database,
-      bibleNavigation: createTestBibleNavigation(),
-    );
+    planService = ReadingPlanService.withDependencies(database: database);
   });
 
   tearDown(() {
@@ -45,37 +42,34 @@ void main() {
       bookIds: [1, 2, 3],
     );
 
-    final fetchedPlan = await planService.getReadingPlanById(savedPlanId);
-    expect(fetchedPlan, isNotNull);
-    expect(fetchedPlan!.readingPlan.planName, 'Service Test');
-    expect(fetchedPlan.readingPlan.goalValue, 15);
-    expect(fetchedPlan.books.map((b) => b.bookId), [1, 2, 3]);
-    expect(fetchedPlan.resumePosition?.bookId, 1);
-    expect(fetchedPlan.resumePosition?.chapter, 1);
-    expect(fetchedPlan.resumePosition?.verse, 1);
+    final fetchedPlan = (await database.readingPlans.getById(savedPlanId))!;
+    expect(fetchedPlan.planName, 'Service Test');
+    expect(fetchedPlan.goalValue, 15);
+    expect(fetchedPlan.bookIds, [1, 2, 3]);
+    final summary = (await database.queries.getPlanSummary(savedPlanId))!;
+    expect(
+      summary.resumeTarget,
+      const Reference(bookId: 1, chapter: 1, verse: 1),
+    );
 
     await planService.setReadingPlanBookmark(savedPlanId, true);
 
-    final reloadedPlan = await planService.getReadingPlanById(savedPlanId);
-    expect(reloadedPlan!.readingPlan.isBookmarked, isTrue);
+    final reloadedPlan = (await database.readingPlans.getById(savedPlanId))!;
+    expect(reloadedPlan.isBookmarked, isTrue);
 
     await planService.reorderReadingPlanBooks(
       savedPlanId,
-      reloadedPlan.books.reversed.map((book) => book.bookId).toList(),
+      reloadedPlan.bookIds.reversed.toList(),
     );
 
-    final reorderedPlan = await planService.getReadingPlanById(savedPlanId);
-    expect(reorderedPlan!.books.map((b) => b.bookId), [3, 2, 1]);
-    expect(reorderedPlan.books.map((b) => b.ord), [1, 2, 3]);
+    final reorderedPlan = (await database.readingPlans.getById(savedPlanId))!;
+    expect(reorderedPlan.bookIds, [3, 2, 1]);
 
-    final allPlans = await planService.getReadingPlans();
-    expect(
-      allPlans.where((p) => p.readingPlan.id == savedPlanId),
-      hasLength(1),
-    );
+    final allPlans = await database.queries.getPlanSummaries();
+    expect(allPlans.where((plan) => plan.planId == savedPlanId), hasLength(1));
 
     await planService.deleteReadingPlan(savedPlanId);
-    expect(await planService.getReadingPlanById(savedPlanId), isNull);
+    expect(await database.readingPlans.getById(savedPlanId), isNull);
   });
 
   test('loads today\'s progress for each listed plan', () async {
@@ -123,28 +117,28 @@ void main() {
     );
     await database.daySummary.upsert(minutePlanId, today);
 
-    final plans = await planService.getReadingPlansWithProgress(
+    final plans = await database.queries.getPlanSummaries(
       today: DateTime(2026, 11, 23, 15, 30),
     );
 
     final verseDetails = plans.singleWhere(
-      (plan) => plan.readingPlan.id == versePlanId,
+      (plan) => plan.planId == versePlanId,
     );
-    expect(verseDetails.todayProgress?.day, today);
-    expect(verseDetails.todayProgress?.verses, 7);
-    expect(verseDetails.todayProgress?.goalReached, isTrue);
+    expect(verseDetails.today.day, today);
+    expect(verseDetails.today.verses, 7);
+    expect(verseDetails.today.goalReached, isTrue);
 
     final minuteDetails = plans.singleWhere(
-      (plan) => plan.readingPlan.id == minutePlanId,
+      (plan) => plan.planId == minutePlanId,
     );
-    expect(minuteDetails.todayProgress?.minutes, 5);
-    expect(minuteDetails.todayProgress?.goalReached, isFalse);
+    expect(minuteDetails.today.minutes, 5);
+    expect(minuteDetails.today.goalReached, isFalse);
 
     final untouchedDetails = plans.singleWhere(
-      (plan) => plan.readingPlan.id == untouchedPlanId,
+      (plan) => plan.planId == untouchedPlanId,
     );
-    expect(untouchedDetails.todayProgress?.empty, isTrue);
-    expect(untouchedDetails.todayProgress?.day, today);
+    expect(untouchedDetails.today.hasSummary, isFalse);
+    expect(untouchedDetails.today.day, today);
   });
 
   test('loads a single day of progress independently of the month', () async {
@@ -168,18 +162,18 @@ void main() {
     );
     await database.daySummary.upsert(savedPlanId, date);
 
-    final progress = await planService.getDayProgress(savedPlanId, date);
-    expect(progress.empty, isFalse);
+    final progress = await database.queries.getDayProgress(savedPlanId, date);
+    expect(progress.hasSummary, isTrue);
     expect(progress.day, DateTime(2026, 11, 5));
     expect(progress.minutes, 12.5);
     expect(progress.verses, 7);
     expect(progress.goalReached, isTrue);
 
-    final empty = await planService.getDayProgress(
+    final empty = await database.queries.getDayProgress(
       savedPlanId,
       DateTime(2026, 11, 6),
     );
-    expect(empty.empty, isTrue);
+    expect(empty.hasSummary, isFalse);
     expect(empty.day, DateTime(2026, 11, 6));
   });
 
@@ -192,43 +186,53 @@ void main() {
     );
     final date = DateTime(2026, 11, 20);
 
-    final details = await planService.addManualSession(
+    await planService.addManualSession(
       readingPlanId: savedPlanId,
       date: date,
       minutes: 12.5,
       verses: 8,
     );
 
-    expect(details.rsSession.isManual, isTrue);
-    expect(details.rsSession.rsDate, date);
-    expect(details.rsSession.readSeconds, 750);
-    expect(details.rsSession.verses, 8);
-    expect(await database.getRsLogForSession(details.rsSession.id!), isEmpty);
+    final details = (await database.queries.getDayActivity(
+      savedPlanId,
+      date,
+    )).sessions.single;
 
-    final day = await planService.getDayProgress(savedPlanId, date);
-    expect(day.empty, isFalse);
+    expect(details.isManual, isTrue);
+    expect(details.readSeconds, 750);
+    expect(details.verses, 8);
+    expect(details.ranges, isEmpty);
+    expect(
+      await database.sessionLog.listForSession(details.sessionId),
+      isEmpty,
+    );
+
+    final day = await database.queries.getDayProgress(savedPlanId, date);
+    expect(day.hasSummary, isTrue);
     expect(day.minutes, 12.5);
     expect(day.verses, 8);
     expect(day.goalReached, isTrue);
 
-    final month = await planService.getMonthProgress(savedPlanId, date);
-    final monthDay = month.singleWhere((entry) => entry.day.day == 20);
+    final monthDay = (await database.queries.getMonthDayProgress(
+      savedPlanId,
+      date,
+    ))[20]!;
     expect(monthDay.minutes, 12.5);
     expect(monthDay.verses, 8);
 
-    final stats = await planService.getBooksStats(savedPlanId);
-    final ruth = stats.singleWhere((stat) => stat.bookId == 63);
+    final planSummary = (await database.queries.getPlanSummary(savedPlanId))!;
+    final ruth = planSummary.bookProgress[63]!;
     expect(ruth.versesRead, 0);
     expect(ruth.isComplete, isFalse);
 
-    final counts = await database.getVerseReadCountsForChapter(
-      savedPlanId,
-      63,
-      1,
-    );
-    expect(counts.values.every((count) => count == 0), isTrue);
+    for (int verse = 1; verse <= 13; verse++) {
+      expect(
+        await database.verseState.getReadCount(savedPlanId, 63, 1, verse),
+        0,
+      );
+    }
     expect(
-      await planService.getResumeReference(savedPlanId),
+      (await database.queries.getPlanSummary(savedPlanId))!.resumePosition,
       const Reference(bookId: 63, chapter: 1, verse: 1),
     );
   });
@@ -242,34 +246,42 @@ void main() {
     );
     final date = DateTime(2026, 11, 20);
 
-    final first = await planService.addManualSession(
+    await planService.addManualSession(
       readingPlanId: savedPlanId,
       date: date,
       minutes: 6,
       verses: 4,
     );
-    final second = await planService.addManualSession(
+    final first = (await database.queries.getDayActivity(
+      savedPlanId,
+      date,
+    )).sessions.single;
+    await planService.addManualSession(
       readingPlanId: savedPlanId,
       date: date,
       minutes: 5,
       verses: 2,
     );
+    final second = (await database.queries.getDayActivity(
+      savedPlanId,
+      date,
+    )).sessions.singleWhere((session) => session.sessionId != first.sessionId);
 
-    var day = await planService.getDayProgress(savedPlanId, date);
+    var day = await database.queries.getDayProgress(savedPlanId, date);
     expect(day.minutes, 11);
     expect(day.verses, 6);
 
-    expect(await planService.deleteManualSession(first.rsSession.id!), isTrue);
+    await planService.deleteManualSession(first.sessionId);
 
-    day = await planService.getDayProgress(savedPlanId, date);
+    day = await database.queries.getDayProgress(savedPlanId, date);
     expect(day.minutes, 5);
     expect(day.verses, 2);
 
-    expect(await planService.deleteManualSession(second.rsSession.id!), isTrue);
+    await planService.deleteManualSession(second.sessionId);
 
-    day = await planService.getDayProgress(savedPlanId, date);
-    expect(day.empty, isTrue);
-    expect(await database.getDaySummary(savedPlanId, date), isNull);
+    day = await database.queries.getDayProgress(savedPlanId, date);
+    expect(day.hasSummary, isFalse);
+    expect(await database.daySummary.get(savedPlanId, date), isNull);
   });
 
   test('rejects deleting a normal session', () async {
@@ -335,6 +347,6 @@ void main() {
       throwsArgumentError,
     );
 
-    expect(await database.getSessionsForDate(date, savedPlanId), isEmpty);
+    expect(await database.session.listForDate(date, savedPlanId), isEmpty);
   });
 }
