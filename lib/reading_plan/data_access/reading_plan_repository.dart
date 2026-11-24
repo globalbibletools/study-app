@@ -1,3 +1,4 @@
+import 'package:gbt/reading_plan/data_access/backup_rows.dart';
 import 'package:gbt/reading_plan/model.dart' show GoalType;
 import 'package:sqflite/sqflite.dart';
 
@@ -87,6 +88,61 @@ class ReadingPlanRepository {
 
       return planId;
     });
+  }
+
+  Future<Map<String, List<Map<String, Object?>>>> exportAll({
+    DatabaseExecutor? executor,
+  }) async {
+    final db = executor ?? _database;
+    return {
+      'reading_plan': await db.query('reading_plan', orderBy: 'id'),
+      'reading_plan_book': await db.query(
+        'reading_plan_book',
+        orderBy: 'reading_plan_id, ord',
+      ),
+    };
+  }
+
+  static const _planColumns = [
+    'id',
+    'plan_name',
+    'created_at',
+    'goal_type',
+    'goal_value',
+    'is_bookmarked',
+  ];
+
+  static const _planBookColumns = ['reading_plan_id', 'book_id', 'ord'];
+
+  Future<void> importAll(
+    Map<String, Object?> tables, {
+    required DatabaseExecutor executor,
+  }) async {
+    final planRows = parseBackupRows(tables['reading_plan'], 'reading_plan');
+    final bookRows = parseBackupRows(
+      tables['reading_plan_book'],
+      'reading_plan_book',
+    );
+
+    await deleteAll(executor: executor);
+
+    final batch = executor.batch();
+    for (final row in planRows) {
+      batch.insert('reading_plan', pickBackupColumns(row, _planColumns));
+    }
+    for (final row in bookRows) {
+      batch.insert(
+        'reading_plan_book',
+        pickBackupColumns(row, _planBookColumns),
+      );
+    }
+    await batch.commit(noResult: true);
+  }
+
+  Future<void> deleteAll({DatabaseExecutor? executor}) async {
+    final db = executor ?? _database;
+    await db.delete('reading_plan_book');
+    await db.delete('reading_plan');
   }
 
   Future<void> delete(int planId, {DatabaseExecutor? executor}) async {

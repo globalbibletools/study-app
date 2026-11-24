@@ -40,6 +40,14 @@ void main() {
     database.dispose();
   });
 
+  String backupJson(int formatVersion, Map<String, dynamic> tables) {
+    return jsonEncode({
+      'format_version': formatVersion,
+      'created_at': '2026-05-01T00:00:00.000',
+      'tables': tables,
+    });
+  }
+
   test('default constructor resolves the database from getIt', () async {
     if (getIt.isRegistered<ReadingSessionDatabase>()) {
       await getIt.unregister<ReadingSessionDatabase>();
@@ -235,6 +243,14 @@ void main() {
     for (final row in planRows) {
       // Backups written before v8 persisted the denormalized collection id.
       row['collection_id'] = 1;
+      row['last_read'] = '2026-11-01T00:00:00.000';
+      row['future_column'] = 'ignored';
+    }
+    final bookRows = (tables['reading_plan_book'] as List)
+        .cast<Map<String, dynamic>>();
+    for (final row in bookRows) {
+      row['id'] = 99;
+      row['future_column'] = 'ignored';
     }
 
     await planService.deleteReadingPlan(planId);
@@ -247,71 +263,136 @@ void main() {
     expect(restored.bookIds, [1, 2]);
   });
 
-  test(
-    'v1 restore rebuilds verse state from rs_log and materializes zeros',
-    () async {
-      await database.restoreBackupTables({
-        'rs_daily_log': [
+  test('derives read_seconds from timestamps in older v2 backups', () async {
+    await backupService.restoreBackupJson(
+      backupJson(2, {
+        'reading_plan': [
+          {
+            'id': 5,
+            'plan_name': 'Derived Seconds',
+            'created_at': '2026-04-01T00:00:00.000',
+            'goal_type': 'M',
+            'goal_value': 10,
+            'is_bookmarked': 0,
+          },
+        ],
+        'reading_plan_book': [
+          {'reading_plan_id': 5, 'book_id': 1, 'ord': 1},
+        ],
+        'rs_session': [
           {
             'id': 1,
             'rs_date': '2026-04-30',
             'start_time': '2026-04-30T09:00:00.000',
             'end_time': '2026-04-30T09:20:00.000',
+            'read_seconds': 'not-a-number',
             'verses': 3,
-          },
-        ],
-        'rs_log': [
-          {
-            'id': 1,
-            'rs_daily_log_id': 1,
-            'book_id': 1,
-            'chapter': 1,
-            'verse': 1,
-            'date_time': '2026-04-30T09:05:00.000',
+            'reading_plan_id': 5,
           },
           {
             'id': 2,
-            'rs_daily_log_id': 1,
-            'book_id': 1,
-            'chapter': 1,
-            'verse': 1,
-            'date_time': '2026-04-30T09:10:00.000',
-          },
-          {
-            'id': 3,
-            'rs_daily_log_id': 1,
-            'book_id': 1,
-            'chapter': 1,
-            'verse': 2,
-            'date_time': '2026-04-30T09:15:00.000',
+            'rs_date': '2026-04-30',
+            'start_time': '2026-04-30T10:00:00.000',
+            'end_time': '2026-04-30T10:00:30.000',
+            'verses': 1,
+            'reading_plan_id': 5,
           },
         ],
-        'rs_stats': [
+        'rs_log': [],
+        'rs_day_summary': [
           {
-            'id': 1,
-            'type': 'D',
-            'stats_date': '2026-04-30',
-            'rs_seconds': 1200,
-            'rs_verses': 3,
-            'goal_reached': 1,
+            'reading_plan_id': 5,
+            'rs_date': '2026-04-30',
+            'rs_seconds': 0,
+            'rs_verses': 0,
+            'goal_type': 'M',
+            'goal_value': 10,
+            'goal_reached': 0,
           },
         ],
-        'rs_book_progress': [
-          {
-            'id': 1,
-            'book_id': 1,
-            'chapter': 1,
-            'verse': 15,
-            'chapters_read': 0,
-            'verses_read': 99,
-            'updated_at': '2026-04-30T09:20:00.000',
-          },
-        ],
-      }, formatVersion: 1);
+      }),
+    );
+
+    final sessions = await database.session.listForDate(
+      DateTime(2026, 4, 30),
+      5,
+    );
+    expect(sessions, hasLength(2));
+    expect(sessions.singleWhere((s) => s.id == 1).readSeconds, 20 * 60);
+    expect(sessions.singleWhere((s) => s.id == 2).readSeconds, 30);
+    expect(sessions.every((s) => !s.isManual), isTrue);
+  });
+
+  test(
+    'v1 restore rebuilds verse state from rs_log and materializes zeros',
+    () async {
+      await backupService.restoreBackupJson(
+        backupJson(1, {
+          'rs_daily_log': [
+            {
+              'id': 1,
+              'rs_date': '2026-04-30',
+              'start_time': '2026-04-30T09:00:00.000',
+              'end_time': '2026-04-30T09:20:00.000',
+              'verses': 3,
+            },
+          ],
+          'rs_log': [
+            {
+              'id': 1,
+              'rs_daily_log_id': 1,
+              'book_id': 1,
+              'chapter': 1,
+              'verse': 1,
+              'date_time': '2026-04-30T09:05:00.000',
+            },
+            {
+              'id': 2,
+              'rs_daily_log_id': 1,
+              'book_id': 1,
+              'chapter': 1,
+              'verse': 1,
+              'date_time': '2026-04-30T09:10:00.000',
+            },
+            {
+              'id': 3,
+              'rs_daily_log_id': 1,
+              'book_id': 1,
+              'chapter': 1,
+              'verse': 2,
+              'date_time': '2026-04-30T09:15:00.000',
+            },
+          ],
+          'rs_stats': [
+            {
+              'id': 1,
+              'type': 'D',
+              'stats_date': '2026-04-30',
+              'rs_seconds': 1200,
+              'rs_verses': 3,
+              'goal_reached': 1,
+            },
+          ],
+          'rs_book_progress': [
+            {
+              'id': 1,
+              'book_id': 1,
+              'chapter': 1,
+              'verse': 15,
+              'chapters_read': 0,
+              'verses_read': 99,
+              'updated_at': '2026-04-30T09:20:00.000',
+            },
+          ],
+        }),
+      );
 
       final plan = await database.readingPlans.getById(1);
       expect(plan, isNotNull);
-      expect(plan!.bookIds, hasLength(66));
+      expect(plan!.planName, 'Whole Bible');
+      expect(plan.goalType, GoalType.minutes);
+      expect(plan.goalValue, 10);
+      expect(plan.bookIds, hasLength(66));
 
       // The v1 session rows land in rs_session with the plan remapped to 1.
       final restoredSessions = await database.session.listForDate(
@@ -320,6 +401,7 @@ void main() {
       );
       expect(restoredSessions, hasLength(1));
       expect(restoredSessions.single.verses, 3);
+      expect(restoredSessions.single.readSeconds, 20 * 60);
       expect(
         restoredSessions.single.endTime,
         DateTime.parse('2026-04-30T09:20:00.000'),
@@ -357,36 +439,83 @@ void main() {
     },
   );
 
-  test('rejects old-shape v2 backups that carry rs_daily_log', () async {
-    // Format v2 is unreleased; dev devices may hold old-shape v2 files saved
-    // before the format was finalized. They must fail loudly, not silently
-    // restore partial data.
-    await expectLater(
-      database.restoreBackupTables({
-        'reading_plan': [],
-        'reading_plan_book': [],
-        'rs_daily_log': [],
+  test('v1 restore recomputes the goal flag when a day has no stats', () async {
+    await backupService.restoreBackupJson(
+      backupJson(1, {
+        'rs_daily_log': [
+          {
+            'id': 1,
+            'rs_date': '2026-05-02',
+            'start_time': '2026-05-02T09:00:00.000',
+            'end_time': '2026-05-02T09:20:00.000',
+            'verses': 0,
+          },
+          {
+            'id': 2,
+            'rs_date': '2026-05-02T00:00:00.000',
+            'start_time': '2026-05-02T10:00:00.000',
+            'end_time': '2026-05-02T10:05:00.000',
+            'verses': 2,
+          },
+        ],
         'rs_log': [],
         'rs_stats': [],
-      }, formatVersion: 2),
-      throwsA(
-        isA<FormatException>().having(
-          (e) => e.message,
-          'message',
-          contains('rs_daily_log'),
-        ),
-      ),
+      }),
     );
+
+    final summaries = await database.daySummary.listBetween(
+      1,
+      DateTime(2026, 5, 2),
+      DateTime(2026, 5, 2),
+    );
+    expect(summaries, hasLength(1));
+    expect(summaries.single.rsSeconds, 25 * 60);
+    expect(summaries.single.rsVerses, 2);
+    expect(summaries.single.goalType, GoalType.minutes);
+    expect(summaries.single.goalValue, 10);
+    expect(summaries.single.goalReached, isTrue);
+  });
+
+  test('ignores legacy tables a v2 payload may still carry', () async {
+    await backupService.restoreBackupJson(
+      backupJson(2, {
+        'reading_plan': [
+          {
+            'id': 5,
+            'plan_name': 'Extra Tables',
+            'created_at': '2026-04-01T00:00:00.000',
+            'goal_type': 'M',
+            'goal_value': 10,
+            'is_bookmarked': 0,
+          },
+        ],
+        'reading_plan_book': [
+          {'reading_plan_id': 5, 'book_id': 1, 'ord': 1},
+        ],
+        'rs_session': [],
+        'rs_log': [],
+        'rs_day_summary': [],
+        'rs_daily_log': [],
+        'rs_stats': [],
+      }),
+    );
+
+    final plan = await database.readingPlans.getById(5);
+    expect(plan, isNotNull);
+    expect(plan!.planName, 'Extra Tables');
+    expect(plan.bookIds, [1]);
   });
 
   test('rejects v2 backups that are missing rs_day_summary', () async {
     await expectLater(
-      database.restoreBackupTables({
-        'reading_plan': [],
-        'reading_plan_book': [],
-        'rs_session': [],
-        'rs_log': [],
-      }, formatVersion: 2),
+      backupService.restoreBackupJson(
+        backupJson(2, {
+          'reading_plan': [],
+          'reading_plan_book': [],
+          'rs_session': [],
+          'rs_log': [],
+        }),
+      ),
       throwsA(
         isA<FormatException>().having(
           (e) => e.message,
@@ -395,5 +524,43 @@ void main() {
         ),
       ),
     );
+  });
+
+  test('a failed restore leaves the database untouched', () async {
+    final planId = await planService.saveReadingPlan(
+      planName: 'Survivor',
+      goalType: GoalType.verses,
+      goalValue: 12,
+      bookIds: [1],
+    );
+    final date = DateTime(2026, 11, 20);
+    await database.session.commit(
+      Session(
+        rsDate: date,
+        startTime: DateTime(2026, 11, 20, 8),
+        endTime: DateTime(2026, 11, 20, 8, 10),
+        readSeconds: 600,
+        verses: 4,
+        readingPlanId: planId,
+      ),
+    );
+
+    await expectLater(
+      backupService.restoreBackupJson(
+        backupJson(2, {
+          'reading_plan': [],
+          'reading_plan_book': [],
+          'rs_session': [],
+          'rs_log': [],
+        }),
+      ),
+      throwsFormatException,
+    );
+
+    final plans = await database.readingPlans.list();
+    expect(plans.where((plan) => plan.planName == 'Survivor'), hasLength(1));
+    final sessions = await database.session.listForDate(date, planId);
+    expect(sessions, hasLength(1));
+    expect(sessions.single.readSeconds, 600);
   });
 }

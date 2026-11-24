@@ -2,7 +2,7 @@ import 'package:gbt/common/reference.dart';
 import 'package:sqflite/sqflite.dart';
 
 class VerseStateRepository {
-  VerseStateRepository(Database database) : _database = database;
+  VerseStateRepository(DatabaseExecutor database) : _database = database;
 
   final DatabaseExecutor _database;
 
@@ -54,6 +54,11 @@ class VerseStateRepository {
       where: 'reading_plan_id = ?',
       whereArgs: [readingPlanId],
     );
+  }
+
+  Future<int> deleteAll({DatabaseExecutor? executor}) {
+    final db = executor ?? _database;
+    return db.delete('rs_verse_state');
   }
 
   Future<void> bulkInsert(

@@ -1,3 +1,4 @@
+import 'package:gbt/reading_plan/data_access/backup_rows.dart';
 import 'package:sqflite/sqflite.dart';
 
 class SessionRepository {
@@ -19,6 +20,43 @@ class SessionRepository {
       whereArgs: [session.id],
     );
     return session;
+  }
+
+  Future<List<Map<String, Object?>>> exportAll({
+    DatabaseExecutor? executor,
+  }) async {
+    final db = executor ?? _database;
+    return db.query('rs_session', orderBy: 'id');
+  }
+
+  static const _sessionColumns = [
+    'id',
+    'rs_date',
+    'start_time',
+    'end_time',
+    'read_seconds',
+    'verses',
+    'reading_plan_id',
+    'is_manual',
+  ];
+
+  Future<void> importAll(
+    Object? rows, {
+    required DatabaseExecutor executor,
+  }) async {
+    final sessionRows = parseBackupRows(rows, 'rs_session');
+
+    await executor.delete('rs_session');
+
+    final batch = executor.batch();
+    for (final row in sessionRows) {
+      batch.insert('rs_session', {
+        ...pickBackupColumns(row, _sessionColumns),
+        'read_seconds': _readSecondsFor(row),
+        'is_manual': row['is_manual'] ?? 0,
+      });
+    }
+    await batch.commit(noResult: true);
   }
 
   Future<int> delete(int id, {DatabaseExecutor? executor}) {
@@ -153,4 +191,22 @@ class Session {
       'is_manual': isManual ? 1 : 0,
     };
   }
+}
+
+int _readSecondsFor(Map<String, Object?> row) {
+  final stored = row['read_seconds'];
+  if (stored is num) return stored.toInt();
+
+  final start = _parseTimestamp(row['start_time']);
+  final end = _parseTimestamp(row['end_time']);
+  if (start == null || end == null) return 0;
+
+  final seconds = end.difference(start).inSeconds;
+  return seconds < 0 ? 0 : seconds;
+}
+
+DateTime? _parseTimestamp(Object? value) {
+  if (value == null) return null;
+  if (value is DateTime) return value;
+  return DateTime.tryParse(value.toString());
 }

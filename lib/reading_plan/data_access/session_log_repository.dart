@@ -1,3 +1,4 @@
+import 'package:gbt/reading_plan/data_access/backup_rows.dart';
 import 'package:sqflite/sqflite.dart';
 
 class SessionLogRepository {
@@ -12,6 +13,38 @@ class SessionLogRepository {
     final db = executor ?? _database;
     final id = await db.insert('rs_log', entry.toMap()..remove('id'));
     return id;
+  }
+
+  Future<List<Map<String, Object?>>> exportAll({
+    DatabaseExecutor? executor,
+  }) async {
+    final db = executor ?? _database;
+    return db.query('rs_log', orderBy: 'id');
+  }
+
+  static const _logColumns = [
+    'id',
+    'rs_session_id',
+    'reading_plan_id',
+    'book_id',
+    'chapter',
+    'verse',
+    'date_time',
+  ];
+
+  Future<void> importAll(
+    Object? rows, {
+    required DatabaseExecutor executor,
+  }) async {
+    final logRows = parseBackupRows(rows, 'rs_log');
+
+    await executor.delete('rs_log');
+
+    final batch = executor.batch();
+    for (final row in logRows) {
+      batch.insert('rs_log', pickBackupColumns(row, _logColumns));
+    }
+    await batch.commit(noResult: true);
   }
 
   Future<int> remove(int id, {DatabaseExecutor? executor}) {
