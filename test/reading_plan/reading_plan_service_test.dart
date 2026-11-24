@@ -39,7 +39,6 @@ void main() {
   test('creates, reads, updates, reorders, and deletes a plan', () async {
     final savedPlan = await planService.saveReadingPlan(
       planName: 'Service Test',
-      collectionId: 1,
       goalType: GoalType.verses,
       goalValue: 15,
       selectedBookIds: {3, 1, 2},
@@ -86,21 +85,18 @@ void main() {
     final today = DateTime(2026, 11, 23);
     final versePlan = await planService.saveReadingPlan(
       planName: 'Verse Goal Plan',
-      collectionId: 1,
       goalType: GoalType.verses,
       goalValue: 5,
       selectedBookIds: {63},
     );
     final minutePlan = await planService.saveReadingPlan(
       planName: 'Minute Goal Plan',
-      collectionId: 1,
       goalType: GoalType.minutes,
       goalValue: 10,
       selectedBookIds: {64},
     );
     final untouchedPlan = await planService.saveReadingPlan(
       planName: 'Untouched Plan',
-      collectionId: 1,
       goalType: GoalType.verses,
       goalValue: 5,
       selectedBookIds: {65},
@@ -157,7 +153,6 @@ void main() {
   test('loads a single day of progress independently of the month', () async {
     final savedPlan = await planService.saveReadingPlan(
       planName: 'Day Progress Test',
-      collectionId: 1,
       goalType: GoalType.verses,
       goalValue: 5,
       selectedBookIds: {63},
@@ -194,7 +189,6 @@ void main() {
   test('adds a manual session without touching verse progress', () async {
     final savedPlan = await planService.saveReadingPlan(
       planName: 'Manual Session Test',
-      collectionId: 1,
       goalType: GoalType.minutes,
       goalValue: 10,
       selectedBookIds: {63},
@@ -245,7 +239,6 @@ void main() {
   test('deletes manual sessions and recalculates the day summary', () async {
     final savedPlan = await planService.saveReadingPlan(
       planName: 'Manual Delete Test',
-      collectionId: 1,
       goalType: GoalType.minutes,
       goalValue: 10,
       selectedBookIds: {63},
@@ -285,7 +278,6 @@ void main() {
   test('rejects deleting a normal session', () async {
     final savedPlan = await planService.saveReadingPlan(
       planName: 'Normal Session Delete Test',
-      collectionId: 1,
       goalType: GoalType.verses,
       goalValue: 5,
       selectedBookIds: {63},
@@ -312,7 +304,6 @@ void main() {
   test('rejects invalid manual session input', () async {
     final savedPlan = await planService.saveReadingPlan(
       planName: 'Manual Validation Test',
-      collectionId: 1,
       goalType: GoalType.verses,
       goalValue: 5,
       selectedBookIds: {63},

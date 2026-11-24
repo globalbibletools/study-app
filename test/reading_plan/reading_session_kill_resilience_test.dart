@@ -87,7 +87,6 @@ void main() {
     test('ending a session without marking verses keeps the session', () async {
       final plan = await planService.saveReadingPlan(
         planName: 'Empty Session Test',
-        collectionId: 1,
         goalType: GoalType.verses,
         goalValue: 10,
         selectedBookIds: {63},
@@ -113,7 +112,6 @@ void main() {
       () async {
         final plan = await planService.saveReadingPlan(
           planName: 'Kill Test',
-          collectionId: 1,
           goalType: GoalType.verses,
           goalValue: 10,
           selectedBookIds: {63},
@@ -156,7 +154,6 @@ void main() {
       () async {
         final plan = await planService.saveReadingPlan(
           planName: 'Goal Change Test',
-          collectionId: 1,
           goalType: GoalType.verses,
           goalValue: 3,
           selectedBookIds: {63},
@@ -187,7 +184,6 @@ void main() {
         await planService.saveReadingPlan(
           existingPlanDetails: await planService.getReadingPlanById(plan.id!),
           planName: 'Goal Change Test',
-          collectionId: 1,
           goalType: GoalType.verses,
           goalValue: 10,
           selectedBookIds: {63},
@@ -218,7 +214,6 @@ void main() {
 
         final plan = await planService.saveReadingPlan(
           planName: 'Idle Flush Test',
-          collectionId: 1,
           goalType: GoalType.verses,
           goalValue: 10,
           selectedBookIds: {63},
@@ -253,7 +248,6 @@ void main() {
       () async {
         final plan = await planService.saveReadingPlan(
           planName: 'Pause Test',
-          collectionId: 1,
           goalType: GoalType.verses,
           goalValue: 10,
           selectedBookIds: {63},
@@ -306,7 +300,6 @@ void main() {
     test("today's calendar cell updates during a live session", () async {
       final plan = await planService.saveReadingPlan(
         planName: 'Live Cell Test',
-        collectionId: 1,
         goalType: GoalType.verses,
         goalValue: 5,
         selectedBookIds: {63},

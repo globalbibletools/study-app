@@ -32,7 +32,6 @@ void main() {
   Future<int> createPlan(List<int> books) async {
     final plan = await database.saveReadingPlan(
       planName: 'Verse State Test',
-      collectionId: 1,
       goalType: 'verses',
       goalValue: 10,
       orderedBookIds: books,
@@ -219,7 +218,6 @@ void main() {
       await database.saveReadingPlan(
         existingPlan: details!.readingPlan,
         planName: 'Verse State Test',
-        collectionId: 1,
         goalType: 'verses',
         goalValue: 10,
         orderedBookIds: [63],
@@ -234,7 +232,6 @@ void main() {
       await database.saveReadingPlan(
         existingPlan: details!.readingPlan,
         planName: 'Verse State Test',
-        collectionId: 1,
         goalType: 'verses',
         goalValue: 10,
         orderedBookIds: [63, 64],

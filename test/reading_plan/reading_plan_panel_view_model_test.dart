@@ -148,7 +148,6 @@ ReadingPlanDetails planDetails(
       id: id,
       planName: name,
       createdAt: DateTime.now(),
-      collectionId: 1,
       goalType: GoalType.verses.name,
       goalValue: 10,
       isBookmarked: false,

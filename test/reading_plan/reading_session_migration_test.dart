@@ -368,6 +368,38 @@ VALUES ('2026-05-02', '2026-05-02T09:00:00.000', '2026-05-02T09:10:00.000', 2, 1
         );
         expect(newSessionFlag.single['is_manual'], 0);
 
+        // 8. Run migration 8 (reading_session_8.sql): the plan's collection
+        // id is dropped via a table rebuild while rows, ids, defaults, and
+        // foreign keys are preserved.
+        executeSqlFile(db, 'assets/schemas/reading_session_8.sql');
+
+        final planColumnsAfterV8 = db
+            .select('PRAGMA table_info(reading_plan)')
+            .map((r) => r['name'])
+            .toList();
+        expect(planColumnsAfterV8, isNot(contains('collection_id')));
+        expect(
+          planColumnsAfterV8,
+          containsAll(['id', 'plan_name', 'goal_type']),
+        );
+
+        final preservedPlan = db.select(
+          'SELECT id, plan_name, goal_type, goal_value, is_bookmarked '
+          'FROM reading_plan',
+        );
+        expect(preservedPlan, hasLength(1));
+        expect(preservedPlan.single['id'], 1);
+        expect(preservedPlan.single['plan_name'], 'Whole Bible');
+        expect(preservedPlan.single['goal_type'], 'M');
+        expect(preservedPlan.single['goal_value'], 10);
+        expect(preservedPlan.single['is_bookmarked'], 0);
+
+        final planBooksAfterV8 = db.select(
+          'SELECT COUNT(*) AS count FROM reading_plan_book '
+          'WHERE reading_plan_id = 1',
+        );
+        expect(planBooksAfterV8.first['count'], 65);
+
         expect(db.select('PRAGMA foreign_key_check'), isEmpty);
       },
     );

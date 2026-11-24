@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gbt/asyncutils/cancellation.dart';
-import 'package:gbt/common/bible_collection.dart';
+import 'package:gbt/reading_plan/bible_collection.dart';
 import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/reading_plan/edit_reading_plan_view_model.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
@@ -38,14 +38,12 @@ void main() {
 
   Future<ReadingPlanDetails> savePlan({
     String name = 'Saved Plan',
-    int collectionId = 1,
     GoalType goalType = GoalType.verses,
     int goalValue = 10,
     Set<int> bookIds = const {1, 2},
   }) async {
     final plan = await planService.saveReadingPlan(
       planName: name,
-      collectionId: collectionId,
       goalType: goalType,
       goalValue: goalValue,
       selectedBookIds: bookIds,
@@ -62,7 +60,6 @@ void main() {
         final plan = details.readingPlan;
         expect(plan.id, isNull);
         expect(plan.planName, 'Morning Reading');
-        expect(plan.collectionId, 1);
         expect(plan.goalType, GoalType.verses.name);
         expect(plan.goalValue, 10);
 
@@ -84,7 +81,7 @@ void main() {
 
       expect(vm.isExisting, isFalse);
       expect(vm.name, 'My Plan');
-      expect(vm.selectedCollection.id, 1);
+      expect(vm.selectedCollection, BibleCollection.wholeBible);
       expect(vm.selectedBookIds, {for (int i = 1; i <= 66; i++) i});
       expect(vm.goalType, GoalType.verses);
       expect(vm.goalValue, 10);
@@ -97,7 +94,6 @@ void main() {
     test('seeds an existing-plan view model from its saved details', () async {
       final details = await savePlan(
         name: 'Epistles',
-        collectionId: 8,
         goalType: GoalType.minutes,
         goalValue: 20,
         bookIds: {45, 46},
@@ -107,7 +103,7 @@ void main() {
 
       expect(vm.isExisting, isTrue);
       expect(vm.name, 'Epistles');
-      expect(vm.selectedCollection.id, BibleCollections.custom.id);
+      expect(vm.selectedCollection, BibleCollection.custom);
       expect(vm.selectedBookIds, {45, 46});
       expect(vm.goalType, GoalType.minutes);
       expect(vm.goalValue, 20);
@@ -117,17 +113,16 @@ void main() {
 
     test('always offers Custom as a collection option', () async {
       final vm = await newViewModel();
-      expect(vm.collectionOptions.last, same(BibleCollections.custom));
+      expect(vm.collectionOptions.last, same(BibleCollection.custom));
 
       vm.setBooks([2, 1]);
 
-      expect(vm.collectionOptions.last, same(BibleCollections.custom));
+      expect(vm.collectionOptions.last, same(BibleCollection.custom));
     });
 
     test('initializes the custom draft from an existing custom plan', () async {
       final plan = await planService.saveReadingPlan(
         planName: 'Custom Plan',
-        collectionId: BibleCollections.custom.id,
         goalType: GoalType.verses,
         goalValue: 10,
         selectedBookIds: {46, 45},
@@ -136,13 +131,13 @@ void main() {
       final details = (await planService.getReadingPlanById(plan.id!))!;
 
       final vm = await existingViewModel(details);
-      expect(vm.selectedCollection, same(BibleCollections.custom));
+      expect(vm.selectedCollection, same(BibleCollection.custom));
       expect(vm.orderedBookIds, [46, 45]);
 
-      vm.selectCollection(BibleCollections.fromId(3)); // New Testament
-      vm.selectCollection(BibleCollections.custom);
+      vm.selectCollection(BibleCollection.newTestament); // New Testament
+      vm.selectCollection(BibleCollection.custom);
 
-      expect(vm.selectedCollection, same(BibleCollections.custom));
+      expect(vm.selectedCollection, same(BibleCollection.custom));
       expect(vm.orderedBookIds, [46, 45]);
     });
   });
@@ -171,15 +166,15 @@ void main() {
         var notifications = 0;
         vm.addListener(() => notifications++);
 
-        vm.selectCollection(BibleCollections.fromId(3)); // New Testament
+        vm.selectCollection(BibleCollection.newTestament); // New Testament
 
         expect(notifications, 1);
-        expect(vm.selectedCollection.id, 3);
+        expect(vm.selectedCollection, BibleCollection.newTestament);
         expect(vm.selectedBookIds, {for (int i = 40; i <= 66; i++) i});
         expect(vm.selectedBookCount, 27);
         expect(vm.collectionBookCount, 27);
 
-        vm.selectCollection(BibleCollections.fromId(3));
+        vm.selectCollection(BibleCollection.newTestament);
         expect(notifications, 1);
       },
     );
@@ -188,7 +183,7 @@ void main() {
       final vm = await newViewModel();
       vm.setBooks([1, 5]);
 
-      vm.selectCollection(BibleCollections.fromId(4)); // Torah
+      vm.selectCollection(BibleCollection.torah); // Torah
 
       expect(vm.selectedBookIds, {1, 2, 3, 4, 5});
     });
@@ -200,9 +195,9 @@ void main() {
         var notifications = 0;
         vm.addListener(() => notifications++);
 
-        vm.selectCollection(BibleCollections.custom);
+        vm.selectCollection(BibleCollection.custom);
 
-        expect(vm.selectedCollection, same(BibleCollections.custom));
+        expect(vm.selectedCollection, same(BibleCollection.custom));
         expect(vm.orderedBookIds, isEmpty);
         expect(vm.collectionBookCount, 0);
         expect(vm.selectedBookCount, 0);
@@ -256,19 +251,19 @@ void main() {
     test('a preset order keeps its collection selected', () async {
       final vm = await newViewModel();
 
-      vm.setBooks(BibleCollections.fromId(7).books);
+      vm.setBooks(BibleCollection.gospels.books);
 
-      expect(vm.selectedCollection.id, 7);
+      expect(vm.selectedCollection, BibleCollection.gospels);
       expect(vm.orderedBookIds, [40, 41, 42, 43]);
     });
 
     test('a reordered preset selects Custom', () async {
       final vm = await newViewModel();
-      final reversed = BibleCollections.fromId(4).books.reversed.toList();
+      final reversed = BibleCollection.torah.books.reversed.toList();
 
       vm.setBooks(reversed);
 
-      expect(vm.selectedCollection, same(BibleCollections.custom));
+      expect(vm.selectedCollection, same(BibleCollection.custom));
       expect(vm.orderedBookIds, reversed);
     });
 
@@ -279,7 +274,7 @@ void main() {
 
       vm.setBooks([2, 1]);
 
-      expect(vm.selectedCollection.id, BibleCollections.custom.id);
+      expect(vm.selectedCollection, BibleCollection.custom);
       expect(vm.orderedBookIds, [2, 1]);
       expect(notifications, hasLength(1));
     });
@@ -299,18 +294,18 @@ void main() {
   group('custom draft', () {
     test('retains a custom draft across preset switches', () async {
       final vm = await newViewModel();
-      vm.selectCollection(BibleCollections.custom);
+      vm.selectCollection(BibleCollection.custom);
       vm.setBooks([8, 2, 1]);
 
-      vm.selectCollection(BibleCollections.fromId(7)); // Gospels
-      expect(vm.selectedCollection.id, 7);
+      vm.selectCollection(BibleCollection.gospels); // Gospels
+      expect(vm.selectedCollection, BibleCollection.gospels);
 
-      vm.selectCollection(BibleCollections.fromId(4)); // Torah
-      expect(vm.selectedCollection.id, 4);
+      vm.selectCollection(BibleCollection.torah); // Torah
+      expect(vm.selectedCollection, BibleCollection.torah);
 
-      vm.selectCollection(BibleCollections.custom);
+      vm.selectCollection(BibleCollection.custom);
 
-      expect(vm.selectedCollection, same(BibleCollections.custom));
+      expect(vm.selectedCollection, same(BibleCollection.custom));
       expect(vm.orderedBookIds, [8, 2, 1]);
     });
 
@@ -318,13 +313,13 @@ void main() {
       'editing to a preset order leaves the custom draft unchanged',
       () async {
         final vm = await newViewModel();
-        vm.selectCollection(BibleCollections.custom);
+        vm.selectCollection(BibleCollection.custom);
         vm.setBooks([2, 1]);
 
-        vm.setBooks(BibleCollections.fromId(7).books);
-        expect(vm.selectedCollection.id, 7);
+        vm.setBooks(BibleCollection.gospels.books);
+        expect(vm.selectedCollection, BibleCollection.gospels);
 
-        vm.selectCollection(BibleCollections.custom);
+        vm.selectCollection(BibleCollection.custom);
 
         expect(vm.orderedBookIds, [2, 1]);
       },
@@ -402,7 +397,7 @@ void main() {
   group('submit', () {
     test('saves the current view model state', () async {
       final vm = await newViewModel('Daily Bread');
-      vm.selectCollection(BibleCollections.fromId(7)); // Gospels
+      vm.selectCollection(BibleCollection.gospels); // Gospels
       vm.setGoalType(GoalType.verses);
       vm.setGoalValue(25);
 
@@ -423,7 +418,6 @@ void main() {
       final call = planService.saveCalls.single;
       expect(call.existingPlanDetails, isNull);
       expect(call.planName, 'Daily Bread');
-      expect(call.collectionId, 7);
       expect(call.goalType, GoalType.verses);
       expect(call.goalValue, 25);
       expect(call.selectedBookIds, {40, 41, 42, 43});
@@ -444,38 +438,35 @@ void main() {
       expect(call.orderedBookIds, [for (int i = 1; i <= 66; i++) i]);
     });
 
-    test('saves collectionId 0 with the custom order', () async {
+    test('saves the custom order', () async {
       final vm = await newViewModel('Custom Plan');
-      vm.selectCollection(BibleCollections.custom);
+      vm.selectCollection(BibleCollection.custom);
       vm.setBooks([3, 1, 2]);
 
       expect(await vm.submit(), isTrue);
 
       final call = planService.saveCalls.single;
-      expect(call.collectionId, BibleCollections.custom.id);
       expect(call.orderedBookIds, [3, 1, 2]);
 
       final saved = planService.plans.single;
-      expect(saved.readingPlan.collectionId, BibleCollections.custom.id);
       expect(saved.books.map((b) => b.bookId), [3, 1, 2]);
     });
 
     test('does not persist an unselected custom draft', () async {
       final vm = await newViewModel('Torah Plan');
-      vm.selectCollection(BibleCollections.custom);
+      vm.selectCollection(BibleCollection.custom);
       vm.setBooks([2, 1]);
-      vm.selectCollection(BibleCollections.fromId(4)); // Torah
+      vm.selectCollection(BibleCollection.torah); // Torah
 
       expect(await vm.submit(), isTrue);
 
       final call = planService.saveCalls.single;
-      expect(call.collectionId, 4);
       expect(call.orderedBookIds, [1, 2, 3, 4, 5]);
 
       final reopened = await existingViewModel(planService.plans.single);
-      expect(reopened.selectedCollection.id, 4);
+      expect(reopened.selectedCollection, BibleCollection.torah);
 
-      reopened.selectCollection(BibleCollections.custom);
+      reopened.selectCollection(BibleCollection.custom);
       expect(reopened.orderedBookIds, isEmpty);
     });
 

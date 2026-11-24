@@ -215,7 +215,6 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
   Future<ReadingPlan> saveReadingPlan({
     ReadingPlanDetails? existingPlanDetails,
     required String planName,
-    required int collectionId,
     required GoalType goalType,
     required int goalValue,
     required Set<int> selectedBookIds,
@@ -224,7 +223,6 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
     final call = SaveReadingPlanCall(
       existingPlanDetails: existingPlanDetails,
       planName: planName,
-      collectionId: collectionId,
       goalType: goalType,
       goalValue: goalValue,
       selectedBookIds: Set.of(selectedBookIds),
@@ -258,7 +256,6 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
       planName: call.planName,
       createdAt: existing?.createdAt ?? DateTime.now(),
       lastRead: existing?.lastRead,
-      collectionId: call.collectionId,
       goalType: call.goalType.name,
       goalValue: call.goalValue,
       isBookmarked: existing?.isBookmarked ?? false,
@@ -345,7 +342,6 @@ class SaveReadingPlanCall {
   const SaveReadingPlanCall({
     required this.existingPlanDetails,
     required this.planName,
-    required this.collectionId,
     required this.goalType,
     required this.goalValue,
     required this.selectedBookIds,
@@ -354,7 +350,6 @@ class SaveReadingPlanCall {
 
   final ReadingPlanDetails? existingPlanDetails;
   final String planName;
-  final int collectionId;
   final GoalType goalType;
   final int goalValue;
   final Set<int> selectedBookIds;

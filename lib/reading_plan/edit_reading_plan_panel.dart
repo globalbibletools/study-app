@@ -1,6 +1,6 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:gbt/common/bible_collection.dart';
 import 'package:gbt/l10n/app_localizations.dart';
+import 'package:gbt/reading_plan/bible_collection.dart';
 import 'package:gbt/reading_plan/delete_reading_plan_confirm_dialog.dart';
 import 'package:gbt/reading_plan/edit_book_list_panel.dart';
 import 'package:gbt/reading_plan/edit_reading_plan_view_model.dart';
@@ -205,6 +205,7 @@ class _EditReadingPlanPanelState extends State<EditReadingPlanPanel> {
 
   Widget _collectionSelector() {
     final colorScheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
 
     return Row(
       spacing: 8,
@@ -232,7 +233,7 @@ class _EditReadingPlanPanelState extends State<EditReadingPlanPanel> {
                     return Align(
                       alignment: AlignmentDirectional.centerStart,
                       child: Text(
-                        BibleCollections.localizedName(context, collection),
+                        _collectionLabel(l10n, collection),
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
@@ -245,7 +246,7 @@ class _EditReadingPlanPanelState extends State<EditReadingPlanPanel> {
                   return DropdownMenuItem<BibleCollection>(
                     value: collection,
                     child: Text(
-                      BibleCollections.localizedName(context, collection),
+                      _collectionLabel(l10n, collection),
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
@@ -269,6 +270,21 @@ class _EditReadingPlanPanelState extends State<EditReadingPlanPanel> {
         ),
       ],
     );
+  }
+
+  String _collectionLabel(AppLocalizations l10n, BibleCollection collection) {
+    return switch (collection) {
+      BibleCollection.custom => l10n.custom,
+      BibleCollection.wholeBible => l10n.wholeBible,
+      BibleCollection.oldTestament => l10n.oldTestament,
+      BibleCollection.newTestament => l10n.newTestament,
+      BibleCollection.torah => l10n.torah,
+      BibleCollection.prophets => l10n.prophets,
+      BibleCollection.writings => l10n.writings,
+      BibleCollection.gospels => l10n.gospels,
+      BibleCollection.paulineEpistles => l10n.paulineEpistles,
+      BibleCollection.psalms => l10n.bookPsalms,
+    };
   }
 
   Future<void> _openBookListEditor() async {

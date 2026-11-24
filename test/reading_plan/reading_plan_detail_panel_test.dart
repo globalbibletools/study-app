@@ -595,7 +595,6 @@ ReadingPlanDetails planDetails({
       id: id,
       planName: name,
       createdAt: DateTime(2026, 1, 1),
-      collectionId: 1,
       goalType: goalType.name,
       goalValue: goalValue,
       isBookmarked: false,

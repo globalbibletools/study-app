@@ -270,7 +270,6 @@ class ReadingPlanService {
   Future<ReadingPlan> saveReadingPlan({
     ReadingPlanDetails? existingPlanDetails,
     required String planName,
-    required int collectionId,
     required GoalType goalType,
     required int goalValue,
     required Set<int> selectedBookIds,
@@ -306,7 +305,6 @@ class ReadingPlanService {
     return _database.saveReadingPlan(
       existingPlan: existingPlanDetails?.readingPlan,
       planName: planName,
-      collectionId: collectionId,
       goalType: goalType.name,
       goalValue: goalValue,
       orderedBookIds: orderedIds,

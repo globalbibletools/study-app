@@ -1,7 +1,7 @@
 import 'dart:collection';
 
 import 'package:flutter/foundation.dart';
-import 'package:gbt/common/bible_collection.dart';
+import 'package:gbt/reading_plan/bible_collection.dart';
 
 class EditBookListViewModel extends ChangeNotifier {
   EditBookListViewModel(List<int> initialBookIds)
@@ -10,7 +10,7 @@ class EditBookListViewModel extends ChangeNotifier {
       _availableBookIds = _availableFor(initialBookIds);
 
   static final List<int> allBookIds = List.unmodifiable(
-    BibleCollections.allBooks,
+    BibleCollection.allBooks,
   );
 
   List<int> _bookIds;

@@ -2,8 +2,8 @@ import 'dart:collection';
 
 import 'package:flutter/foundation.dart';
 import 'package:gbt/asyncutils/cancellation.dart';
-import 'package:gbt/common/bible_collection.dart';
 import 'package:gbt/common/bible_navigation.dart';
+import 'package:gbt/reading_plan/bible_collection.dart';
 import 'package:gbt/reading_plan/reading_plan_estimates.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
@@ -11,23 +11,18 @@ import 'package:gbt/services/service_locator.dart';
 
 class EditReadingPlanViewModel extends ChangeNotifier {
   static ReadingPlanDetails defaultPlan(String name) {
-    final collection = BibleCollections.collections[0];
     final plan = ReadingPlan(
       planName: name,
       createdAt: DateTime.now(),
-      collectionId: collection.id,
       goalType: GoalType.verses.name,
       goalValue: 10,
       isBookmarked: false,
     );
+    final books = BibleCollection.wholeBible.books;
     return ReadingPlanDetails(plan, [
-      for (int i = 0; i < collection.books.length; i++)
+      for (int i = 0; i < books.length; i++)
         // Not persisted until the plan is saved.
-        ReadingPlanBook(
-          readingPlanId: 0,
-          bookId: collection.books[i],
-          ord: i + 1,
-        ),
+        ReadingPlanBook(readingPlanId: 0, bookId: books[i], ord: i + 1),
     ]);
   }
 
@@ -38,10 +33,7 @@ class EditReadingPlanViewModel extends ChangeNotifier {
   }) : _planService = planService,
        _bibleNavigation = bibleNavigation {
     _orderedBookIds = [for (final book in readingPlan.books) book.bookId];
-    _selectedCollection =
-        BibleCollections.matchingCollection(_orderedBookIds) ??
-        BibleCollections.custom;
-    _customBookIds = _selectedCollection.id == BibleCollections.custom.id
+    _customBookIds = selectedCollection == BibleCollection.custom
         ? List.of(_orderedBookIds)
         : [];
     _goalType = readingPlan.dailyGoal.type;
@@ -98,14 +90,11 @@ class EditReadingPlanViewModel extends ChangeNotifier {
 
   // Books and collection
 
-  late BibleCollection _selectedCollection;
-  BibleCollection get selectedCollection => _selectedCollection;
-  int get collectionBookCount => _selectedCollection.books.length;
+  BibleCollection get selectedCollection =>
+      BibleCollection.matchingCollection(_orderedBookIds);
+  int get collectionBookCount => selectedCollection.books.length;
 
-  List<BibleCollection> get collectionOptions => [
-    ...BibleCollections.collections,
-    BibleCollections.custom,
-  ];
+  List<BibleCollection> get collectionOptions => BibleCollection.values;
 
   /// The custom book list the user has created during this edit session.
   ///
@@ -116,12 +105,12 @@ class EditReadingPlanViewModel extends ChangeNotifier {
   late List<int> _customBookIds;
 
   void selectCollection(BibleCollection collection) {
-    if (collection.id == BibleCollections.custom.id) {
-      if (_selectedCollection.id == BibleCollections.custom.id) return;
+    if (collection == BibleCollection.custom) {
+      if (selectedCollection == BibleCollection.custom) return;
       setBooks(List<int>.of(_customBookIds));
       return;
     }
-    if (_selectedCollection.id == collection.id &&
+    if (selectedCollection == collection &&
         listEquals(_orderedBookIds, collection.books)) {
       return;
     }
@@ -137,11 +126,10 @@ class EditReadingPlanViewModel extends ChangeNotifier {
   void setBooks(List<int> bookIds) {
     if (listEquals(bookIds, _orderedBookIds)) return;
 
-    final preset = BibleCollections.matchingCollection(bookIds);
+    final preset = BibleCollection.matchingCollection(bookIds);
     _setState(() {
       _orderedBookIds = List.of(bookIds);
-      _selectedCollection = preset ?? BibleCollections.custom;
-      if (preset == null) {
+      if (preset == BibleCollection.custom) {
         _customBookIds = List.of(bookIds);
       }
     });
@@ -212,7 +200,6 @@ class EditReadingPlanViewModel extends ChangeNotifier {
                 ? readingPlan
                 : null,
             planName: _name,
-            collectionId: _selectedCollection.id,
             goalType: _goalType,
             goalValue: _goalValue,
             selectedBookIds: _orderedBookIds.toSet(),

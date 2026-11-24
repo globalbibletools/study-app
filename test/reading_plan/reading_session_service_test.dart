@@ -89,7 +89,6 @@ void main() {
   test('starts a session and returns a static plan config', () async {
     final plan = await planService.saveReadingPlan(
       planName: 'Session Service Test',
-      collectionId: 1,
       goalType: GoalType.verses,
       goalValue: 15,
       selectedBookIds: {63, 64},
@@ -101,7 +100,6 @@ void main() {
     final config = snapshot!.config;
     expect(config.planId, plan.id);
     expect(config.planName, 'Session Service Test');
-    expect(config.collectionId, 1);
     expect(config.dailyGoal.type, GoalType.verses);
     expect(config.dailyGoal.value, 15);
     expect(config.books.map((book) => book.bookId), [63, 64]);
@@ -124,7 +122,6 @@ void main() {
   test('starts a session from a plan id and clears it on end', () async {
     final plan = await planService.saveReadingPlan(
       planName: 'Session Service State Test',
-      collectionId: 1,
       goalType: GoalType.minutes,
       goalValue: 20,
       selectedBookIds: {19},
@@ -166,7 +163,6 @@ void main() {
   test('navigates to the plan resume reference', () async {
     final plan = await planService.saveReadingPlan(
       planName: 'Resume Navigation Test',
-      collectionId: 1,
       goalType: GoalType.verses,
       goalValue: 10,
       selectedBookIds: {19},
@@ -209,7 +205,6 @@ void main() {
     () async {
       final plan = await planService.saveReadingPlan(
         planName: 'Restart Test',
-        collectionId: 1,
         goalType: GoalType.verses,
         goalValue: 10,
         selectedBookIds: {63},
@@ -245,7 +240,6 @@ void main() {
     () async {
       final plan = await planService.saveReadingPlan(
         planName: 'Mark Test',
-        collectionId: 1,
         goalType: GoalType.verses,
         goalValue: 5,
         selectedBookIds: {63},
@@ -274,7 +268,6 @@ void main() {
     () async {
       final plan = await planService.saveReadingPlan(
         planName: 'Idempotent Read Test',
-        collectionId: 1,
         goalType: GoalType.verses,
         goalValue: 5,
         selectedBookIds: {63},
@@ -302,7 +295,6 @@ void main() {
     () async {
       final plan = await planService.saveReadingPlan(
         planName: 'Uncheck Test',
-        collectionId: 1,
         goalType: GoalType.verses,
         goalValue: 5,
         selectedBookIds: {63},
@@ -338,7 +330,6 @@ void main() {
   test('unchecking a verse not read in this session is a no-op', () async {
     final plan = await planService.saveReadingPlan(
       planName: 'No-op Uncheck Test',
-      collectionId: 1,
       goalType: GoalType.verses,
       goalValue: 5,
       selectedBookIds: {63},
@@ -369,7 +360,6 @@ void main() {
     () async {
       final plan = await planService.saveReadingPlan(
         planName: 'Rollover Test',
-        collectionId: 1,
         goalType: GoalType.verses,
         goalValue: 5,
         selectedBookIds: {63},
@@ -439,7 +429,6 @@ void main() {
     () async {
       final plan = await planService.saveReadingPlan(
         planName: 'Stale Session Test',
-        collectionId: 1,
         goalType: GoalType.verses,
         goalValue: 5,
         selectedBookIds: {63},
@@ -495,7 +484,6 @@ void main() {
   test('reports book completion with the next resume position', () async {
     final plan = await planService.saveReadingPlan(
       planName: 'Completion Test',
-      collectionId: 1,
       goalType: GoalType.verses,
       goalValue: 15,
       selectedBookIds: {63, 64},
@@ -522,7 +510,6 @@ void main() {
     () async {
       final plan = await planService.saveReadingPlan(
         planName: 'Goal Celebration Test',
-        collectionId: 1,
         goalType: GoalType.verses,
         goalValue: 2,
         selectedBookIds: {63},
@@ -553,7 +540,6 @@ void main() {
   test('heartbeat extends the session and end closes it', () async {
     final plan = await planService.saveReadingPlan(
       planName: 'Heartbeat Test',
-      collectionId: 1,
       goalType: GoalType.verses,
       goalValue: 10,
       selectedBookIds: {63},
@@ -594,7 +580,6 @@ void main() {
   test('returns null for actions on a missing session', () async {
     final plan = await planService.saveReadingPlan(
       planName: 'Missing Session Test',
-      collectionId: 1,
       goalType: GoalType.verses,
       goalValue: 10,
       selectedBookIds: {63},

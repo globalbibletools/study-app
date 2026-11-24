@@ -192,7 +192,6 @@ PRAGMA user_version = 3;
 
       final plan = await database.saveReadingPlan(
         planName: 'Materialization Test',
-        collectionId: 1,
         goalType: 'verses',
         goalValue: 10,
         orderedBookIds: [63, 64],
@@ -215,7 +214,6 @@ PRAGMA user_version = 3;
       await database.saveReadingPlan(
         existingPlan: details!.readingPlan,
         planName: 'Materialization Test',
-        collectionId: 1,
         goalType: 'verses',
         goalValue: 10,
         orderedBookIds: [63, 64, 66],
@@ -226,7 +224,6 @@ PRAGMA user_version = 3;
       await database.saveReadingPlan(
         existingPlan: withAddedBook!.readingPlan,
         planName: 'Materialization Test',
-        collectionId: 1,
         goalType: 'verses',
         goalValue: 10,
         orderedBookIds: [63, 66],
@@ -247,7 +244,6 @@ PRAGMA user_version = 3;
 
     final plan = await database.saveReadingPlan(
       planName: 'Empty Book Test',
-      collectionId: 1,
       goalType: 'verses',
       goalValue: 10,
       orderedBookIds: [63, 67],
