@@ -2,6 +2,7 @@ import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/l10n/book_names.dart';
 import 'package:gbt/reading_plan/discard_book_list_changes_dialog.dart';
 import 'package:gbt/reading_plan/edit_book_list_view_model.dart';
+import 'package:gbt/reading_plan/reading_plan_app_bar.dart';
 import 'package:material_ui/material_ui.dart';
 
 class EditBookListPanel extends StatefulWidget {
@@ -85,11 +86,20 @@ class _EditBookListPanelState extends State<EditBookListPanel> {
             builder: (context, _) {
               final l10n = AppLocalizations.of(context)!;
               return Column(
-                spacing: 16,
                 children: [
-                  _topBar(l10n),
-                  Expanded(child: _bookList(l10n)),
-                  _bottomBar(l10n),
+                  _appBar(l10n),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        spacing: 16,
+                        children: [
+                          Expanded(child: _bookList(l10n)),
+                          _bottomBar(l10n),
+                        ],
+                      ),
+                    ),
+                  ),
                 ],
               );
             },
@@ -99,39 +109,22 @@ class _EditBookListPanelState extends State<EditBookListPanel> {
     );
   }
 
-  Widget _topBar(AppLocalizations l10n) {
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        Align(
-          alignment: Alignment.centerLeft,
-          child: Transform.translate(
-            offset: const Offset(-6, 0),
-            child: IconButton(
-              style: IconButton.styleFrom(
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-              icon: const Icon(Icons.arrow_back),
-              onPressed: _cancel,
-            ),
-          ),
-        ),
-        Align(
-          alignment: Alignment.centerRight,
-          child: IconButton(
-            key: const Key('clear-books'),
-            style: IconButton.styleFrom(
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-            icon: const Icon(Icons.clear_all),
-            tooltip: l10n.clearBooks,
-            onPressed: viewModel.clearBooks,
-          ),
-        ),
-        Text(
-          l10n.customizeBooks,
-          textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+  Widget _appBar(AppLocalizations l10n) {
+    return ReadingPlanAppBar(
+      title: Text(
+        l10n.customizeBooks,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        textAlign: TextAlign.center,
+        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+      ),
+      onBack: _cancel,
+      actions: [
+        IconButton(
+          key: const Key('clear-books'),
+          icon: const Icon(Icons.clear_all),
+          tooltip: l10n.clearBooks,
+          onPressed: viewModel.clearBooks,
         ),
       ],
     );

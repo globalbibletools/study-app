@@ -17,32 +17,27 @@ class ReadingSheet extends StatelessWidget {
             child: ScaffoldMessenger(
               child: Scaffold(
                 backgroundColor: Colors.transparent,
-                body: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: const BoxDecoration(
-                    borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(20),
+                body: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(top: 16),
+                      child: _handle(context),
                     ),
-                  ),
-                  child: Column(
-                    children: [
-                      _handle(context),
-                      const SizedBox(height: 16),
-                      Expanded(
-                        child: Navigator(
-                          onGenerateRoute: (_) => MaterialPageRoute(
-                            builder: (_) => PopScope(
-                              canPop: false,
-                              onPopInvokedWithResult: (didPop, result) {
-                                Navigator.of(context).pop();
-                              },
-                              child: const ReadingPlanPanel(),
-                            ),
+                    const SizedBox(height: 16),
+                    Expanded(
+                      child: Navigator(
+                        onGenerateRoute: (_) => MaterialPageRoute(
+                          builder: (_) => PopScope(
+                            canPop: false,
+                            onPopInvokedWithResult: (didPop, result) {
+                              Navigator.of(context).pop();
+                            },
+                            child: const ReadingPlanPanel(),
                           ),
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),

@@ -1,5 +1,6 @@
 # Architecture Decision Records
 
+* 2026-11-23 [Full-Width Reading-Plan Navigator with Pane-Owned Gutters](2026-11-23-reading-plan-full-bleed-app-bars.md) [In Review]
 * 2026-11-19 [Vertical Slices](2026-11-19-vertical-slices.md) [In Review]
 * 2026-11-18 [Cancel-and-Replace Cancellation](2026-11-18-cancel-and-replace.md) [In Review]
 * 2026-11-18 [Four-Layer Architecture](2026-11-18-four-layer-architecture.md) [Accepted]
