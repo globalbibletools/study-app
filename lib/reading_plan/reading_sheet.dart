@@ -1,8 +1,51 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/reading_plan/reading_plan_panel.dart';
+import 'package:gbt/reading_plan/reading_plan_panel_view_model.dart';
+
+typedef NavigateToReadingSheetRoute =
+    Future<void> Function(BuildContext context);
 
 class ReadingSheet extends StatelessWidget {
-  const ReadingSheet({super.key});
+  final Widget child;
+
+  const ReadingSheet({super.key, required this.child});
+
+  static Future<void> navigateTo(BuildContext context) async {
+    ReadingPlanPanelViewModel viewModel;
+    try {
+      viewModel = await ReadingPlanPanelViewModel.create();
+    } catch (_) {
+      if (!context.mounted) return;
+
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.errorLoadingContent)));
+      return;
+    }
+
+    if (!context.mounted) {
+      viewModel.dispose();
+      return;
+    }
+
+    try {
+      await showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        useSafeArea: true,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        ),
+        builder: (context) =>
+            ReadingSheet(child: ReadingPlanPanel(viewModel: viewModel)),
+      );
+    } catch (_) {
+      viewModel.dispose();
+      rethrow;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,24 +67,26 @@ class ReadingSheet extends StatelessWidget {
                       child: _handle(context),
                     ),
                     const SizedBox(height: 16),
-                    Expanded(
-                      child: Navigator(
-                        onGenerateRoute: (_) => MaterialPageRoute(
-                          builder: (_) => PopScope(
-                            canPop: false,
-                            onPopInvokedWithResult: (didPop, result) {
-                              Navigator.of(context).pop();
-                            },
-                            child: const ReadingPlanPanel(),
-                          ),
-                        ),
-                      ),
-                    ),
+                    Expanded(child: _panel(context)),
                   ],
                 ),
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _panel(BuildContext context) {
+    return Navigator(
+      onGenerateRoute: (_) => MaterialPageRoute(
+        builder: (_) => PopScope(
+          canPop: false,
+          onPopInvokedWithResult: (didPop, result) {
+            Navigator.of(context).pop();
+          },
+          child: child,
         ),
       ),
     );

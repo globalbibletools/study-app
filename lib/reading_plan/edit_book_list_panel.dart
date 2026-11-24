@@ -5,15 +5,31 @@ import 'package:gbt/reading_plan/edit_book_list_view_model.dart';
 import 'package:gbt/reading_plan/reading_plan_app_bar.dart';
 import 'package:material_ui/material_ui.dart';
 
+typedef NavigateToEditBookListRoute =
+    Future<List<int>?> Function(BuildContext context, List<int> bookIds);
+
 class EditBookListPanel extends StatefulWidget {
-  const EditBookListPanel({super.key, required this.bookIds})
-    : viewModel = null;
+  const EditBookListPanel({super.key, required this.viewModel});
 
-  const EditBookListPanel.withDependencies({super.key, required this.viewModel})
-    : bookIds = const [];
+  final EditBookListViewModel viewModel;
 
-  final List<int> bookIds;
-  final EditBookListViewModel? viewModel;
+  static Future<List<int>?> navigateTo(
+    BuildContext context,
+    List<int> bookIds,
+  ) async {
+    final viewModel = EditBookListViewModel(bookIds);
+
+    try {
+      return await Navigator.of(context).push<List<int>>(
+        MaterialPageRoute(
+          builder: (_) => EditBookListPanel(viewModel: viewModel),
+        ),
+      );
+    } catch (_) {
+      viewModel.dispose();
+      rethrow;
+    }
+  }
 
   @override
   State<EditBookListPanel> createState() => _EditBookListPanelState();
@@ -26,7 +42,7 @@ class _EditBookListPanelState extends State<EditBookListPanel> {
   @override
   void initState() {
     super.initState();
-    viewModel = widget.viewModel ?? EditBookListViewModel(widget.bookIds);
+    viewModel = widget.viewModel;
     _scrollController = ScrollController();
   }
 

@@ -2,10 +2,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:gbt/common/reference.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/reading_plan/reading_plan_card.dart';
+import 'package:gbt/reading_plan/reading_plan_detail_panel.dart';
 import 'package:gbt/reading_plan/reading_plan_panel.dart';
 import 'package:gbt/reading_plan/reading_plan_panel_view_model.dart';
+import 'package:gbt/reading_plan/reading_plan_service.dart';
+import 'package:gbt/reading_plan/reading_session_view_model.dart';
 import 'package:gbt/reading_plan/progress_circle.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
+import 'package:gbt/services/service_locator.dart';
 import 'package:material_ui/material_ui.dart';
 
 import 'fake_reading_plan_service.dart';
@@ -16,54 +20,65 @@ void main() {
 
   late FakeReadingPlanService planService;
   late FakeReadingSessionViewModel sessionViewModel;
-  late ReadingPlanPanelViewModel viewModel;
 
   setUp(() {
     planService = FakeReadingPlanService();
     sessionViewModel = FakeReadingSessionViewModel();
-    viewModel = ReadingPlanPanelViewModel.withDependencies(
+  });
+
+  Future<ReadingPlanPanelViewModel> createViewModel() {
+    return ReadingPlanPanelViewModel.create(
       planService: planService,
       sessionViewModel: sessionViewModel,
     );
-  });
+  }
 
   ReadingPlanPanel buildPanel({
-    WidgetBuilder? createPlanRouteBuilder,
-    ReadingPlanRouteBuilder? planDetailsRouteBuilder,
-    ReadingPlanRouteBuilder? editPlanRouteBuilder,
+    required ReadingPlanPanelViewModel viewModel,
+    Future<void> Function(BuildContext context, String name)?
+    navigateToCreatePlanRoute,
+    Future<void> Function(BuildContext context, int planId)?
+    navigateToPlanDetailsRoute,
+    Future<void> Function(BuildContext context, int planId)?
+    navigateToEditPlanRoute,
   }) {
     return ReadingPlanPanel.withDependencies(
       viewModel: viewModel,
-      createPlanRouteBuilder: createPlanRouteBuilder,
-      planDetailsRouteBuilder: planDetailsRouteBuilder,
-      editPlanRouteBuilder: editPlanRouteBuilder,
+      navigateToCreatePlanRoute: navigateToCreatePlanRoute,
+      navigateToPlanDetailsRoute: navigateToPlanDetailsRoute,
+      navigateToEditPlanRoute: navigateToEditPlanRoute,
     );
   }
 
-  Widget buildApp({Widget? home}) {
+  Widget buildApp({required Widget home}) {
     return MaterialApp(
       locale: const Locale('en'),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       builder: (context, child) =>
           Material(color: Theme.of(context).colorScheme.surface, child: child),
-      home: home ?? Scaffold(body: buildPanel()),
+      home: home,
     );
   }
 
   Future<void> pumpPanel(
     WidgetTester tester, {
-    WidgetBuilder? createPlanRouteBuilder,
-    ReadingPlanRouteBuilder? planDetailsRouteBuilder,
-    ReadingPlanRouteBuilder? editPlanRouteBuilder,
+    Future<void> Function(BuildContext context, String name)?
+    navigateToCreatePlanRoute,
+    Future<void> Function(BuildContext context, int planId)?
+    navigateToPlanDetailsRoute,
+    Future<void> Function(BuildContext context, int planId)?
+    navigateToEditPlanRoute,
   }) async {
+    final viewModel = await createViewModel();
     await tester.pumpWidget(
       buildApp(
         home: Scaffold(
           body: buildPanel(
-            createPlanRouteBuilder: createPlanRouteBuilder,
-            planDetailsRouteBuilder: planDetailsRouteBuilder,
-            editPlanRouteBuilder: editPlanRouteBuilder,
+            viewModel: viewModel,
+            navigateToCreatePlanRoute: navigateToCreatePlanRoute,
+            navigateToPlanDetailsRoute: navigateToPlanDetailsRoute,
+            navigateToEditPlanRoute: navigateToEditPlanRoute,
           ),
         ),
       ),
@@ -72,21 +87,6 @@ void main() {
   }
 
   group('rendering', () {
-    testWidgets('shows a loader until initialize finishes', (tester) async {
-      planService.queueGetRequests = true;
-
-      await tester.pumpWidget(buildApp());
-
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
-      expect(planService.getRequests, hasLength(1));
-
-      planService.getRequests.single.complete([]);
-      await tester.pumpAndSettle();
-
-      expect(find.byType(CircularProgressIndicator), findsNothing);
-      expect(find.text('No reading plans.'), findsOneWidget);
-    });
-
     testWidgets('shows the empty state and create button without plans', (
       tester,
     ) async {
@@ -215,43 +215,40 @@ void main() {
   });
 
   group('edit', () {
-    testWidgets('returning from a new plan refreshes the list', (tester) async {
+    testWidgets('create navigates and refreshes the list', (tester) async {
+      final openedNames = <String>[];
       await pumpPanel(
         tester,
-        createPlanRouteBuilder: (_) => fakeRoute('Create route'),
+        navigateToCreatePlanRoute: (context, name) async {
+          openedNames.add(name);
+          planService.plans = [planDetails('New Plan', id: 2)];
+        },
       );
 
       await tester.tap(find.text('Create New Plan'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Create route'), findsOneWidget);
-
-      planService.plans = [planDetails('New Plan', id: 2)];
-      await tester.tap(find.byType(BackButton));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Create route'), findsNothing);
+      expect(openedNames, hasLength(1));
       expect(find.text('New Plan'), findsOneWidget);
     });
 
-    testWidgets('returning from edit refreshes the list', (tester) async {
+    testWidgets('edit navigates with the plan id and refreshes', (
+      tester,
+    ) async {
+      final editedPlanIds = <int>[];
       planService.plans = [planDetails('Ruth', id: 1)];
       await pumpPanel(
         tester,
-        editPlanRouteBuilder: (_, plan) =>
-            fakeRoute('Edit ${plan.readingPlan.planName}'),
+        navigateToEditPlanRoute: (context, planId) async {
+          editedPlanIds.add(planId);
+          planService.plans = [planDetails('Edited Ruth', id: 1)];
+        },
       );
 
       await tester.tap(find.byIcon(Icons.edit_outlined));
       await tester.pumpAndSettle();
 
-      expect(find.text('Edit Ruth'), findsOneWidget);
-
-      planService.plans = [planDetails('Edited Ruth', id: 1)];
-      await tester.tap(find.byType(BackButton));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Edit Ruth'), findsNothing);
+      expect(editedPlanIds, [1]);
       expect(find.text('Edited Ruth'), findsOneWidget);
     });
   });
@@ -277,27 +274,52 @@ void main() {
   });
 
   group('view plan', () {
-    testWidgets('returning from plan details refreshes the list', (
+    testWidgets('details navigation uses the plan id and refreshes', (
       tester,
     ) async {
+      final openedPlanIds = <int>[];
       planService.plans = [planDetails('Ruth', id: 1)];
       await pumpPanel(
         tester,
-        planDetailsRouteBuilder: (_, plan) =>
-            fakeRoute('Details ${plan.readingPlan.planName}'),
+        navigateToPlanDetailsRoute: (context, planId) async {
+          openedPlanIds.add(planId);
+          planService.plans = [planDetails('Renamed Ruth', id: 1)];
+        },
       );
 
       await tester.tap(find.text('Ruth'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Details Ruth'), findsOneWidget);
+      expect(openedPlanIds, [1]);
+      expect(find.text('Renamed Ruth'), findsOneWidget);
+    });
+  });
 
-      planService.plans = [planDetails('Renamed Ruth', id: 1)];
-      await tester.tap(find.byType(BackButton));
+  group('view plan default route', () {
+    tearDown(() async {
+      await getIt.reset();
+    });
+
+    testWidgets('initializes the detail view model before navigating', (
+      tester,
+    ) async {
+      planService.plans = [planDetails('Ruth', id: 1)];
+      planService.queuePlanRequests = true;
+      getIt.registerSingleton<ReadingPlanService>(planService);
+      getIt.registerSingleton<ReadingSessionViewModel>(sessionViewModel);
+
+      await pumpPanel(tester);
+      await tester.tap(find.text('Ruth'));
+      await tester.pump();
+
+      expect(find.byType(ReadingPlanDetailPanel), findsNothing);
+      expect(planService.planRequests, hasLength(1));
+
+      planService.planRequests.single.complete(planService.plans.single);
       await tester.pumpAndSettle();
 
-      expect(find.text('Details Ruth'), findsNothing);
-      expect(find.text('Renamed Ruth'), findsOneWidget);
+      expect(find.byType(ReadingPlanDetailPanel), findsOneWidget);
+      expect(find.text('Ruth'), findsOneWidget);
     });
   });
 
@@ -313,6 +335,7 @@ void main() {
         ),
       ];
 
+      final viewModel = await createViewModel();
       await tester.pumpWidget(
         buildApp(home: _PanelLauncher(viewModel: viewModel)),
       );
@@ -367,13 +390,6 @@ class _PanelLauncher extends StatelessWidget {
       ),
     );
   }
-}
-
-Widget fakeRoute(String label) {
-  return Scaffold(
-    appBar: AppBar(leading: const BackButton()),
-    body: Center(child: Text(label)),
-  );
 }
 
 ReadingPlanDetails planDetails(
