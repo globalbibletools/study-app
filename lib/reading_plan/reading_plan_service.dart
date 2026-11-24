@@ -99,7 +99,7 @@ class ReadingPlanService {
         executor: txn,
       );
 
-      await _database.upsertDaySummary(
+      await _database.daySummary.upsert(
         readingPlanId,
         day,
         preserveStoredGoalSnapshot: !isToday,
@@ -141,13 +141,13 @@ class ReadingPlanService {
         executor: txn,
       );
       if (remaining == 0) {
-        await _database.deleteDaySummary(
+        await _database.daySummary.deleteForDay(
           session.readingPlanId,
           session.rsDate,
           executor: txn,
         );
       } else {
-        await _database.upsertDaySummary(
+        await _database.daySummary.upsert(
           session.readingPlanId,
           session.rsDate,
           preserveStoredGoalSnapshot: !_sameDay(session.rsDate, DateTime.now()),
@@ -345,7 +345,7 @@ class ReadingPlanService {
     await _database.transaction((txn) async {
       await _database.sessionLog.deleteForPlanId(planId, executor: txn);
       await _database.session.deleteForPlanId(planId, executor: txn);
-      await _database.deleteDaySummariesForPlan(planId, executor: txn);
+      await _database.daySummary.deleteForPlanId(planId, executor: txn);
       await _database.verseState.deleteForPlanId(planId, executor: txn);
       await _database.readingPlans.delete(planId, executor: txn);
     });

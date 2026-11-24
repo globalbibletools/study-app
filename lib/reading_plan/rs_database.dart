@@ -2,6 +2,7 @@ import 'package:flutter/services.dart';
 import 'package:gbt/common/reference.dart';
 import 'package:gbt/services/hebrew_greek/database.dart';
 import 'package:gbt/services/logging/log.dart';
+import 'package:gbt/reading_plan/day_summary_repository.dart';
 import 'package:gbt/reading_plan/reading_plan_repository.dart'
     show ReadingPlanRepository;
 import 'package:gbt/reading_plan/rs_model.dart';
@@ -49,6 +50,7 @@ class ReadingSessionDatabase {
   late final SessionLogRepository sessionLog = SessionLogRepository(_database);
   late final SessionRepository session = SessionRepository(_database);
   late final VerseStateRepository verseState = VerseStateRepository(_database);
+  late final DaySummaryRepository daySummary = DaySummaryRepository(_database);
 
   Future<void> init() async {
     if (_initFuture != null) {
@@ -454,19 +456,6 @@ class ReadingSessionDatabase {
     return ReadingPlanDetails(plan, books);
   }
 
-  /// Deletes every `rs_day_summary` row for a plan.
-  Future<int> deleteDaySummariesForPlan(
-    int planId, {
-    DatabaseExecutor? executor,
-  }) async {
-    final db = executor ?? _database;
-    return db.delete(
-      'rs_day_summary',
-      where: 'reading_plan_id = ?',
-      whereArgs: [planId],
-    );
-  }
-
   Future<T> transaction<T>(Future<T> Function(DatabaseExecutor txn) action) {
     return _database.transaction(action);
   }
@@ -528,77 +517,6 @@ class ReadingSessionDatabase {
     );
   }
 
-  Future<void> upsertDaySummary(
-    int readingPlanId,
-    DateTime date, {
-    bool preserveStoredGoalSnapshot = false,
-    DatabaseExecutor? executor,
-  }) async {
-    Future<void> upsert(DatabaseExecutor txn) async {
-      final totals = await txn.rawQuery(
-        'SELECT coalesce(sum(read_seconds), 0) AS rs_seconds, '
-        'coalesce(sum(verses), 0) AS rs_verses '
-        'FROM rs_session '
-        'WHERE reading_plan_id = ? AND date(rs_date) = date(?)',
-        [readingPlanId, date.toIso8601String()],
-      );
-
-      final rsSeconds = totals.first['rs_seconds'] as int? ?? 0;
-      final rsVerses = totals.first['rs_verses'] as int? ?? 0;
-
-      String? goalType;
-      int? goalValue;
-      if (preserveStoredGoalSnapshot) {
-        final stored = await txn.query(
-          'rs_day_summary',
-          columns: ['goal_type', 'goal_value'],
-          where: 'reading_plan_id = ? AND rs_date = ?',
-          whereArgs: [readingPlanId, RsDaySummary.dayString(date)],
-          limit: 1,
-        );
-        if (stored.isNotEmpty) {
-          goalType = stored.first['goal_type'] as String?;
-          goalValue = stored.first['goal_value'] as int?;
-        }
-      }
-      if (goalType == null || goalValue == null) {
-        final plan = await txn.query(
-          'reading_plan',
-          columns: ['goal_type', 'goal_value'],
-          where: 'id = ?',
-          whereArgs: [readingPlanId],
-          limit: 1,
-        );
-        goalType = plan.isEmpty ? null : plan.first['goal_type'] as String?;
-        goalValue = plan.isEmpty ? null : plan.first['goal_value'] as int?;
-      }
-
-      final goalReached = _isMinutesGoal(goalType)
-          ? rsSeconds >= (goalValue ?? 0) * 60
-          : rsVerses >= (goalValue ?? 0);
-
-      await txn.insert(
-        'rs_day_summary',
-        RsDaySummary(
-          readingPlanId: readingPlanId,
-          rsDate: DateTime(date.year, date.month, date.day),
-          rsSeconds: rsSeconds,
-          rsVerses: rsVerses,
-          goalType: goalType,
-          goalValue: goalValue,
-          goalReached: goalReached,
-        ).toMap(),
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
-    }
-
-    if (executor != null) {
-      await upsert(executor);
-    } else {
-      await _database.transaction(upsert);
-    }
-  }
-
   Future<RsDaySummary?> getDaySummary(
     int readingPlanId,
     DateTime date, {
@@ -613,19 +531,6 @@ class ReadingSessionDatabase {
     );
 
     return rows.isEmpty ? null : RsDaySummary.fromMap(rows.first);
-  }
-
-  Future<int> deleteDaySummary(
-    int readingPlanId,
-    DateTime date, {
-    DatabaseExecutor? executor,
-  }) async {
-    final db = executor ?? _database;
-    return db.delete(
-      'rs_day_summary',
-      where: 'reading_plan_id = ? AND rs_date = ?',
-      whereArgs: [readingPlanId, RsDaySummary.dayString(date)],
-    );
   }
 
   Future<Map<int, RsDaySummary>> getDaySummariesForDate(DateTime date) async {

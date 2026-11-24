@@ -416,7 +416,7 @@ void main() {
             readingPlanId: planId,
           ),
         );
-        await rsDb.upsertDaySummary(planId, sessionDate);
+        await rsDb.daySummary.upsert(planId, sessionDate);
 
         // November 2026 has 30 days
         final monthData = await planService.getMonthProgress(
