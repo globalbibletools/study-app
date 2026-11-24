@@ -1,41 +1,50 @@
-import 'dart:async';
-
 import 'package:material_ui/material_ui.dart';
+import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/reading_plan/reading_plan_panel.dart';
 import 'package:gbt/reading_plan/reading_plan_panel_view_model.dart';
 
-class ReadingSheet extends StatefulWidget {
-  const ReadingSheet({super.key});
+typedef NavigateToReadingSheetRoute =
+    Future<void> Function(BuildContext context);
 
-  @override
-  State<ReadingSheet> createState() => _ReadingSheetState();
-}
+class ReadingSheet extends StatelessWidget {
+  final Widget child;
 
-class _ReadingSheetState extends State<ReadingSheet> {
-  ReadingPlanPanelViewModel? _viewModel;
+  const ReadingSheet({super.key, required this.child});
 
-  @override
-  void initState() {
-    super.initState();
-    unawaited(_loadPlanPanel());
-  }
+  static Future<void> navigateTo(BuildContext context) async {
+    ReadingPlanPanelViewModel viewModel;
+    try {
+      viewModel = await ReadingPlanPanelViewModel.create();
+    } catch (_) {
+      if (!context.mounted) return;
 
-  Future<void> _loadPlanPanel() async {
-    final viewModel = await ReadingPlanPanelViewModel.create();
-    if (!mounted) {
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.errorLoadingContent)));
+      return;
+    }
+
+    if (!context.mounted) {
       viewModel.dispose();
       return;
     }
 
-    setState(() {
-      _viewModel = viewModel;
-    });
-  }
-
-  @override
-  void dispose() {
-    _viewModel?.dispose();
-    super.dispose();
+    try {
+      await showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        useSafeArea: true,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        ),
+        builder: (context) =>
+            ReadingSheet(child: ReadingPlanPanel(viewModel: viewModel)),
+      );
+    } catch (_) {
+      viewModel.dispose();
+      rethrow;
+    }
   }
 
   @override
@@ -75,11 +84,6 @@ class _ReadingSheetState extends State<ReadingSheet> {
   }
 
   Widget _panel(BuildContext context) {
-    final viewModel = _viewModel;
-    if (viewModel == null) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
     return Navigator(
       onGenerateRoute: (_) => MaterialPageRoute(
         builder: (_) => PopScope(
@@ -87,7 +91,7 @@ class _ReadingSheetState extends State<ReadingSheet> {
           onPopInvokedWithResult: (didPop, result) {
             Navigator.of(context).pop();
           },
-          child: ReadingPlanPanel(viewModel: viewModel),
+          child: child,
         ),
       ),
     );

@@ -5,6 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/l10n/app_localizations.dart';
+import 'package:gbt/reading_plan/reading_plan_panel.dart';
+import 'package:gbt/reading_plan/reading_plan_panel_view_model.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
 import 'package:gbt/reading_plan/rs_database.dart';
 import 'package:gbt/reading_plan/reading_session_service.dart';
@@ -553,6 +555,13 @@ void main() {
     testWidgets(
       'ReadingSheet wraps Navigator in SizedBox with 85% height and ClipRRect',
       (tester) async {
+        final panelViewModel = (await tester.runAsync(
+          () => ReadingPlanPanelViewModel.create(
+            planService: planService,
+            sessionViewModel: viewModel,
+          ),
+        ))!;
+
         await tester.pumpWidget(
           MaterialApp(
             localizationsDelegates: const [
@@ -563,7 +572,11 @@ void main() {
             supportedLocales: const [Locale('en')],
             home: MediaQuery(
               data: const MediaQueryData(size: Size(400, 1000)),
-              child: Scaffold(body: const ReadingSheet()),
+              child: Scaffold(
+                body: ReadingSheet(
+                  child: ReadingPlanPanel(viewModel: panelViewModel),
+                ),
+              ),
             ),
           ),
         );
