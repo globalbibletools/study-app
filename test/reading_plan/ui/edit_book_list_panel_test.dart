@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gbt/l10n/app_localizations.dart';
-import 'package:gbt/reading_plan/edit_book_list_panel.dart';
-import 'package:gbt/reading_plan/edit_book_list_view_model.dart';
+import 'package:gbt/reading_plan/ui/edit_book_list_panel.dart';
+import 'package:gbt/reading_plan/ui/edit_book_list_view_model.dart';
 import 'package:material_ui/material_ui.dart';
 
 void main() {

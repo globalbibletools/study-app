@@ -4,12 +4,12 @@ import 'package:material_ui/material_ui.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/l10n/book_names.dart';
 import 'package:gbt/reading_plan/data_access/rs_model.dart';
-import 'package:gbt/reading_plan/calendar_view.dart';
-import 'package:gbt/reading_plan/day_activity_log_panel.dart';
-import 'package:gbt/reading_plan/edit_reading_plan_panel.dart';
-import 'package:gbt/reading_plan/progress_circle.dart';
-import 'package:gbt/reading_plan/reading_plan_app_bar.dart';
-import 'package:gbt/reading_plan/reading_plan_detail_view_model.dart';
+import 'package:gbt/reading_plan/ui/calendar_view.dart';
+import 'package:gbt/reading_plan/ui/day_activity_log_panel.dart';
+import 'package:gbt/reading_plan/ui/edit_reading_plan_panel.dart';
+import 'package:gbt/reading_plan/ui/progress_circle.dart';
+import 'package:gbt/reading_plan/ui/reading_plan_app_bar.dart';
+import 'package:gbt/reading_plan/ui/reading_plan_detail_view_model.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/messaging/messenger_view_model.dart';
 

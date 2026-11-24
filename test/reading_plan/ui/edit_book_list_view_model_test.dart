@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gbt/reading_plan/edit_book_list_view_model.dart';
+import 'package:gbt/reading_plan/ui/edit_book_list_view_model.dart';
 
 void main() {
   List<int> availableExcept(Set<int> selected) => [

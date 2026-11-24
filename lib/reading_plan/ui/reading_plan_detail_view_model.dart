@@ -5,7 +5,7 @@ import 'package:gbt/reading_plan/reading_plan_service.dart';
 import 'package:gbt/reading_plan/data_access/rs_model.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/reading_plan/reading_plan_estimates.dart';
-import 'package:gbt/reading_plan/reading_session_view_model.dart';
+import 'package:gbt/reading_plan/ui/reading_session_view_model.dart';
 
 class ReadingPlanDetailViewModel extends ChangeNotifier {
   ReadingPlanDetailViewModel._({

@@ -1,11 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gbt/asyncutils/cancellation.dart';
 import 'package:gbt/common/reference.dart';
-import 'package:gbt/reading_plan/reading_plan_detail_view_model.dart';
+import 'package:gbt/reading_plan/ui/reading_plan_detail_view_model.dart';
 import 'package:gbt/reading_plan/data_access/rs_model.dart';
 
-import 'fake_reading_plan_service.dart';
-import 'fake_reading_session_view_model.dart';
+import '../fake_reading_plan_service.dart';
+import '../fake_reading_session_view_model.dart';
 
 void main() {
   late FakeReadingSessionViewModel sessionViewModel;

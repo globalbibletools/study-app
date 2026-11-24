@@ -2,9 +2,9 @@ import 'package:material_ui/material_ui.dart';
 import 'package:gbt/common/book_name.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/reading_plan/data_access/rs_model.dart';
-import 'package:gbt/reading_plan/day_activity_log_view_model.dart';
-import 'package:gbt/reading_plan/number_stepper.dart';
-import 'package:gbt/reading_plan/reading_plan_app_bar.dart';
+import 'package:gbt/reading_plan/ui/day_activity_log_view_model.dart';
+import 'package:gbt/reading_plan/ui/number_stepper.dart';
+import 'package:gbt/reading_plan/ui/reading_plan_app_bar.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/messaging/messenger_view_model.dart';
 

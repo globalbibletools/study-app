@@ -2,18 +2,18 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:gbt/reading_plan/bible_collection.dart';
 import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/l10n/app_localizations.dart';
-import 'package:gbt/reading_plan/edit_reading_plan_panel.dart';
-import 'package:gbt/reading_plan/edit_reading_plan_view_model.dart';
-import 'package:gbt/reading_plan/number_stepper.dart';
+import 'package:gbt/reading_plan/ui/edit_reading_plan_panel.dart';
+import 'package:gbt/reading_plan/ui/edit_reading_plan_view_model.dart';
+import 'package:gbt/reading_plan/ui/number_stepper.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
 import 'package:gbt/reading_plan/data_access/rs_model.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/messaging/messenger_host.dart';
 import 'package:material_ui/material_ui.dart';
 
-import '../fixtures/bible_navigation_fixture.dart';
-import '../fixtures/fake_messenger_view_model.dart';
-import 'fake_reading_plan_service.dart';
+import '../../fixtures/bible_navigation_fixture.dart';
+import '../../fixtures/fake_messenger_view_model.dart';
+import '../fake_reading_plan_service.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gbt/reading_plan/calendar_view.dart';
+import 'package:gbt/reading_plan/ui/calendar_view.dart';
 import 'package:material_ui/material_ui.dart';
 
 void main() {

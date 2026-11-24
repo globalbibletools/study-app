@@ -1,21 +1,21 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gbt/common/reference.dart';
 import 'package:gbt/l10n/app_localizations.dart';
-import 'package:gbt/reading_plan/day_activity_log_panel.dart';
-import 'package:gbt/reading_plan/edit_reading_plan_panel.dart';
-import 'package:gbt/reading_plan/reading_plan_detail_panel.dart';
-import 'package:gbt/reading_plan/reading_plan_detail_view_model.dart';
+import 'package:gbt/reading_plan/ui/day_activity_log_panel.dart';
+import 'package:gbt/reading_plan/ui/edit_reading_plan_panel.dart';
+import 'package:gbt/reading_plan/ui/reading_plan_detail_panel.dart';
+import 'package:gbt/reading_plan/ui/reading_plan_detail_view_model.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
-import 'package:gbt/reading_plan/reading_session_view_model.dart';
+import 'package:gbt/reading_plan/ui/reading_session_view_model.dart';
 import 'package:gbt/reading_plan/data_access/rs_model.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/messaging/messenger_host.dart';
 import 'package:gbt/ui/messaging/messenger_view_model.dart';
 import 'package:material_ui/material_ui.dart';
 
-import '../fixtures/fake_messenger_view_model.dart';
-import 'fake_reading_plan_service.dart';
-import 'fake_reading_session_view_model.dart';
+import '../../fixtures/fake_messenger_view_model.dart';
+import '../fake_reading_plan_service.dart';
+import '../fake_reading_session_view_model.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

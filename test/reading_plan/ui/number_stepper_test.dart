@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gbt/reading_plan/number_stepper.dart';
+import 'package:gbt/reading_plan/ui/number_stepper.dart';
 import 'package:material_ui/material_ui.dart';
 
 void main() {

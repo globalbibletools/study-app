@@ -4,7 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:gbt/common/reference.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/l10n/book_names.dart';
-import 'package:gbt/reading_plan/progress_circle.dart';
+import 'package:gbt/reading_plan/ui/progress_circle.dart';
 import 'package:gbt/reading_plan/data_access/rs_model.dart';
 
 class ReadingPlanCard extends StatelessWidget {

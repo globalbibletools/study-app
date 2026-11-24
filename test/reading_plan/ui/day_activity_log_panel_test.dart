@@ -1,15 +1,15 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gbt/l10n/app_localizations.dart';
-import 'package:gbt/reading_plan/day_activity_log_panel.dart';
-import 'package:gbt/reading_plan/day_activity_log_view_model.dart';
+import 'package:gbt/reading_plan/ui/day_activity_log_panel.dart';
+import 'package:gbt/reading_plan/ui/day_activity_log_view_model.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
 import 'package:gbt/reading_plan/data_access/rs_model.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/messaging/messenger_host.dart';
 import 'package:material_ui/material_ui.dart';
 
-import '../fixtures/fake_messenger_view_model.dart';
-import 'fake_reading_plan_service.dart';
+import '../../fixtures/fake_messenger_view_model.dart';
+import '../fake_reading_plan_service.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gbt/asyncutils/cancellation.dart';
-import 'package:gbt/reading_plan/day_activity_log_view_model.dart';
+import 'package:gbt/reading_plan/ui/day_activity_log_view_model.dart';
 import 'package:gbt/reading_plan/data_access/rs_model.dart';
 
-import 'fake_reading_plan_service.dart';
+import '../fake_reading_plan_service.dart';
 
 void main() {
   late FakeReadingPlanService planService;
