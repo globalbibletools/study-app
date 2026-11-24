@@ -113,11 +113,7 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
     return ReadingPlanAppBar(
       centerTitle: false,
       titleSpacing: 0,
-      title: Text(
-        viewModel.planName,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
+      title: Text(viewModel.planName),
       onBack: () => Navigator.of(context).pop(),
       actions: [
         IconButton(

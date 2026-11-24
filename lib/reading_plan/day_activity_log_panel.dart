@@ -104,12 +104,7 @@ class _DayActivityLogPanelState extends State<DayActivityLogPanel> {
 
   Widget _appBar() {
     return ReadingPlanAppBar(
-      title: Text(
-        _formatDate(viewModel.date),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        textAlign: TextAlign.center,
-      ),
+      title: Text(_formatDate(viewModel.date)),
       onBack: () => Navigator.of(context).pop(),
       actions: [
         IconButton(

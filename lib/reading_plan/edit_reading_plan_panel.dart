@@ -116,8 +116,6 @@ class _EditReadingPlanPanelState extends State<EditReadingPlanPanel> {
     return ReadingPlanAppBar(
       title: Text(
         viewModel.isExisting ? l10n.editReadingPlan : l10n.createReadingPlan,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
       ),
       onBack: () => Navigator.of(context).pop(),
       actions: [

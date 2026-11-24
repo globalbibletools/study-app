@@ -111,12 +111,7 @@ class _EditBookListPanelState extends State<EditBookListPanel> {
 
   Widget _appBar(AppLocalizations l10n) {
     return ReadingPlanAppBar(
-      title: Text(
-        l10n.customizeBooks,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        textAlign: TextAlign.center,
-      ),
+      title: Text(l10n.customizeBooks),
       onBack: _cancel,
       actions: [
         IconButton(

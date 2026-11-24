@@ -62,13 +62,7 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
         final l10n = AppLocalizations.of(context)!;
         return Column(
           children: [
-            ReadingPlanAppBar(
-              title: Text(
-                l10n.readingPlans,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
+            ReadingPlanAppBar(title: Text(l10n.readingPlans)),
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(16),
