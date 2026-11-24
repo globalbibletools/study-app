@@ -1,9 +1,14 @@
 import 'package:gbt/common/reference.dart';
-import 'package:gbt/reading_plan/data_access/rs_model.dart'
-    show DailyGoal, GoalType;
+import 'package:gbt/reading_plan/data_access/rs_model.dart' show GoalType;
 
-export 'package:gbt/reading_plan/data_access/rs_model.dart'
-    show DailyGoal, GoalType;
+export 'package:gbt/reading_plan/data_access/rs_model.dart' show GoalType;
+
+class DailyGoal {
+  const DailyGoal(this.type, this.value);
+
+  final GoalType type;
+  final int value;
+}
 
 GoalType goalTypeFromStored(String? stored) {
   return stored != null && stored.toLowerCase().startsWith('m')

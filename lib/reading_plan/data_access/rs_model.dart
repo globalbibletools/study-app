@@ -1,12 +1,5 @@
 enum GoalType { minutes, verses }
 
-class DailyGoal {
-  final GoalType type;
-  final int value;
-
-  const DailyGoal(this.type, this.value);
-}
-
 /// Formats a local date as the `YYYY-MM-DD` string stored in `rs_date`.
 String dayString(DateTime date) {
   String pad2(int value) => value.toString().padLeft(2, '0');

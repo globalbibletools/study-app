@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:material_ui/material_ui.dart';
 import 'package:gbt/l10n/app_localizations.dart';
-import 'package:gbt/reading_plan/data_access/rs_model.dart'
+import 'package:gbt/reading_plan/data_access/reading_plan_read_models.dart'
     show DailyGoal, GoalType;
 import 'package:gbt/reading_plan/ui/reading_session_view_model.dart';
 
