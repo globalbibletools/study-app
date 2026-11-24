@@ -14,13 +14,29 @@ class SessionLogRepository {
     return id;
   }
 
-  Future<int> remove(
-    int id, {
-    DatabaseExecutor? executor,
-  }) {
+  Future<int> remove(int id, {DatabaseExecutor? executor}) {
     final db = executor ?? _database;
 
     return db.delete('rs_log', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<SessionLogEntry?> getVerseLogForSession(
+    int sessionId,
+    int bookId,
+    int chapter,
+    int verse, {
+    DatabaseExecutor? executor,
+  }) async {
+    final db = executor ?? _database;
+    final rows = await db.query(
+      'rs_log',
+      where: 'rs_session_id = ? AND book_id = ? AND chapter = ? AND verse = ?',
+      whereArgs: [sessionId, bookId, chapter, verse],
+      orderBy: 'id',
+      limit: 1,
+    );
+
+    return rows.isEmpty ? null : SessionLogEntry.fromMap(rows.first);
   }
 }
 
@@ -67,4 +83,3 @@ class SessionLogEntry {
     };
   }
 }
-

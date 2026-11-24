@@ -6,6 +6,7 @@ import 'package:gbt/reading_plan/reading_plan_config.dart';
 import 'package:gbt/reading_plan/reading_plan_estimates.dart';
 import 'package:gbt/reading_plan/rs_database.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
+import 'package:gbt/reading_plan/session_log_repository.dart';
 import 'package:gbt/services/service_locator.dart';
 
 class SessionProgress {
@@ -168,14 +169,14 @@ class ReadingSessionService {
     final hasNewReadSeconds = effectiveReadSeconds > session.readSeconds;
 
     final outcome = await _database.transaction((txn) async {
-      final logs = await _database.getRsLogForSessionAndVerse(
+      final existingLog = await _database.sessionLog.getVerseLogForSession(
         session.id!,
         bookId,
         chapter,
         verse,
         executor: txn,
       );
-      final readThisSession = logs.isNotEmpty;
+      final readThisSession = existingLog != null;
 
       var updatedSession = session.copyWith(readSeconds: effectiveReadSeconds);
       BookCompletedEvent? event;
@@ -191,14 +192,14 @@ class ReadingSessionService {
             ) ??
             0;
 
-        await _database.insertLog(
-          RsLog(
+        await _database.sessionLog.append(
+          SessionLogEntry(
             sessionId: session.id!,
+            readingPlanId: planId,
             bookId: bookId,
             chapter: chapter,
             verse: verse,
             dateTime: now,
-            readingPlanId: planId,
           ),
           executor: txn,
         );
@@ -236,13 +237,7 @@ class ReadingSessionService {
           );
         }
       } else if (!read && readThisSession) {
-        await _database.deleteRsLogForSessionAndVerse(
-          session.id!,
-          bookId,
-          chapter,
-          verse,
-          executor: txn,
-        );
+        await _database.sessionLog.remove(existingLog.id!, executor: txn);
         await _database.unmarkVerseRead(
           planId,
           bookId,

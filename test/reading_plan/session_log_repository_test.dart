@@ -108,6 +108,51 @@ void main() {
     expect(logs.single.verse, 1);
   });
 
+  test('getVerseLogForSession returns the matching log', () async {
+    final session = await insertSession(planId, DateTime(2026, 11, 20));
+    final otherSession = await insertSession(planId, DateTime(2026, 11, 20));
+    final savedId = await database.sessionLog.append(entryFor(session.id!, 1));
+    await database.sessionLog.append(entryFor(session.id!, 2));
+    await database.sessionLog.append(entryFor(otherSession.id!, 1));
+
+    final log = await database.sessionLog.getVerseLogForSession(
+      session.id!,
+      63,
+      1,
+      1,
+    );
+
+    expect(log, isNotNull);
+    expect(log!.id, savedId);
+    expect(log.sessionId, session.id);
+    expect(log.readingPlanId, planId);
+    expect(log.bookId, 63);
+    expect(log.chapter, 1);
+    expect(log.verse, 1);
+
+    expect(
+      await database.sessionLog.getVerseLogForSession(session.id!, 63, 1, 3),
+      isNull,
+    );
+  });
+
+  test('getVerseLogForSession honors a transaction executor', () async {
+    final session = await insertSession(planId, DateTime(2026, 11, 20));
+    final savedId = await database.sessionLog.append(entryFor(session.id!, 1));
+
+    await database.transaction((txn) async {
+      final log = await database.sessionLog.getVerseLogForSession(
+        session.id!,
+        63,
+        1,
+        1,
+        executor: txn,
+      );
+
+      expect(log?.id, savedId);
+    });
+  });
+
   test('remove deletes only the entry it identifies', () async {
     final session = await insertSession(planId, DateTime(2026, 11, 20));
     final otherSession = await insertSession(planId, DateTime(2026, 11, 20));
