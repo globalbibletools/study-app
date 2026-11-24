@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gbt/common/reference.dart';
+import 'package:gbt/reading_plan/reading_plan_repository.dart' as repo;
 import 'package:gbt/reading_plan/reading_plan_service.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
 
@@ -23,9 +24,9 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
   final deletedManualSessionIds = <int>[];
   final deletedPlanIds = <int>[];
   final bookmarkedValues = <bool>[];
-  final reorderedBooks = <List<ReadingPlanBook>>[];
+  final reorderedBooks = <List<int>>[];
   final saveCalls = <SaveReadingPlanCall>[];
-  final savedPlans = <ReadingPlan>[];
+  final savedPlans = <repo.ReadingPlan>[];
 
   /// When set, bookmark writes throw this instead of persisting.
   Object? bookmarkError;
@@ -212,21 +213,19 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
   }
 
   @override
-  Future<ReadingPlan> saveReadingPlan({
-    ReadingPlanDetails? existingPlanDetails,
+  Future<int> saveReadingPlan({
+    int? planId,
     required String planName,
     required GoalType goalType,
     required int goalValue,
-    required Set<int> selectedBookIds,
-    List<int>? orderedBookIds,
+    required List<int> bookIds,
   }) async {
     final call = SaveReadingPlanCall(
-      existingPlanDetails: existingPlanDetails,
+      planId: planId,
       planName: planName,
       goalType: goalType,
       goalValue: goalValue,
-      selectedBookIds: Set.of(selectedBookIds),
-      orderedBookIds: orderedBookIds == null ? null : List.of(orderedBookIds),
+      bookIds: List.of(bookIds),
     );
     saveCalls.add(call);
 
@@ -242,39 +241,49 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
       saveRequests.add(request);
       final queuedPlan = await request.future;
       _storeSavedPlan(call, queuedPlan);
-      return queuedPlan;
+      return queuedPlan.id;
     }
 
     _storeSavedPlan(call, plan);
-    return plan;
+    return plan.id;
   }
 
-  ReadingPlan _planFor(SaveReadingPlanCall call) {
-    final existing = call.existingPlanDetails?.readingPlan;
-    final plan = ReadingPlan(
+  repo.ReadingPlan _planFor(SaveReadingPlanCall call) {
+    final existing = call.planId == null || call.planId == 0
+        ? null
+        : _detailsFor(call.planId!)?.readingPlan;
+    final plan = repo.ReadingPlan(
       id: existing?.id ?? _nextPlanId++,
       planName: call.planName,
       createdAt: existing?.createdAt ?? DateTime.now(),
-      lastRead: existing?.lastRead,
-      goalType: call.goalType.name,
+      goalType: call.goalType,
       goalValue: call.goalValue,
       isBookmarked: existing?.isBookmarked ?? false,
+      bookIds: call.bookIds,
     );
     savedPlans.add(plan);
     return plan;
   }
 
-  void _storeSavedPlan(SaveReadingPlanCall call, ReadingPlan plan) {
-    final orderedBookIds =
-        call.orderedBookIds ?? (call.selectedBookIds.toList()..sort());
-    final details = ReadingPlanDetails(plan, [
-      for (var i = 0; i < orderedBookIds.length; i++)
-        ReadingPlanBook(
-          readingPlanId: plan.id!,
-          bookId: orderedBookIds[i],
-          ord: i + 1,
-        ),
-    ]);
+  void _storeSavedPlan(SaveReadingPlanCall call, repo.ReadingPlan plan) {
+    final details = ReadingPlanDetails(
+      ReadingPlan(
+        id: plan.id,
+        planName: plan.planName,
+        createdAt: plan.createdAt,
+        goalType: plan.goalType.name,
+        goalValue: plan.goalValue,
+        isBookmarked: plan.isBookmarked,
+      ),
+      [
+        for (var i = 0; i < plan.bookIds.length; i++)
+          ReadingPlanBook(
+            readingPlanId: plan.id,
+            bookId: plan.bookIds[i],
+            ord: i + 1,
+          ),
+      ],
+    );
 
     final index = plans.indexWhere(
       (existing) => existing.readingPlan.id == plan.id,
@@ -289,36 +298,42 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
   int _nextPlanId = 100;
 
   @override
-  Future<ReadingPlan> setReadingPlanBookmark(
-    ReadingPlan readingPlan,
-    bool isBookmarked,
-  ) async {
+  Future<void> setReadingPlanBookmark(int planId, bool isBookmarked) async {
     final error = bookmarkError;
     if (error != null) throw error;
 
     bookmarkedValues.add(isBookmarked);
-    final updated = readingPlan.copyWith(isBookmarked: isBookmarked);
-    _detailsFor(readingPlan.id!)?.readingPlan = updated;
-    return updated;
+    final details = _detailsFor(planId);
+    if (details != null) {
+      details.readingPlan = details.readingPlan.copyWith(
+        isBookmarked: isBookmarked,
+      );
+    }
   }
 
   @override
   Future<void> reorderReadingPlanBooks(
     int readingPlanId,
-    List<ReadingPlanBook> books,
+    List<int> bookIds,
   ) async {
     final error = reorderError;
     if (error != null) throw error;
 
-    final ordered = List<ReadingPlanBook>.of(books);
+    final ordered = List<int>.of(bookIds);
     reorderedBooks.add(ordered);
     final details = _detailsFor(readingPlanId);
     if (details != null) {
       final index = plans.indexWhere(
         (plan) => plan.readingPlan.id == readingPlanId,
       );
-      plans[index] = ReadingPlanDetails(details.readingPlan, ordered)
-        ..resumePosition = details.resumePosition;
+      plans[index] = ReadingPlanDetails(details.readingPlan, [
+        for (var i = 0; i < ordered.length; i++)
+          ReadingPlanBook(
+            readingPlanId: readingPlanId,
+            bookId: ordered[i],
+            ord: i + 1,
+          ),
+      ])..resumePosition = details.resumePosition;
     }
   }
 
@@ -340,31 +355,30 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
 
 class SaveReadingPlanCall {
   const SaveReadingPlanCall({
-    required this.existingPlanDetails,
+    required this.planId,
     required this.planName,
     required this.goalType,
     required this.goalValue,
-    required this.selectedBookIds,
-    required this.orderedBookIds,
+    required this.bookIds,
   });
 
-  final ReadingPlanDetails? existingPlanDetails;
+  final int? planId;
   final String planName;
   final GoalType goalType;
   final int goalValue;
-  final Set<int> selectedBookIds;
-  final List<int>? orderedBookIds;
+  final List<int> bookIds;
 }
 
 class SaveReadingPlanRequest {
   SaveReadingPlanRequest(this.plan);
 
-  final ReadingPlan plan;
-  final _completer = Completer<ReadingPlan>();
+  final repo.ReadingPlan plan;
+  final _completer = Completer<repo.ReadingPlan>();
 
-  Future<ReadingPlan> get future => _completer.future;
+  Future<repo.ReadingPlan> get future => _completer.future;
 
-  void complete([ReadingPlan? plan]) => _completer.complete(plan ?? this.plan);
+  void complete([repo.ReadingPlan? plan]) =>
+      _completer.complete(plan ?? this.plan);
 
   void completeError(Object error) => _completer.completeError(error);
 }

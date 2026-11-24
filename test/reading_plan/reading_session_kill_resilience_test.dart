@@ -85,39 +85,39 @@ void main() {
 
   group('kill-resilient persistence', () {
     test('ending a session without marking verses keeps the session', () async {
-      final plan = await planService.saveReadingPlan(
+      final planId = await planService.saveReadingPlan(
         planName: 'Empty Session Test',
         goalType: GoalType.verses,
         goalValue: 10,
-        selectedBookIds: {63},
+        bookIds: [63],
       );
 
-      await viewModel.startSession(plan.id!);
+      await viewModel.startSession(planId);
       await Future<void>.delayed(const Duration(seconds: 1));
       await viewModel.endSession();
 
       final now = DateTime.now();
       final today = DateTime(now.year, now.month, now.day);
-      final sessions = await rsDb.getSessionsForDate(today, plan.id!);
+      final sessions = await rsDb.getSessionsForDate(today, planId);
       expect(sessions, hasLength(1));
       expect(sessions.single.verses, 0);
       expect(sessions.single.endTime, isNotNull);
 
-      final summary = await summaryFor(plan.id!, today);
+      final summary = await summaryFor(planId, today);
       expect(summary.rsVerses, 0);
     });
 
     test(
       'a killed session still carries its marks and heartbeated duration',
       () async {
-        final plan = await planService.saveReadingPlan(
+        final planId = await planService.saveReadingPlan(
           planName: 'Kill Test',
           goalType: GoalType.verses,
           goalValue: 10,
-          selectedBookIds: {63},
+          bookIds: [63],
         );
 
-        await viewModel.startSession(plan.id!);
+        await viewModel.startSession(planId);
         await viewModel.setVerseRead(_readOptions(63, 1, 1, read: true));
 
         await Future<void>.delayed(const Duration(seconds: 2));
@@ -126,7 +126,7 @@ void main() {
 
         final now = DateTime.now();
         final today = DateTime(now.year, now.month, now.day);
-        final killedSessions = await rsDb.getSessionsForDate(today, plan.id!);
+        final killedSessions = await rsDb.getSessionsForDate(today, planId);
         expect(killedSessions, hasLength(1));
         expect(killedSessions.single.verses, 3);
         expect(killedSessions.single.endTime, isNotNull);
@@ -137,13 +137,13 @@ void main() {
           isTrue,
         );
 
-        final summary = await summaryFor(plan.id!, today);
+        final summary = await summaryFor(planId, today);
         expect(summary.rsVerses, 3);
         expect(summary.rsSeconds, greaterThanOrEqualTo(1));
 
-        expect(await rsDb.getVersesReadToday(plan.id!, today), 3);
+        expect(await rsDb.getVersesReadToday(planId, today), 3);
         expect(
-          await rsDb.getTotalSecondsReadToday(plan.id!, today),
+          await rsDb.getTotalSecondsReadToday(planId, today),
           greaterThanOrEqualTo(1),
         );
       },
@@ -152,11 +152,11 @@ void main() {
     test(
       'mid-day goal change applies to today (including un-reaching) while past days stay frozen',
       () async {
-        final plan = await planService.saveReadingPlan(
+        final planId = await planService.saveReadingPlan(
           planName: 'Goal Change Test',
           goalType: GoalType.verses,
           goalValue: 3,
-          selectedBookIds: {63},
+          bookIds: [63],
         );
 
         final now = DateTime.now();
@@ -169,34 +169,34 @@ void main() {
             endTime: yesterday.add(const Duration(hours: 9, minutes: 5)),
             readSeconds: 300,
             verses: 5,
-            readingPlanId: plan.id!,
+            readingPlanId: planId,
           ),
         );
-        await rsDb.upsertDaySummary(plan.id!, yesterday);
-        expect((await summaryFor(plan.id!, yesterday)).goalReached, isTrue);
+        await rsDb.upsertDaySummary(planId, yesterday);
+        expect((await summaryFor(planId, yesterday)).goalReached, isTrue);
 
-        await viewModel.startSession(plan.id!);
+        await viewModel.startSession(planId);
         for (int v = 1; v <= 3; v++) {
           await viewModel.setVerseRead(_readOptions(63, 1, v, read: true));
         }
-        expect((await summaryFor(plan.id!, today)).goalReached, isTrue);
+        expect((await summaryFor(planId, today)).goalReached, isTrue);
 
         await planService.saveReadingPlan(
-          existingPlanDetails: await planService.getReadingPlanById(plan.id!),
+          planId: planId,
           planName: 'Goal Change Test',
           goalType: GoalType.verses,
           goalValue: 10,
-          selectedBookIds: {63},
+          bookIds: [63],
         );
 
         await viewModel.setVerseRead(_readOptions(63, 1, 4, read: true));
 
-        final todaysSummary = await summaryFor(plan.id!, today);
+        final todaysSummary = await summaryFor(planId, today);
         expect(todaysSummary.goalReached, isFalse);
         expect(todaysSummary.goalValue, 10);
         expect(todaysSummary.rsVerses, 4);
 
-        final pastSummary = await summaryFor(plan.id!, yesterday);
+        final pastSummary = await summaryFor(planId, yesterday);
         expect(pastSummary.goalReached, isTrue);
         expect(pastSummary.goalValue, 3);
         expect(pastSummary.rsVerses, 5);
@@ -212,31 +212,31 @@ void main() {
           ReadingSessionViewModel.heartbeatInterval = previousInterval;
         });
 
-        final plan = await planService.saveReadingPlan(
+        final planId = await planService.saveReadingPlan(
           planName: 'Idle Flush Test',
           goalType: GoalType.verses,
           goalValue: 10,
-          selectedBookIds: {63},
+          bookIds: [63],
         );
 
-        await viewModel.startSession(plan.id!);
+        await viewModel.startSession(planId);
         await viewModel.setVerseRead(_readOptions(63, 1, 1, read: true));
 
         final now = DateTime.now();
         final today = DateTime(now.year, now.month, now.day);
         final endBefore = (await rsDb.getSessionsForDate(
           today,
-          plan.id!,
+          planId,
         )).single.endTime;
-        final secondsBefore = (await summaryFor(plan.id!, today)).rsSeconds;
+        final secondsBefore = (await summaryFor(planId, today)).rsSeconds;
 
         await Future<void>.delayed(const Duration(milliseconds: 2500));
 
         final endAfter = (await rsDb.getSessionsForDate(
           today,
-          plan.id!,
+          planId,
         )).single.endTime;
-        final secondsAfter = (await summaryFor(plan.id!, today)).rsSeconds;
+        final secondsAfter = (await summaryFor(planId, today)).rsSeconds;
 
         expect(endAfter!.isAfter(endBefore!), isTrue);
         expect(secondsAfter, greaterThan(secondsBefore));
@@ -246,14 +246,14 @@ void main() {
     test(
       'pausing the timer excludes background time from the read duration',
       () async {
-        final plan = await planService.saveReadingPlan(
+        final planId = await planService.saveReadingPlan(
           planName: 'Pause Test',
           goalType: GoalType.verses,
           goalValue: 10,
-          selectedBookIds: {63},
+          bookIds: [63],
         );
 
-        await viewModel.startSession(plan.id!);
+        await viewModel.startSession(planId);
         await Future<void>.delayed(const Duration(seconds: 2));
 
         await viewModel.pauseTimer();
@@ -264,7 +264,7 @@ void main() {
         final today = DateTime(now.year, now.month, now.day);
         final pausedSession = (await rsDb.getSessionsForDate(
           today,
-          plan.id!,
+          planId,
         )).single;
         expect(pausedSession.readSeconds, greaterThanOrEqualTo(1));
 
@@ -278,7 +278,7 @@ void main() {
 
         final endedSession = (await rsDb.getSessionsForDate(
           today,
-          plan.id!,
+          planId,
         )).single;
         expect(
           endedSession.readSeconds,
@@ -298,23 +298,23 @@ void main() {
     );
 
     test("today's calendar cell updates during a live session", () async {
-      final plan = await planService.saveReadingPlan(
+      final planId = await planService.saveReadingPlan(
         planName: 'Live Cell Test',
         goalType: GoalType.verses,
         goalValue: 5,
-        selectedBookIds: {63},
+        bookIds: [63],
       );
 
       final now = DateTime.now();
       final month = DateTime(now.year, now.month);
 
-      final before = await planService.getMonthProgress(plan.id!, month);
+      final before = await planService.getMonthProgress(planId, month);
       expect(before[now.day - 1].empty, isTrue);
 
-      await viewModel.startSession(plan.id!);
+      await viewModel.startSession(planId);
       await viewModel.setVerseRead(_readOptions(63, 1, 1, read: true));
 
-      final after = await planService.getMonthProgress(plan.id!, month);
+      final after = await planService.getMonthProgress(planId, month);
       final todayCell = after[now.day - 1];
       expect(todayCell.empty, isFalse);
       expect(todayCell.verses, 1);

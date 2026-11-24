@@ -2,6 +2,8 @@ import 'package:flutter/services.dart';
 import 'package:gbt/common/reference.dart';
 import 'package:gbt/services/hebrew_greek/database.dart';
 import 'package:gbt/services/logging/log.dart';
+import 'package:gbt/reading_plan/reading_plan_repository.dart'
+    show ReadingPlanRepository;
 import 'package:gbt/reading_plan/rs_model.dart';
 import 'package:gbt/reading_plan/session_log_repository.dart';
 import 'package:gbt/services/service_locator.dart';
@@ -29,11 +31,15 @@ class ReadingSessionDatabase {
        _verseInventoryProvider = verseInventoryProvider;
 
   static const _defaultDatabaseName = 'reading_session.db';
-  static const _databaseVersion = 8;
+  static const _databaseVersion = 9;
 
   final String _databaseName;
   final String? _databasePath;
   final VerseInventoryProvider _verseInventoryProvider;
+
+  late final ReadingPlanRepository readingPlans = ReadingPlanRepository(
+    _database,
+  );
 
   late Database _database;
   Future<void>? _initFuture;
@@ -169,13 +175,21 @@ class ReadingSessionDatabase {
     await batch.commit(noResult: true);
   }
 
+  Future<void> materializeVerseStateForPlan(
+    int planId, {
+    Set<int>? bookIds,
+  }) async {
+    await init();
+    await _materializeVerseState(_database, planId, bookIds: bookIds);
+  }
+
   Future<Map<String, List<Map<String, Object?>>>> exportBackupTables() async {
     await init();
     return {
       'reading_plan': await _database.query('reading_plan', orderBy: 'id'),
       'reading_plan_book': await _database.query(
         'reading_plan_book',
-        orderBy: 'id',
+        orderBy: 'reading_plan_id, ord',
       ),
       'rs_session': await _database.query('rs_session', orderBy: 'id'),
       'rs_log': await _database.query('rs_log', orderBy: 'id'),
@@ -341,9 +355,15 @@ class ReadingSessionDatabase {
         // Older backups persist the denormalized collection id, which the
         // current schema no longer has. The ordered book list is authoritative.
         row.remove('collection_id');
+        // Older backups also persist reading_plan.last_read, which the current
+        // schema dropped.
+        row.remove('last_read');
         batch.insert('reading_plan', row);
       }
       for (final row in readingPlanBookRows) {
+        // Older backups persist a surrogate id for reading_plan_book; the
+        // current schema keys rows by (reading_plan_id, book_id).
+        row.remove('id');
         batch.insert('reading_plan_book', row);
       }
       for (final row in sessionRows) {
@@ -406,15 +426,6 @@ class ReadingSessionDatabase {
     return result.map((e) => ReadingPlan.fromMap(e)).toList();
   }
 
-  Future<void> updateReadingPlan(ReadingPlan readingPlan) async {
-    await _database.update(
-      'reading_plan',
-      readingPlan.toMap(),
-      where: 'id = ?',
-      whereArgs: [readingPlan.id],
-    );
-  }
-
   Future<List<ReadingPlanDetails>> getReadingPlans() async {
     List<ReadingPlan> plans = await _getReadingPlans();
 
@@ -451,127 +462,43 @@ class ReadingSessionDatabase {
     return ReadingPlanDetails(plan, books);
   }
 
-  Future<ReadingPlan> saveReadingPlan({
-    ReadingPlan? existingPlan,
-    required String planName,
-    required String goalType,
-    required int goalValue,
-    required List<int> orderedBookIds,
+  /// Deletes every `rs_session` row for a plan.
+  Future<int> deleteSessionsForPlan(
+    int planId, {
+    DatabaseExecutor? executor,
   }) async {
-    final previousBookIds = existingPlan == null
-        ? <int>{}
-        : (await _database.query(
-            'reading_plan_book',
-            columns: ['book_id'],
-            where: 'reading_plan_id = ?',
-            whereArgs: [existingPlan.id],
-          )).map((row) => row['book_id'] as int).toSet();
-
-    final plan = await _database.transaction((txn) async {
-      final int planId;
-      final ReadingPlan plan;
-      if (existingPlan != null) {
-        planId = existingPlan.id!;
-        plan = existingPlan.copyWith(
-          planName: planName,
-          goalType: goalType,
-          goalValue: goalValue,
-        );
-        await txn.update(
-          'reading_plan',
-          plan.toMap(),
-          where: 'id = ?',
-          whereArgs: [planId],
-        );
-      } else {
-        final newPlan = ReadingPlan(
-          planName: planName,
-          createdAt: DateTime.now(),
-          goalType: goalType,
-          goalValue: goalValue,
-          isBookmarked: false,
-        );
-        planId = await txn.insert(
-          'reading_plan',
-          newPlan.toMap()..remove('id'),
-        );
-        plan = newPlan.copyWith(id: planId);
-      }
-
-      await txn.delete(
-        'reading_plan_book',
-        where: 'reading_plan_id = ?',
-        whereArgs: [planId],
-      );
-
-      final batch = txn.batch();
-      for (int i = 0; i < orderedBookIds.length; i++) {
-        final book = ReadingPlanBook(
-          readingPlanId: planId,
-          bookId: orderedBookIds[i],
-          ord: i + 1,
-        );
-        batch.insert('reading_plan_book', book.toMap()..remove('id'));
-      }
-
-      await batch.commit(noResult: true);
-      return plan;
-    });
-
-    final newlyAddedBookIds = orderedBookIds.toSet().difference(
-      previousBookIds,
+    final db = executor ?? _database;
+    return db.delete(
+      'rs_session',
+      where: 'reading_plan_id = ?',
+      whereArgs: [planId],
     );
-    await _materializeVerseState(
-      _database,
-      plan.id!,
-      bookIds: newlyAddedBookIds,
-    );
-
-    return plan;
   }
 
-  Future<void> updateReadingPlanBooks(List<ReadingPlanBook> books) async {
-    await _database.transaction((txn) async {
-      final batch = txn.batch();
-      for (ReadingPlanBook b in books) {
-        batch.update(
-          'reading_plan_book',
-          b.toMap(),
-          where: 'id = ?',
-          whereArgs: [b.id],
-        );
-      }
-      await batch.commit(noResult: true);
-    });
+  /// Deletes every `rs_day_summary` row for a plan.
+  Future<int> deleteDaySummariesForPlan(
+    int planId, {
+    DatabaseExecutor? executor,
+  }) async {
+    final db = executor ?? _database;
+    return db.delete(
+      'rs_day_summary',
+      where: 'reading_plan_id = ?',
+      whereArgs: [planId],
+    );
   }
 
-  Future<void> deleteReadingPlan(int planId) async {
-    await _database.transaction((txn) async {
-      final batch = txn.batch();
-      batch.delete('rs_log', where: 'reading_plan_id = ?', whereArgs: [planId]);
-      batch.delete(
-        'rs_session',
-        where: 'reading_plan_id = ?',
-        whereArgs: [planId],
-      );
-      batch.delete(
-        'rs_day_summary',
-        where: 'reading_plan_id = ?',
-        whereArgs: [planId],
-      );
-      batch.delete(
-        'rs_verse_state',
-        where: 'reading_plan_id = ?',
-        whereArgs: [planId],
-      );
-      batch.delete(
-        'reading_plan_book',
-        where: 'reading_plan_id = ?',
-        whereArgs: [planId],
-      );
-      batch.delete('reading_plan', where: 'id = ?', whereArgs: [planId]);
-      await batch.commit(noResult: true);
-    });
+  /// Deletes every `rs_verse_state` row for a plan.
+  Future<int> deleteVerseStateForPlan(
+    int planId, {
+    DatabaseExecutor? executor,
+  }) async {
+    final db = executor ?? _database;
+    return db.delete(
+      'rs_verse_state',
+      where: 'reading_plan_id = ?',
+      whereArgs: [planId],
+    );
   }
 
   Future<T> transaction<T>(Future<T> Function(DatabaseExecutor txn) action) {

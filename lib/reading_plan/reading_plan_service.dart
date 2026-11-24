@@ -1,5 +1,6 @@
 import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/common/reference.dart';
+import 'package:gbt/reading_plan/reading_plan_repository.dart' as repo;
 import 'package:gbt/reading_plan/rs_database.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
 import 'package:gbt/services/service_locator.dart';
@@ -267,71 +268,72 @@ class ReadingPlanService {
     );
   }
 
-  Future<ReadingPlan> saveReadingPlan({
-    ReadingPlanDetails? existingPlanDetails,
+  Future<int> saveReadingPlan({
+    int? planId,
     required String planName,
     required GoalType goalType,
     required int goalValue,
-    required Set<int> selectedBookIds,
-    List<int>? orderedBookIds,
-  }) {
-    final List<int> orderedIds;
-    if (orderedBookIds != null) {
-      final selected = <int>{};
-      orderedIds = [
-        for (final bookId in orderedBookIds)
-          if (selectedBookIds.contains(bookId) && selected.add(bookId)) bookId,
-      ];
-      final missing =
-          selectedBookIds.where((bookId) => !selected.contains(bookId)).toList()
-            ..sort();
-      orderedIds.addAll(missing);
-    } else {
-      orderedIds = [];
-      if (existingPlanDetails != null) {
-        for (final b in existingPlanDetails.books) {
-          if (selectedBookIds.contains(b.bookId)) {
-            orderedIds.add(b.bookId);
-          }
-        }
-      }
-      final existingBookIdsSet = orderedIds.toSet();
-      final newlyAddedBooks =
-          selectedBookIds.where((b) => !existingBookIdsSet.contains(b)).toList()
-            ..sort();
-      orderedIds.addAll(newlyAddedBooks);
-    }
+    required List<int> bookIds,
+  }) async {
+    final existingPlan = planId == null || planId == 0
+        ? null
+        : await _database.readingPlans.getById(planId);
 
-    return _database.saveReadingPlan(
-      existingPlan: existingPlanDetails?.readingPlan,
-      planName: planName,
-      goalType: goalType.name,
-      goalValue: goalValue,
-      orderedBookIds: orderedIds,
+    final previousBookIds = existingPlan?.bookIds.toSet() ?? const <int>{};
+    final plan = existingPlan == null
+        ? repo.ReadingPlan(
+            id: 0,
+            planName: planName,
+            createdAt: DateTime.now(),
+            goalType: goalType,
+            goalValue: goalValue,
+            isBookmarked: false,
+            bookIds: List<int>.of(bookIds),
+          )
+        : existingPlan.copyWith(
+            planName: planName,
+            goalType: goalType,
+            goalValue: goalValue,
+            bookIds: List<int>.of(bookIds),
+          );
+
+    final committedPlanId = await _database.readingPlans.commit(plan);
+
+    final newlyAddedBookIds = bookIds.toSet().difference(previousBookIds);
+    await _database.materializeVerseStateForPlan(
+      committedPlanId,
+      bookIds: newlyAddedBookIds,
     );
+
+    return committedPlanId;
   }
 
-  Future<ReadingPlan> setReadingPlanBookmark(
-    ReadingPlan readingPlan,
-    bool isBookmarked,
-  ) async {
-    final updatedPlan = readingPlan.copyWith(isBookmarked: isBookmarked);
-    await _database.updateReadingPlan(updatedPlan);
-    return updatedPlan;
+  Future<void> setReadingPlanBookmark(int planId, bool isBookmarked) async {
+    final savedPlan = await _database.readingPlans.getById(planId);
+    if (savedPlan == null) return;
+
+    await _database.readingPlans.commit(
+      savedPlan.copyWith(isBookmarked: isBookmarked),
+    );
   }
 
   Future<void> reorderReadingPlanBooks(
     int readingPlanId,
-    List<ReadingPlanBook> books,
-  ) {
-    final updatedBooks = [
-      for (int i = 0; i < books.length; i++)
-        books[i].copyWith(readingPlanId: readingPlanId, ord: i + 1),
-    ];
-    return _database.updateReadingPlanBooks(updatedBooks);
+    List<int> bookIds,
+  ) async {
+    final plan = await _database.readingPlans.getById(readingPlanId);
+    if (plan == null) return;
+
+    await _database.readingPlans.commit(plan.copyWith(bookIds: bookIds));
   }
 
-  Future<void> deleteReadingPlan(int planId) {
-    return _database.deleteReadingPlan(planId);
+  Future<void> deleteReadingPlan(int planId) async {
+    await _database.transaction((txn) async {
+      await _database.sessionLog.deleteForPlanId(planId, executor: txn);
+      await _database.deleteSessionsForPlan(planId, executor: txn);
+      await _database.deleteDaySummariesForPlan(planId, executor: txn);
+      await _database.deleteVerseStateForPlan(planId, executor: txn);
+      await _database.readingPlans.delete(planId, executor: txn);
+    });
   }
 }

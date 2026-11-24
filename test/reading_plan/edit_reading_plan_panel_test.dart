@@ -226,7 +226,7 @@ void main() {
         find.byType(FilledButton),
       );
       expect(submitButton.onPressed, isNull);
-      expect(planService.saveCalls.single.existingPlanDetails, same(details));
+      expect(planService.saveCalls.single.planId, details.readingPlan.id);
 
       planService.saveRequests.single.complete();
       await tester.pumpAndSettle();
@@ -352,7 +352,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(EditReadingPlanPanel), findsNothing);
-    expect(planService.saveCalls.single.orderedBookIds, [8, 2, 1]);
+    expect(planService.saveCalls.single.bookIds, [8, 2, 1]);
     expect(planService.plans.single.books.map((b) => b.bookId), [8, 2, 1]);
   });
 

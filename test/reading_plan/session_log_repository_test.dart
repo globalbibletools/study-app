@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gbt/reading_plan/reading_plan_repository.dart' as repo;
 import 'package:gbt/reading_plan/rs_database.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
 import 'package:gbt/reading_plan/session_log_repository.dart';
@@ -17,6 +18,20 @@ void main() {
     databaseFactory = databaseFactoryFfi;
   });
 
+  Future<int> createPlan(String name) {
+    return database.readingPlans.commit(
+      repo.ReadingPlan(
+        id: 0,
+        planName: name,
+        createdAt: DateTime(2026, 11, 20),
+        goalType: GoalType.verses,
+        goalValue: 10,
+        isBookmarked: false,
+        bookIds: [63],
+      ),
+    );
+  }
+
   setUp(() async {
     database = ReadingSessionDatabase.withDependencies(
       databasePath: inMemoryDatabasePath,
@@ -25,13 +40,7 @@ void main() {
     );
     await database.init();
 
-    final plan = await database.saveReadingPlan(
-      planName: 'Session Log Repository Test',
-      goalType: 'verses',
-      goalValue: 10,
-      orderedBookIds: [63],
-    );
-    planId = plan.id!;
+    planId = await createPlan('Session Log Repository Test');
   });
 
   tearDown(() {
@@ -55,10 +64,15 @@ void main() {
     );
   }
 
-  SessionLogEntry entryFor(int sessionId, int verse, {DateTime? dateTime}) {
+  SessionLogEntry entryFor(
+    int sessionId,
+    int verse, {
+    DateTime? dateTime,
+    int? readingPlanId,
+  }) {
     return SessionLogEntry(
       sessionId: sessionId,
-      readingPlanId: planId,
+      readingPlanId: readingPlanId ?? planId,
       bookId: 63,
       chapter: 1,
       verse: verse,
@@ -191,6 +205,48 @@ void main() {
 
     await database.transaction((txn) async {
       await database.sessionLog.remove(savedId, executor: txn);
+    });
+
+    expect(await database.getRsLogForSession(session.id!), isEmpty);
+  });
+
+  test('deleteForPlanId deletes only the entries for that plan', () async {
+    final otherPlanId = await createPlan('Other Plan');
+    final session = await insertSession(planId, DateTime(2026, 11, 20));
+    final otherSession = await insertSession(
+      otherPlanId,
+      DateTime(2026, 11, 20),
+    );
+    await database.sessionLog.append(entryFor(session.id!, 1));
+    await database.sessionLog.append(entryFor(session.id!, 2));
+    await database.sessionLog.append(
+      entryFor(otherSession.id!, 1, readingPlanId: otherPlanId),
+    );
+
+    expect(await database.sessionLog.deleteForPlanId(planId), 2);
+
+    expect(await database.getRsLogForSession(session.id!), isEmpty);
+    final otherLogs = await database.getRsLogForSession(otherSession.id!);
+    expect(otherLogs, hasLength(1));
+    expect(otherLogs.single.readingPlanId, otherPlanId);
+  });
+
+  test('deleteForPlanId honors a transaction executor', () async {
+    final session = await insertSession(planId, DateTime(2026, 11, 20));
+    await database.sessionLog.append(entryFor(session.id!, 1));
+
+    await expectLater(
+      database.transaction((txn) async {
+        await database.sessionLog.deleteForPlanId(planId, executor: txn);
+        throw StateError('rollback');
+      }),
+      throwsStateError,
+    );
+
+    expect(await database.getRsLogForSession(session.id!), hasLength(1));
+
+    await database.transaction((txn) async {
+      await database.sessionLog.deleteForPlanId(planId, executor: txn);
     });
 
     expect(await database.getRsLogForSession(session.id!), isEmpty);

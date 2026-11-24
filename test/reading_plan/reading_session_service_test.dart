@@ -88,18 +88,18 @@ void main() {
   }
 
   test('starts a session and returns a static plan config', () async {
-    final plan = await planService.saveReadingPlan(
+    final planId = await planService.saveReadingPlan(
       planName: 'Session Service Test',
       goalType: GoalType.verses,
       goalValue: 15,
-      selectedBookIds: {63, 64},
+      bookIds: [63, 64],
     );
 
-    final snapshot = await sessionService.startSession(plan.id!);
+    final snapshot = await sessionService.startSession(planId);
 
     expect(snapshot, isNotNull);
     final config = snapshot!.config;
-    expect(config.planId, plan.id);
+    expect(config.planId, planId);
     expect(config.planName, 'Session Service Test');
     expect(config.dailyGoal.type, GoalType.verses);
     expect(config.dailyGoal.value, 15);
@@ -121,11 +121,11 @@ void main() {
   });
 
   test('starts a session from a plan id and clears it on end', () async {
-    final plan = await planService.saveReadingPlan(
+    final planId = await planService.saveReadingPlan(
       planName: 'Session Service State Test',
       goalType: GoalType.minutes,
       goalValue: 20,
-      selectedBookIds: {19},
+      bookIds: [19],
     );
 
     final viewModel = newViewModel();
@@ -133,10 +133,10 @@ void main() {
     expect(viewModel.planConfig, isNull);
     expect(viewModel.hasActiveSession, isFalse);
 
-    await viewModel.startSession(plan.id!);
+    await viewModel.startSession(planId);
 
     expect(viewModel.hasActiveSession, isTrue);
-    expect(viewModel.planConfig?.planId, plan.id);
+    expect(viewModel.planConfig?.planId, planId);
     expect(viewModel.planConfig?.dailyGoal.type, GoalType.minutes);
     expect(viewModel.planConfig?.dailyGoal.value, 20);
     expect(navigationViewModel.navigatedReferences, [
@@ -162,13 +162,13 @@ void main() {
   });
 
   test('navigates to the plan resume reference', () async {
-    final plan = await planService.saveReadingPlan(
+    final planId = await planService.saveReadingPlan(
       planName: 'Resume Navigation Test',
       goalType: GoalType.verses,
       goalValue: 10,
-      selectedBookIds: {19},
+      bookIds: [19],
     );
-    await database.markVerseRead(plan.id!, 19, 1, 1);
+    await database.markVerseRead(planId, 19, 1, 1);
 
     final now = DateTime.now();
     final session = await database.insertSession(
@@ -177,7 +177,7 @@ void main() {
         startTime: now,
         endTime: now,
         verses: 1,
-        readingPlanId: plan.id!,
+        readingPlanId: planId,
       ),
     );
     await database.sessionLog.append(
@@ -187,12 +187,12 @@ void main() {
         chapter: 1,
         verse: 1,
         dateTime: now,
-        readingPlanId: plan.id!,
+        readingPlanId: planId,
       ),
     );
 
     final viewModel = newViewModel();
-    await viewModel.startSession(plan.id!);
+    await viewModel.startSession(planId);
 
     expect(navigationViewModel.navigatedReferences, [
       const Reference(bookId: 19, chapter: 1, verse: 2),
@@ -204,19 +204,19 @@ void main() {
   test(
     'view model ends the active session before starting a new one',
     () async {
-      final plan = await planService.saveReadingPlan(
+      final planId = await planService.saveReadingPlan(
         planName: 'Restart Test',
         goalType: GoalType.verses,
         goalValue: 10,
-        selectedBookIds: {63},
+        bookIds: [63],
       );
 
       final viewModel = newViewModel();
 
-      await viewModel.startSession(plan.id!);
+      await viewModel.startSession(planId);
       final firstSessionId = viewModel.sessionId;
 
-      await viewModel.startSession(plan.id!);
+      await viewModel.startSession(planId);
       final secondSessionId = viewModel.sessionId;
 
       expect(firstSessionId, isNotNull);
@@ -225,7 +225,7 @@ void main() {
 
       final now = DateTime.now();
       final today = DateTime(now.year, now.month, now.day);
-      final sessions = await database.getSessionsForDate(today, plan.id!);
+      final sessions = await database.getSessionsForDate(today, planId);
       expect(sessions, hasLength(2));
       expect(
         sessions.firstWhere((session) => session.id == firstSessionId).endTime,
@@ -239,14 +239,14 @@ void main() {
   test(
     'marks a verse and returns fresh chapter states with progress',
     () async {
-      final plan = await planService.saveReadingPlan(
+      final planId = await planService.saveReadingPlan(
         planName: 'Mark Test',
         goalType: GoalType.verses,
         goalValue: 5,
-        selectedBookIds: {63},
+        bookIds: [63],
       );
 
-      final sessionId = await startPlan(plan.id!);
+      final sessionId = await startPlan(planId);
       final result = (await setVerseRead(
         sessionId,
         _readOptions(63, 1, 1, read: true),
@@ -267,14 +267,14 @@ void main() {
   test(
     'reading a verse twice in one session is a no-op the second time',
     () async {
-      final plan = await planService.saveReadingPlan(
+      final planId = await planService.saveReadingPlan(
         planName: 'Idempotent Read Test',
         goalType: GoalType.verses,
         goalValue: 5,
-        selectedBookIds: {63},
+        bookIds: [63],
       );
 
-      final sessionId = await startPlan(plan.id!);
+      final sessionId = await startPlan(planId);
       final first = (await setVerseRead(
         sessionId,
         _readOptions(63, 1, 1, read: true),
@@ -294,18 +294,18 @@ void main() {
   test(
     'unchecking removes only the current session log and decrements counts',
     () async {
-      final plan = await planService.saveReadingPlan(
+      final planId = await planService.saveReadingPlan(
         planName: 'Uncheck Test',
         goalType: GoalType.verses,
         goalValue: 5,
-        selectedBookIds: {63},
+        bookIds: [63],
       );
 
-      final firstSessionId = await startPlan(plan.id!);
+      final firstSessionId = await startPlan(planId);
       await setVerseRead(firstSessionId, _readOptions(63, 1, 1, read: true));
       await sessionService.endSession(firstSessionId, readSeconds: 0);
 
-      final secondSessionId = await startPlan(plan.id!);
+      final secondSessionId = await startPlan(planId);
       final checked = (await setVerseRead(
         secondSessionId,
         _readOptions(63, 1, 1, read: true),
@@ -329,18 +329,18 @@ void main() {
   );
 
   test('unchecking a verse not read in this session is a no-op', () async {
-    final plan = await planService.saveReadingPlan(
+    final planId = await planService.saveReadingPlan(
       planName: 'No-op Uncheck Test',
       goalType: GoalType.verses,
       goalValue: 5,
-      selectedBookIds: {63},
+      bookIds: [63],
     );
 
-    final firstSessionId = await startPlan(plan.id!);
+    final firstSessionId = await startPlan(planId);
     await setVerseRead(firstSessionId, _readOptions(63, 1, 1, read: true));
     await sessionService.endSession(firstSessionId, readSeconds: 0);
 
-    final secondSessionId = await startPlan(plan.id!);
+    final secondSessionId = await startPlan(planId);
     final before = (await database.getSessionById(secondSessionId))!;
 
     final result = (await setVerseRead(
@@ -359,11 +359,11 @@ void main() {
   test(
     'a verse read before midnight is unchecked in the new day session',
     () async {
-      final plan = await planService.saveReadingPlan(
+      final planId = await planService.saveReadingPlan(
         planName: 'Rollover Test',
         goalType: GoalType.verses,
         goalValue: 5,
-        selectedBookIds: {63},
+        bookIds: [63],
       );
 
       final now = DateTime.now();
@@ -376,10 +376,10 @@ void main() {
           endTime: yesterday.add(const Duration(hours: 9, minutes: 5)),
           readSeconds: 300,
           verses: 1,
-          readingPlanId: plan.id!,
+          readingPlanId: planId,
         ),
       );
-      await database.markVerseRead(plan.id!, 63, 1, 1);
+      await database.markVerseRead(planId, 63, 1, 1);
       await database.sessionLog.append(
         SessionLogEntry(
           sessionId: oldSession.id!,
@@ -387,7 +387,7 @@ void main() {
           chapter: 1,
           verse: 1,
           dateTime: yesterday.add(const Duration(hours: 9)),
-          readingPlanId: plan.id!,
+          readingPlanId: planId,
         ),
       );
 
@@ -428,11 +428,11 @@ void main() {
   test(
     'session operations reject stale sessions until an explicit rollover',
     () async {
-      final plan = await planService.saveReadingPlan(
+      final planId = await planService.saveReadingPlan(
         planName: 'Stale Session Test',
         goalType: GoalType.verses,
         goalValue: 5,
-        selectedBookIds: {63},
+        bookIds: [63],
       );
 
       final now = DateTime.now();
@@ -445,7 +445,7 @@ void main() {
           endTime: yesterday.add(const Duration(hours: 9, minutes: 5)),
           readSeconds: 300,
           verses: 0,
-          readingPlanId: plan.id!,
+          readingPlanId: planId,
         ),
       );
 
@@ -483,14 +483,14 @@ void main() {
   );
 
   test('reports book completion with the next resume position', () async {
-    final plan = await planService.saveReadingPlan(
+    final planId = await planService.saveReadingPlan(
       planName: 'Completion Test',
       goalType: GoalType.verses,
       goalValue: 15,
-      selectedBookIds: {63, 64},
+      bookIds: [63, 64],
     );
 
-    final sessionId = await startPlan(plan.id!);
+    final sessionId = await startPlan(planId);
 
     VerseReadResult? result;
     for (int verse = 1; verse <= 13; verse++) {
@@ -509,15 +509,15 @@ void main() {
   test(
     'celebrates the goal once per day and suppresses it on restart',
     () async {
-      final plan = await planService.saveReadingPlan(
+      final planId = await planService.saveReadingPlan(
         planName: 'Goal Celebration Test',
         goalType: GoalType.verses,
         goalValue: 2,
-        selectedBookIds: {63},
+        bookIds: [63],
       );
 
       final viewModel = newViewModel();
-      await viewModel.startSession(plan.id!);
+      await viewModel.startSession(planId);
 
       await viewModel.setVerseRead(_readOptions(63, 1, 1, read: true));
       expect(viewModel.goalReachedNotifier.value, isFalse);
@@ -528,7 +528,7 @@ void main() {
       await viewModel.endSession();
       expect(viewModel.goalReachedNotifier.value, isFalse);
 
-      await viewModel.startSession(plan.id!);
+      await viewModel.startSession(planId);
       expect(viewModel.session?.goalAlreadyReachedToday, isTrue);
 
       await viewModel.setVerseRead(_readOptions(63, 1, 3, read: true));
@@ -539,14 +539,14 @@ void main() {
   );
 
   test('heartbeat extends the session and end closes it', () async {
-    final plan = await planService.saveReadingPlan(
+    final planId = await planService.saveReadingPlan(
       planName: 'Heartbeat Test',
       goalType: GoalType.verses,
       goalValue: 10,
-      selectedBookIds: {63},
+      bookIds: [63],
     );
 
-    final sessionId = await startPlan(plan.id!);
+    final sessionId = await startPlan(planId);
     await Future<void>.delayed(const Duration(seconds: 1));
 
     final progress = (await sessionService.heartbeat(
@@ -559,34 +559,30 @@ void main() {
     final today = DateTime(now.year, now.month, now.day);
     final beforeEnd = (await database.getSessionsForDate(
       today,
-      plan.id!,
+      planId,
     )).single.endTime;
     expect(beforeEnd, isNotNull);
 
     await sessionService.endSession(sessionId, readSeconds: 0);
 
-    final sessions = await database.getSessionsForDate(today, plan.id!);
+    final sessions = await database.getSessionsForDate(today, planId);
     expect(sessions, hasLength(1));
     expect(sessions.single.endTime, isNotNull);
 
-    final summary = await database.getDaySummariesBetween(
-      plan.id!,
-      today,
-      today,
-    );
+    final summary = await database.getDaySummariesBetween(planId, today, today);
     expect(summary, hasLength(1));
     expect(summary.single.rsSeconds, greaterThanOrEqualTo(1));
   });
 
   test('returns null for actions on a missing session', () async {
-    final plan = await planService.saveReadingPlan(
+    final planId = await planService.saveReadingPlan(
       planName: 'Missing Session Test',
       goalType: GoalType.verses,
       goalValue: 10,
-      selectedBookIds: {63},
+      bookIds: [63],
     );
 
-    final sessionId = await startPlan(plan.id!);
+    final sessionId = await startPlan(planId);
     await sessionService.endSession(sessionId, readSeconds: 0);
 
     expect(await sessionService.heartbeat(-1, readSeconds: 0), isNull);
