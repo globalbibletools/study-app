@@ -18,6 +18,7 @@ import 'package:gbt/services/logging/app_logger.dart';
 import 'package:gbt/services/resources/resource_service.dart';
 import 'package:gbt/ui/home/common/navigation_view_model.dart';
 import 'package:gbt/ui/home/home_manager.dart';
+import 'package:gbt/ui/messaging/messenger_view_model.dart';
 
 import 'settings/user_settings.dart';
 
@@ -70,4 +71,5 @@ void setupServiceLocator() {
   );
   getIt.registerLazySingleton<AppGuideManager>(() => AppGuideManager());
   getIt.registerLazySingleton<HomeManager>(() => HomeManager());
+  getIt.registerLazySingleton<MessengerViewModel>(() => MessengerViewModel());
 }

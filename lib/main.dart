@@ -8,6 +8,8 @@ import 'package:gbt/services/logging/log.dart';
 import 'package:gbt/services/resources/resource_service.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/home/home.dart';
+import 'package:gbt/ui/messaging/messenger_host.dart';
+import 'package:gbt/ui/messaging/messenger_view_model.dart';
 
 import 'app_state.dart';
 import 'theme.dart';
@@ -43,6 +45,7 @@ class GbtStudyApp extends StatefulWidget {
 
 class _GbtStudyAppState extends State<GbtStudyApp> {
   final appState = getIt<AppState>();
+  final _messenger = getIt<MessengerViewModel>();
 
   @override
   void initState() {
@@ -63,6 +66,10 @@ class _GbtStudyAppState extends State<GbtStudyApp> {
           theme: lightTheme,
           darkTheme: darkTheme,
           themeMode: appState.themeMode,
+          builder: (context, child) => MessengerHost(
+            messenger: _messenger,
+            child: child ?? const SizedBox.shrink(),
+          ),
           home: const HomeScreen(),
           debugShowCheckedModeBanner: false,
         );
