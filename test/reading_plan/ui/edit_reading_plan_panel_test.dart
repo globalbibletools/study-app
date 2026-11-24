@@ -8,7 +8,8 @@ import 'package:gbt/reading_plan/ui/number_stepper.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
 import 'package:gbt/reading_plan/data_access/reading_plan_queries.dart';
 import 'package:gbt/reading_plan/data_access/reading_plan_read_models.dart';
-import 'package:gbt/reading_plan/data_access/rs_model.dart';
+import 'package:gbt/reading_plan/data_access/reading_plan_repository.dart'
+    as repo;
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/messaging/messenger_host.dart';
 import 'package:material_ui/material_ui.dart';
@@ -47,13 +48,11 @@ void main() {
     );
   }
 
-  Future<EditReadingPlanViewModel> existingViewModel(
-    ReadingPlanDetails details,
-  ) {
-    planService.plans = [details];
-    seedConfig(queries, details);
+  Future<EditReadingPlanViewModel> existingViewModel(repo.ReadingPlan plan) {
+    planService.plans = [plan];
+    seedConfig(queries, plan);
     return EditReadingPlanViewModel.createExisting(
-      details.readingPlan.id!,
+      plan.id,
       queries: queries,
       planService: planService,
       bibleNavigation: bibleNavigation,
@@ -218,8 +217,8 @@ void main() {
     'updating an existing plan closes the editor and shows submitting state',
     (tester) async {
       planService.queueSaveRequests = true;
-      final details = existingPlan(name: 'Original');
-      final viewModel = await existingViewModel(details);
+      final plan = existingPlan(name: 'Original');
+      final viewModel = await existingViewModel(plan);
       await openPanel(tester, viewModel);
 
       expect(find.text('Update Reading Plan'), findsOneWidget);
@@ -234,7 +233,7 @@ void main() {
         find.byType(FilledButton),
       );
       expect(submitButton.onPressed, isNull);
-      expect(planService.saveCalls.single.planId, details.readingPlan.id);
+      expect(planService.saveCalls.single.planId, plan.id);
 
       planService.saveRequests.single.complete();
       await tester.pumpAndSettle();
@@ -248,9 +247,9 @@ void main() {
   testWidgets('delete asks for confirmation before removing the plan', (
     tester,
   ) async {
-    final details = existingPlan(id: 2, name: 'Doomed');
-    planService.plans = [details];
-    final viewModel = await existingViewModel(details);
+    final plan = existingPlan(id: 2, name: 'Doomed');
+    planService.plans = [plan];
+    final viewModel = await existingViewModel(plan);
     await openPanel(tester, viewModel);
 
     final deleteButton = find.byIcon(Icons.delete_outline_rounded);
@@ -361,7 +360,7 @@ void main() {
 
     expect(find.byType(EditReadingPlanPanel), findsNothing);
     expect(planService.saveCalls.single.bookIds, [8, 2, 1]);
-    expect(planService.plans.single.books.map((b) => b.bookId), [8, 2, 1]);
+    expect(planService.plans.single.bookIds, [8, 2, 1]);
   });
 
   testWidgets('disables save when the name is empty', (tester) async {
@@ -412,16 +411,16 @@ void main() {
     testWidgets(
       'navigateToExisting opens an initialized existing plan editor',
       (tester) async {
-        final details = existingPlan(id: 4, name: 'Existing Plan');
-        planService.plans = [details];
-        seedConfig(queries, details);
+        final plan = existingPlan(id: 4, name: 'Existing Plan');
+        planService.plans = [plan];
+        seedConfig(queries, plan);
 
         await tester.pumpWidget(
           buildApp(
             _EditorLauncher(
               onOpen: (context) => EditReadingPlanPanel.navigateToExisting(
                 context,
-                details.readingPlan.id!,
+                plan.id,
                 messenger: messenger,
               ),
             ),
@@ -486,32 +485,25 @@ class _EditorLauncher extends StatelessWidget {
   }
 }
 
-ReadingPlanDetails existingPlan({int id = 1, String name = 'Existing Plan'}) {
-  final books = BibleCollection.wholeBible.books;
-  return ReadingPlanDetails(
-    ReadingPlan(
-      id: id,
-      planName: name,
-      createdAt: DateTime(2026, 1, 1),
-      goalType: GoalType.verses.name,
-      goalValue: 10,
-      isBookmarked: false,
-    ),
-    [
-      for (var i = 0; i < books.length; i++)
-        ReadingPlanBook(readingPlanId: id, bookId: books[i], ord: i + 1),
-    ],
+repo.ReadingPlan existingPlan({int id = 1, String name = 'Existing Plan'}) {
+  return repo.ReadingPlan(
+    id: id,
+    planName: name,
+    createdAt: DateTime(2026, 1, 1),
+    goalType: GoalType.verses,
+    goalValue: 10,
+    isBookmarked: false,
+    bookIds: BibleCollection.wholeBible.books,
   );
 }
 
-void seedConfig(FakeReadingPlanQueries queries, ReadingPlanDetails details) {
-  final plan = details.readingPlan;
-  queries.configs[plan.id!] = ReadingPlanConfig(
-    planId: plan.id!,
+void seedConfig(FakeReadingPlanQueries queries, repo.ReadingPlan plan) {
+  queries.configs[plan.id] = ReadingPlanConfig(
+    planId: plan.id,
     planName: plan.planName,
     isBookmarked: plan.isBookmarked,
     createdAt: plan.createdAt,
-    dailyGoal: DailyGoal(goalTypeFromStored(plan.goalType), plan.goalValue),
-    bookIds: [for (final book in details.books) book.bookId],
+    dailyGoal: DailyGoal(plan.goalType, plan.goalValue),
+    bookIds: plan.bookIds,
   );
 }

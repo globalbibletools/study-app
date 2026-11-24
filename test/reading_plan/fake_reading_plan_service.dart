@@ -6,16 +6,14 @@ import 'package:gbt/reading_plan/data_access/reading_plan_repository.dart'
     as repo;
 import 'package:gbt/reading_plan/reading_plan_service.dart';
 import 'package:gbt/reading_plan/data_access/reading_plan_read_models.dart';
-import 'package:gbt/reading_plan/data_access/rs_model.dart';
 import 'package:gbt/reading_plan/data_access/verse_state_repository.dart';
 
 import 'fake_reading_plan_queries.dart';
 
 class FakeReadingPlanService extends Fake implements ReadingPlanService {
-  FakeReadingPlanService([List<ReadingPlanDetails>? plans])
-    : plans = plans ?? [];
+  FakeReadingPlanService([List<repo.ReadingPlan>? plans]) : plans = plans ?? [];
 
-  List<ReadingPlanDetails> plans;
+  List<repo.ReadingPlan> plans;
   List<BookStats> bookStats = const [];
   Reference? resumePosition;
 
@@ -68,16 +66,8 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
 
   int _nextSessionId = 1000;
 
-  /// Number of times [getReadingPlanById] has been called.
-  int getPlanByIdCalls = 0;
-
-  ReadingPlanDetails? _detailsFor(int planId) =>
-      plans.where((plan) => plan.readingPlan.id == planId).firstOrNull;
-
-  Future<ReadingPlanDetails?> getReadingPlanById(int planId) {
-    getPlanByIdCalls++;
-    return Future.value(_detailsFor(planId));
-  }
+  repo.ReadingPlan? _planForId(int planId) =>
+      plans.where((plan) => plan.id == planId).firstOrNull;
 
   @override
   Future<void> addManualSession({
@@ -156,7 +146,7 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
   repo.ReadingPlan _planFor(SaveReadingPlanCall call) {
     final existing = call.planId == null || call.planId == 0
         ? null
-        : _detailsFor(call.planId!)?.readingPlan;
+        : _planForId(call.planId!);
     final plan = repo.ReadingPlan(
       id: existing?.id ?? _nextPlanId++,
       planName: call.planName,
@@ -171,32 +161,11 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
   }
 
   void _storeSavedPlan(SaveReadingPlanCall call, repo.ReadingPlan plan) {
-    final details = ReadingPlanDetails(
-      ReadingPlan(
-        id: plan.id,
-        planName: plan.planName,
-        createdAt: plan.createdAt,
-        goalType: plan.goalType.name,
-        goalValue: plan.goalValue,
-        isBookmarked: plan.isBookmarked,
-      ),
-      [
-        for (var i = 0; i < plan.bookIds.length; i++)
-          ReadingPlanBook(
-            readingPlanId: plan.id,
-            bookId: plan.bookIds[i],
-            ord: i + 1,
-          ),
-      ],
-    );
-
-    final index = plans.indexWhere(
-      (existing) => existing.readingPlan.id == plan.id,
-    );
+    final index = plans.indexWhere((existing) => existing.id == plan.id);
     if (index == -1) {
-      plans.add(details);
+      plans.add(plan);
     } else {
-      plans[index] = details;
+      plans[index] = plan;
     }
 
     queries?.configs[plan.id] = ReadingPlanConfig(
@@ -217,11 +186,10 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
     if (error != null) throw error;
 
     bookmarkedValues.add(isBookmarked);
-    final details = _detailsFor(planId);
-    if (details != null) {
-      final index = plans.indexWhere((plan) => plan.readingPlan.id == planId);
-      final plan = details.readingPlan.copyWith(isBookmarked: isBookmarked);
-      plans[index] = ReadingPlanDetails(plan, details.books);
+    final index = plans.indexWhere((plan) => plan.id == planId);
+    if (index != -1) {
+      final plan = plans[index].copyWith(isBookmarked: isBookmarked);
+      plans[index] = plan;
       final config = queries?.configs[planId];
       if (config != null) {
         queries!.configs[planId] = config.copyWith(isBookmarked: isBookmarked);
@@ -239,19 +207,14 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
 
     final ordered = List<int>.of(bookIds);
     reorderedBooks.add(ordered);
-    final details = _detailsFor(readingPlanId);
-    if (details != null) {
-      final index = plans.indexWhere(
-        (plan) => plan.readingPlan.id == readingPlanId,
-      );
-      plans[index] = ReadingPlanDetails(details.readingPlan, [
-        for (var i = 0; i < ordered.length; i++)
-          ReadingPlanBook(
-            readingPlanId: readingPlanId,
-            bookId: ordered[i],
-            ord: i + 1,
-          ),
-      ]);
+    final index = plans.indexWhere((plan) => plan.id == readingPlanId);
+    if (index != -1) {
+      final plan = plans[index].copyWith(bookIds: ordered);
+      plans[index] = plan;
+      final config = queries?.configs[readingPlanId];
+      if (config != null) {
+        queries!.configs[readingPlanId] = config.copyWith(bookIds: ordered);
+      }
     }
   }
 
@@ -267,7 +230,7 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
     }
 
     deletedPlanIds.add(planId);
-    plans = plans.where((plan) => plan.readingPlan.id != planId).toList();
+    plans = plans.where((plan) => plan.id != planId).toList();
     queries?.configs.remove(planId);
   }
 }

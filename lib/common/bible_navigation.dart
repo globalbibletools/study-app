@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:gbt/services/hebrew_greek/database.dart';
-import 'package:gbt/reading_plan/data_access/rs_model.dart';
 
 @immutable
 class ChapterIdentifier {
@@ -86,57 +85,6 @@ class BibleNavigation {
       return ChapterIdentifier(current.bookId + 1, 1);
     }
     // Case 3: End of Bible
-    return null;
-  }
-
-  // Returns null if there is no next chapter (last book in the reading plan)
-  ChapterIdentifier? getNextChapterForReadingPlan(
-    ChapterIdentifier current,
-    ReadingPlanDetails readingPlan,
-  ) {
-    final totalChapters = getChapterCount(current.bookId);
-
-    // Case 1: Next chapter in same book
-    if (current.chapter < totalChapters) {
-      return ChapterIdentifier(current.bookId, current.chapter + 1);
-    }
-    // Case 2: First chapter of next book
-    for (int i = 0; i < readingPlan.books.length; i++) {
-      if (readingPlan.books[i].bookId != current.bookId) continue;
-
-      if (i < readingPlan.books.length - 1) {
-        return ChapterIdentifier(readingPlan.books[i + 1].bookId, 1);
-      }
-
-      // Case 3 : End of the reading plan
-      return null;
-    }
-
-    return null;
-  }
-
-  // Returns null if there is no previous chapter (e.g. Genesis 1)
-  ChapterIdentifier? getPreviousChapterForReadingPlan(
-    ChapterIdentifier current,
-    ReadingPlanDetails readingPlan,
-  ) {
-    // Case 1: Previous chapter in same book
-    if (current.chapter > 1) {
-      return ChapterIdentifier(current.bookId, current.chapter - 1);
-    }
-
-    // Case 2: First chapter of previous book
-    for (int i = 0; i < readingPlan.books.length; i++) {
-      if (readingPlan.books[i].bookId != current.bookId) continue;
-
-      // Case 3 : first book of the reading plan
-      if (i == 0) return null;
-
-      final previousBookId = readingPlan.books[i - 1].bookId;
-      final lastChapterOfPreviousBook = getChapterCount(previousBookId);
-      return ChapterIdentifier(previousBookId, lastChapterOfPreviousBook);
-    }
-
     return null;
   }
 

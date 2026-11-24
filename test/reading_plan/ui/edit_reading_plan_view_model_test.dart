@@ -4,7 +4,8 @@ import 'package:gbt/reading_plan/bible_collection.dart';
 import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/reading_plan/ui/edit_reading_plan_view_model.dart';
 import 'package:gbt/reading_plan/data_access/reading_plan_read_models.dart';
-import 'package:gbt/reading_plan/data_access/rs_model.dart';
+import 'package:gbt/reading_plan/data_access/reading_plan_repository.dart'
+    as repo;
 
 import '../../fixtures/bible_navigation_fixture.dart';
 import '../fake_reading_plan_queries.dart';
@@ -30,20 +31,18 @@ void main() {
     );
   }
 
-  Future<EditReadingPlanViewModel> existingViewModel(
-    ReadingPlanDetails details,
-  ) {
-    planService.plans = [details];
-    seedConfig(queries, details);
+  Future<EditReadingPlanViewModel> existingViewModel(repo.ReadingPlan plan) {
+    planService.plans = [plan];
+    seedConfig(queries, plan);
     return EditReadingPlanViewModel.createExisting(
-      details.readingPlan.id!,
+      plan.id,
       queries: queries,
       planService: planService,
       bibleNavigation: bibleNavigation,
     );
   }
 
-  Future<ReadingPlanDetails> savePlan({
+  Future<repo.ReadingPlan> savePlan({
     String name = 'Saved Plan',
     GoalType goalType = GoalType.verses,
     int goalValue = 10,
@@ -55,7 +54,7 @@ void main() {
       goalValue: goalValue,
       bookIds: bookIds,
     );
-    return (await planService.getReadingPlanById(planId))!;
+    return planService.plans.singleWhere((plan) => plan.id == planId);
   }
 
   group('initialization', () {
@@ -75,14 +74,14 @@ void main() {
     });
 
     test('seeds an existing-plan view model from its saved details', () async {
-      final details = await savePlan(
+      final plan = await savePlan(
         name: 'Epistles',
         goalType: GoalType.minutes,
         goalValue: 20,
         bookIds: [45, 46],
       );
 
-      final vm = await existingViewModel(details);
+      final vm = await existingViewModel(plan);
 
       expect(vm.isExisting, isTrue);
       expect(vm.name, 'Epistles');
@@ -95,13 +94,13 @@ void main() {
     });
 
     test('loads an existing plan from the read-model config', () async {
-      final details = await savePlan(
+      final plan = await savePlan(
         name: 'Original',
         goalType: GoalType.minutes,
         goalValue: 20,
         bookIds: [1, 2],
       );
-      final planId = details.readingPlan.id!;
+      final planId = plan.id;
       queries.configs[planId] = ReadingPlanConfig(
         planId: planId,
         planName: 'Reloaded',
@@ -110,7 +109,6 @@ void main() {
         dailyGoal: const DailyGoal(GoalType.minutes, 15),
         bookIds: const [3, 4],
       );
-      final serviceReadsBefore = planService.getPlanByIdCalls;
 
       final vm = await EditReadingPlanViewModel.createExisting(
         planId,
@@ -123,7 +121,6 @@ void main() {
       expect(vm.goalType, GoalType.minutes);
       expect(vm.goalValue, 15);
       expect(vm.orderedBookIds, [3, 4]);
-      expect(planService.getPlanByIdCalls, serviceReadsBefore);
 
       expect(await vm.submit(), isTrue);
       final call = planService.saveCalls.last;
@@ -148,9 +145,9 @@ void main() {
         goalValue: 10,
         bookIds: [46, 45],
       );
-      final details = (await planService.getReadingPlanById(planId))!;
+      final plan = planService.plans.singleWhere((plan) => plan.id == planId);
 
-      final vm = await existingViewModel(details);
+      final vm = await existingViewModel(plan);
       expect(vm.selectedCollection, same(BibleCollection.custom));
       expect(vm.orderedBookIds, [46, 45]);
 
@@ -443,9 +440,8 @@ void main() {
       expect(call.bookIds, [40, 41, 42, 43]);
 
       final saved = planService.plans.single;
-      expect(saved.readingPlan.id, isNotNull);
-      expect(saved.books.map((b) => b.bookId), [40, 41, 42, 43]);
-      expect(saved.books.map((b) => b.ord), [1, 2, 3, 4]);
+      expect(saved.id, isNotNull);
+      expect(saved.bookIds, [40, 41, 42, 43]);
     });
 
     test('saves a whole-Bible plan in canonical order', () async {
@@ -468,7 +464,7 @@ void main() {
       expect(call.bookIds, [3, 1, 2]);
 
       final saved = planService.plans.single;
-      expect(saved.books.map((b) => b.bookId), [3, 1, 2]);
+      expect(saved.bookIds, [3, 1, 2]);
     });
 
     test('does not persist an unselected custom draft', () async {
@@ -491,7 +487,7 @@ void main() {
 
     test('passes the existing plan through when updating', () async {
       final saved = await savePlan(name: 'Original', bookIds: [2, 1]);
-      final originalId = saved.readingPlan.id;
+      final originalId = saved.id;
 
       final vm = await existingViewModel(saved);
       vm.setPlanName('Revised');
@@ -500,15 +496,14 @@ void main() {
       expect(await vm.submit(), isTrue);
 
       final call = planService.saveCalls.last;
-      expect(call.planId, saved.readingPlan.id);
+      expect(call.planId, saved.id);
       expect(call.planName, 'Revised');
       expect(call.bookIds, [1, 3]);
 
       final updated = planService.plans.single;
-      expect(updated.readingPlan.id, originalId);
-      expect(updated.readingPlan.planName, 'Revised');
-      expect(updated.books.map((b) => b.bookId), [1, 3]);
-      expect(updated.books.map((b) => b.ord), [1, 2]);
+      expect(updated.id, originalId);
+      expect(updated.planName, 'Revised');
+      expect(updated.bookIds, [1, 3]);
     });
 
     test('does not save when the name is empty', () async {
@@ -616,14 +611,13 @@ void main() {
   });
 }
 
-void seedConfig(FakeReadingPlanQueries queries, ReadingPlanDetails details) {
-  final plan = details.readingPlan;
-  queries.configs[plan.id!] = ReadingPlanConfig(
-    planId: plan.id!,
+void seedConfig(FakeReadingPlanQueries queries, repo.ReadingPlan plan) {
+  queries.configs[plan.id] = ReadingPlanConfig(
+    planId: plan.id,
     planName: plan.planName,
     isBookmarked: plan.isBookmarked,
     createdAt: plan.createdAt,
-    dailyGoal: DailyGoal(goalTypeFromStored(plan.goalType), plan.goalValue),
-    bookIds: [for (final book in details.books) book.bookId],
+    dailyGoal: DailyGoal(plan.goalType, plan.goalValue),
+    bookIds: plan.bookIds,
   );
 }
