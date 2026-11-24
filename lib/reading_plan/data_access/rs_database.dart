@@ -623,29 +623,6 @@ class ReadingSessionDatabase {
     };
   }
 
-  Future<Map<int, ({int totalVerses, int versesRead})>>
-  getReadingPlanProgress() async {
-    final rows = await _database.rawQuery(
-      'SELECT b.reading_plan_id AS reading_plan_id, '
-      '       COUNT(v.verse) AS total_verses, '
-      '       COALESCE(SUM(CASE WHEN v.read_count > 0 THEN 1 ELSE 0 END), 0) '
-      '         AS verses_read '
-      'FROM reading_plan_book b '
-      'LEFT JOIN rs_verse_state v '
-      '  ON v.reading_plan_id = b.reading_plan_id '
-      ' AND v.book_id = b.book_id '
-      'GROUP BY b.reading_plan_id',
-    );
-
-    return {
-      for (final row in rows)
-        row['reading_plan_id'] as int: (
-          totalVerses: row['total_verses'] as int,
-          versesRead: row['verses_read'] as int,
-        ),
-    };
-  }
-
   Future<Map<int, RsBookStats>> getBookStats(int readingPlanId) async {
     final rows = await _database.rawQuery(
       'SELECT v.book_id AS book_id, '

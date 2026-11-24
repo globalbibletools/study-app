@@ -1,5 +1,4 @@
 import 'package:gbt/common/bible_navigation.dart';
-import 'package:gbt/common/reference.dart';
 import 'package:gbt/reading_plan/data_access/reading_plan_repository.dart'
     as repo;
 import 'package:gbt/reading_plan/data_access/rs_database.dart';
@@ -23,10 +22,6 @@ class ReadingPlanService {
   final ReadingSessionDatabase _database;
   final BibleNavigation _bibleNavigation;
 
-  Future<List<ReadingPlanDetails>> getReadingPlans() {
-    return _database.getReadingPlans();
-  }
-
   Future<ReadingPlanDetails?> getReadingPlanById(int planId) async {
     final details = await _database.getReadingPlanById(planId);
     if (details == null) return null;
@@ -42,10 +37,6 @@ class ReadingPlanService {
       for (int bookId = 1; bookId <= _bibleNavigation.getBooksCount(); bookId++)
         stats[bookId] ?? _emptyStats(bookId),
     ];
-  }
-
-  Future<Reference?> getResumeReference(int planId) {
-    return _database.getResumeReference(planId);
   }
 
   Future<DayProgress> getDayProgress(int readingPlanId, DateTime date) async {
@@ -178,37 +169,6 @@ class ReadingPlanService {
     }
 
     return monthData;
-  }
-
-  Future<List<ReadingPlanDetails>> getReadingPlansWithProgress({
-    DateTime? today,
-  }) async {
-    final plans = await getReadingPlans();
-    final progress = await _database.getReadingPlanProgress();
-    final day = _dayOnly(today ?? DateTime.now());
-    final todaysSummary = await _database.getDaySummariesForDate(day);
-
-    for (final plan in plans) {
-      final planId = plan.readingPlan.id!;
-      final planProgress = progress[planId];
-
-      plan.totalVerses = planProgress?.totalVerses ?? 0;
-      plan.versesRead = planProgress?.versesRead ?? 0;
-
-      final summary = todaysSummary[planId];
-      plan.todayProgress = summary == null
-          ? DayProgress.empty(day)
-          : DayProgress(
-              day,
-              _roundedMinutes(summary.rsSeconds),
-              summary.rsVerses,
-              summary.goalReached,
-            );
-
-      plan.resumePosition = await getResumeReference(planId);
-    }
-
-    return plans;
   }
 
   static DateTime _dayOnly(DateTime date) =>

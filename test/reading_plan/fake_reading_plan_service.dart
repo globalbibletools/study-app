@@ -57,11 +57,6 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
   bool queueDeleteRequests = false;
   final deleteRequests = <Completer<void>>[];
 
-  /// When true, calls to [getReadingPlansWithProgress] wait until the
-  /// corresponding completer in [getRequests] is completed.
-  bool queueGetRequests = false;
-  final getRequests = <Completer<List<ReadingPlanDetails>>>[];
-
   /// When true, calls to [getReadingPlanById] wait until the corresponding
   /// completer in [planRequests] is completed.
   bool queuePlanRequests = false;
@@ -92,18 +87,6 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
       plans.where((plan) => plan.readingPlan.id == planId).firstOrNull;
 
   @override
-  Future<List<ReadingPlanDetails>> getReadingPlansWithProgress({
-    DateTime? today,
-  }) {
-    if (queueGetRequests) {
-      final request = Completer<List<ReadingPlanDetails>>();
-      getRequests.add(request);
-      return request.future;
-    }
-    return Future.value(List.of(plans));
-  }
-
-  @override
   Future<ReadingPlanDetails?> getReadingPlanById(int planId) {
     getPlanByIdCalls++;
     if (queuePlanRequests) {
@@ -122,11 +105,6 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
       return request.future;
     }
     return Future.value(List.of(bookStats));
-  }
-
-  @override
-  Future<Reference?> getResumeReference(int planId) async {
-    return _detailsFor(planId)?.resumePosition ?? resumePosition;
   }
 
   @override

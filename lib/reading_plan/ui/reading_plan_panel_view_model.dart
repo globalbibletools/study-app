@@ -1,29 +1,28 @@
 import 'package:flutter/foundation.dart';
 import 'package:gbt/asyncutils/cancellation.dart';
-import 'package:gbt/reading_plan/reading_plan_service.dart';
+import 'package:gbt/reading_plan/data_access/reading_plan_queries.dart';
+import 'package:gbt/reading_plan/data_access/reading_plan_read_models.dart';
 import 'package:gbt/reading_plan/ui/reading_session_view_model.dart';
-import 'package:gbt/reading_plan/data_access/rs_model.dart';
 import 'package:gbt/services/service_locator.dart';
 
 class ReadingPlanPanelViewModel extends ChangeNotifier {
   ReadingPlanPanelViewModel._({
-    required ReadingPlanService planService,
+    required ReadingPlanQueries queries,
     required ReadingSessionViewModel sessionViewModel,
-  }) : _planService = planService,
+  }) : _queries = queries,
        _sessionViewModel = sessionViewModel;
 
   static Future<ReadingPlanPanelViewModel> create({
-    ReadingPlanService? planService,
+    ReadingPlanQueries? queries,
     ReadingSessionViewModel? sessionViewModel,
   }) async {
     final viewModel = ReadingPlanPanelViewModel._(
-      planService: planService ?? getIt<ReadingPlanService>(),
+      queries: queries ?? getIt<ReadingPlanQueries>(),
       sessionViewModel: sessionViewModel ?? getIt<ReadingSessionViewModel>(),
     );
 
     try {
-      viewModel._plans = await viewModel._planService
-          .getReadingPlansWithProgress();
+      viewModel._plans = await viewModel._queries.getPlanSummaries();
     } catch (_) {
       viewModel.dispose();
       rethrow;
@@ -32,27 +31,24 @@ class ReadingPlanPanelViewModel extends ChangeNotifier {
     return viewModel;
   }
 
-  final ReadingPlanService _planService;
+  final ReadingPlanQueries _queries;
   final ReadingSessionViewModel _sessionViewModel;
 
-  late List<ReadingPlanDetails> _plans;
-  List<ReadingPlanDetails> get plans => _plans;
+  late List<ReadingPlanSummary> _plans;
+  List<ReadingPlanSummary> get plans => _plans;
 
   final _refreshScope = CancellationScope();
   Future<void> refresh() {
     return _refreshScope.run((guard) async {
-      final plans = await guard(_planService.getReadingPlansWithProgress());
+      final plans = await guard(_queries.getPlanSummaries());
       _setState(() {
         _plans = plans;
       });
     });
   }
 
-  Future<void> startReadingSession(ReadingPlanDetails plan) async {
-    final planId = plan.readingPlan.id;
-    if (planId == null) return;
-
-    await _sessionViewModel.startSession(planId);
+  Future<void> startReadingSession(ReadingPlanSummary plan) {
+    return _sessionViewModel.startSession(plan.planId);
   }
 
   bool _disposed = false;

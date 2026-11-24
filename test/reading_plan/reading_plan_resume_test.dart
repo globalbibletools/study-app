@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gbt/common/bible_navigation.dart';
+import 'package:gbt/common/reference.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
 import 'package:gbt/reading_plan/data_access/rs_database.dart';
 import 'package:gbt/reading_plan/data_access/rs_model.dart';
@@ -78,6 +79,10 @@ void main() {
     return (await planService.getReadingPlanById(planId))!;
   }
 
+  Future<Reference?> resumeFor(int planId) async {
+    return (await database.queries.getPlanSummary(planId))?.resumePosition;
+  }
+
   test('starts at the first verse when the plan has no reads', () async {
     final planId = await planService.saveReadingPlan(
       planName: 'Resume Test',
@@ -86,7 +91,7 @@ void main() {
       bookIds: [63, 64],
     );
 
-    final resume = await planService.getResumeReference(planId);
+    final resume = await resumeFor(planId);
 
     expect(resume, isNotNull);
     expect(resume!.bookId, 63);
@@ -103,7 +108,7 @@ void main() {
     );
     await addLog(planId, 63, 1, 5, DateTime(2026, 5, 1, 10));
 
-    final resume = await planService.getResumeReference(planId);
+    final resume = await resumeFor(planId);
 
     expect(resume, isNotNull);
     expect(resume!.bookId, 63);
@@ -123,7 +128,7 @@ void main() {
       await database.verseState.markRead(planId, 63, 1, 6);
       await addLog(planId, 63, 1, 5, DateTime(2026, 5, 1, 10));
 
-      final resume = await planService.getResumeReference(planId);
+      final resume = await resumeFor(planId);
 
       expect(resume, isNotNull);
       expect(resume!.bookId, 63);
@@ -141,7 +146,7 @@ void main() {
     );
     await addLog(planId, 63, 1, 13, DateTime(2026, 5, 1, 10));
 
-    final resume = await planService.getResumeReference(planId);
+    final resume = await resumeFor(planId);
 
     expect(resume, isNotNull);
     expect(resume!.bookId, 64);
@@ -158,7 +163,7 @@ void main() {
     );
     await addLog(planId, 64, 1, 15, DateTime(2026, 5, 1, 10));
 
-    expect(await planService.getResumeReference(planId), isNull);
+    expect(await resumeFor(planId), isNull);
   });
 
   test('uses the latest log entry in the plan', () async {
@@ -171,7 +176,7 @@ void main() {
     await addLog(planId, 63, 1, 5, DateTime(2026, 5, 1, 10));
     await addLog(planId, 64, 1, 2, DateTime(2026, 5, 2, 10));
 
-    final resume = await planService.getResumeReference(planId);
+    final resume = await resumeFor(planId);
 
     expect(resume, isNotNull);
     expect(resume!.bookId, 64);
@@ -188,7 +193,7 @@ void main() {
     );
     await addLog(planId, 19, 1, 6, DateTime(2026, 5, 1, 10));
 
-    final resume = await planService.getResumeReference(planId);
+    final resume = await resumeFor(planId);
 
     expect(resume, isNotNull);
     expect(resume!.bookId, 19);
@@ -205,7 +210,7 @@ void main() {
     );
     await addLog(planId, 64, 1, 15, DateTime(2026, 5, 1, 10));
 
-    expect(await planService.getResumeReference(planId), isNull);
+    expect(await resumeFor(planId), isNull);
 
     final details = await detailsFor(planId);
     await planService.reorderReadingPlanBooks(
@@ -213,7 +218,7 @@ void main() {
       details.books.reversed.map((book) => book.bookId).toList(),
     );
 
-    final resume = await planService.getResumeReference(planId);
+    final resume = await resumeFor(planId);
 
     expect(resume, isNotNull);
     expect(resume!.bookId, 63);
@@ -231,8 +236,8 @@ void main() {
     await database.verseState.markRead(planId, 63, 1, 5);
     await addLog(planId, 63, 1, 5, DateTime(2026, 5, 1, 10));
 
-    final plans = await planService.getReadingPlansWithProgress();
-    final summary = plans.firstWhere((p) => p.readingPlan.id == planId);
+    final plans = await database.queries.getPlanSummaries();
+    final summary = plans.firstWhere((plan) => plan.planId == planId);
 
     expect(summary.totalVerses, 28);
     expect(summary.versesRead, 1);
@@ -273,7 +278,7 @@ void main() {
     );
     await addLog(planId, 40, 16, 2, DateTime(2026, 5, 1, 10));
 
-    final resume = await planService.getResumeReference(planId);
+    final resume = await resumeFor(planId);
 
     expect(resume, isNotNull);
     expect(resume!.bookId, 40);

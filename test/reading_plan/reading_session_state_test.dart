@@ -119,10 +119,7 @@ void main() {
           bookIds: [19, 20],
         );
 
-        final plans = await planService.getReadingPlansWithProgress();
-        final planDetails = plans.firstWhere((p) => p.readingPlan.id == planId);
-
-        await viewModel.startSession(planDetails.readingPlan.id!);
+        await viewModel.startSession(planId);
 
         int bookCompletedCount = 0;
         BookCompletedEvent? lastCompletion;
@@ -141,7 +138,9 @@ void main() {
 
         final stats = await rsDb.getBookStats(planId);
         expect(stats[19]!.versesRead, 6);
-        final resume = await planService.getResumeReference(planId);
+        final resume = (await rsDb.queries.getPlanSummary(
+          planId,
+        ))!.resumePosition;
         expect(resume, isNotNull);
         expect(resume!.bookId, 19);
         expect(resume.chapter, 2);
@@ -159,10 +158,7 @@ void main() {
           bookIds: [19, 20],
         );
 
-        final plans = await planService.getReadingPlansWithProgress();
-        final planDetails = plans.firstWhere((p) => p.readingPlan.id == planId);
-
-        await viewModel.startSession(planDetails.readingPlan.id!);
+        await viewModel.startSession(planId);
 
         int bookCompletedCount = 0;
         viewModel.bookCompletedNotifier.addListener(() {
@@ -189,10 +185,7 @@ void main() {
           bookIds: [63, 64],
         );
 
-        final plans = await planService.getReadingPlansWithProgress();
-        final planDetails = plans.firstWhere((p) => p.readingPlan.id == planId);
-
-        await viewModel.startSession(planDetails.readingPlan.id!);
+        await viewModel.startSession(planId);
 
         BookCompletedEvent? completionReceived;
         viewModel.bookCompletedNotifier.addListener(() {
@@ -230,10 +223,7 @@ void main() {
           bookIds: [63],
         );
 
-        final plans = await planService.getReadingPlansWithProgress();
-        final planDetails = plans.firstWhere((p) => p.readingPlan.id == planId);
-
-        await viewModel.startSession(planDetails.readingPlan.id!);
+        await viewModel.startSession(planId);
         for (int v = 1; v <= 13; v++) {
           await viewModel.setVerseRead(_readOptions(63, 1, v, read: true));
         }
@@ -272,15 +262,12 @@ void main() {
           bookIds: [63],
         );
 
-        final plans = await planService.getReadingPlansWithProgress();
-        final planDetails = plans.firstWhere((p) => p.readingPlan.id == planId);
-
-        await viewModel.startSession(planDetails.readingPlan.id!);
+        await viewModel.startSession(planId);
         final firstSessionId = viewModel.sessionId!;
         await viewModel.setVerseRead(_readOptions(63, 1, 1, read: true));
         await viewModel.endSession();
 
-        await viewModel.startSession(planDetails.readingPlan.id!);
+        await viewModel.startSession(planId);
         final statesBefore = await viewModel.getVerseReadStates(63, 1);
         expect(statesBefore[1]!.readCount, 1);
         expect(statesBefore[1]!.readThisSession, isFalse);
@@ -307,26 +294,16 @@ void main() {
           bookIds: [1, 2, 3],
         );
 
-        var plans = await planService.getReadingPlansWithProgress();
-        var details = plans.firstWhere((p) => p.readingPlan.id == planId);
-
-        final reordered = details.books
-            .map((book) => book.bookId)
-            .toList()
-            .reversed
-            .toList();
+        final config = (await rsDb.queries.getPlanConfig(planId))!;
+        final reordered = config.bookIds.reversed.toList();
         await planService.reorderReadingPlanBooks(planId, reordered);
 
-        await viewModel.startSession(details.readingPlan.id!);
+        await viewModel.startSession(planId);
         await viewModel.setVerseRead(_readOptions(2, 1, 1, read: true));
         expect((await rsDb.getBookStats(planId))[2]!.versesRead, 1);
 
-        details = (await planService.getReadingPlansWithProgress()).firstWhere(
-          (p) => p.readingPlan.id == planId,
-        );
-
         await planService.saveReadingPlan(
-          planId: details.readingPlan.id,
+          planId: planId,
           planName: 'Order Test Updated',
           goalType: GoalType.verses,
           goalValue: 20,
@@ -362,12 +339,7 @@ void main() {
           bookIds: [3, 4],
         );
 
-        final plans = await planService.getReadingPlansWithProgress();
-        final planADetails = plans.firstWhere(
-          (p) => p.readingPlan.id == planAId,
-        );
-
-        await viewModel.startSession(planADetails.readingPlan.id!);
+        await viewModel.startSession(planAId);
         await viewModel.setVerseRead(_readOptions(1, 1, 1, read: true));
         await viewModel.endSession();
 
@@ -532,7 +504,7 @@ void main() {
       (tester) async {
         final panelViewModel = (await tester.runAsync(
           () => ReadingPlanPanelViewModel.create(
-            planService: planService,
+            queries: rsDb.queries,
             sessionViewModel: viewModel,
           ),
         ))!;
