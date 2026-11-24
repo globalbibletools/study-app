@@ -2,6 +2,8 @@ import 'package:material_ui/material_ui.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/reading_plan/reading_plan_panel.dart';
 import 'package:gbt/reading_plan/reading_plan_panel_view_model.dart';
+import 'package:gbt/services/service_locator.dart';
+import 'package:gbt/ui/messaging/messenger_view_model.dart';
 
 typedef NavigateToReadingSheetRoute =
     Future<void> Function(BuildContext context);
@@ -11,17 +13,17 @@ class ReadingSheet extends StatelessWidget {
 
   const ReadingSheet({super.key, required this.child});
 
-  static Future<void> navigateTo(BuildContext context) async {
+  static Future<void> navigateTo(
+    BuildContext context, {
+    MessengerViewModel? messenger,
+  }) async {
+    final l10n = AppLocalizations.of(context)!;
+    final messengerViewModel = messenger ?? getIt<MessengerViewModel>();
     ReadingPlanPanelViewModel viewModel;
     try {
       viewModel = await ReadingPlanPanelViewModel.create();
     } catch (_) {
-      if (!context.mounted) return;
-
-      final l10n = AppLocalizations.of(context)!;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.errorLoadingContent)));
+      messengerViewModel.showError(l10n.errorLoadingContent);
       return;
     }
 
@@ -57,19 +59,17 @@ class ReadingSheet extends StatelessWidget {
           color: Theme.of(context).colorScheme.surface,
           child: SafeArea(
             top: false,
-            child: ScaffoldMessenger(
-              child: Scaffold(
-                backgroundColor: Colors.transparent,
-                body: Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(top: 16),
-                      child: _handle(context),
-                    ),
-                    const SizedBox(height: 16),
-                    Expanded(child: _panel(context)),
-                  ],
-                ),
+            child: Scaffold(
+              backgroundColor: Colors.transparent,
+              body: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16),
+                    child: _handle(context),
+                  ),
+                  const SizedBox(height: 16),
+                  Expanded(child: _panel(context)),
+                ],
               ),
             ),
           ),

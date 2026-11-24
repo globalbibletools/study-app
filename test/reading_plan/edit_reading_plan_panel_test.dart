@@ -8,9 +8,11 @@ import 'package:gbt/reading_plan/number_stepper.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
 import 'package:gbt/services/service_locator.dart';
+import 'package:gbt/ui/messaging/messenger_host.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../fixtures/bible_navigation_fixture.dart';
+import '../fixtures/fake_messenger_view_model.dart';
 import 'fake_reading_plan_service.dart';
 
 void main() {
@@ -18,10 +20,17 @@ void main() {
 
   late FakeReadingPlanService planService;
   late BibleNavigation bibleNavigation;
+  late FakeMessengerViewModel messenger;
 
   setUp(() {
     planService = FakeReadingPlanService();
     bibleNavigation = createTestBibleNavigation();
+    messenger = FakeMessengerViewModel();
+  });
+
+  tearDown(() async {
+    messenger.dispose();
+    await getIt.reset();
   });
 
   Future<EditReadingPlanViewModel> newViewModel([String name = 'Plan']) {
@@ -48,8 +57,13 @@ void main() {
       locale: const Locale('en'),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
-      builder: (context, child) =>
-          Material(color: Theme.of(context).colorScheme.surface, child: child),
+      builder: (context, child) => Material(
+        color: Theme.of(context).colorScheme.surface,
+        child: MessengerHost(
+          messenger: messenger,
+          child: child ?? const SizedBox.shrink(),
+        ),
+      ),
       home: home,
     );
   }
@@ -369,8 +383,11 @@ void main() {
       await tester.pumpWidget(
         buildApp(
           _EditorLauncher(
-            onOpen: (context) =>
-                EditReadingPlanPanel.navigateToNew(context, 'New Plan'),
+            onOpen: (context) => EditReadingPlanPanel.navigateToNew(
+              context,
+              'New Plan',
+              messenger: messenger,
+            ),
           ),
         ),
       );
@@ -395,6 +412,7 @@ void main() {
               onOpen: (context) => EditReadingPlanPanel.navigateToExisting(
                 context,
                 details.readingPlan.id!,
+                messenger: messenger,
               ),
             ),
           ),
@@ -415,8 +433,11 @@ void main() {
       await tester.pumpWidget(
         buildApp(
           _EditorLauncher(
-            onOpen: (context) =>
-                EditReadingPlanPanel.navigateToExisting(context, 99),
+            onOpen: (context) => EditReadingPlanPanel.navigateToExisting(
+              context,
+              99,
+              messenger: messenger,
+            ),
           ),
         ),
       );
@@ -429,8 +450,9 @@ void main() {
       final context = tester.element(find.text('Open editor'));
       final l10n = AppLocalizations.of(context)!;
       expect(find.text(l10n.errorLoadingContent), findsOneWidget);
+      expect(messenger.messages.single.text, l10n.errorLoadingContent);
 
-      await tester.pump(const Duration(seconds: 5));
+      await tester.pump(const Duration(seconds: 8));
       await tester.pumpAndSettle();
     });
   });

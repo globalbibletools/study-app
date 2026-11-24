@@ -4,6 +4,7 @@ import 'package:gbt/services/download/cancel_token.dart';
 import 'package:gbt/services/resources/resource_service.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/common/download_progress_dialog.dart';
+import 'package:gbt/ui/messaging/messenger_view_model.dart';
 
 class ResourceSection extends StatefulWidget {
   final ResourceType resourceType;
@@ -173,6 +174,7 @@ class _DownloadTile extends StatefulWidget {
 
 class _DownloadTileState extends State<_DownloadTile> {
   final _resourceService = getIt<ResourceService>();
+  final _messenger = getIt<MessengerViewModel>();
   bool _busy = false;
 
   Future<void> _download() async {
@@ -191,9 +193,7 @@ class _DownloadTileState extends State<_DownloadTile> {
       );
     } catch (e) {
       if (mounted && e is! DownloadCanceledException) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+        _messenger.showError('Error: $e');
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -209,9 +209,7 @@ class _DownloadTileState extends State<_DownloadTile> {
       );
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+        _messenger.showError('Error: $e');
       }
     } finally {
       if (mounted) setState(() => _busy = false);

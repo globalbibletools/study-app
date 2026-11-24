@@ -4,6 +4,7 @@ import 'package:gbt/services/download/cancel_token.dart';
 import 'package:gbt/services/resources/resource_service.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/common/download_progress_dialog.dart';
+import 'package:gbt/ui/messaging/messenger_view_model.dart';
 
 class ResourceUIHelper {
   static final Map<String, Future<bool>> _pendingRequests = {};
@@ -36,6 +37,7 @@ class ResourceUIHelper {
 
     if (!context.mounted) return false;
     final l10n = AppLocalizations.of(context)!;
+    final messenger = getIt<MessengerViewModel>();
 
     // 1. Show Prompt
     final shouldDownload =
@@ -74,10 +76,8 @@ class ResourceUIHelper {
       );
       return true;
     } catch (e) {
-      if (context.mounted && e is! DownloadCanceledException) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("${l10n.downloadFailed}: $e")));
+      if (e is! DownloadCanceledException) {
+        messenger.showError("${l10n.downloadFailed}: $e");
       }
       return false;
     }

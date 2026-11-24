@@ -5,6 +5,8 @@ import 'package:gbt/reading_plan/rs_model.dart';
 import 'package:gbt/reading_plan/day_activity_log_view_model.dart';
 import 'package:gbt/reading_plan/number_stepper.dart';
 import 'package:gbt/reading_plan/reading_plan_app_bar.dart';
+import 'package:gbt/services/service_locator.dart';
+import 'package:gbt/ui/messaging/messenger_view_model.dart';
 
 typedef NavigateToDayActivityLogRoute =
     Future<void> Function(
@@ -15,14 +17,21 @@ typedef NavigateToDayActivityLogRoute =
 
 class DayActivityLogPanel extends StatefulWidget {
   final DayActivityLogViewModel viewModel;
+  final MessengerViewModel? messenger;
 
-  const DayActivityLogPanel({super.key, required this.viewModel});
+  const DayActivityLogPanel({
+    super.key,
+    required this.viewModel,
+    this.messenger,
+  });
 
   static Future<void> navigateTo(
     BuildContext context,
     DateTime date, {
     required int readingPlanId,
+    MessengerViewModel? messenger,
   }) async {
+    final messengerViewModel = messenger ?? getIt<MessengerViewModel>();
     DayActivityLogViewModel viewModel;
     try {
       viewModel = await DayActivityLogViewModel.create(
@@ -38,16 +47,17 @@ class DayActivityLogPanel extends StatefulWidget {
       if (!context.mounted) return;
 
       final l10n = AppLocalizations.of(context)!;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.errorLoadingContent)));
+      messengerViewModel.showError(l10n.errorLoadingContent);
       return;
     }
 
     try {
       await Navigator.of(context).push<void>(
         MaterialPageRoute(
-          builder: (context) => DayActivityLogPanel(viewModel: viewModel),
+          builder: (context) => DayActivityLogPanel(
+            viewModel: viewModel,
+            messenger: messengerViewModel,
+          ),
         ),
       );
     } catch (_) {
@@ -62,6 +72,9 @@ class DayActivityLogPanel extends StatefulWidget {
 
 class _DayActivityLogPanelState extends State<DayActivityLogPanel> {
   late final DayActivityLogViewModel viewModel;
+
+  MessengerViewModel get _messenger =>
+      widget.messenger ?? getIt<MessengerViewModel>();
 
   @override
   void initState() {
@@ -133,10 +146,7 @@ class _DayActivityLogPanelState extends State<DayActivityLogPanel> {
         verses: input.verses,
       );
     } catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.errorMessage(error.toString()))),
-      );
+      _messenger.showError(l10n.errorMessage(error.toString()));
     }
   }
 
@@ -144,14 +154,12 @@ class _DayActivityLogPanelState extends State<DayActivityLogPanel> {
     final sessionId = session.rsSession.id;
     if (sessionId == null) return;
 
+    final l10n = AppLocalizations.of(context)!;
+
     try {
       await viewModel.deleteManualSession(sessionId);
     } catch (error) {
-      if (!mounted) return;
-      final l10n = AppLocalizations.of(context)!;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.errorMessage(error.toString()))),
-      );
+      _messenger.showError(l10n.errorMessage(error.toString()));
     }
   }
 

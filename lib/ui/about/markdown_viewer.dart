@@ -2,6 +2,8 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:gbt/l10n/app_localizations.dart';
+import 'package:gbt/services/service_locator.dart';
+import 'package:gbt/ui/messaging/messenger_view_model.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class LocalizedMarkdownViewer extends StatelessWidget {
@@ -65,20 +67,16 @@ class LocalizedMarkdownViewer extends StatelessWidget {
             onTapLink: (text, href, title) async {
               if (href == null) return;
 
+              final l10n = AppLocalizations.of(context)!;
+              final messenger = getIt<MessengerViewModel>();
+
               // CASE 1: Specific "Copy Email" action
               if (href.startsWith('copy-email:')) {
                 final email = href.replaceFirst('copy-email:', '');
 
                 await Clipboard.setData(ClipboardData(text: email));
 
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      // Use the exact localized string you wanted
-                      content: Text(AppLocalizations.of(context)!.emailCopied),
-                    ),
-                  );
-                }
+                messenger.showSuccess(l10n.emailCopied);
               }
               // CASE 2: Standard Links (Web, etc)
               else {

@@ -7,6 +7,8 @@ import 'package:gbt/reading_plan/edit_reading_plan_view_model.dart';
 import 'package:gbt/reading_plan/number_stepper.dart';
 import 'package:gbt/reading_plan/reading_plan_app_bar.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
+import 'package:gbt/services/service_locator.dart';
+import 'package:gbt/ui/messaging/messenger_view_model.dart';
 
 typedef NavigateToNewReadingPlanRoute =
     Future<void> Function(BuildContext context, String name);
@@ -18,21 +20,36 @@ class EditReadingPlanPanel extends StatefulWidget {
 
   const EditReadingPlanPanel({super.key, required this.viewModel});
 
-  static Future<void> navigateToNew(BuildContext context, String name) {
-    return _navigateTo(context, EditReadingPlanViewModel.createNew(name));
+  static Future<void> navigateToNew(
+    BuildContext context,
+    String name, {
+    MessengerViewModel? messenger,
+  }) {
+    return _navigateTo(
+      context,
+      EditReadingPlanViewModel.createNew(name),
+      messenger: messenger,
+    );
   }
 
-  static Future<void> navigateToExisting(BuildContext context, int planId) {
+  static Future<void> navigateToExisting(
+    BuildContext context,
+    int planId, {
+    MessengerViewModel? messenger,
+  }) {
     return _navigateTo(
       context,
       EditReadingPlanViewModel.createExisting(planId),
+      messenger: messenger,
     );
   }
 
   static Future<void> _navigateTo(
     BuildContext context,
-    Future<EditReadingPlanViewModel> viewModelFuture,
-  ) async {
+    Future<EditReadingPlanViewModel> viewModelFuture, {
+    MessengerViewModel? messenger,
+  }) async {
+    final messengerViewModel = messenger ?? getIt<MessengerViewModel>();
     EditReadingPlanViewModel viewModel;
     try {
       viewModel = await viewModelFuture;
@@ -40,9 +57,7 @@ class EditReadingPlanPanel extends StatefulWidget {
       if (!context.mounted) return;
 
       final l10n = AppLocalizations.of(context)!;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.errorLoadingContent)));
+      messengerViewModel.showError(l10n.errorLoadingContent);
       return;
     }
 

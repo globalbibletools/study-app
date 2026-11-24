@@ -14,6 +14,7 @@ import 'package:gbt/ui/home/home_manager.dart';
 import 'package:gbt/ui/home/panel_area/common/verse_sync_layout.dart';
 import 'package:gbt/ui/home/panel_area/hebrew_greek_panel/chapter_manager.dart';
 import 'package:gbt/ui/home/panel_area/hebrew_greek_panel/text.dart';
+import 'package:gbt/ui/messaging/messenger_view_model.dart';
 
 class VerseNumberTapNotification extends Notification {
   final int bookId;
@@ -373,11 +374,7 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter> {
 
     Clipboard.setData(ClipboardData(text: text));
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(AppLocalizations.of(context)!.verseCopied),
-        duration: Durations.extralong1,
-      ),
-    );
+    final l10n = AppLocalizations.of(context)!;
+    getIt<MessengerViewModel>().showSuccess(l10n.verseCopied);
   }
 }

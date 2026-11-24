@@ -10,6 +10,8 @@ import 'package:gbt/reading_plan/edit_reading_plan_panel.dart';
 import 'package:gbt/reading_plan/progress_circle.dart';
 import 'package:gbt/reading_plan/reading_plan_app_bar.dart';
 import 'package:gbt/reading_plan/reading_plan_detail_view_model.dart';
+import 'package:gbt/services/service_locator.dart';
+import 'package:gbt/ui/messaging/messenger_view_model.dart';
 
 typedef NavigateToReadingPlanDetailRoute =
     Future<void> Function(BuildContext context, int planId);
@@ -26,7 +28,12 @@ class ReadingPlanDetailPanel extends StatefulWidget {
     this.navigateToDayActivityLogRoute,
   });
 
-  static Future<void> navigateTo(BuildContext context, int planId) async {
+  static Future<void> navigateTo(
+    BuildContext context,
+    int planId, {
+    MessengerViewModel? messenger,
+  }) async {
+    final messengerViewModel = messenger ?? getIt<MessengerViewModel>();
     ReadingPlanDetailViewModel viewModel;
     try {
       viewModel = await ReadingPlanDetailViewModel.create(planId: planId);
@@ -34,9 +41,7 @@ class ReadingPlanDetailPanel extends StatefulWidget {
       if (!context.mounted) return;
 
       final l10n = AppLocalizations.of(context)!;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.errorLoadingContent)));
+      messengerViewModel.showError(l10n.errorLoadingContent);
       return;
     }
 

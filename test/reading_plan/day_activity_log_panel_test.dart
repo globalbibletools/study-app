@@ -5,8 +5,10 @@ import 'package:gbt/reading_plan/day_activity_log_view_model.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
 import 'package:gbt/services/service_locator.dart';
+import 'package:gbt/ui/messaging/messenger_host.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../fixtures/fake_messenger_view_model.dart';
 import 'fake_reading_plan_service.dart';
 
 void main() {
@@ -14,10 +16,17 @@ void main() {
 
   late FakeReadingPlanService planService;
   late DateTime date;
+  late FakeMessengerViewModel messenger;
 
   setUp(() {
     planService = FakeReadingPlanService();
     date = DateTime(2026, 11, 17);
+    messenger = FakeMessengerViewModel();
+  });
+
+  tearDown(() async {
+    messenger.dispose();
+    await getIt.reset();
   });
 
   Future<DayActivityLogViewModel> newViewModel() {
@@ -33,8 +42,13 @@ void main() {
       locale: const Locale('en'),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
-      builder: (context, child) =>
-          Material(color: Theme.of(context).colorScheme.surface, child: child),
+      builder: (context, child) => Material(
+        color: Theme.of(context).colorScheme.surface,
+        child: MessengerHost(
+          messenger: messenger,
+          child: child ?? const SizedBox.shrink(),
+        ),
+      ),
       home: home,
     );
   }
@@ -63,7 +77,9 @@ void main() {
       final viewModel = await newViewModel();
 
       await tester.pumpWidget(
-        buildApp(DayActivityLogPanel(viewModel: viewModel)),
+        buildApp(
+          DayActivityLogPanel(viewModel: viewModel, messenger: messenger),
+        ),
       );
       await tester.pumpAndSettle();
 
@@ -94,7 +110,9 @@ void main() {
         final viewModel = await newViewModel();
 
         await tester.pumpWidget(
-          buildApp(DayActivityLogPanel(viewModel: viewModel)),
+          buildApp(
+            DayActivityLogPanel(viewModel: viewModel, messenger: messenger),
+          ),
         );
         await tester.pumpAndSettle();
 
@@ -139,7 +157,9 @@ void main() {
       final viewModel = await newViewModel();
 
       await tester.pumpWidget(
-        buildApp(DayActivityLogPanel(viewModel: viewModel)),
+        buildApp(
+          DayActivityLogPanel(viewModel: viewModel, messenger: messenger),
+        ),
       );
       await tester.pumpAndSettle();
 
@@ -217,7 +237,9 @@ void main() {
       final viewModel = await newViewModel();
 
       await tester.pumpWidget(
-        buildApp(DayActivityLogPanel(viewModel: viewModel)),
+        buildApp(
+          DayActivityLogPanel(viewModel: viewModel, messenger: messenger),
+        ),
       );
       await tester.pumpAndSettle();
 
@@ -239,7 +261,9 @@ void main() {
       final viewModel = await newViewModel();
 
       await tester.pumpWidget(
-        buildApp(DayActivityLogPanel(viewModel: viewModel)),
+        buildApp(
+          DayActivityLogPanel(viewModel: viewModel, messenger: messenger),
+        ),
       );
       await tester.pumpAndSettle();
 
@@ -270,7 +294,9 @@ void main() {
       final viewModel = await newViewModel();
 
       await tester.pumpWidget(
-        buildApp(DayActivityLogPanel(viewModel: viewModel)),
+        buildApp(
+          DayActivityLogPanel(viewModel: viewModel, messenger: messenger),
+        ),
       );
       await tester.pumpAndSettle();
 
@@ -292,25 +318,29 @@ void main() {
       await getIt.reset();
     });
 
-    testWidgets('shows a snackbar and keeps the panel closed on load error', (
-      tester,
-    ) async {
-      planService.detailedProgressError = StateError('load failed');
+    testWidgets(
+      'shows an error message and keeps the panel closed on load error',
+      (tester) async {
+        planService.detailedProgressError = StateError('load failed');
 
-      await tester.pumpWidget(buildApp(const _NavigateToLauncher()));
-      await tester.tap(find.text('Open activity'));
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(
+          buildApp(_NavigateToLauncher(messenger: messenger)),
+        );
+        await tester.tap(find.text('Open activity'));
+        await tester.pumpAndSettle();
 
-      expect(find.byType(DayActivityLogPanel), findsNothing);
-      expect(find.text('Open activity'), findsOneWidget);
+        expect(find.byType(DayActivityLogPanel), findsNothing);
+        expect(find.text('Open activity'), findsOneWidget);
 
-      final context = tester.element(find.text('Open activity'));
-      final l10n = AppLocalizations.of(context)!;
-      expect(find.text(l10n.errorLoadingContent), findsOneWidget);
+        final context = tester.element(find.text('Open activity'));
+        final l10n = AppLocalizations.of(context)!;
+        expect(find.text(l10n.errorLoadingContent), findsOneWidget);
+        expect(messenger.messages.single.text, l10n.errorLoadingContent);
 
-      await tester.pump(const Duration(seconds: 5));
-      await tester.pumpAndSettle();
-    });
+        await tester.pump(const Duration(seconds: 8));
+        await tester.pumpAndSettle();
+      },
+    );
   });
 
   testWidgets('back closes the panel', (tester) async {
@@ -318,7 +348,9 @@ void main() {
     final viewModel = await newViewModel();
 
     await tester.pumpWidget(
-      buildApp(_ActivityLogLauncher(viewModel: viewModel)),
+      buildApp(
+        _ActivityLogLauncher(viewModel: viewModel, messenger: messenger),
+      ),
     );
     await tester.tap(find.text('Open activity'));
     await tester.pumpAndSettle();
@@ -334,9 +366,10 @@ void main() {
 }
 
 class _ActivityLogLauncher extends StatelessWidget {
-  const _ActivityLogLauncher({required this.viewModel});
+  const _ActivityLogLauncher({required this.viewModel, this.messenger});
 
   final DayActivityLogViewModel viewModel;
+  final FakeMessengerViewModel? messenger;
 
   @override
   Widget build(BuildContext context) {
@@ -346,7 +379,10 @@ class _ActivityLogLauncher extends StatelessWidget {
           onPressed: () {
             Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (_) => DayActivityLogPanel(viewModel: viewModel),
+                builder: (_) => DayActivityLogPanel(
+                  viewModel: viewModel,
+                  messenger: messenger,
+                ),
               ),
             );
           },
@@ -358,7 +394,9 @@ class _ActivityLogLauncher extends StatelessWidget {
 }
 
 class _NavigateToLauncher extends StatelessWidget {
-  const _NavigateToLauncher();
+  const _NavigateToLauncher({required this.messenger});
+
+  final FakeMessengerViewModel messenger;
 
   @override
   Widget build(BuildContext context) {
@@ -370,6 +408,7 @@ class _NavigateToLauncher extends StatelessWidget {
               context,
               DateTime(2026, 11, 17),
               readingPlanId: 1,
+              messenger: messenger,
             );
           },
           child: const Text('Open activity'),

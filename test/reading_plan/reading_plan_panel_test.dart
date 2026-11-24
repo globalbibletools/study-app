@@ -10,8 +10,10 @@ import 'package:gbt/reading_plan/reading_session_view_model.dart';
 import 'package:gbt/reading_plan/progress_circle.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
 import 'package:gbt/services/service_locator.dart';
+import 'package:gbt/ui/messaging/messenger_view_model.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../fixtures/fake_messenger_view_model.dart';
 import 'fake_reading_plan_service.dart';
 import 'fake_reading_session_view_model.dart';
 
@@ -20,10 +22,18 @@ void main() {
 
   late FakeReadingPlanService planService;
   late FakeReadingSessionViewModel sessionViewModel;
+  late FakeMessengerViewModel fakeMessenger;
 
   setUp(() {
     planService = FakeReadingPlanService();
     sessionViewModel = FakeReadingSessionViewModel();
+    fakeMessenger = FakeMessengerViewModel();
+    getIt.registerSingleton<MessengerViewModel>(fakeMessenger);
+  });
+
+  tearDown(() async {
+    fakeMessenger.dispose();
+    await getIt.reset();
   });
 
   Future<ReadingPlanPanelViewModel> createViewModel() {
