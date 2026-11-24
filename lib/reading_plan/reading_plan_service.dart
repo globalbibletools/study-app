@@ -3,6 +3,7 @@ import 'package:gbt/common/reference.dart';
 import 'package:gbt/reading_plan/reading_plan_repository.dart' as repo;
 import 'package:gbt/reading_plan/rs_database.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
+import 'package:gbt/reading_plan/session_repository.dart';
 import 'package:gbt/services/service_locator.dart';
 
 class ReadingPlanService {
@@ -85,8 +86,8 @@ class ReadingPlanService {
     final isToday = _sameDay(day, now);
 
     final session = await _database.transaction((txn) async {
-      final inserted = await _database.insertSession(
-        RsSession(
+      final inserted = await _database.session.commit(
+        Session(
           rsDate: day,
           startTime: now,
           endTime: now.add(Duration(seconds: readSeconds)),
@@ -108,20 +109,33 @@ class ReadingPlanService {
       return inserted;
     });
 
-    return SessionDetails(session, const []);
+    return SessionDetails(_toRsSession(session), const []);
+  }
+
+  RsSession _toRsSession(Session session) {
+    return RsSession(
+      id: session.id,
+      rsDate: session.rsDate,
+      startTime: session.startTime,
+      endTime: session.endTime,
+      readSeconds: session.readSeconds,
+      verses: session.verses,
+      readingPlanId: session.readingPlanId,
+      isManual: session.isManual,
+    );
   }
 
   Future<bool> deleteManualSession(int sessionId) async {
-    final session = await _database.getSessionById(sessionId);
+    final session = await _database.session.getById(sessionId);
     if (session == null) return false;
     if (!session.isManual) {
       throw StateError('Only manual sessions can be deleted.');
     }
 
     await _database.transaction((txn) async {
-      await _database.deleteSession(sessionId, executor: txn);
+      await _database.session.delete(sessionId, executor: txn);
 
-      final remaining = await _database.getSessionCountForDate(
+      final remaining = await _database.session.countForDate(
         session.rsDate,
         session.readingPlanId,
         executor: txn,
@@ -330,7 +344,7 @@ class ReadingPlanService {
   Future<void> deleteReadingPlan(int planId) async {
     await _database.transaction((txn) async {
       await _database.sessionLog.deleteForPlanId(planId, executor: txn);
-      await _database.deleteSessionsForPlan(planId, executor: txn);
+      await _database.session.deleteForPlanId(planId, executor: txn);
       await _database.deleteDaySummariesForPlan(planId, executor: txn);
       await _database.deleteVerseStateForPlan(planId, executor: txn);
       await _database.readingPlans.delete(planId, executor: txn);

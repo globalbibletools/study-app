@@ -7,6 +7,7 @@ import 'package:gbt/reading_plan/reading_plan_estimates.dart';
 import 'package:gbt/reading_plan/rs_database.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
 import 'package:gbt/reading_plan/session_log_repository.dart';
+import 'package:gbt/reading_plan/session_repository.dart';
 import 'package:gbt/services/service_locator.dart';
 
 class SessionProgress {
@@ -83,8 +84,8 @@ class ReadingSessionService {
 
     final now = DateTime.now();
     final today = _day(now);
-    final session = await _database.insertSession(
-      RsSession(
+    final session = await _database.session.commit(
+      Session(
         rsDate: today,
         startTime: now,
         endTime: now,
@@ -109,7 +110,7 @@ class ReadingSessionService {
     required int readSeconds,
     DateTime? at,
   }) async {
-    var session = await _database.getSessionById(sessionId);
+    var session = await _database.session.getById(sessionId);
     if (session == null) return;
 
     final now = at ?? DateTime.now();
@@ -121,7 +122,7 @@ class ReadingSessionService {
     );
 
     await _database.transaction((txn) async {
-      await _database.updateSession(closed, executor: txn);
+      await _database.session.commit(closed, executor: txn);
       await _database.upsertDaySummary(
         session.readingPlanId,
         session.rsDate,
@@ -142,7 +143,7 @@ class ReadingSessionService {
     final read = options.read;
 
     final now = at ?? DateTime.now();
-    final session = await _database.getSessionById(sessionId);
+    final session = await _database.session.getById(sessionId);
     if (session == null) return null;
 
     _ensureSessionIsCurrent(session, now);
@@ -256,7 +257,7 @@ class ReadingSessionService {
         if (read == readThisSession) {
           updatedSession = updatedSession.copyWith(endTime: now);
         }
-        await _database.updateSession(updatedSession, executor: txn);
+        await _database.session.commit(updatedSession, executor: txn);
         await _database.upsertDaySummary(planId, session.rsDate, executor: txn);
       }
 
@@ -286,7 +287,7 @@ class ReadingSessionService {
     DateTime? at,
   }) async {
     final now = at ?? DateTime.now();
-    final session = await _database.getSessionById(sessionId);
+    final session = await _database.session.getById(sessionId);
     if (session == null) return null;
 
     _ensureSessionIsCurrent(session, now);
@@ -297,7 +298,7 @@ class ReadingSessionService {
     );
 
     await _database.transaction((txn) async {
-      await _database.updateSession(updated, executor: txn);
+      await _database.session.commit(updated, executor: txn);
       await _database.upsertDaySummary(
         session.readingPlanId,
         session.rsDate,
@@ -314,7 +315,7 @@ class ReadingSessionService {
     required int oldReadSeconds,
     required int newReadSeconds,
   }) async {
-    final session = await _database.getSessionById(sessionId);
+    final session = await _database.session.getById(sessionId);
     if (session == null) return null;
 
     final today = _day(at);
@@ -342,7 +343,7 @@ class ReadingSessionService {
       endTime: nextDay.subtract(const Duration(seconds: 1)),
       readSeconds: math.max(session.readSeconds, oldReadSeconds),
     );
-    final newSession = RsSession(
+    final newSession = Session(
       rsDate: today,
       startTime: today,
       endTime: at,
@@ -352,7 +353,7 @@ class ReadingSessionService {
     );
 
     final inserted = await _database.transaction((txn) async {
-      await _database.updateSession(closed, executor: txn);
+      await _database.session.commit(closed, executor: txn);
       await _database.upsertDaySummary(
         session.readingPlanId,
         closed.rsDate,
@@ -360,7 +361,10 @@ class ReadingSessionService {
         executor: txn,
       );
 
-      final inserted = await _database.insertSession(newSession, executor: txn);
+      final inserted = await _database.session.commit(
+        newSession,
+        executor: txn,
+      );
       if (inserted.readSeconds > 0) {
         await _database.upsertDaySummary(
           session.readingPlanId,
@@ -379,7 +383,7 @@ class ReadingSessionService {
     int bookId,
     int chapter,
   ) async {
-    final session = await _database.getSessionById(sessionId);
+    final session = await _database.session.getById(sessionId);
     if (session == null) return const {};
 
     return _database.getVerseReadStatesForChapter(
@@ -390,7 +394,7 @@ class ReadingSessionService {
     );
   }
 
-  void _ensureSessionIsCurrent(RsSession session, DateTime at) {
+  void _ensureSessionIsCurrent(Session session, DateTime at) {
     final today = _day(at);
     if (_sameDay(session.rsDate, today)) return;
 
@@ -401,10 +405,7 @@ class ReadingSessionService {
     );
   }
 
-  Future<SessionProgress> _readProgress(
-    RsSession session,
-    DateTime asOf,
-  ) async {
+  Future<SessionProgress> _readProgress(Session session, DateTime asOf) async {
     final planId = session.readingPlanId;
     final summary = await _database.getDaySummary(planId, session.rsDate);
 

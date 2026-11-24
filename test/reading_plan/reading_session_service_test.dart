@@ -6,6 +6,7 @@ import 'package:gbt/reading_plan/reading_session_service.dart';
 import 'package:gbt/reading_plan/rs_database.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
 import 'package:gbt/reading_plan/session_log_repository.dart';
+import 'package:gbt/reading_plan/session_repository.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/reading_plan/reading_session_view_model.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -171,8 +172,8 @@ void main() {
     await database.markVerseRead(planId, 19, 1, 1);
 
     final now = DateTime.now();
-    final session = await database.insertSession(
-      RsSession(
+    final session = await database.session.commit(
+      Session(
         rsDate: DateTime(now.year, now.month, now.day),
         startTime: now,
         endTime: now,
@@ -341,7 +342,7 @@ void main() {
     await sessionService.endSession(firstSessionId, readSeconds: 0);
 
     final secondSessionId = await startPlan(planId);
-    final before = (await database.getSessionById(secondSessionId))!;
+    final before = (await database.session.getById(secondSessionId))!;
 
     final result = (await setVerseRead(
       secondSessionId,
@@ -352,7 +353,7 @@ void main() {
     expect(result.verseReadStates[1]?.readThisSession, isFalse);
     expect(result.progress.versesToday, 1);
 
-    final after = (await database.getSessionById(secondSessionId))!;
+    final after = (await database.session.getById(secondSessionId))!;
     expect(after.endTime, before.endTime);
   });
 
@@ -369,8 +370,8 @@ void main() {
       final now = DateTime.now();
       final today = DateTime(now.year, now.month, now.day);
       final yesterday = today.subtract(const Duration(days: 1));
-      final oldSession = await database.insertSession(
-        RsSession(
+      final oldSession = await database.session.commit(
+        Session(
           rsDate: yesterday,
           startTime: yesterday.add(const Duration(hours: 9)),
           endTime: yesterday.add(const Duration(hours: 9, minutes: 5)),
@@ -438,8 +439,8 @@ void main() {
       final now = DateTime.now();
       final today = DateTime(now.year, now.month, now.day);
       final yesterday = today.subtract(const Duration(days: 1));
-      final oldSession = await database.insertSession(
-        RsSession(
+      final oldSession = await database.session.commit(
+        Session(
           rsDate: yesterday,
           startTime: yesterday.add(const Duration(hours: 9)),
           endTime: yesterday.add(const Duration(hours: 9, minutes: 5)),
@@ -470,7 +471,7 @@ void main() {
       ))!;
 
       expect(rolled.sessionId, isNot(oldSession.id));
-      final old = (await database.getSessionById(oldSession.id!))!;
+      final old = (await database.session.getById(oldSession.id!))!;
       expect(old.readSeconds, 300);
       expect(old.endTime, yesterday.add(const Duration(days: 1, seconds: -1)));
 

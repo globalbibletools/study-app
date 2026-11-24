@@ -4,8 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:gbt/reading_plan/reading_plan_backup_service.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
 import 'package:gbt/reading_plan/rs_database.dart';
-import 'package:gbt/reading_plan/rs_model.dart';
+import 'package:gbt/reading_plan/rs_model.dart' show GoalType;
 import 'package:gbt/reading_plan/session_log_repository.dart';
+import 'package:gbt/reading_plan/session_repository.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
@@ -72,8 +73,8 @@ void main() {
     await database.markVerseRead(planId, 1, 1, 1);
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final dailyLog = await database.insertSession(
-      RsSession(
+    final dailyLog = await database.session.commit(
+      Session(
         rsDate: today,
         startTime: now.subtract(const Duration(minutes: 5)),
         endTime: now,
@@ -159,8 +160,8 @@ void main() {
       bookIds: [63],
     );
     final date = DateTime(2026, 11, 20);
-    final manual = await database.insertSession(
-      RsSession(
+    final manual = await database.session.commit(
+      Session(
         rsDate: date,
         startTime: DateTime(2026, 11, 20, 8),
         endTime: DateTime(2026, 11, 20, 8, 15),

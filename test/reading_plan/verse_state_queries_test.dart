@@ -1,8 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gbt/reading_plan/reading_plan_repository.dart' as repo;
 import 'package:gbt/reading_plan/rs_database.dart';
-import 'package:gbt/reading_plan/rs_model.dart';
+import 'package:gbt/reading_plan/rs_model.dart' show GoalType;
 import 'package:gbt/reading_plan/session_log_repository.dart';
+import 'package:gbt/reading_plan/session_repository.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import '../fixtures/bible_navigation_fixture.dart';
@@ -135,8 +136,8 @@ void main() {
       final now = DateTime.now();
       final today = DateTime(now.year, now.month, now.day);
 
-      final firstSession = await database.insertSession(
-        RsSession(
+      final firstSession = await database.session.commit(
+        Session(
           rsDate: today,
           startTime: now,
           endTime: now,
@@ -144,8 +145,8 @@ void main() {
           readingPlanId: planId,
         ),
       );
-      final secondSession = await database.insertSession(
-        RsSession(
+      final secondSession = await database.session.commit(
+        Session(
           rsDate: today,
           startTime: now,
           endTime: now,

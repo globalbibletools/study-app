@@ -1,8 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gbt/reading_plan/reading_plan_repository.dart' as repo;
 import 'package:gbt/reading_plan/rs_database.dart';
-import 'package:gbt/reading_plan/rs_model.dart';
+import 'package:gbt/reading_plan/rs_model.dart' show GoalType;
 import 'package:gbt/reading_plan/session_log_repository.dart';
+import 'package:gbt/reading_plan/session_repository.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import '../fixtures/bible_navigation_fixture.dart';
@@ -47,14 +48,14 @@ void main() {
     database.dispose();
   });
 
-  Future<RsSession> insertSession(
+  Future<Session> insertSession(
     int readingPlanId,
     DateTime day, {
     int hour = 9,
   }) {
     final startTime = DateTime(day.year, day.month, day.day, hour);
-    return database.insertSession(
-      RsSession(
+    return database.session.commit(
+      Session(
         rsDate: DateTime(day.year, day.month, day.day),
         startTime: startTime,
         endTime: startTime,

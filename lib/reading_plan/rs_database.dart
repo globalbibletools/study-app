@@ -6,6 +6,7 @@ import 'package:gbt/reading_plan/reading_plan_repository.dart'
     show ReadingPlanRepository;
 import 'package:gbt/reading_plan/rs_model.dart';
 import 'package:gbt/reading_plan/session_log_repository.dart';
+import 'package:gbt/reading_plan/session_repository.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:sqflite/sqflite.dart';
 
@@ -45,6 +46,7 @@ class ReadingSessionDatabase {
   Future<void>? _initFuture;
 
   late final SessionLogRepository sessionLog = SessionLogRepository(_database);
+  late final SessionRepository session = SessionRepository(_database);
 
   Future<void> init() async {
     if (_initFuture != null) {
@@ -462,19 +464,6 @@ class ReadingSessionDatabase {
     return ReadingPlanDetails(plan, books);
   }
 
-  /// Deletes every `rs_session` row for a plan.
-  Future<int> deleteSessionsForPlan(
-    int planId, {
-    DatabaseExecutor? executor,
-  }) async {
-    final db = executor ?? _database;
-    return db.delete(
-      'rs_session',
-      where: 'reading_plan_id = ?',
-      whereArgs: [planId],
-    );
-  }
-
   /// Deletes every `rs_day_summary` row for a plan.
   Future<int> deleteDaySummariesForPlan(
     int planId, {
@@ -503,41 +492,6 @@ class ReadingSessionDatabase {
 
   Future<T> transaction<T>(Future<T> Function(DatabaseExecutor txn) action) {
     return _database.transaction(action);
-  }
-
-  Future<RsSession?> getSessionById(int id) async {
-    final rows = await _database.query(
-      'rs_session',
-      where: 'id = ?',
-      whereArgs: [id],
-      limit: 1,
-    );
-
-    return rows.isEmpty ? null : RsSession.fromMap(rows.first);
-  }
-
-  Future<RsSession> insertSession(
-    RsSession log, {
-    DatabaseExecutor? executor,
-  }) async {
-    final db = executor ?? _database;
-    final id = await db.insert('rs_session', log.toMap()..remove('id'));
-    return log.copyWith(id: id);
-  }
-
-  Future<int> updateSession(RsSession log, {DatabaseExecutor? executor}) async {
-    final db = executor ?? _database;
-    return await db.update(
-      'rs_session',
-      log.toMap(),
-      where: 'id = ?',
-      whereArgs: [log.id],
-    );
-  }
-
-  Future<int> deleteSession(int id, {DatabaseExecutor? executor}) async {
-    final db = executor ?? _database;
-    return await db.delete('rs_session', where: 'id = ?', whereArgs: [id]);
   }
 
   /* RS LOG */
@@ -950,21 +904,6 @@ class ReadingSessionDatabase {
     );
 
     return result.map((e) => RsSession.fromMap(e)).toList();
-  }
-
-  Future<int> getSessionCountForDate(
-    DateTime date,
-    int readingPlanId, {
-    DatabaseExecutor? executor,
-  }) async {
-    final db = executor ?? _database;
-    final result = await db.rawQuery(
-      'SELECT COUNT(*) FROM rs_session '
-      'WHERE date(rs_date) = date(?) AND reading_plan_id = ?',
-      [date.toIso8601String(), readingPlanId],
-    );
-
-    return Sqflite.firstIntValue(result) ?? 0;
   }
 
   Future<List<RsLog>> getRsLogForSession(int sessionId) async {
