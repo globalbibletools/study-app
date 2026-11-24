@@ -3,11 +3,6 @@ import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/ui/messaging/ephemeral_message.dart';
 import 'package:gbt/ui/messaging/messenger_view_model.dart';
 
-/// The single place ephemeral messages are rendered.
-///
-/// Mount it through [MaterialApp.builder] so it sits above the app's
-/// Navigator. That placement is what keeps a message visible across
-/// navigation and above dialogs and modal bottom sheets.
 class MessengerHost extends StatelessWidget {
   const MessengerHost({
     super.key,
@@ -15,10 +10,8 @@ class MessengerHost extends StatelessWidget {
     required this.child,
   });
 
-  /// Key for the rendered message card, useful for placement assertions.
   static const cardKey = Key('ephemeralMessageCard');
 
-  /// Key for the card's dismiss control.
   static const dismissButtonKey = Key('ephemeralMessageDismiss');
 
   final MessengerViewModel messenger;

@@ -36,7 +36,6 @@ void main() {
     viewModel.showSuccess('success-2');
     viewModel.showError('error');
 
-    // Nothing preempts the visible message.
     expect(viewModel.visibleMessage?.text, 'visible');
 
     viewModel.dismissVisible();
@@ -71,7 +70,9 @@ void main() {
     expect(viewModel.visibleMessage?.text, 'urgent');
   });
 
-  testWidgets('auto-dismisses after each severity duration', (tester) async {
+  testWidgets('auto-dismisses after each severity visibility timeout', (
+    tester,
+  ) async {
     final cases = <MessageSeverity, void Function(MessengerViewModel, String)>{
       MessageSeverity.info: (vm, text) => vm.showInfo(text),
       MessageSeverity.success: (vm, text) => vm.showSuccess(text),
@@ -81,10 +82,10 @@ void main() {
 
     for (final entry in cases.entries) {
       final viewModel = MessengerViewModel();
-      final duration = entry.key.duration;
+      final timeout = entry.key.visibilityTimeout;
       entry.value(viewModel, entry.key.name);
 
-      await tester.pump(duration - const Duration(milliseconds: 1));
+      await tester.pump(timeout - const Duration(milliseconds: 1));
       expect(
         viewModel.visibleMessage,
         isNotNull,
@@ -135,7 +136,6 @@ void main() {
     expect(viewModel.visibleMessage?.text, 'same message');
     expect(viewModel.pendingMessages, isEmpty);
 
-    // Seven seconds elapsed before the duplicate; the timer restarts at eight.
     await tester.pump(const Duration(seconds: 7));
     expect(viewModel.visibleMessage, isNotNull);
 
@@ -167,7 +167,6 @@ void main() {
     viewModel.showError('visible');
     viewModel.showWarning('queued');
 
-    // The warning's five second timer must not start while it is queued.
     await tester.pump(const Duration(seconds: 6));
 
     expect(viewModel.visibleMessage?.text, 'visible');
@@ -192,7 +191,6 @@ void main() {
     viewModel.showInfo('queued');
     viewModel.dispose();
 
-    // Advancing past every duration must not fire a timer on a disposed VM.
     await tester.pump(const Duration(seconds: 20));
   });
 }

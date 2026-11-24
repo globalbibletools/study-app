@@ -173,7 +173,6 @@ void main() {
     expect(find.text('Above the dialog'), findsOneWidget);
     expect(find.byType(AlertDialog), findsOneWidget);
 
-    // The dismiss button is above the dialog barrier and remains tappable.
     await tester.tap(find.byKey(MessengerHost.dismissButtonKey));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 250));
