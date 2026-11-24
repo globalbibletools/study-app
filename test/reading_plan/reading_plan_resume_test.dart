@@ -78,14 +78,14 @@ void main() {
   }
 
   test('starts at the first verse when the plan has no reads', () async {
-    final plan = await planService.saveReadingPlan(
+    final planId = await planService.saveReadingPlan(
       planName: 'Resume Test',
       goalType: GoalType.verses,
       goalValue: 10,
-      selectedBookIds: {63, 64},
+      bookIds: [63, 64],
     );
 
-    final resume = await planService.getResumeReference(plan.id!);
+    final resume = await planService.getResumeReference(planId);
 
     expect(resume, isNotNull);
     expect(resume!.bookId, 63);
@@ -94,15 +94,15 @@ void main() {
   });
 
   test('returns the verse after the last read verse', () async {
-    final plan = await planService.saveReadingPlan(
+    final planId = await planService.saveReadingPlan(
       planName: 'Resume Test',
       goalType: GoalType.verses,
       goalValue: 10,
-      selectedBookIds: {63, 64},
+      bookIds: [63, 64],
     );
-    await addLog(plan.id!, 63, 1, 5, DateTime(2026, 5, 1, 10));
+    await addLog(planId, 63, 1, 5, DateTime(2026, 5, 1, 10));
 
-    final resume = await planService.getResumeReference(plan.id!);
+    final resume = await planService.getResumeReference(planId);
 
     expect(resume, isNotNull);
     expect(resume!.bookId, 63);
@@ -113,16 +113,16 @@ void main() {
   test(
     'plan resume advances to the next verse even when that verse is read',
     () async {
-      final plan = await planService.saveReadingPlan(
+      final planId = await planService.saveReadingPlan(
         planName: 'Resume Test',
         goalType: GoalType.verses,
         goalValue: 10,
-        selectedBookIds: {63, 64},
+        bookIds: [63, 64],
       );
-      await database.markVerseRead(plan.id!, 63, 1, 6);
-      await addLog(plan.id!, 63, 1, 5, DateTime(2026, 5, 1, 10));
+      await database.markVerseRead(planId, 63, 1, 6);
+      await addLog(planId, 63, 1, 5, DateTime(2026, 5, 1, 10));
 
-      final resume = await planService.getResumeReference(plan.id!);
+      final resume = await planService.getResumeReference(planId);
 
       expect(resume, isNotNull);
       expect(resume!.bookId, 63);
@@ -132,15 +132,15 @@ void main() {
   );
 
   test('plan resume moves to the next book in plan order', () async {
-    final plan = await planService.saveReadingPlan(
+    final planId = await planService.saveReadingPlan(
       planName: 'Resume Test',
       goalType: GoalType.verses,
       goalValue: 10,
-      selectedBookIds: {63, 64},
+      bookIds: [63, 64],
     );
-    await addLog(plan.id!, 63, 1, 13, DateTime(2026, 5, 1, 10));
+    await addLog(planId, 63, 1, 13, DateTime(2026, 5, 1, 10));
 
-    final resume = await planService.getResumeReference(plan.id!);
+    final resume = await planService.getResumeReference(planId);
 
     expect(resume, isNotNull);
     expect(resume!.bookId, 64);
@@ -149,28 +149,28 @@ void main() {
   });
 
   test('plan resume is null after the final verse in the plan', () async {
-    final plan = await planService.saveReadingPlan(
+    final planId = await planService.saveReadingPlan(
       planName: 'Resume Test',
       goalType: GoalType.verses,
       goalValue: 10,
-      selectedBookIds: {63, 64},
+      bookIds: [63, 64],
     );
-    await addLog(plan.id!, 64, 1, 15, DateTime(2026, 5, 1, 10));
+    await addLog(planId, 64, 1, 15, DateTime(2026, 5, 1, 10));
 
-    expect(await planService.getResumeReference(plan.id!), isNull);
+    expect(await planService.getResumeReference(planId), isNull);
   });
 
   test('uses the latest log entry in the plan', () async {
-    final plan = await planService.saveReadingPlan(
+    final planId = await planService.saveReadingPlan(
       planName: 'Resume Test',
       goalType: GoalType.verses,
       goalValue: 10,
-      selectedBookIds: {63, 64},
+      bookIds: [63, 64],
     );
-    await addLog(plan.id!, 63, 1, 5, DateTime(2026, 5, 1, 10));
-    await addLog(plan.id!, 64, 1, 2, DateTime(2026, 5, 2, 10));
+    await addLog(planId, 63, 1, 5, DateTime(2026, 5, 1, 10));
+    await addLog(planId, 64, 1, 2, DateTime(2026, 5, 2, 10));
 
-    final resume = await planService.getResumeReference(plan.id!);
+    final resume = await planService.getResumeReference(planId);
 
     expect(resume, isNotNull);
     expect(resume!.bookId, 64);
@@ -179,15 +179,15 @@ void main() {
   });
 
   test('moves to the next chapter after the last verse', () async {
-    final plan = await planService.saveReadingPlan(
+    final planId = await planService.saveReadingPlan(
       planName: 'Resume Test',
       goalType: GoalType.verses,
       goalValue: 10,
-      selectedBookIds: {19},
+      bookIds: [19],
     );
-    await addLog(plan.id!, 19, 1, 6, DateTime(2026, 5, 1, 10));
+    await addLog(planId, 19, 1, 6, DateTime(2026, 5, 1, 10));
 
-    final resume = await planService.getResumeReference(plan.id!);
+    final resume = await planService.getResumeReference(planId);
 
     expect(resume, isNotNull);
     expect(resume!.bookId, 19);
@@ -196,23 +196,23 @@ void main() {
   });
 
   test('follows plan order after the last verse of the final book', () async {
-    final plan = await planService.saveReadingPlan(
+    final planId = await planService.saveReadingPlan(
       planName: 'Resume Test',
       goalType: GoalType.verses,
       goalValue: 10,
-      selectedBookIds: {63, 64},
+      bookIds: [63, 64],
     );
-    await addLog(plan.id!, 64, 1, 15, DateTime(2026, 5, 1, 10));
+    await addLog(planId, 64, 1, 15, DateTime(2026, 5, 1, 10));
 
-    expect(await planService.getResumeReference(plan.id!), isNull);
+    expect(await planService.getResumeReference(planId), isNull);
 
-    final details = await detailsFor(plan.id!);
+    final details = await detailsFor(planId);
     await planService.reorderReadingPlanBooks(
-      plan.id!,
-      details.books.reversed.toList(),
+      planId,
+      details.books.reversed.map((book) => book.bookId).toList(),
     );
 
-    final resume = await planService.getResumeReference(plan.id!);
+    final resume = await planService.getResumeReference(planId);
 
     expect(resume, isNotNull);
     expect(resume!.bookId, 63);
@@ -221,17 +221,17 @@ void main() {
   });
 
   test('list read model uses the log-derived resume position', () async {
-    final plan = await planService.saveReadingPlan(
+    final planId = await planService.saveReadingPlan(
       planName: 'Resume Test',
       goalType: GoalType.verses,
       goalValue: 10,
-      selectedBookIds: {63, 64},
+      bookIds: [63, 64],
     );
-    await database.markVerseRead(plan.id!, 63, 1, 5);
-    await addLog(plan.id!, 63, 1, 5, DateTime(2026, 5, 1, 10));
+    await database.markVerseRead(planId, 63, 1, 5);
+    await addLog(planId, 63, 1, 5, DateTime(2026, 5, 1, 10));
 
     final plans = await planService.getReadingPlansWithProgress();
-    final summary = plans.firstWhere((p) => p.readingPlan.id == plan.id);
+    final summary = plans.firstWhere((p) => p.readingPlan.id == planId);
 
     expect(summary.totalVerses, 28);
     expect(summary.versesRead, 1);
@@ -264,15 +264,15 @@ void main() {
       bibleNavigation: createTestBibleNavigation(),
     );
 
-    final plan = await planService.saveReadingPlan(
+    final planId = await planService.saveReadingPlan(
       planName: 'Resume Gap Test',
       goalType: GoalType.verses,
       goalValue: 10,
-      selectedBookIds: {40},
+      bookIds: [40],
     );
-    await addLog(plan.id!, 40, 16, 2, DateTime(2026, 5, 1, 10));
+    await addLog(planId, 40, 16, 2, DateTime(2026, 5, 1, 10));
 
-    final resume = await planService.getResumeReference(plan.id!);
+    final resume = await planService.getResumeReference(planId);
 
     expect(resume, isNotNull);
     expect(resume!.bookId, 40);

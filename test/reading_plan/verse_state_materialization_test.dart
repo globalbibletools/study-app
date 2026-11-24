@@ -1,7 +1,9 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gbt/reading_plan/reading_plan_service.dart';
 import 'package:gbt/reading_plan/rs_database.dart';
+import 'package:gbt/reading_plan/rs_model.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:sqlite3/sqlite3.dart' as sqlite;
@@ -189,12 +191,16 @@ PRAGMA user_version = 3;
       final name = 'verse_state_save_test.db';
       final database = await openDatabase(name);
       addTearDown(database.dispose);
+      final service = ReadingPlanService.withDependencies(
+        database: database,
+        bibleNavigation: createTestBibleNavigation(),
+      );
 
-      final plan = await database.saveReadingPlan(
+      final planId = await service.saveReadingPlan(
         planName: 'Materialization Test',
-        goalType: 'verses',
+        goalType: GoalType.verses,
         goalValue: 10,
-        orderedBookIds: [63, 64],
+        bookIds: [63, 64],
       );
 
       final raw = await openRaw(name);
@@ -204,34 +210,34 @@ PRAGMA user_version = 3;
           raw.select(
                 'SELECT COUNT(*) AS count FROM rs_verse_state '
                 'WHERE reading_plan_id = ?',
-                [plan.id],
+                [planId],
               ).first['count']
               as int;
 
       expect(countForPlan(), expectedVerseCountFor({63, 64}));
 
-      final details = await database.getReadingPlanById(plan.id!);
-      await database.saveReadingPlan(
-        existingPlan: details!.readingPlan,
+      final details = await service.getReadingPlanById(planId);
+      await service.saveReadingPlan(
+        planId: details!.readingPlan.id,
         planName: 'Materialization Test',
-        goalType: 'verses',
+        goalType: GoalType.verses,
         goalValue: 10,
-        orderedBookIds: [63, 64, 66],
+        bookIds: [63, 64, 66],
       );
       expect(countForPlan(), expectedVerseCountFor({63, 64, 66}));
 
-      final withAddedBook = await database.getReadingPlanById(plan.id!);
-      await database.saveReadingPlan(
-        existingPlan: withAddedBook!.readingPlan,
+      final withAddedBook = await service.getReadingPlanById(planId);
+      await service.saveReadingPlan(
+        planId: withAddedBook!.readingPlan.id,
         planName: 'Materialization Test',
-        goalType: 'verses',
+        goalType: GoalType.verses,
         goalValue: 10,
-        orderedBookIds: [63, 66],
+        bookIds: [63, 66],
       );
 
       expect(countForPlan(), expectedVerseCountFor({63, 64, 66}));
       expect(
-        (await database.getReadingPlanBooks(plan.id!)).map((b) => b.bookId),
+        (await database.getReadingPlanBooks(planId)).map((b) => b.bookId),
         [63, 66],
       );
     },
@@ -241,12 +247,16 @@ PRAGMA user_version = 3;
     final name = 'verse_state_empty_book_test.db';
     final database = await openDatabase(name);
     addTearDown(database.dispose);
+    final service = ReadingPlanService.withDependencies(
+      database: database,
+      bibleNavigation: createTestBibleNavigation(),
+    );
 
-    final plan = await database.saveReadingPlan(
+    final planId = await service.saveReadingPlan(
       planName: 'Empty Book Test',
-      goalType: 'verses',
+      goalType: GoalType.verses,
       goalValue: 10,
-      orderedBookIds: [63, 67],
+      bookIds: [63, 67],
     );
 
     final raw = await openRaw(name);
@@ -256,7 +266,7 @@ PRAGMA user_version = 3;
       raw.select(
         'SELECT COUNT(*) AS count FROM rs_verse_state '
         'WHERE reading_plan_id = ? AND book_id = 63',
-        [plan.id],
+        [planId],
       ).first['count'],
       13,
     );
@@ -264,11 +274,11 @@ PRAGMA user_version = 3;
       raw.select(
         'SELECT COUNT(*) AS count FROM rs_verse_state '
         'WHERE reading_plan_id = ? AND book_id = 67',
-        [plan.id],
+        [planId],
       ).first['count'],
       0,
     );
-    expect(await database.isBookComplete(plan.id!, 67), isFalse);
-    expect((await database.getBookStats(plan.id!))[67], isNull);
+    expect(await database.isBookComplete(planId, 67), isFalse);
+    expect((await database.getBookStats(planId))[67], isNull);
   });
 }

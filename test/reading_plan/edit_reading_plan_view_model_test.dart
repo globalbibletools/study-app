@@ -40,15 +40,15 @@ void main() {
     String name = 'Saved Plan',
     GoalType goalType = GoalType.verses,
     int goalValue = 10,
-    Set<int> bookIds = const {1, 2},
+    List<int> bookIds = const [1, 2],
   }) async {
-    final plan = await planService.saveReadingPlan(
+    final planId = await planService.saveReadingPlan(
       planName: name,
       goalType: goalType,
       goalValue: goalValue,
-      selectedBookIds: bookIds,
+      bookIds: bookIds,
     );
-    return (await planService.getReadingPlanById(plan.id!))!;
+    return (await planService.getReadingPlanById(planId))!;
   }
 
   group('defaultPlan', () {
@@ -96,7 +96,7 @@ void main() {
         name: 'Epistles',
         goalType: GoalType.minutes,
         goalValue: 20,
-        bookIds: {45, 46},
+        bookIds: [45, 46],
       );
 
       final vm = await existingViewModel(details);
@@ -121,14 +121,13 @@ void main() {
     });
 
     test('initializes the custom draft from an existing custom plan', () async {
-      final plan = await planService.saveReadingPlan(
+      final planId = await planService.saveReadingPlan(
         planName: 'Custom Plan',
         goalType: GoalType.verses,
         goalValue: 10,
-        selectedBookIds: {46, 45},
-        orderedBookIds: [46, 45],
+        bookIds: [46, 45],
       );
-      final details = (await planService.getReadingPlanById(plan.id!))!;
+      final details = (await planService.getReadingPlanById(planId))!;
 
       final vm = await existingViewModel(details);
       expect(vm.selectedCollection, same(BibleCollection.custom));
@@ -416,12 +415,11 @@ void main() {
       expect(notifications, 2);
 
       final call = planService.saveCalls.single;
-      expect(call.existingPlanDetails, isNull);
+      expect(call.planId, isNull);
       expect(call.planName, 'Daily Bread');
       expect(call.goalType, GoalType.verses);
       expect(call.goalValue, 25);
-      expect(call.selectedBookIds, {40, 41, 42, 43});
-      expect(call.orderedBookIds, [40, 41, 42, 43]);
+      expect(call.bookIds, [40, 41, 42, 43]);
 
       final saved = planService.plans.single;
       expect(saved.readingPlan.id, isNotNull);
@@ -435,7 +433,7 @@ void main() {
       expect(await vm.submit(), isTrue);
 
       final call = planService.saveCalls.single;
-      expect(call.orderedBookIds, [for (int i = 1; i <= 66; i++) i]);
+      expect(call.bookIds, [for (int i = 1; i <= 66; i++) i]);
     });
 
     test('saves the custom order', () async {
@@ -446,7 +444,7 @@ void main() {
       expect(await vm.submit(), isTrue);
 
       final call = planService.saveCalls.single;
-      expect(call.orderedBookIds, [3, 1, 2]);
+      expect(call.bookIds, [3, 1, 2]);
 
       final saved = planService.plans.single;
       expect(saved.books.map((b) => b.bookId), [3, 1, 2]);
@@ -461,7 +459,7 @@ void main() {
       expect(await vm.submit(), isTrue);
 
       final call = planService.saveCalls.single;
-      expect(call.orderedBookIds, [1, 2, 3, 4, 5]);
+      expect(call.bookIds, [1, 2, 3, 4, 5]);
 
       final reopened = await existingViewModel(planService.plans.single);
       expect(reopened.selectedCollection, BibleCollection.torah);
@@ -471,7 +469,7 @@ void main() {
     });
 
     test('passes the existing plan through when updating', () async {
-      final saved = await savePlan(name: 'Original', bookIds: {2, 1});
+      final saved = await savePlan(name: 'Original', bookIds: [2, 1]);
       final originalId = saved.readingPlan.id;
 
       final vm = await existingViewModel(saved);
@@ -481,9 +479,9 @@ void main() {
       expect(await vm.submit(), isTrue);
 
       final call = planService.saveCalls.last;
-      expect(call.existingPlanDetails, same(saved));
+      expect(call.planId, saved.readingPlan.id);
       expect(call.planName, 'Revised');
-      expect(call.orderedBookIds, [1, 3]);
+      expect(call.bookIds, [1, 3]);
 
       final updated = planService.plans.single;
       expect(updated.readingPlan.id, originalId);
@@ -573,7 +571,7 @@ void main() {
     });
 
     test('propagates delete errors', () async {
-      final details = await savePlan(name: 'Doomed', bookIds: {1});
+      final details = await savePlan(name: 'Doomed', bookIds: [1]);
       final vm = await existingViewModel(details);
       planService.deleteError = StateError('delete failed');
 
@@ -584,7 +582,7 @@ void main() {
 
     test('cancels an in-flight delete when disposed', () async {
       planService.queueDeleteRequests = true;
-      final details = await savePlan(name: 'Doomed', bookIds: {1});
+      final details = await savePlan(name: 'Doomed', bookIds: [1]);
       final vm = await existingViewModel(details);
 
       final future = vm.delete();

@@ -78,12 +78,13 @@ class ReadingPlanDetailViewModel extends ChangeNotifier {
 
   bool get isBookmarked => _planDetails.readingPlan.isBookmarked;
   Future<void> toggleBookmark() async {
-    final updatedPlan = await _planService.setReadingPlanBookmark(
-      _planDetails.readingPlan,
-      !_planDetails.readingPlan.isBookmarked,
-    );
+    final currentPlan = _planDetails.readingPlan;
+    final isBookmarked = !currentPlan.isBookmarked;
+    await _planService.setReadingPlanBookmark(currentPlan.id!, isBookmarked);
     _setState(() {
-      _planDetails.readingPlan = updatedPlan;
+      _planDetails.readingPlan = currentPlan.copyWith(
+        isBookmarked: isBookmarked,
+      );
     });
   }
 

@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gbt/reading_plan/reading_plan_backup_service.dart';
+import 'package:gbt/reading_plan/reading_plan_service.dart';
 import 'package:gbt/reading_plan/rs_database.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
 import 'package:gbt/reading_plan/session_log_repository.dart';
@@ -14,6 +15,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late ReadingSessionDatabase database;
+  late ReadingPlanService planService;
   late ReadingPlanBackupService backupService;
 
   setUpAll(() {
@@ -29,6 +31,10 @@ void main() {
     );
     await database.resetDatabase();
     await database.init();
+    planService = ReadingPlanService.withDependencies(
+      database: database,
+      bibleNavigation: createTestBibleNavigation(),
+    );
     backupService = ReadingPlanBackupService.withDatabase(database);
   });
 
@@ -56,14 +62,14 @@ void main() {
 
   test('builds a versioned backup and restores it from bytes', () async {
     final initialPlanCount = (await database.getReadingPlans()).length;
-    final plan = await database.saveReadingPlan(
+    final planId = await planService.saveReadingPlan(
       planName: 'Backup Test',
-      goalType: 'verses',
+      goalType: GoalType.verses,
       goalValue: 12,
-      orderedBookIds: [1, 2],
+      bookIds: [1, 2],
     );
 
-    await database.markVerseRead(plan.id!, 1, 1, 1);
+    await database.markVerseRead(planId, 1, 1, 1);
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final dailyLog = await database.insertSession(
@@ -73,7 +79,7 @@ void main() {
         endTime: now,
         readSeconds: 300,
         verses: 1,
-        readingPlanId: plan.id!,
+        readingPlanId: planId,
       ),
     );
     await database.sessionLog.append(
@@ -83,10 +89,10 @@ void main() {
         chapter: 1,
         verse: 1,
         dateTime: now,
-        readingPlanId: plan.id!,
+        readingPlanId: planId,
       ),
     );
-    await database.upsertDaySummary(plan.id!, today);
+    await database.upsertDaySummary(planId, today);
 
     final bytes = await backupService.buildBackupBytes();
     final payload = jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>;
@@ -101,7 +107,7 @@ void main() {
     expect(tables.containsKey('rs_stats'), isFalse);
     expect(tables.containsKey('rs_daily_log'), isFalse);
 
-    await database.deleteReadingPlan(plan.id!);
+    await planService.deleteReadingPlan(planId);
     expect(
       (await database.getReadingPlans()).where(
         (p) => p.readingPlan.planName == 'Backup Test',
@@ -118,12 +124,12 @@ void main() {
     expect(restoredPlans.single.readingPlan.goalValue, 12);
     expect(restoredPlans.single.books.map((b) => b.bookId), [1, 2]);
 
-    final restoredSessions = await database.getSessionsForDate(today, plan.id!);
+    final restoredSessions = await database.getSessionsForDate(today, planId);
     expect(restoredSessions, hasLength(1));
     expect(restoredSessions.single.verses, 1);
 
     final restoredSummaries = await database.getDaySummariesBetween(
-      plan.id!,
+      planId,
       today,
       today,
     );
@@ -133,24 +139,24 @@ void main() {
     expect(restoredSummaries.single.goalValue, 12);
 
     final chapterCounts = await database.getVerseReadCountsForChapter(
-      plan.id!,
+      planId,
       1,
       1,
     );
     expect(chapterCounts[1], 1);
     expect(chapterCounts[2], 0);
 
-    final aggregates = await database.getBookStats(plan.id!);
+    final aggregates = await database.getBookStats(planId);
     expect(aggregates[1]!.versesRead, 1);
     expect(aggregates[1]!.isComplete, isFalse);
   });
 
   test('round trips manual sessions without creating verse progress', () async {
-    final plan = await database.saveReadingPlan(
+    final planId = await planService.saveReadingPlan(
       planName: 'Manual Backup Test',
-      goalType: 'verses',
+      goalType: GoalType.verses,
       goalValue: 12,
-      orderedBookIds: [63],
+      bookIds: [63],
     );
     final date = DateTime(2026, 11, 20);
     final manual = await database.insertSession(
@@ -160,11 +166,11 @@ void main() {
         endTime: DateTime(2026, 11, 20, 8, 15),
         readSeconds: 900,
         verses: 7,
-        readingPlanId: plan.id!,
+        readingPlanId: planId,
         isManual: true,
       ),
     );
-    await database.upsertDaySummary(plan.id!, date);
+    await database.upsertDaySummary(planId, date);
 
     final payload =
         jsonDecode(utf8.decode(await backupService.buildBackupBytes()))
@@ -184,17 +190,17 @@ void main() {
       isEmpty,
     );
 
-    await database.deleteReadingPlan(plan.id!);
+    await planService.deleteReadingPlan(planId);
     await backupService.restoreBackupJson(jsonEncode(payload));
 
-    final restoredSessions = await database.getSessionsForDate(date, plan.id!);
+    final restoredSessions = await database.getSessionsForDate(date, planId);
     expect(restoredSessions, hasLength(1));
     expect(restoredSessions.single.isManual, isTrue);
     expect(restoredSessions.single.readSeconds, 900);
     expect(restoredSessions.single.verses, 7);
 
     final restoredSummaries = await database.getDaySummariesBetween(
-      plan.id!,
+      planId,
       date,
       date,
     );
@@ -202,9 +208,9 @@ void main() {
     expect(restoredSummaries.single.rsSeconds, 900);
     expect(restoredSummaries.single.rsVerses, 7);
 
-    final counts = await database.getVerseReadCountsForChapter(plan.id!, 63, 1);
+    final counts = await database.getVerseReadCountsForChapter(planId, 63, 1);
     expect(counts.values.every((count) => count == 0), isTrue);
-    final stats = await database.getBookStats(plan.id!);
+    final stats = await database.getBookStats(planId);
     expect(stats[63]!.versesRead, 0);
 
     // Older unreleased v2 backups predate the column; those rows restore as
@@ -214,16 +220,16 @@ void main() {
     }
     await backupService.restoreBackupJson(jsonEncode(payload));
 
-    final defaultedSessions = await database.getSessionsForDate(date, plan.id!);
+    final defaultedSessions = await database.getSessionsForDate(date, planId);
     expect(defaultedSessions.single.isManual, isFalse);
   });
 
   test('ignores the legacy collection id in old v2 backups', () async {
-    final plan = await database.saveReadingPlan(
+    final planId = await planService.saveReadingPlan(
       planName: 'Legacy Backup',
-      goalType: 'verses',
+      goalType: GoalType.verses,
       goalValue: 12,
-      orderedBookIds: [1, 2],
+      bookIds: [1, 2],
     );
 
     final payload =
@@ -237,7 +243,7 @@ void main() {
       row['collection_id'] = 1;
     }
 
-    await database.deleteReadingPlan(plan.id!);
+    await planService.deleteReadingPlan(planId);
     await backupService.restoreBackupJson(jsonEncode(payload));
 
     final restored = (await database.getReadingPlans()).singleWhere(

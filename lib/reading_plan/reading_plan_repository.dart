@@ -157,4 +157,3 @@ class ReadingPlan {
 
   static String _goalTypeToStorage(GoalType goalType) => goalType.name;
 }
-

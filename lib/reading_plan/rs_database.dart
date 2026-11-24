@@ -37,7 +37,9 @@ class ReadingSessionDatabase {
   final String? _databasePath;
   final VerseInventoryProvider _verseInventoryProvider;
 
-  late final ReadingPlanRepository readingPlans = ReadingPlanRepository(_database);
+  late final ReadingPlanRepository readingPlans = ReadingPlanRepository(
+    _database,
+  );
 
   late Database _database;
   Future<void>? _initFuture;
@@ -422,15 +424,6 @@ class ReadingSessionDatabase {
     );
 
     return result.map((e) => ReadingPlan.fromMap(e)).toList();
-  }
-
-  Future<void> updateReadingPlan(ReadingPlan readingPlan) async {
-    await _database.update(
-      'reading_plan',
-      readingPlan.toMap(),
-      where: 'id = ?',
-      whereArgs: [readingPlan.id],
-    );
   }
 
   Future<List<ReadingPlanDetails>> getReadingPlans() async {

@@ -196,14 +196,11 @@ class EditReadingPlanViewModel extends ChangeNotifier {
       try {
         await guard(
           _planService.saveReadingPlan(
-            existingPlanDetails: readingPlan.readingPlan.id != null
-                ? readingPlan
-                : null,
+            planId: readingPlan.readingPlan.id,
             planName: _name,
             goalType: _goalType,
             goalValue: _goalValue,
-            selectedBookIds: _orderedBookIds.toSet(),
-            orderedBookIds: List.of(_orderedBookIds),
+            bookIds: _orderedBookIds,
           ),
         );
         return true;

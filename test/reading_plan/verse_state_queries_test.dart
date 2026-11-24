@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gbt/reading_plan/reading_plan_repository.dart' as repo;
 import 'package:gbt/reading_plan/rs_database.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
 import 'package:gbt/reading_plan/session_log_repository.dart';
@@ -31,13 +32,19 @@ void main() {
   });
 
   Future<int> createPlan(List<int> books) async {
-    final plan = await database.saveReadingPlan(
-      planName: 'Verse State Test',
-      goalType: 'verses',
-      goalValue: 10,
-      orderedBookIds: books,
+    final planId = await database.readingPlans.commit(
+      repo.ReadingPlan(
+        id: 0,
+        planName: 'Verse State Test',
+        createdAt: DateTime.now(),
+        goalType: GoalType.verses,
+        goalValue: 10,
+        isBookmarked: false,
+        bookIds: books,
+      ),
     );
-    return plan.id!;
+    await database.materializeVerseStateForPlan(planId);
+    return planId;
   }
 
   test(
@@ -225,28 +232,16 @@ void main() {
       }
       expect(await database.isBookComplete(planId, 64), isTrue);
 
-      var details = await database.getReadingPlanById(planId);
-      await database.saveReadingPlan(
-        existingPlan: details!.readingPlan,
-        planName: 'Verse State Test',
-        goalType: 'verses',
-        goalValue: 10,
-        orderedBookIds: [63],
-      );
+      var plan = await database.readingPlans.getById(planId);
+      await database.readingPlans.commit(plan!.copyWith(bookIds: [63]));
 
       var aggregates = await database.getBookStats(planId);
       expect(aggregates.containsKey(64), isFalse);
       expect(aggregates.containsKey(63), isTrue);
       expect(await database.isBookComplete(planId, 64), isTrue);
 
-      details = await database.getReadingPlanById(planId);
-      await database.saveReadingPlan(
-        existingPlan: details!.readingPlan,
-        planName: 'Verse State Test',
-        goalType: 'verses',
-        goalValue: 10,
-        orderedBookIds: [63, 64],
-      );
+      plan = await database.readingPlans.getById(planId);
+      await database.readingPlans.commit(plan!.copyWith(bookIds: [63, 64]));
 
       aggregates = await database.getBookStats(planId);
       expect(aggregates[64]!.versesRead, 15);
