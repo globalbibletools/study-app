@@ -250,14 +250,14 @@ class ReadingSessionService {
     if (_sameDay(sessionDay, today)) {
       throw StateError(
         'Session $sessionId is already on '
-        '${RsDaySummary.dayString(today)}.',
+        '${dayString(today)}.',
       );
     }
     if (today.isBefore(sessionDay)) {
       throw StateError(
         'Cannot roll session $sessionId back from '
-        '${RsDaySummary.dayString(sessionDay)} to '
-        '${RsDaySummary.dayString(today)}.',
+        '${dayString(sessionDay)} to '
+        '${dayString(today)}.',
       );
     }
 
@@ -311,8 +311,8 @@ class ReadingSessionService {
 
     throw StateError(
       'Session ${session.id} belongs to '
-      '${RsDaySummary.dayString(session.rsDate)}, but the current day is '
-      '${RsDaySummary.dayString(today)}. Call rolloverSession first.',
+      '${dayString(session.rsDate)}, but the current day is '
+      '${dayString(today)}. Call rolloverSession first.',
     );
   }
 

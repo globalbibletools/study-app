@@ -1,4 +1,7 @@
 import 'package:gbt/reading_plan/data_access/rs_model.dart' show GoalType;
+import 'package:gbt/reading_plan/data_access/rs_model.dart'
+    as rs_model
+    show dayString;
 import 'package:sqflite/sqflite.dart';
 
 class DaySummaryRepository {
@@ -187,10 +190,7 @@ class DaySummary {
   }
 
   /// Formats a local date as the `YYYY-MM-DD` string stored in `rs_date`.
-  static String dayString(DateTime date) {
-    String pad2(int value) => value.toString().padLeft(2, '0');
-    return '${date.year.toString().padLeft(4, '0')}-${pad2(date.month)}-${pad2(date.day)}';
-  }
+  static String dayString(DateTime date) => rs_model.dayString(date);
 }
 
 String _goalTypeToStorage(GoalType goalType) => goalType.name;

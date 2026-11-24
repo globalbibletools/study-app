@@ -2,7 +2,7 @@ import 'package:gbt/common/reference.dart';
 import 'package:gbt/reading_plan/data_access/reading_plan_read_models.dart';
 import 'package:gbt/reading_plan/data_access/rs_database.dart';
 import 'package:gbt/reading_plan/data_access/rs_model.dart'
-    show DailyGoal, RsDaySummary;
+    show DailyGoal, dayString;
 import 'package:sqflite/sqflite.dart';
 
 class ReadingPlanQueries {
@@ -50,11 +50,7 @@ class ReadingPlanQueries {
     final rows = await _database.query(
       'rs_day_summary',
       where: 'reading_plan_id = ? AND rs_date BETWEEN ? AND ?',
-      whereArgs: [
-        planId,
-        RsDaySummary.dayString(start),
-        RsDaySummary.dayString(end),
-      ],
+      whereArgs: [planId, dayString(start), dayString(end)],
       orderBy: 'rs_date asc',
     );
 
@@ -171,7 +167,7 @@ class ReadingPlanQueries {
     final rows = await _database.query(
       'rs_day_summary',
       where: 'reading_plan_id = ? AND rs_date = ?',
-      whereArgs: [planId, RsDaySummary.dayString(day)],
+      whereArgs: [planId, dayString(day)],
       limit: 1,
     );
 
@@ -190,7 +186,7 @@ class ReadingPlanQueries {
     final summaryRows = await _database.query(
       'rs_day_summary',
       where: 'reading_plan_id IN ($placeholders) AND rs_date = ?',
-      whereArgs: [...planIds, RsDaySummary.dayString(day)],
+      whereArgs: [...planIds, dayString(day)],
     );
     final todayByPlan = {
       for (final row in summaryRows)
