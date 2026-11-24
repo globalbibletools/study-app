@@ -120,7 +120,7 @@ void main() {
         goalValue: 10,
         bookIds: [63, 64],
       );
-      await database.markVerseRead(planId, 63, 1, 6);
+      await database.verseState.markRead(planId, 63, 1, 6);
       await addLog(planId, 63, 1, 5, DateTime(2026, 5, 1, 10));
 
       final resume = await planService.getResumeReference(planId);
@@ -228,7 +228,7 @@ void main() {
       goalValue: 10,
       bookIds: [63, 64],
     );
-    await database.markVerseRead(planId, 63, 1, 5);
+    await database.verseState.markRead(planId, 63, 1, 5);
     await addLog(planId, 63, 1, 5, DateTime(2026, 5, 1, 10));
 
     final plans = await planService.getReadingPlansWithProgress();
