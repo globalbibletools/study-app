@@ -19,6 +19,8 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
   final requestedMonths = <DateTime>[];
   final detailedProgressDates = <DateTime>[];
   final detailedProgressPlanIds = <int>[];
+  final addedManualSessions = <AddManualSessionCall>[];
+  final deletedManualSessionIds = <int>[];
   final deletedPlanIds = <int>[];
   final bookmarkedValues = <bool>[];
   final reorderedBooks = <List<ReadingPlanBook>>[];
@@ -73,8 +75,13 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
   /// When set, detailed progress queries throw this instead of returning data.
   Object? detailedProgressError;
 
-  /// When set, deletes wait for this to complete before taking effect.
-  Completer<void>? deleteGate;
+  /// Start time assigned to sessions created through [addManualSession].
+  DateTime nextManualSessionStartTime = DateTime(2026, 11, 17, 9, 30);
+
+  int _nextSessionId = 1000;
+
+  /// Number of times [getReadingPlanById] has been called.
+  int getPlanByIdCalls = 0;
 
   ReadingPlanDetails? _detailsFor(int planId) =>
       plans.where((plan) => plan.readingPlan.id == planId).firstOrNull;
@@ -93,6 +100,7 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
 
   @override
   Future<ReadingPlanDetails?> getReadingPlanById(int planId) {
+    getPlanByIdCalls++;
     if (queuePlanRequests) {
       final request = Completer<ReadingPlanDetails?>();
       planRequests.add(request);
@@ -133,6 +141,48 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
   @override
   Future<Reference?> getResumeReference(int planId) async {
     return _detailsFor(planId)?.resumePosition ?? resumePosition;
+  }
+
+  @override
+  Future<SessionDetails> addManualSession({
+    required int readingPlanId,
+    required DateTime date,
+    required double minutes,
+    required int verses,
+  }) async {
+    final call = AddManualSessionCall(
+      readingPlanId: readingPlanId,
+      date: date,
+      minutes: minutes,
+      verses: verses,
+    );
+    addedManualSessions.add(call);
+
+    final readSeconds = (minutes * 60).round();
+    final session = SessionDetails(
+      RsSession(
+        id: _nextSessionId++,
+        rsDate: DateTime(date.year, date.month, date.day),
+        startTime: nextManualSessionStartTime,
+        endTime: nextManualSessionStartTime.add(Duration(seconds: readSeconds)),
+        readSeconds: readSeconds,
+        verses: verses,
+        readingPlanId: readingPlanId,
+        isManual: true,
+      ),
+      const [],
+    );
+    detailedProgress = [...detailedProgress, session];
+    return session;
+  }
+
+  @override
+  Future<bool> deleteManualSession(int sessionId) async {
+    deletedManualSessionIds.add(sessionId);
+    detailedProgress = detailedProgress
+        .where((session) => session.rsSession.id != sessionId)
+        .toList();
+    return true;
   }
 
   @override
@@ -280,9 +330,6 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
     final error = deleteError;
     if (error != null) throw error;
 
-    final gate = deleteGate;
-    if (gate != null) await gate.future;
-
     if (queueDeleteRequests) {
       final request = Completer<void>();
       deleteRequests.add(request);
@@ -325,4 +372,18 @@ class SaveReadingPlanRequest {
   void complete([ReadingPlan? plan]) => _completer.complete(plan ?? this.plan);
 
   void completeError(Object error) => _completer.completeError(error);
+}
+
+class AddManualSessionCall {
+  const AddManualSessionCall({
+    required this.readingPlanId,
+    required this.date,
+    required this.minutes,
+    required this.verses,
+  });
+
+  final int readingPlanId;
+  final DateTime date;
+  final double minutes;
+  final int verses;
 }

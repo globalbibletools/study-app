@@ -28,7 +28,7 @@ class ReadingSessionDatabase {
        _verseInventoryProvider = verseInventoryProvider;
 
   static const _defaultDatabaseName = 'reading_session.db';
-  static const _databaseVersion = 6;
+  static const _databaseVersion = 7;
 
   final String _databaseName;
   final String? _databasePath;
@@ -223,6 +223,7 @@ class ReadingSessionDatabase {
       for (final row in sessionRows) {
         row['reading_plan_id'] = 1;
         row['read_seconds'] = _readSecondsForSessionRow(row);
+        row['is_manual'] = 0;
         batch.insert('rs_session', row);
       }
       for (final row in logRows) {
@@ -341,6 +342,7 @@ class ReadingSessionDatabase {
       }
       for (final row in sessionRows) {
         row['read_seconds'] = _readSecondsForSessionRow(row);
+        row['is_manual'] ??= 0;
         batch.insert('rs_session', row);
       }
       for (final row in logRows) {
@@ -603,12 +605,9 @@ class ReadingSessionDatabase {
     );
   }
 
-  Future<int> deleteSession(int id) async {
-    return await _database.delete(
-      'rs_session',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+  Future<int> deleteSession(int id, {DatabaseExecutor? executor}) async {
+    final db = executor ?? _database;
+    return await db.delete('rs_session', where: 'id = ?', whereArgs: [id]);
   }
 
   /* RS LOG */
@@ -759,6 +758,19 @@ class ReadingSessionDatabase {
     );
 
     return rows.isEmpty ? null : RsDaySummary.fromMap(rows.first);
+  }
+
+  Future<int> deleteDaySummary(
+    int readingPlanId,
+    DateTime date, {
+    DatabaseExecutor? executor,
+  }) async {
+    final db = executor ?? _database;
+    return db.delete(
+      'rs_day_summary',
+      where: 'reading_plan_id = ? AND rs_date = ?',
+      whereArgs: [readingPlanId, RsDaySummary.dayString(date)],
+    );
   }
 
   Future<Map<int, RsDaySummary>> getDaySummariesForDate(DateTime date) async {
@@ -1029,6 +1041,21 @@ class ReadingSessionDatabase {
     );
 
     return result.map((e) => RsSession.fromMap(e)).toList();
+  }
+
+  Future<int> getSessionCountForDate(
+    DateTime date,
+    int readingPlanId, {
+    DatabaseExecutor? executor,
+  }) async {
+    final db = executor ?? _database;
+    final result = await db.rawQuery(
+      'SELECT COUNT(*) FROM rs_session '
+      'WHERE date(rs_date) = date(?) AND reading_plan_id = ?',
+      [date.toIso8601String(), readingPlanId],
+    );
+
+    return Sqflite.firstIntValue(result) ?? 0;
   }
 
   Future<List<RsLog>> getRsLogForSession(int sessionId) async {

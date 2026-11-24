@@ -40,6 +40,7 @@ create table rs_session (
     read_seconds int not null default 0,
     verses int not null,
     reading_plan_id int not null,
+    is_manual int not null default 0,
     foreign key (reading_plan_id) references reading_plan(id)
 );
 

@@ -166,6 +166,7 @@ class RsSession {
   final int readSeconds;
   final int verses;
   final int readingPlanId;
+  final bool isManual;
 
   RsSession({
     this.id,
@@ -175,6 +176,7 @@ class RsSession {
     this.readSeconds = 0,
     required this.verses,
     required this.readingPlanId,
+    this.isManual = false,
   });
 
   static const _undefined = Object();
@@ -187,6 +189,7 @@ class RsSession {
     int? readSeconds,
     int? verses,
     int? readingPlanId,
+    bool? isManual,
   }) {
     return RsSession(
       id: id == _undefined ? this.id : id as int?,
@@ -196,6 +199,7 @@ class RsSession {
       readSeconds: readSeconds ?? this.readSeconds,
       verses: verses ?? this.verses,
       readingPlanId: readingPlanId ?? this.readingPlanId,
+      isManual: isManual ?? this.isManual,
     );
   }
 
@@ -208,6 +212,7 @@ class RsSession {
       readSeconds: map['read_seconds'] as int? ?? 0,
       verses: map['verses'],
       readingPlanId: map['reading_plan_id'],
+      isManual: map['is_manual'] == 1,
     );
   }
 
@@ -220,6 +225,7 @@ class RsSession {
       'read_seconds': readSeconds,
       'verses': verses,
       'reading_plan_id': readingPlanId,
+      'is_manual': isManual ? 1 : 0,
     };
   }
 }

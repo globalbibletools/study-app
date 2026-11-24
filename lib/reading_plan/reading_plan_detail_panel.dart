@@ -336,20 +336,26 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
   }
 
   Future<void> _openDayActivityLog(int day) async {
-    final progress = viewModel.dayProgress(day);
-    if (progress == null || progress.empty || _openingActivityLog) {
-      return;
-    }
+    if (_openingActivityLog) return;
+
+    final date = DateTime(
+      viewModel.visibleMonth.year,
+      viewModel.visibleMonth.month,
+      day,
+    );
 
     _openingActivityLog = true;
     try {
       final navigate =
           widget.navigateToDayActivityLogRoute ??
           DayActivityLogPanel.navigateTo;
-      await navigate(context, progress.day, readingPlanId: viewModel.planId);
+      await navigate(context, date, readingPlanId: viewModel.planId);
     } finally {
       _openingActivityLog = false;
     }
+
+    if (!mounted) return;
+    await viewModel.refresh();
   }
 
   Widget _goalsContentByMonth() {

@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gbt/asyncutils/cancellation.dart';
 import 'package:gbt/common/reference.dart';
@@ -93,38 +91,6 @@ void main() {
 
       expect(localViewModel.plans.single.readingPlan.planName, 'Fresh');
     });
-  });
-
-  group('deletePlan', () {
-    test(
-      'removes the plan after it is persisted and keeps other plans',
-      () async {
-        planService.plans = [
-          planDetails('Keep', id: 1),
-          planDetails('Doomed', id: 2),
-        ];
-        final localViewModel = await newViewModel();
-        addTearDown(localViewModel.dispose);
-
-        final gate = Completer<void>();
-        planService.deleteGate = gate;
-
-        final future = localViewModel.deletePlan(2);
-
-        // Removal happens after the delete completes.
-        expect(
-          localViewModel.plans.map((plan) => plan.readingPlan.id).toSet(),
-          {1, 2},
-        );
-        expect(planService.deletedPlanIds, isEmpty);
-
-        gate.complete();
-        await future;
-
-        expect(localViewModel.plans.map((plan) => plan.readingPlan.id), [1]);
-        expect(planService.deletedPlanIds, [2]);
-      },
-    );
   });
 
   group('startReadingSession', () {

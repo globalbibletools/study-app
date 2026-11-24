@@ -4,7 +4,7 @@ import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/reading_plan/delete_reading_plan_confirm_dialog.dart';
 import 'package:gbt/reading_plan/edit_book_list_panel.dart';
 import 'package:gbt/reading_plan/edit_reading_plan_view_model.dart';
-import 'package:gbt/reading_plan/goal_value_editor.dart';
+import 'package:gbt/reading_plan/number_stepper.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
 
 typedef NavigateToNewReadingPlanRoute =
@@ -303,9 +303,10 @@ class _EditReadingPlanPanelState extends State<EditReadingPlanPanel> {
     return Row(
       spacing: 8,
       children: [
-        GoalValueEditor(
+        NumberStepper(
+          keyPrefix: 'goal',
           initialValue: viewModel.goalValue,
-          onChanged: viewModel.setGoalValue,
+          onChanged: (value) => viewModel.setGoalValue(value.round()),
         ),
         _goalTypeDropdown(l10n),
         Text(

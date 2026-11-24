@@ -61,6 +61,93 @@ class ReadingPlanService {
 
   double _roundedMinutes(int seconds) => (seconds / 6).round() / 10;
 
+  Future<SessionDetails> addManualSession({
+    required int readingPlanId,
+    required DateTime date,
+    required double minutes,
+    required int verses,
+  }) async {
+    if (minutes.isNaN || minutes.isInfinite || minutes < 0) {
+      throw ArgumentError.value(minutes, 'minutes', 'Must be non-negative.');
+    }
+    if (verses < 0) {
+      throw ArgumentError.value(verses, 'verses', 'Must be non-negative.');
+    }
+
+    final readSeconds = (minutes * 60).round();
+    if (readSeconds == 0 && verses == 0) {
+      throw ArgumentError('Minutes and verses cannot both be zero.');
+    }
+
+    final day = _dayOnly(date);
+    final now = DateTime.now();
+    final isToday = _sameDay(day, now);
+
+    final session = await _database.transaction((txn) async {
+      final inserted = await _database.insertSession(
+        RsSession(
+          rsDate: day,
+          startTime: now,
+          endTime: now.add(Duration(seconds: readSeconds)),
+          readSeconds: readSeconds,
+          verses: verses,
+          readingPlanId: readingPlanId,
+          isManual: true,
+        ),
+        executor: txn,
+      );
+
+      await _database.upsertDaySummary(
+        readingPlanId,
+        day,
+        preserveStoredGoalSnapshot: !isToday,
+        executor: txn,
+      );
+
+      return inserted;
+    });
+
+    return SessionDetails(session, const []);
+  }
+
+  Future<bool> deleteManualSession(int sessionId) async {
+    final session = await _database.getSessionById(sessionId);
+    if (session == null) return false;
+    if (!session.isManual) {
+      throw StateError('Only manual sessions can be deleted.');
+    }
+
+    await _database.transaction((txn) async {
+      await _database.deleteSession(sessionId, executor: txn);
+
+      final remaining = await _database.getSessionCountForDate(
+        session.rsDate,
+        session.readingPlanId,
+        executor: txn,
+      );
+      if (remaining == 0) {
+        await _database.deleteDaySummary(
+          session.readingPlanId,
+          session.rsDate,
+          executor: txn,
+        );
+      } else {
+        await _database.upsertDaySummary(
+          session.readingPlanId,
+          session.rsDate,
+          preserveStoredGoalSnapshot: !_sameDay(session.rsDate, DateTime.now()),
+          executor: txn,
+        );
+      }
+    });
+
+    return true;
+  }
+
+  static bool _sameDay(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
+
   Future<List<DayProgress>> getMonthProgress(
     int readingPlanId,
     DateTime month,

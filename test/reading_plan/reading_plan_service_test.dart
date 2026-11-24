@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gbt/common/reference.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
 import 'package:gbt/reading_plan/rs_database.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
@@ -188,5 +189,164 @@ void main() {
     );
     expect(empty.empty, isTrue);
     expect(empty.day, DateTime(2026, 11, 6));
+  });
+
+  test('adds a manual session without touching verse progress', () async {
+    final savedPlan = await planService.saveReadingPlan(
+      planName: 'Manual Session Test',
+      collectionId: 1,
+      goalType: GoalType.minutes,
+      goalValue: 10,
+      selectedBookIds: {63},
+    );
+    final date = DateTime(2026, 11, 20);
+
+    final details = await planService.addManualSession(
+      readingPlanId: savedPlan.id!,
+      date: date,
+      minutes: 12.5,
+      verses: 8,
+    );
+
+    expect(details.rsSession.isManual, isTrue);
+    expect(details.rsSession.rsDate, date);
+    expect(details.rsSession.readSeconds, 750);
+    expect(details.rsSession.verses, 8);
+    expect(await database.getRsLogForSession(details.rsSession.id!), isEmpty);
+
+    final day = await planService.getDayProgress(savedPlan.id!, date);
+    expect(day.empty, isFalse);
+    expect(day.minutes, 12.5);
+    expect(day.verses, 8);
+    expect(day.goalReached, isTrue);
+
+    final month = await planService.getMonthProgress(savedPlan.id!, date);
+    final monthDay = month.singleWhere((entry) => entry.day.day == 20);
+    expect(monthDay.minutes, 12.5);
+    expect(monthDay.verses, 8);
+
+    final stats = await planService.getBooksStats(savedPlan.id!);
+    final ruth = stats.singleWhere((stat) => stat.bookId == 63);
+    expect(ruth.versesRead, 0);
+    expect(ruth.isComplete, isFalse);
+
+    final counts = await database.getVerseReadCountsForChapter(
+      savedPlan.id!,
+      63,
+      1,
+    );
+    expect(counts.values.every((count) => count == 0), isTrue);
+    expect(
+      await planService.getResumeReference(savedPlan.id!),
+      const Reference(bookId: 63, chapter: 1, verse: 1),
+    );
+  });
+
+  test('deletes manual sessions and recalculates the day summary', () async {
+    final savedPlan = await planService.saveReadingPlan(
+      planName: 'Manual Delete Test',
+      collectionId: 1,
+      goalType: GoalType.minutes,
+      goalValue: 10,
+      selectedBookIds: {63},
+    );
+    final date = DateTime(2026, 11, 20);
+
+    final first = await planService.addManualSession(
+      readingPlanId: savedPlan.id!,
+      date: date,
+      minutes: 6,
+      verses: 4,
+    );
+    final second = await planService.addManualSession(
+      readingPlanId: savedPlan.id!,
+      date: date,
+      minutes: 5,
+      verses: 2,
+    );
+
+    var day = await planService.getDayProgress(savedPlan.id!, date);
+    expect(day.minutes, 11);
+    expect(day.verses, 6);
+
+    expect(await planService.deleteManualSession(first.rsSession.id!), isTrue);
+
+    day = await planService.getDayProgress(savedPlan.id!, date);
+    expect(day.minutes, 5);
+    expect(day.verses, 2);
+
+    expect(await planService.deleteManualSession(second.rsSession.id!), isTrue);
+
+    day = await planService.getDayProgress(savedPlan.id!, date);
+    expect(day.empty, isTrue);
+    expect(await database.getDaySummary(savedPlan.id!, date), isNull);
+  });
+
+  test('rejects deleting a normal session', () async {
+    final savedPlan = await planService.saveReadingPlan(
+      planName: 'Normal Session Delete Test',
+      collectionId: 1,
+      goalType: GoalType.verses,
+      goalValue: 5,
+      selectedBookIds: {63},
+    );
+    final now = DateTime.now();
+    final normal = await database.insertSession(
+      RsSession(
+        rsDate: DateTime(now.year, now.month, now.day),
+        startTime: now,
+        endTime: now,
+        readSeconds: 60,
+        verses: 1,
+        readingPlanId: savedPlan.id!,
+      ),
+    );
+
+    await expectLater(
+      planService.deleteManualSession(normal.id!),
+      throwsA(isA<StateError>()),
+    );
+    expect(await database.getSessionById(normal.id!), isNotNull);
+  });
+
+  test('rejects invalid manual session input', () async {
+    final savedPlan = await planService.saveReadingPlan(
+      planName: 'Manual Validation Test',
+      collectionId: 1,
+      goalType: GoalType.verses,
+      goalValue: 5,
+      selectedBookIds: {63},
+    );
+    final date = DateTime(2026, 11, 21);
+
+    await expectLater(
+      planService.addManualSession(
+        readingPlanId: savedPlan.id!,
+        date: date,
+        minutes: -1,
+        verses: 1,
+      ),
+      throwsArgumentError,
+    );
+    await expectLater(
+      planService.addManualSession(
+        readingPlanId: savedPlan.id!,
+        date: date,
+        minutes: 1,
+        verses: -1,
+      ),
+      throwsArgumentError,
+    );
+    await expectLater(
+      planService.addManualSession(
+        readingPlanId: savedPlan.id!,
+        date: date,
+        minutes: 0,
+        verses: 0,
+      ),
+      throwsArgumentError,
+    );
+
+    expect(await database.getSessionsForDate(date, savedPlan.id!), isEmpty);
   });
 }

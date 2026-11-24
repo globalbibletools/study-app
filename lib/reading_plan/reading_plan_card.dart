@@ -4,7 +4,6 @@ import 'package:material_ui/material_ui.dart';
 import 'package:gbt/common/reference.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/l10n/book_names.dart';
-import 'package:gbt/reading_plan/delete_reading_plan_confirm_dialog.dart';
 import 'package:gbt/reading_plan/progress_circle.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
 
@@ -14,14 +13,12 @@ class ReadingPlanCard extends StatelessWidget {
     required this.plan,
     required this.onOpenDetails,
     required this.onEdit,
-    required this.onDelete,
     required this.onStartSession,
   });
 
   final ReadingPlanDetails plan;
   final VoidCallback onOpenDetails;
   final VoidCallback onEdit;
-  final VoidCallback onDelete;
   final VoidCallback onStartSession;
 
   @override
@@ -166,7 +163,6 @@ class ReadingPlanCard extends StatelessWidget {
 
   Widget _planActions(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final colorScheme = Theme.of(context).colorScheme;
 
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -180,16 +176,6 @@ class ReadingPlanCard extends StatelessWidget {
           onPressed: onEdit,
           tooltip: l10n.edit,
           icon: const Icon(Icons.edit_outlined),
-        ),
-        IconButton(
-          style: IconButton.styleFrom(
-            padding: EdgeInsets.fromLTRB(8, 4, 8, 8),
-            minimumSize: Size.zero,
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          ),
-          onPressed: () => _deletePlan(context),
-          tooltip: l10n.deleteReadingPlan,
-          icon: Icon(Icons.delete_outline_rounded, color: colorScheme.error),
         ),
       ],
     );
@@ -251,19 +237,5 @@ class ReadingPlanCard extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  Future<void> _deletePlan(BuildContext context) async {
-    final planId = plan.readingPlan.id;
-    if (planId == null) return;
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (_) =>
-          DeleteReadingPlanConfirmDialog(planName: plan.readingPlan.planName),
-    );
-    if (confirmed != true) return;
-
-    onDelete();
   }
 }

@@ -100,6 +100,26 @@
   "@cancel": {
     "description": "Label for the cancel button"
   },
+  "addManualSession": "Add manual session",
+  "@addManualSession": {
+    "description": "Tooltip for adding a manual reading session"
+  },
+  "addSession": "Add Session",
+  "@addSession": {
+    "description": "Title of the add-session dialog and label for its submit button"
+  },
+  "invalidManualSession": "Enter minutes or verses greater than zero.",
+  "@invalidManualSession": {
+    "description": "Validation message for a manual reading session with no time or verses"
+  },
+  "manuallyAdded": "Manually added",
+  "@manuallyAdded": {
+    "description": "Description shown for a manually added reading session"
+  },
+  "noVersesRead": "No verses read",
+  "@noVersesRead": {
+    "description": "Description shown for a session with no verse references"
+  },
   "close": "Close",
   "@close": {
     "description": "Label for close buttons or tooltips"
