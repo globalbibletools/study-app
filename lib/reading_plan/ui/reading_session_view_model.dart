@@ -7,9 +7,13 @@ import 'package:gbt/reading_plan/data_access/reading_plan_queries.dart';
 import 'package:gbt/reading_plan/data_access/reading_plan_read_models.dart';
 import 'package:gbt/reading_plan/reading_session_service.dart';
 import 'package:gbt/services/logging/log.dart' as log;
-import 'package:gbt/reading_plan/data_access/rs_model.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/home/common/navigation_view_model.dart';
+
+export 'package:gbt/reading_plan/data_access/reading_plan_read_models.dart'
+    show VerseReadState;
+export 'package:gbt/reading_plan/reading_session_service.dart'
+    show VerseReadOptions;
 
 class ReadingSessionUiState {
   const ReadingSessionUiState({

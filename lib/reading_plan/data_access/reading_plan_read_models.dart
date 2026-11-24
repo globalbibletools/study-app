@@ -3,7 +3,7 @@ import 'package:gbt/reading_plan/data_access/rs_model.dart'
     show DailyGoal, GoalType;
 
 export 'package:gbt/reading_plan/data_access/rs_model.dart'
-    show DailyGoal, GoalType, VerseReadState;
+    show DailyGoal, GoalType;
 
 GoalType goalTypeFromStored(String? stored) {
   return stored != null && stored.toLowerCase().startsWith('m')
@@ -236,4 +236,14 @@ class SessionRuntime {
   int get versesToday => dayProgress.verses;
   int get secondsToday => dayProgress.seconds;
   bool get goalAlreadyReachedToday => dayProgress.goalReached;
+}
+
+class VerseReadState {
+  const VerseReadState({
+    required this.readCount,
+    required this.readThisSession,
+  });
+
+  final int readCount;
+  final bool readThisSession;
 }
