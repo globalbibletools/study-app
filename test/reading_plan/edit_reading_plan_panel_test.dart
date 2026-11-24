@@ -24,17 +24,20 @@ void main() {
     bibleNavigation = createTestBibleNavigation();
   });
 
-  EditReadingPlanViewModel newViewModel([String name = 'Plan']) {
-    return EditReadingPlanViewModel.withDependencies(
-      EditReadingPlanViewModel.defaultPlan(name),
+  Future<EditReadingPlanViewModel> newViewModel([String name = 'Plan']) {
+    return EditReadingPlanViewModel.createNew(
+      name,
       planService: planService,
       bibleNavigation: bibleNavigation,
     );
   }
 
-  EditReadingPlanViewModel existingViewModel(ReadingPlanDetails details) {
-    return EditReadingPlanViewModel.withDependencies(
-      details,
+  Future<EditReadingPlanViewModel> existingViewModel(
+    ReadingPlanDetails details,
+  ) {
+    planService.plans = [details];
+    return EditReadingPlanViewModel.createExisting(
+      details.readingPlan.id!,
       planService: planService,
       bibleNavigation: bibleNavigation,
     );
@@ -56,11 +59,7 @@ void main() {
     EditReadingPlanViewModel viewModel,
   ) async {
     await tester.pumpWidget(
-      buildApp(
-        Scaffold(
-          body: EditReadingPlanPanel.withDependencies(viewModel: viewModel),
-        ),
-      ),
+      buildApp(Scaffold(body: EditReadingPlanPanel(viewModel: viewModel))),
     );
     await tester.pumpAndSettle();
   }
@@ -74,8 +73,7 @@ void main() {
         _EditorLauncher(
           onOpen: (context) => Navigator.of(context).push<void>(
             MaterialPageRoute(
-              builder: (_) =>
-                  EditReadingPlanPanel.withDependencies(viewModel: viewModel),
+              builder: (_) => EditReadingPlanPanel(viewModel: viewModel),
             ),
           ),
         ),
@@ -93,7 +91,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await pumpPanel(tester, newViewModel());
+    await pumpPanel(tester, await newViewModel());
 
     final nameInput = find.byType(TextFormField);
     final booksDropdown = find.byType(DropdownButton<BibleCollection>);
@@ -158,7 +156,7 @@ void main() {
   });
 
   testWidgets('editing the name updates the view model', (tester) async {
-    final viewModel = newViewModel();
+    final viewModel = await newViewModel();
     await pumpPanel(tester, viewModel);
 
     await tester.enterText(find.byType(TextFormField), 'Morning Reading');
@@ -171,7 +169,7 @@ void main() {
     'saving a new plan closes the editor and shows submitting state',
     (tester) async {
       planService.queueSaveRequests = true;
-      final viewModel = newViewModel('New Plan');
+      final viewModel = await newViewModel('New Plan');
       await openPanel(tester, viewModel);
 
       await tester.enterText(find.byType(TextFormField), 'Saved Plan');
@@ -199,7 +197,7 @@ void main() {
     (tester) async {
       planService.queueSaveRequests = true;
       final details = existingPlan(name: 'Original');
-      final viewModel = existingViewModel(details);
+      final viewModel = await existingViewModel(details);
       await openPanel(tester, viewModel);
 
       expect(find.text('Update Reading Plan'), findsOneWidget);
@@ -230,7 +228,7 @@ void main() {
   ) async {
     final details = existingPlan(id: 2, name: 'Doomed');
     planService.plans = [details];
-    final viewModel = existingViewModel(details);
+    final viewModel = await existingViewModel(details);
     await openPanel(tester, viewModel);
 
     final deleteButton = find.byIcon(Icons.delete_outline_rounded);
@@ -259,7 +257,7 @@ void main() {
   testWidgets('changing the collection updates the selected books', (
     tester,
   ) async {
-    final viewModel = newViewModel();
+    final viewModel = await newViewModel();
     await pumpPanel(tester, viewModel);
 
     await tester.tap(find.byType(DropdownButton<BibleCollection>));
@@ -275,7 +273,7 @@ void main() {
   testWidgets('selecting Custom shows it with an empty selection', (
     tester,
   ) async {
-    final viewModel = newViewModel();
+    final viewModel = await newViewModel();
     await pumpPanel(tester, viewModel);
 
     await tester.tap(find.byType(DropdownButton<BibleCollection>));
@@ -295,7 +293,7 @@ void main() {
   testWidgets('custom book list survives switching to a preset and back', (
     tester,
   ) async {
-    final viewModel = newViewModel();
+    final viewModel = await newViewModel();
     await pumpPanel(tester, viewModel);
 
     await tester.tap(find.byType(DropdownButton<BibleCollection>));
@@ -325,7 +323,7 @@ void main() {
   });
 
   testWidgets('saves a custom collection from the editor', (tester) async {
-    final viewModel = newViewModel('Custom Plan');
+    final viewModel = await newViewModel('Custom Plan');
     await openPanel(tester, viewModel);
 
     await tester.tap(find.byType(DropdownButton<BibleCollection>));
@@ -347,7 +345,7 @@ void main() {
   });
 
   testWidgets('disables save when the name is empty', (tester) async {
-    final viewModel = newViewModel();
+    final viewModel = await newViewModel();
     await pumpPanel(tester, viewModel);
 
     await tester.enterText(find.byType(TextFormField), '   ');
@@ -391,12 +389,15 @@ void main() {
       'navigateToExisting opens an initialized existing plan editor',
       (tester) async {
         final details = existingPlan(id: 4, name: 'Existing Plan');
+        planService.plans = [details];
 
         await tester.pumpWidget(
           buildApp(
             _EditorLauncher(
-              onOpen: (context) =>
-                  EditReadingPlanPanel.navigateToExisting(context, details),
+              onOpen: (context) => EditReadingPlanPanel.navigateToExisting(
+                context,
+                details.readingPlan.id!,
+              ),
             ),
           ),
         );
@@ -409,6 +410,31 @@ void main() {
         expect(find.text('Whole Bible'), findsOneWidget);
       },
     );
+
+    testWidgets('navigateToExisting shows an error when loading fails', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        buildApp(
+          _EditorLauncher(
+            onOpen: (context) =>
+                EditReadingPlanPanel.navigateToExisting(context, 99),
+          ),
+        ),
+      );
+      await tester.tap(find.text('Open editor'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(EditReadingPlanPanel), findsNothing);
+      expect(find.text('Open editor'), findsOneWidget);
+
+      final context = tester.element(find.text('Open editor'));
+      final l10n = AppLocalizations.of(context)!;
+      expect(find.text(l10n.errorLoadingContent), findsOneWidget);
+
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pumpAndSettle();
+    });
   });
 }
 

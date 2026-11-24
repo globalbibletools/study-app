@@ -14,11 +14,11 @@ void main() {
     sessionViewModel = FakeReadingSessionViewModel();
   });
 
-  ReadingPlanDetailViewModel newViewModel(
+  Future<ReadingPlanDetailViewModel> newViewModel(
     FakeReadingPlanService service, {
     int planId = 7,
-  }) {
-    final viewModel = ReadingPlanDetailViewModel.withDependencies(
+  }) async {
+    final viewModel = await ReadingPlanDetailViewModel.create(
       planId: planId,
       planService: service,
       sessionViewModel: sessionViewModel,
@@ -48,12 +48,7 @@ void main() {
                 bookStats(64, totalVerses: 15, versesRead: 0),
               ]
               ..monthProgress = [DayProgress(today, 10, 13, true)];
-        final viewModel = newViewModel(service);
-
-        await viewModel.initialize();
-
-        expect(viewModel.isInitialized, isTrue);
-        expect(viewModel.loadError, isNull);
+        final viewModel = await newViewModel(service);
         expect(viewModel.planId, 7);
         expect(viewModel.planName, 'Ruth Plan');
         expect(viewModel.isBookmarked, isFalse);
@@ -64,42 +59,36 @@ void main() {
         expect(viewModel.booksRead, 1);
         expect(viewModel.hasStarted, isTrue);
         expect(viewModel.overallProgress, closeTo(13 / 28, 1e-9));
-        expect(viewModel.todaysProgress!.verses, 13);
-        expect(viewModel.todaysProgress!.minutes, 10);
+        expect(viewModel.todaysProgress.verses, 13);
+        expect(viewModel.todaysProgress.minutes, 10);
         expect(viewModel.calendarProgress[today.day], 1);
         expect(viewModel.dayProgress(today.day)!.day, today);
       },
     );
 
-    test('reports an error and finishes initialization when missing', () async {
+    test('throws when the plan is missing', () async {
       final service = FakeReadingPlanService();
-      final viewModel = newViewModel(service);
 
-      await viewModel.initialize();
-
-      expect(viewModel.isInitialized, isTrue);
-      expect(viewModel.loadError, isA<StateError>());
-      expect(viewModel.planName, isEmpty);
+      await expectLater(newViewModel(service), throwsA(isA<StateError>()));
     });
 
-    test('refresh clears the load error once the plan exists', () async {
-      final service = FakeReadingPlanService();
-      final viewModel = newViewModel(service);
-      await viewModel.initialize();
-      expect(viewModel.loadError, isA<StateError>());
+    test('refresh propagates a load error and recovers', () async {
+      final service = FakeReadingPlanService([planDetails()]);
+      final viewModel = await newViewModel(service);
 
-      service.plans = [planDetails()];
+      service.plans = [];
+      await expectLater(viewModel.refresh(), throwsA(isA<StateError>()));
+
+      service.plans = [planDetails(name: 'Recovered Plan')];
       await viewModel.refresh();
 
-      expect(viewModel.loadError, isNull);
-      expect(viewModel.planName, 'Ruth Plan');
+      expect(viewModel.planName, 'Recovered Plan');
     });
 
     test('a newer refresh cancels the in-flight one and wins', () async {
       final details = planDetails(bookIds: const [8]);
       final service = FakeReadingPlanService([details]);
-      final viewModel = newViewModel(service);
-      await viewModel.initialize();
+      final viewModel = await newViewModel(service);
 
       service.queuePlanRequests = true;
       service.queueStatsRequests = true;
@@ -120,8 +109,6 @@ void main() {
         bookStats(8, totalVerses: 85, versesRead: 85),
       ]);
       await second;
-
-      expect(viewModel.isInitialized, isTrue);
       expect(viewModel.versesRead, 85);
       expect(viewModel.bookStats[8]!.isComplete, isTrue);
       expect(viewModel.hasStarted, isTrue);
@@ -133,13 +120,13 @@ void main() {
       'does not notify after dispose while a refresh is in flight',
       () async {
         final details = planDetails(bookIds: const [8]);
-        final service = FakeReadingPlanService([details])
-          ..queuePlanRequests = true;
-        final viewModel = ReadingPlanDetailViewModel.withDependencies(
+        final service = FakeReadingPlanService([details]);
+        final viewModel = await ReadingPlanDetailViewModel.create(
           planId: 7,
           planService: service,
           sessionViewModel: sessionViewModel,
         );
+        service.queuePlanRequests = true;
 
         var notifications = 0;
         viewModel.addListener(() => notifications++);
@@ -160,8 +147,7 @@ void main() {
   group('bookmarks', () {
     test('toggles on and off and persists each new state', () async {
       final service = FakeReadingPlanService([planDetails()]);
-      final viewModel = newViewModel(service);
-      await viewModel.initialize();
+      final viewModel = await newViewModel(service);
 
       expect(viewModel.isBookmarked, isFalse);
 
@@ -176,21 +162,10 @@ void main() {
       expect(service.bookmarkedValues, [true, false]);
     });
 
-    test('does nothing before the plan has loaded', () async {
-      final service = FakeReadingPlanService([planDetails()]);
-      final viewModel = newViewModel(service);
-
-      await viewModel.toggleBookmark();
-
-      expect(viewModel.isBookmarked, isFalse);
-      expect(service.bookmarkedValues, isEmpty);
-    });
-
     test('keeps the old state when persistence fails', () async {
       final service = FakeReadingPlanService([planDetails()])
         ..bookmarkError = StateError('bookmark write failed');
-      final viewModel = newViewModel(service);
-      await viewModel.initialize();
+      final viewModel = await newViewModel(service);
 
       await expectLater(viewModel.toggleBookmark(), throwsA(isA<StateError>()));
 
@@ -209,8 +184,7 @@ void main() {
               bookStats(64, totalVerses: 15, versesRead: 5),
               bookStats(99, totalVerses: 100, versesRead: 100),
             ];
-      final viewModel = newViewModel(service);
-      await viewModel.initialize();
+      final viewModel = await newViewModel(service);
 
       expect(viewModel.totalVerses, 28);
       expect(viewModel.versesRead, 18);
@@ -225,8 +199,7 @@ void main() {
       final service = FakeReadingPlanService([
         planDetails(bookIds: const [63, 64]),
       ])..bookStats = [bookStats(63, totalVerses: 13, versesRead: 1)];
-      final viewModel = newViewModel(service);
-      await viewModel.initialize();
+      final viewModel = await newViewModel(service);
 
       expect(viewModel.bookStats.keys, [63]);
       expect(viewModel.progressForBook(63), closeTo(1 / 13, 1e-9));
@@ -240,13 +213,12 @@ void main() {
       final service = FakeReadingPlanService([
         planDetails(goalType: GoalType.verses, goalValue: 10),
       ])..monthProgress = [DayProgress(today, 7, 3, false)];
-      final viewModel = newViewModel(service);
-      await viewModel.initialize();
+      final viewModel = await newViewModel(service);
 
       expect(viewModel.goalType, GoalType.verses);
       expect(viewModel.goalValue, 10);
-      expect(viewModel.todaysProgress!.verses, 3);
-      expect(viewModel.todaysProgress!.minutes, 7);
+      expect(viewModel.todaysProgress.verses, 3);
+      expect(viewModel.todaysProgress.minutes, 7);
       expect(viewModel.todaysGoalProgress, closeTo(0.3, 1e-9));
     });
 
@@ -255,12 +227,11 @@ void main() {
       final service = FakeReadingPlanService([
         planDetails(goalType: GoalType.minutes, goalValue: 20),
       ])..monthProgress = [DayProgress(today, 7, 3, false)];
-      final viewModel = newViewModel(service);
-      await viewModel.initialize();
+      final viewModel = await newViewModel(service);
 
       expect(viewModel.goalType, GoalType.minutes);
       expect(viewModel.goalValue, 20);
-      expect(viewModel.todaysProgress!.minutes, 7);
+      expect(viewModel.todaysProgress.minutes, 7);
       expect(viewModel.todaysGoalProgress, closeTo(0.35, 1e-9));
     });
 
@@ -269,8 +240,7 @@ void main() {
       final service = FakeReadingPlanService([
         planDetails(goalType: GoalType.verses, goalValue: 0),
       ])..monthProgress = [DayProgress(today, 7, 3, false)];
-      final viewModel = newViewModel(service);
-      await viewModel.initialize();
+      final viewModel = await newViewModel(service);
 
       expect(viewModel.todaysGoalProgress, 0);
     });
@@ -281,8 +251,7 @@ void main() {
       final service = FakeReadingPlanService([
         planDetails(bookIds: const [8], goalValue: 10),
       ])..bookStats = [bookStats(8, totalVerses: 85, versesRead: 0)];
-      final viewModel = newViewModel(service);
-      await viewModel.initialize();
+      final viewModel = await newViewModel(service);
 
       expect(viewModel.totalVerses, 85);
       expect(viewModel.hasEstimate, isTrue);
@@ -297,8 +266,7 @@ void main() {
           goalValue: 5,
         ),
       ])..bookStats = [bookStats(8, totalVerses: 85, versesRead: 0)];
-      final viewModel = newViewModel(service);
-      await viewModel.initialize();
+      final viewModel = await newViewModel(service);
 
       // ceil(85 / (5 minutes * 5 verses/minute)) = 4
       expect(viewModel.estimatedDays, 4);
@@ -308,8 +276,7 @@ void main() {
       final service = FakeReadingPlanService([
         planDetails(bookIds: const [8], goalValue: 10),
       ])..bookStats = [bookStats(8, totalVerses: 85, versesRead: 85)];
-      final viewModel = newViewModel(service);
-      await viewModel.initialize();
+      final viewModel = await newViewModel(service);
 
       expect(viewModel.hasEstimate, isFalse);
       expect(viewModel.estimatedDays, 0);
@@ -319,8 +286,7 @@ void main() {
       final service = FakeReadingPlanService([
         planDetails(bookIds: const [8], goalValue: 0),
       ])..bookStats = [bookStats(8, totalVerses: 85, versesRead: 0)];
-      final viewModel = newViewModel(service);
-      await viewModel.initialize();
+      final viewModel = await newViewModel(service);
 
       expect(viewModel.hasEstimate, isFalse);
       expect(viewModel.estimatedDays, 0);
@@ -335,8 +301,7 @@ void main() {
           resumePosition: const Reference(bookId: 20, chapter: 3, verse: 4),
         ),
       ]);
-      final viewModel = newViewModel(service);
-      await viewModel.initialize();
+      final viewModel = await newViewModel(service);
 
       expect(
         viewModel.readingReference,
@@ -348,8 +313,7 @@ void main() {
       final service = FakeReadingPlanService([
         planDetails(bookIds: const [8, 20]),
       ]);
-      final viewModel = newViewModel(service);
-      await viewModel.initialize();
+      final viewModel = await newViewModel(service);
 
       expect(
         viewModel.readingReference,
@@ -359,8 +323,7 @@ void main() {
 
     test('falls back to Genesis when the plan has no books', () async {
       final service = FakeReadingPlanService([planDetails(bookIds: const [])]);
-      final viewModel = newViewModel(service);
-      await viewModel.initialize();
+      final viewModel = await newViewModel(service);
 
       expect(
         viewModel.readingReference,
@@ -372,8 +335,7 @@ void main() {
   group('session start', () {
     test('starts a session for the plan', () async {
       final service = FakeReadingPlanService([planDetails()]);
-      final viewModel = newViewModel(service);
-      await viewModel.initialize();
+      final viewModel = await newViewModel(service);
 
       await viewModel.startReadingSession();
 
@@ -390,8 +352,7 @@ void main() {
         DayProgress.empty(DateTime(month.year, month.month, 2)),
         DayProgress(DateTime(month.year, month.month, 3), 0, 0, false),
       ];
-      final viewModel = newViewModel(service);
-      await viewModel.initialize();
+      final viewModel = await newViewModel(service);
 
       expect(viewModel.visibleMonth, month);
       final progress = viewModel.calendarProgress;
@@ -413,8 +374,7 @@ void main() {
         DayProgress(DateTime(month.year, month.month, 4), 10, 10, true),
         DayProgress(DateTime(month.year, month.month, 5), 10, 20, false),
       ];
-      final viewModel = newViewModel(service);
-      await viewModel.initialize();
+      final viewModel = await newViewModel(service);
 
       final progress = viewModel.calendarProgress;
       expect(progress, hasLength(4));
@@ -433,8 +393,7 @@ void main() {
       service.monthProgressByMonth[month] = [
         DayProgress(DateTime(month.year, month.month, 1), 7, 3, false),
       ];
-      final viewModel = newViewModel(service);
-      await viewModel.initialize();
+      final viewModel = await newViewModel(service);
 
       expect(viewModel.calendarProgress[1], closeTo(0.35, 1e-9));
     });
@@ -449,8 +408,7 @@ void main() {
         service.monthProgressByMonth[next] = [
           DayProgress(DateTime(next.year, next.month, 1), 5, 5, true),
         ];
-        final viewModel = newViewModel(service);
-        await viewModel.initialize();
+        final viewModel = await newViewModel(service);
 
         await viewModel.showNextMonth();
 
@@ -470,8 +428,7 @@ void main() {
       final service = FakeReadingPlanService([planDetails()]);
       service.monthProgressByMonth[current] = const [];
       service.monthProgressByMonth[next] = const [];
-      final viewModel = newViewModel(service);
-      await viewModel.initialize();
+      final viewModel = await newViewModel(service);
 
       await viewModel.showNextMonth();
       await viewModel.showPreviousMonth();

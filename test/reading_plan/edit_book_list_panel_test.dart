@@ -25,11 +25,7 @@ void main() {
     EditBookListViewModel viewModel,
   ) async {
     await tester.pumpWidget(
-      buildApp(
-        Scaffold(
-          body: EditBookListPanel.withDependencies(viewModel: viewModel),
-        ),
-      ),
+      buildApp(Scaffold(body: EditBookListPanel(viewModel: viewModel))),
     );
     await tester.pumpAndSettle();
   }
@@ -52,9 +48,7 @@ void main() {
                   onPressed: () async {
                     final result = await Navigator.of(context).push<List<int>>(
                       MaterialPageRoute(
-                        builder: (_) => EditBookListPanel.withDependencies(
-                          viewModel: viewModel,
-                        ),
+                        builder: (_) => EditBookListPanel(viewModel: viewModel),
                       ),
                     );
                     results.add(result);
@@ -246,5 +240,52 @@ void main() {
 
     expect(results, [null]);
     expect(find.text('Customize Books'), findsNothing);
+  });
+
+  group('navigation helper', () {
+    testWidgets('navigateTo opens the editor and returns the edited books', (
+      tester,
+    ) async {
+      final results = <List<int>?>[];
+
+      await tester.pumpWidget(
+        buildApp(
+          Scaffold(
+            body: Builder(
+              builder: (context) {
+                return Center(
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      results.add(
+                        await EditBookListPanel.navigateTo(context, const [
+                          2,
+                          1,
+                        ]),
+                      );
+                    },
+                    child: const Text('Open editor'),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Open editor'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(EditBookListPanel), findsOneWidget);
+      expect(results, isEmpty);
+
+      await removeBook(tester, 1);
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+
+      expect(results, [
+        [2],
+      ]);
+      expect(find.byType(EditBookListPanel), findsNothing);
+    });
   });
 }

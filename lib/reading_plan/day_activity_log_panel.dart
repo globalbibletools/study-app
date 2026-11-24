@@ -5,8 +5,12 @@ import 'package:gbt/reading_plan/rs_model.dart';
 import 'package:gbt/reading_plan/day_activity_log_view_model.dart';
 import 'package:gbt/reading_plan/number_stepper.dart';
 
-typedef DayActivityLogNavigator =
-    Future<void> Function(BuildContext context, DateTime date);
+typedef NavigateToDayActivityLogRoute =
+    Future<void> Function(
+      BuildContext context,
+      DateTime date, {
+      required int readingPlanId,
+    });
 
 class DayActivityLogPanel extends StatefulWidget {
   final DayActivityLogViewModel viewModel;
@@ -18,26 +22,24 @@ class DayActivityLogPanel extends StatefulWidget {
     DateTime date, {
     required int readingPlanId,
   }) async {
-    final viewModel = DayActivityLogViewModel(
-      readingPlanId: readingPlanId,
-      date: date,
-    );
-
+    DayActivityLogViewModel viewModel;
     try {
-      await viewModel.initialize();
+      viewModel = await DayActivityLogViewModel.create(
+        readingPlanId: readingPlanId,
+        date: date,
+      );
+
+      if (!context.mounted) {
+        viewModel.dispose();
+        return;
+      }
     } catch (_) {
-      viewModel.dispose();
       if (!context.mounted) return;
 
       final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(l10n.errorLoadingContent)));
-      return;
-    }
-
-    if (!context.mounted) {
-      viewModel.dispose();
       return;
     }
 

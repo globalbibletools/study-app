@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:material_ui/material_ui.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/reading_plan/edit_reading_plan_panel.dart';
@@ -8,30 +6,27 @@ import 'package:gbt/reading_plan/reading_plan_detail_panel.dart';
 import 'package:gbt/reading_plan/reading_plan_panel_view_model.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
 
-typedef ReadingPlanRouteBuilder =
-    Widget Function(BuildContext context, ReadingPlanDetails plan);
-
 class ReadingPlanPanel extends StatefulWidget {
   const ReadingPlanPanel({
     super.key,
-    this.viewModel,
-    this.createPlanRouteBuilder,
-    this.planDetailsRouteBuilder,
-    this.editPlanRouteBuilder,
+    required this.viewModel,
+    this.navigateToCreatePlanRoute,
+    this.navigateToPlanDetailsRoute,
+    this.navigateToEditPlanRoute,
   });
 
   const ReadingPlanPanel.withDependencies({
     super.key,
     required this.viewModel,
-    this.createPlanRouteBuilder,
-    this.planDetailsRouteBuilder,
-    this.editPlanRouteBuilder,
+    this.navigateToCreatePlanRoute,
+    this.navigateToPlanDetailsRoute,
+    this.navigateToEditPlanRoute,
   });
 
-  final ReadingPlanPanelViewModel? viewModel;
-  final WidgetBuilder? createPlanRouteBuilder;
-  final ReadingPlanRouteBuilder? planDetailsRouteBuilder;
-  final ReadingPlanRouteBuilder? editPlanRouteBuilder;
+  final ReadingPlanPanelViewModel viewModel;
+  final NavigateToNewReadingPlanRoute? navigateToCreatePlanRoute;
+  final NavigateToReadingPlanDetailRoute? navigateToPlanDetailsRoute;
+  final NavigateToExistingReadingPlanRoute? navigateToEditPlanRoute;
 
   @override
   ReadingPlanPanelState createState() => ReadingPlanPanelState();
@@ -43,8 +38,7 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
   @override
   void initState() {
     super.initState();
-    viewModel = widget.viewModel ?? ReadingPlanPanelViewModel();
-    unawaited(viewModel.initialize());
+    viewModel = widget.viewModel;
   }
 
   @override
@@ -88,10 +82,6 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
   }
 
   Widget _planList() {
-    if (!viewModel.isInitialized) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
     final l10n = AppLocalizations.of(context)!;
     if (viewModel.plans.isEmpty) {
       return Center(
@@ -135,41 +125,34 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
   }
 
   Future<void> _createNewPlan(String defaultName) async {
-    final routeBuilder = widget.createPlanRouteBuilder;
-    if (routeBuilder != null) {
-      await Navigator.of(
-        context,
-      ).push(MaterialPageRoute(builder: routeBuilder));
-    } else {
-      await EditReadingPlanPanel.navigateToNew(context, defaultName);
-    }
+    final navigate =
+        widget.navigateToCreatePlanRoute ?? EditReadingPlanPanel.navigateToNew;
+    await navigate(context, defaultName);
 
     if (!mounted) return;
     await viewModel.refresh();
   }
 
   Future<void> _openPlanDetails(ReadingPlanDetails plan) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) =>
-            widget.planDetailsRouteBuilder?.call(context, plan) ??
-            ReadingPlanDetailPanel(planId: plan.readingPlan.id!),
-      ),
-    );
+    final planId = plan.readingPlan.id;
+    if (planId == null) return;
+
+    final navigate =
+        widget.navigateToPlanDetailsRoute ?? ReadingPlanDetailPanel.navigateTo;
+    await navigate(context, planId);
 
     if (!mounted) return;
     await viewModel.refresh();
   }
 
   Future<void> _editPlan(ReadingPlanDetails plan) async {
-    final routeBuilder = widget.editPlanRouteBuilder;
-    if (routeBuilder != null) {
-      await Navigator.of(context).push(
-        MaterialPageRoute(builder: (context) => routeBuilder(context, plan)),
-      );
-    } else {
-      await EditReadingPlanPanel.navigateToExisting(context, plan);
-    }
+    final planId = plan.readingPlan.id;
+    if (planId == null) return;
+
+    final navigate =
+        widget.navigateToEditPlanRoute ??
+        EditReadingPlanPanel.navigateToExisting;
+    await navigate(context, planId);
 
     if (!mounted) return;
     await viewModel.refresh();
