@@ -210,7 +210,7 @@ void main() {
     expect(await database.getRsLogForSession(session.id!), isEmpty);
   });
 
-  test('deleteForPlan deletes only the entries for that plan', () async {
+  test('deleteForPlanId deletes only the entries for that plan', () async {
     final otherPlanId = await createPlan('Other Plan');
     final session = await insertSession(planId, DateTime(2026, 11, 20));
     final otherSession = await insertSession(
@@ -223,7 +223,7 @@ void main() {
       entryFor(otherSession.id!, 1, readingPlanId: otherPlanId),
     );
 
-    expect(await database.sessionLog.deleteForPlan(planId), 2);
+    expect(await database.sessionLog.deleteForPlanId(planId), 2);
 
     expect(await database.getRsLogForSession(session.id!), isEmpty);
     final otherLogs = await database.getRsLogForSession(otherSession.id!);
@@ -231,13 +231,13 @@ void main() {
     expect(otherLogs.single.readingPlanId, otherPlanId);
   });
 
-  test('deleteForPlan honors a transaction executor', () async {
+  test('deleteForPlanId honors a transaction executor', () async {
     final session = await insertSession(planId, DateTime(2026, 11, 20));
     await database.sessionLog.append(entryFor(session.id!, 1));
 
     await expectLater(
       database.transaction((txn) async {
-        await database.sessionLog.deleteForPlan(planId, executor: txn);
+        await database.sessionLog.deleteForPlanId(planId, executor: txn);
         throw StateError('rollback');
       }),
       throwsStateError,
@@ -246,7 +246,7 @@ void main() {
     expect(await database.getRsLogForSession(session.id!), hasLength(1));
 
     await database.transaction((txn) async {
-      await database.sessionLog.deleteForPlan(planId, executor: txn);
+      await database.sessionLog.deleteForPlanId(planId, executor: txn);
     });
 
     expect(await database.getRsLogForSession(session.id!), isEmpty);

@@ -329,7 +329,7 @@ class ReadingPlanService {
 
   Future<void> deleteReadingPlan(int planId) async {
     await _database.transaction((txn) async {
-      await _database.sessionLog.deleteForPlan(planId, executor: txn);
+      await _database.sessionLog.deleteForPlanId(planId, executor: txn);
       await _database.deleteSessionsForPlan(planId, executor: txn);
       await _database.deleteDaySummariesForPlan(planId, executor: txn);
       await _database.deleteVerseStateForPlan(planId, executor: txn);
