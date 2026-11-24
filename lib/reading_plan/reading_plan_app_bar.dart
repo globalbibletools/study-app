@@ -1,11 +1,5 @@
 import 'package:material_ui/material_ui.dart';
 
-/// The shared app bar for full-bleed reading-plan pane headers.
-///
-/// Reading-plan routes live in a full-width nested navigator, so each pane
-/// owns its own 16px content gutter. The default 56px leading slot places a
-/// 48px leading icon's glyph at x = 16, and [actionsPadding] pulls trailing
-/// icons in by the same amount.
 class ReadingPlanAppBar extends StatelessWidget implements PreferredSizeWidget {
   const ReadingPlanAppBar({
     super.key,
