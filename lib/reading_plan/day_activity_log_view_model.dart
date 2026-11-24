@@ -5,23 +5,38 @@ import 'package:gbt/reading_plan/rs_model.dart';
 import 'package:gbt/services/service_locator.dart';
 
 class DayActivityLogViewModel extends ChangeNotifier {
-  DayActivityLogViewModel({required int readingPlanId, required DateTime date})
-    : this.withDependencies(
-        readingPlanId: readingPlanId,
-        date: date,
-        planService: getIt<ReadingPlanService>(),
-      );
-
-  DayActivityLogViewModel.withDependencies({
+  DayActivityLogViewModel._({
     required this.readingPlanId,
     required this.date,
     required ReadingPlanService planService,
   }) : _planService = planService;
 
-  final ReadingPlanService _planService;
+  static Future<DayActivityLogViewModel> create({
+    required int readingPlanId,
+    required DateTime date,
+    ReadingPlanService? planService,
+  }) async {
+    final service = planService ?? getIt<ReadingPlanService>();
+    final viewModel = DayActivityLogViewModel._(
+      readingPlanId: readingPlanId,
+      date: date,
+      planService: service,
+    );
 
-  Future<void>? _initialization;
-  Future<void> initialize() => _initialization ??= refresh();
+    try {
+      viewModel._sessions = await service.getDetailedProgressFor(
+        date,
+        readingPlanId,
+      );
+    } catch (_) {
+      viewModel.dispose();
+      rethrow;
+    }
+
+    return viewModel;
+  }
+
+  final ReadingPlanService _planService;
 
   final _refreshScope = CancellationScope();
 
@@ -57,7 +72,7 @@ class DayActivityLogViewModel extends ChangeNotifier {
   final int readingPlanId;
   final DateTime date;
 
-  List<SessionDetails> _sessions = const [];
+  late List<SessionDetails> _sessions;
   List<SessionDetails> get sessions => _sessions;
 
   double get totalMinutes {

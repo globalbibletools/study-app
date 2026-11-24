@@ -31,14 +31,7 @@ class EditReadingPlanViewModel extends ChangeNotifier {
     ]);
   }
 
-  EditReadingPlanViewModel(ReadingPlanDetails readingPlan)
-    : this.withDependencies(
-        readingPlan,
-        planService: getIt<ReadingPlanService>(),
-        bibleNavigation: getIt<BibleNavigation>(),
-      );
-
-  EditReadingPlanViewModel.withDependencies(
+  EditReadingPlanViewModel._(
     this.readingPlan, {
     required ReadingPlanService planService,
     required BibleNavigation bibleNavigation,
@@ -56,11 +49,38 @@ class EditReadingPlanViewModel extends ChangeNotifier {
     _name = readingPlan.readingPlan.planName;
   }
 
+  static Future<EditReadingPlanViewModel> createNew(
+    String name, {
+    ReadingPlanService? planService,
+    BibleNavigation? bibleNavigation,
+  }) async {
+    return EditReadingPlanViewModel._(
+      defaultPlan(name),
+      planService: planService ?? getIt<ReadingPlanService>(),
+      bibleNavigation: bibleNavigation ?? getIt<BibleNavigation>(),
+    );
+  }
+
+  static Future<EditReadingPlanViewModel> createExisting(
+    int planId, {
+    ReadingPlanService? planService,
+    BibleNavigation? bibleNavigation,
+  }) async {
+    final service = planService ?? getIt<ReadingPlanService>();
+    final planDetails = await service.getReadingPlanById(planId);
+    if (planDetails == null) {
+      throw StateError('Reading plan not found');
+    }
+
+    return EditReadingPlanViewModel._(
+      planDetails,
+      planService: service,
+      bibleNavigation: bibleNavigation ?? getIt<BibleNavigation>(),
+    );
+  }
+
   final ReadingPlanService _planService;
   final BibleNavigation _bibleNavigation;
-
-  Future<void>? _initialization;
-  Future<void> initialize() => _initialization ??= Future<void>.value();
 
   // Plan basics
 

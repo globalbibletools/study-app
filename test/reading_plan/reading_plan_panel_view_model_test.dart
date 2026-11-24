@@ -12,17 +12,19 @@ void main() {
   late FakeReadingSessionViewModel sessionViewModel;
   late ReadingPlanPanelViewModel viewModel;
 
-  ReadingPlanPanelViewModel newViewModel({FakeReadingPlanService? service}) {
-    return ReadingPlanPanelViewModel.withDependencies(
+  Future<ReadingPlanPanelViewModel> newViewModel({
+    FakeReadingPlanService? service,
+  }) {
+    return ReadingPlanPanelViewModel.create(
       planService: service ?? planService,
       sessionViewModel: sessionViewModel,
     );
   }
 
-  setUp(() {
+  setUp(() async {
     planService = FakeReadingPlanService();
     sessionViewModel = FakeReadingSessionViewModel();
-    viewModel = newViewModel();
+    viewModel = await newViewModel();
   });
 
   tearDown(() {
@@ -30,7 +32,7 @@ void main() {
   });
 
   group('initialization', () {
-    test('initialize loads plans with progress fields populated', () async {
+    test('create loads plans with progress fields populated', () async {
       final today = DateTime(2026, 11, 23);
       planService.plans = [
         planDetails(
@@ -40,13 +42,12 @@ void main() {
           resumePosition: const Reference(bookId: 8, chapter: 1, verse: 1),
         ),
       ];
+      final localViewModel = await newViewModel();
+      addTearDown(localViewModel.dispose);
 
-      await viewModel.initialize();
+      expect(localViewModel.plans, hasLength(1));
 
-      expect(viewModel.isInitialized, isTrue);
-      expect(viewModel.plans, hasLength(1));
-
-      final plan = viewModel.plans.single;
+      final plan = localViewModel.plans.single;
       expect(plan.readingPlan.planName, 'Ruth');
       expect(plan.totalVerses, 85);
       expect(plan.versesRead, 0);
@@ -61,23 +62,21 @@ void main() {
     test(
       'refresh replaces the plan list with the latest database state',
       () async {
-        await viewModel.initialize();
-        expect(viewModel.isInitialized, isTrue);
         expect(viewModel.plans, isEmpty);
 
         planService.plans = [planDetails('First')];
         await viewModel.refresh();
 
-        expect(viewModel.isInitialized, isTrue);
         expect(viewModel.plans, hasLength(1));
         expect(viewModel.plans.single.readingPlan.planName, 'First');
       },
     );
 
     test('a newer refresh cancels the in-flight one and wins', () async {
-      final service = FakeReadingPlanService()..queueGetRequests = true;
-      final localViewModel = newViewModel(service: service);
+      final service = FakeReadingPlanService();
+      final localViewModel = await newViewModel(service: service);
       addTearDown(localViewModel.dispose);
+      service.queueGetRequests = true;
 
       final first = localViewModel.refresh();
       final second = localViewModel.refresh();
@@ -97,10 +96,11 @@ void main() {
   group('startReadingSession', () {
     test('starts a session for the selected plan', () async {
       planService.plans = [planDetails('Ruth', id: 7)];
-      await viewModel.initialize();
-      final plan = viewModel.plans.single;
+      final localViewModel = await newViewModel();
+      addTearDown(localViewModel.dispose);
+      final plan = localViewModel.plans.single;
 
-      await viewModel.startReadingSession(plan);
+      await localViewModel.startReadingSession(plan);
 
       expect(sessionViewModel.startedPlanIds, [7]);
     });
@@ -116,8 +116,9 @@ void main() {
     test(
       'does not notify after dispose while a refresh is in flight',
       () async {
-        final service = FakeReadingPlanService()..queueGetRequests = true;
-        final localViewModel = newViewModel(service: service);
+        final service = FakeReadingPlanService();
+        final localViewModel = await newViewModel(service: service);
+        service.queueGetRequests = true;
         var notifications = 0;
         localViewModel.addListener(() => notifications++);
 

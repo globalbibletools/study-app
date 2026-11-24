@@ -8,28 +8,55 @@ import 'package:gbt/reading_plan/calendar_view.dart';
 import 'package:gbt/reading_plan/day_activity_log_panel.dart';
 import 'package:gbt/reading_plan/edit_reading_plan_panel.dart';
 import 'package:gbt/reading_plan/progress_circle.dart';
+import 'package:gbt/reading_plan/reading_plan_app_bar.dart';
 import 'package:gbt/reading_plan/reading_plan_detail_view_model.dart';
+import 'package:gbt/services/service_locator.dart';
+import 'package:gbt/ui/messaging/messenger_view_model.dart';
+
+typedef NavigateToReadingPlanDetailRoute =
+    Future<void> Function(BuildContext context, int planId);
 
 class ReadingPlanDetailPanel extends StatefulWidget {
-  final int planId;
-  final ReadingPlanDetailViewModel? viewModel;
-  final Widget Function(BuildContext context, ReadingPlanDetails plan)?
-  editPlanBuilder;
-  final DayActivityLogNavigator? dayActivityLogNavigator;
+  final ReadingPlanDetailViewModel viewModel;
+  final NavigateToExistingReadingPlanRoute? navigateToEditPlanRoute;
+  final NavigateToDayActivityLogRoute? navigateToDayActivityLogRoute;
 
   const ReadingPlanDetailPanel({
     super.key,
-    required this.planId,
-    this.editPlanBuilder,
-    this.dayActivityLogNavigator,
-  }) : viewModel = null;
-
-  const ReadingPlanDetailPanel.withDependencies({
-    super.key,
     required this.viewModel,
-    this.editPlanBuilder,
-    this.dayActivityLogNavigator,
-  }) : planId = 0;
+    this.navigateToEditPlanRoute,
+    this.navigateToDayActivityLogRoute,
+  });
+
+  static Future<void> navigateTo(BuildContext context, int planId) async {
+    final messenger = getIt<MessengerViewModel>();
+    ReadingPlanDetailViewModel viewModel;
+    try {
+      viewModel = await ReadingPlanDetailViewModel.create(planId: planId);
+    } catch (_) {
+      if (!context.mounted) return;
+
+      final l10n = AppLocalizations.of(context)!;
+      messenger.showError(l10n.errorLoadingContent);
+      return;
+    }
+
+    if (!context.mounted) {
+      viewModel.dispose();
+      return;
+    }
+
+    try {
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          builder: (_) => ReadingPlanDetailPanel(viewModel: viewModel),
+        ),
+      );
+    } catch (_) {
+      viewModel.dispose();
+      rethrow;
+    }
+  }
 
   @override
   State<ReadingPlanDetailPanel> createState() => ReadingPlanDetailPanelState();
@@ -42,9 +69,7 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
   @override
   void initState() {
     super.initState();
-    viewModel =
-        widget.viewModel ?? ReadingPlanDetailViewModel(planId: widget.planId);
-    unawaited(viewModel.initialize());
+    viewModel = widget.viewModel;
   }
 
   @override
@@ -58,117 +83,74 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
     return ListenableBuilder(
       listenable: viewModel,
       builder: (context, _) {
-        final Widget content;
-        if (viewModel.loadError != null) {
-          content = Center(
-            child: Text(
-              AppLocalizations.of(context)!.errorLoadingContent,
-              textAlign: TextAlign.center,
-            ),
-          );
-        } else if (!viewModel.isInitialized) {
-          content = const Center(child: CircularProgressIndicator());
-        } else {
-          content = Column(
-            spacing: 16,
-            children: [
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    spacing: 24,
-                    children: [
-                      _todaysProgress(),
-                      _goalsContentByMonth(),
-                      Divider(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withValues(alpha: 0.12),
+        return Column(
+          children: [
+            _appBar(),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  spacing: 16,
+                  children: [
+                    Expanded(
+                      child: SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          spacing: 24,
+                          children: [
+                            _todaysProgress(),
+                            _goalsContentByMonth(),
+                            Divider(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withValues(alpha: 0.12),
+                            ),
+                            _totalProgress(),
+                            _booksList(),
+                          ],
+                        ),
                       ),
-                      _totalProgress(),
-                      _booksList(),
-                    ],
-                  ),
+                    ),
+                    _startResumeButton(),
+                  ],
                 ),
               ),
-              _startResumeButton(),
-            ],
-          );
-        }
-
-        return Column(
-          spacing: 16,
-          children: [
-            _topBar(),
-            Expanded(child: content),
+            ),
           ],
         );
       },
     );
   }
 
-  Widget _topBar() {
-    const iconInset = 6.0;
-    final iconStyle = IconButton.styleFrom(
-      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-    );
-    return Row(
-      children: [
-        Transform.translate(
-          offset: const Offset(-iconInset, 0),
-          child: IconButton(
-            style: iconStyle,
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
+  Widget _appBar() {
+    return ReadingPlanAppBar(
+      centerTitle: false,
+      titleSpacing: 0,
+      title: Text(viewModel.planName),
+      onBack: () => Navigator.of(context).pop(),
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.edit_outlined),
+          tooltip: AppLocalizations.of(context)!.edit,
+          onPressed: _editPlan,
         ),
-        Expanded(
-          child: Text(
-            viewModel.planName,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+        IconButton(
+          icon: Icon(
+            viewModel.isBookmarked ? Icons.bookmark : Icons.bookmark_border,
           ),
-        ),
-        Transform.translate(
-          offset: const Offset(iconInset, 0),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconButton(
-                style: iconStyle,
-                icon: const Icon(Icons.edit_outlined),
-                tooltip: AppLocalizations.of(context)!.edit,
-                onPressed: _editPlan,
-              ),
-              IconButton(
-                style: iconStyle,
-                icon: Icon(
-                  viewModel.isBookmarked
-                      ? Icons.bookmark
-                      : Icons.bookmark_border,
-                ),
-                onPressed: () {
-                  viewModel.toggleBookmark();
-                },
-              ),
-            ],
-          ),
+          onPressed: () {
+            viewModel.toggleBookmark();
+          },
         ),
       ],
     );
   }
 
   Future<void> _editPlan() async {
-    final plan = viewModel.planDetails;
-    final routeBuilder = widget.editPlanBuilder;
-    if (routeBuilder != null) {
-      await Navigator.of(context).push(
-        MaterialPageRoute(builder: (context) => routeBuilder(context, plan)),
-      );
-    } else {
-      await EditReadingPlanPanel.navigateToExisting(context, plan);
-    }
+    final navigate =
+        widget.navigateToEditPlanRoute ??
+        EditReadingPlanPanel.navigateToExisting;
+    await navigate(context, viewModel.planId);
 
     if (!mounted) return;
     await viewModel.refresh();
@@ -226,8 +208,8 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
   Widget _todaysProgress() {
     final l10n = AppLocalizations.of(context)!;
     final progress = viewModel.todaysProgress;
-    final verses = progress?.verses ?? 0;
-    final minutes = _formatMinutes(progress?.minutes ?? 0);
+    final verses = progress.verses;
+    final minutes = _formatMinutes(progress.minutes);
     final target = viewModel.goalValue;
     final isVersesGoal = viewModel.goalType == GoalType.verses;
 
@@ -337,23 +319,20 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
   }
 
   Future<void> _openDayActivityLog(int day) async {
-    final progress = viewModel.dayProgress(day);
-    if (progress == null || progress.empty || _openingActivityLog) {
-      return;
-    }
+    if (_openingActivityLog) return;
+
+    final date = DateTime(
+      viewModel.visibleMonth.year,
+      viewModel.visibleMonth.month,
+      day,
+    );
 
     _openingActivityLog = true;
     try {
-      final navigator = widget.dayActivityLogNavigator;
-      if (navigator != null) {
-        await navigator(context, progress.day);
-      } else {
-        await DayActivityLogPanel.navigateTo(
-          context,
-          progress.day,
-          readingPlanId: viewModel.planId,
-        );
-      }
+      final navigate =
+          widget.navigateToDayActivityLogRoute ??
+          DayActivityLogPanel.navigateTo;
+      await navigate(context, date, readingPlanId: viewModel.planId);
     } finally {
       _openingActivityLog = false;
     }

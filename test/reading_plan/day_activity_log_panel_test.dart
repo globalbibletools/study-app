@@ -27,8 +27,8 @@ void main() {
     await getIt.reset();
   });
 
-  DayActivityLogViewModel newViewModel() {
-    return DayActivityLogViewModel.withDependencies(
+  Future<DayActivityLogViewModel> newViewModel() {
+    return DayActivityLogViewModel.create(
       readingPlanId: 1,
       date: date,
       planService: planService,
@@ -72,8 +72,7 @@ void main() {
           ],
         ),
       ];
-      final viewModel = newViewModel();
-      await viewModel.initialize();
+      final viewModel = await newViewModel();
 
       await tester.pumpWidget(
         buildApp(DayActivityLogPanel(viewModel: viewModel)),
@@ -104,8 +103,7 @@ void main() {
             verses: 1,
           ),
         ];
-        final viewModel = newViewModel();
-        await viewModel.initialize();
+        final viewModel = await newViewModel();
 
         await tester.pumpWidget(
           buildApp(DayActivityLogPanel(viewModel: viewModel)),
@@ -150,8 +148,7 @@ void main() {
       tester,
     ) async {
       planService.detailedProgress = [];
-      final viewModel = newViewModel();
-      await viewModel.initialize();
+      final viewModel = await newViewModel();
 
       await tester.pumpWidget(
         buildApp(DayActivityLogPanel(viewModel: viewModel)),
@@ -229,8 +226,7 @@ void main() {
       tester,
     ) async {
       planService.detailedProgress = [];
-      final viewModel = newViewModel();
-      await viewModel.initialize();
+      final viewModel = await newViewModel();
 
       await tester.pumpWidget(
         buildApp(DayActivityLogPanel(viewModel: viewModel)),
@@ -252,8 +248,7 @@ void main() {
       tester,
     ) async {
       planService.detailedProgress = [];
-      final viewModel = newViewModel();
-      await viewModel.initialize();
+      final viewModel = await newViewModel();
 
       await tester.pumpWidget(
         buildApp(DayActivityLogPanel(viewModel: viewModel)),
@@ -284,8 +279,7 @@ void main() {
           verses: 1,
         ),
       ];
-      final viewModel = newViewModel();
-      await viewModel.initialize();
+      final viewModel = await newViewModel();
 
       await tester.pumpWidget(
         buildApp(DayActivityLogPanel(viewModel: viewModel)),
@@ -334,8 +328,7 @@ void main() {
 
   testWidgets('back closes the panel', (tester) async {
     planService.detailedProgress = [session()];
-    final viewModel = newViewModel();
-    await viewModel.initialize();
+    final viewModel = await newViewModel();
 
     await tester.pumpWidget(
       buildApp(_ActivityLogLauncher(viewModel: viewModel)),

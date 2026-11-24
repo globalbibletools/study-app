@@ -4,11 +4,16 @@ import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
 import 'package:gbt/reading_plan/day_activity_log_view_model.dart';
 import 'package:gbt/reading_plan/number_stepper.dart';
+import 'package:gbt/reading_plan/reading_plan_app_bar.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/messaging/messenger_view_model.dart';
 
-typedef DayActivityLogNavigator =
-    Future<void> Function(BuildContext context, DateTime date);
+typedef NavigateToDayActivityLogRoute =
+    Future<void> Function(
+      BuildContext context,
+      DateTime date, {
+      required int readingPlanId,
+    });
 
 class DayActivityLogPanel extends StatefulWidget {
   final DayActivityLogViewModel viewModel;
@@ -20,23 +25,23 @@ class DayActivityLogPanel extends StatefulWidget {
     DateTime date, {
     required int readingPlanId,
   }) async {
-    final l10n = AppLocalizations.of(context)!;
     final messenger = getIt<MessengerViewModel>();
-    final viewModel = DayActivityLogViewModel(
-      readingPlanId: readingPlanId,
-      date: date,
-    );
-
+    DayActivityLogViewModel viewModel;
     try {
-      await viewModel.initialize();
-    } catch (_) {
-      viewModel.dispose();
-      messenger.showError(l10n.errorLoadingContent);
-      return;
-    }
+      viewModel = await DayActivityLogViewModel.create(
+        readingPlanId: readingPlanId,
+        date: date,
+      );
 
-    if (!context.mounted) {
-      viewModel.dispose();
+      if (!context.mounted) {
+        viewModel.dispose();
+        return;
+      }
+    } catch (_) {
+      if (!context.mounted) return;
+
+      final l10n = AppLocalizations.of(context)!;
+      messenger.showError(l10n.errorLoadingContent);
       return;
     }
 
@@ -79,11 +84,20 @@ class _DayActivityLogPanelState extends State<DayActivityLogPanel> {
         listenable: viewModel,
         builder: (context, _) {
           return Column(
-            spacing: 16,
             children: [
-              _header(),
-              _totals(),
-              Expanded(child: _readingSection()),
+              _appBar(),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    spacing: 16,
+                    children: [
+                      _totals(),
+                      Expanded(child: _readingSection()),
+                    ],
+                  ),
+                ),
+              ),
             ],
           );
         },
@@ -91,47 +105,16 @@ class _DayActivityLogPanelState extends State<DayActivityLogPanel> {
     );
   }
 
-  Widget _header() {
-    const iconInset = 6.0;
-    final iconStyle = IconButton.styleFrom(
-      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-    );
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 48),
-          child: Text(
-            _formatDate(viewModel.date),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
-          ),
-        ),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: Transform.translate(
-            offset: const Offset(-iconInset, 0),
-            child: IconButton(
-              style: iconStyle,
-              icon: const Icon(Icons.arrow_back),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-          ),
-        ),
-        Align(
-          alignment: Alignment.centerRight,
-          child: Transform.translate(
-            offset: const Offset(iconInset, 0),
-            child: IconButton(
-              key: const ValueKey('addManualSessionButton'),
-              style: iconStyle,
-              icon: const Icon(Icons.add),
-              tooltip: AppLocalizations.of(context)!.addManualSession,
-              onPressed: _showAddManualSessionDialog,
-            ),
-          ),
+  Widget _appBar() {
+    return ReadingPlanAppBar(
+      title: Text(_formatDate(viewModel.date)),
+      onBack: () => Navigator.of(context).pop(),
+      actions: [
+        IconButton(
+          key: const ValueKey('addManualSessionButton'),
+          icon: const Icon(Icons.add),
+          tooltip: AppLocalizations.of(context)!.addManualSession,
+          onPressed: _showAddManualSessionDialog,
         ),
       ],
     );
