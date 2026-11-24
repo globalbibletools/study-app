@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/reading_plan/edit_reading_plan_panel.dart';
+import 'package:gbt/reading_plan/reading_plan_app_bar.dart';
 import 'package:gbt/reading_plan/reading_plan_card.dart';
 import 'package:gbt/reading_plan/reading_plan_detail_panel.dart';
 import 'package:gbt/reading_plan/reading_plan_panel_view_model.dart';
@@ -52,32 +53,28 @@ class ReadingPlanPanelState extends State<ReadingPlanPanel> {
     return ListenableBuilder(
       listenable: viewModel,
       builder: (context, _) {
+        final l10n = AppLocalizations.of(context)!;
         return Column(
-          spacing: 16,
           children: [
-            _topTitle(),
+            ReadingPlanAppBar(
+              title: Text(l10n.readingPlans),
+              onBack: () => Navigator.of(context).maybePop(),
+            ),
             Expanded(
-              child: Column(
-                spacing: 16,
-                children: [
-                  Expanded(child: _planList()),
-                  _createNewPlanButton(),
-                ],
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  spacing: 16,
+                  children: [
+                    Expanded(child: _planList()),
+                    _createNewPlanButton(),
+                  ],
+                ),
               ),
             ),
           ],
         );
       },
-    );
-  }
-
-  Widget _topTitle() {
-    final l10n = AppLocalizations.of(context)!;
-    return Center(
-      child: Text(
-        l10n.readingPlans,
-        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
-      ),
     );
   }
 

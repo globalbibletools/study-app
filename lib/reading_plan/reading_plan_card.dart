@@ -227,12 +227,14 @@ class ReadingPlanCard extends StatelessWidget {
         minimumSize: Size.zero,
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(resumeReference),
+          Text(
+            resumeReference,
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+          ),
           const Icon(Icons.chevron_right, size: 16),
         ],
       ),

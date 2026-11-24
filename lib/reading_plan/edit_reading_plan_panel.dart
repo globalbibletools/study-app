@@ -5,6 +5,7 @@ import 'package:gbt/reading_plan/delete_reading_plan_confirm_dialog.dart';
 import 'package:gbt/reading_plan/edit_book_list_panel.dart';
 import 'package:gbt/reading_plan/edit_reading_plan_view_model.dart';
 import 'package:gbt/reading_plan/number_stepper.dart';
+import 'package:gbt/reading_plan/reading_plan_app_bar.dart';
 import 'package:gbt/reading_plan/rs_model.dart';
 
 typedef NavigateToNewReadingPlanRoute =
@@ -18,10 +19,7 @@ class EditReadingPlanPanel extends StatefulWidget {
   const EditReadingPlanPanel({super.key, required this.viewModel});
 
   static Future<void> navigateToNew(BuildContext context, String name) {
-    return _navigateTo(
-      context,
-      EditReadingPlanViewModel.createNew(name),
-    );
+    return _navigateTo(context, EditReadingPlanViewModel.createNew(name));
   }
 
   static Future<void> navigateToExisting(BuildContext context, int planId) {
@@ -56,8 +54,7 @@ class EditReadingPlanPanel extends StatefulWidget {
     try {
       await Navigator.of(context).push<void>(
         MaterialPageRoute(
-          builder: (_) =>
-              EditReadingPlanPanel(viewModel: viewModel),
+          builder: (_) => EditReadingPlanPanel(viewModel: viewModel),
         ),
       );
     } catch (_) {
@@ -91,57 +88,42 @@ class _EditReadingPlanPanelState extends State<EditReadingPlanPanel> {
       listenable: viewModel,
       builder: (context, _) {
         return Column(
-          spacing: 16,
           children: [
-            _topTitle(),
-            Expanded(child: _content()),
-            _addPlanButton(),
+            _appBar(),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  spacing: 16,
+                  children: [
+                    Expanded(child: _content()),
+                    _addPlanButton(),
+                  ],
+                ),
+              ),
+            ),
           ],
         );
       },
     );
   }
 
-  Widget _topTitle() {
+  Widget _appBar() {
     final l10n = AppLocalizations.of(context)!;
-    const iconInset = 6.0;
-    final iconStyle = IconButton.styleFrom(
-      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-    );
-
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        Align(
-          alignment: Alignment.centerLeft,
-          child: Transform.translate(
-            offset: const Offset(-iconInset, 0),
-            child: IconButton(
-              style: iconStyle,
-              icon: const Icon(Icons.arrow_back),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-          ),
-        ),
-        Text(
-          viewModel.isExisting ? l10n.editReadingPlan : l10n.createReadingPlan,
-          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
-        ),
+    return ReadingPlanAppBar(
+      title: Text(
+        viewModel.isExisting ? l10n.editReadingPlan : l10n.createReadingPlan,
+      ),
+      onBack: () => Navigator.of(context).pop(),
+      actions: [
         if (viewModel.isExisting)
-          Align(
-            alignment: Alignment.centerRight,
-            child: Transform.translate(
-              offset: const Offset(iconInset, 0),
-              child: IconButton(
-                style: iconStyle,
-                icon: Icon(
-                  Icons.delete_outline_rounded,
-                  color: Theme.of(context).colorScheme.error,
-                ),
-                tooltip: l10n.deleteReadingPlan,
-                onPressed: _confirmDelete,
-              ),
+          IconButton(
+            icon: Icon(
+              Icons.delete_outline_rounded,
+              color: Theme.of(context).colorScheme.error,
             ),
+            tooltip: l10n.deleteReadingPlan,
+            onPressed: _confirmDelete,
           ),
       ],
     );

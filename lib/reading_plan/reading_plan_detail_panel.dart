@@ -8,6 +8,7 @@ import 'package:gbt/reading_plan/calendar_view.dart';
 import 'package:gbt/reading_plan/day_activity_log_panel.dart';
 import 'package:gbt/reading_plan/edit_reading_plan_panel.dart';
 import 'package:gbt/reading_plan/progress_circle.dart';
+import 'package:gbt/reading_plan/reading_plan_app_bar.dart';
 import 'package:gbt/reading_plan/reading_plan_detail_view_model.dart';
 
 typedef NavigateToReadingPlanDetailRoute =
@@ -82,82 +83,63 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
       listenable: viewModel,
       builder: (context, _) {
         return Column(
-          spacing: 16,
           children: [
-            _topBar(),
+            _appBar(),
             Expanded(
-              child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  spacing: 24,
+                  spacing: 16,
                   children: [
-                    _todaysProgress(),
-                    _goalsContentByMonth(),
-                    Divider(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onSurface.withValues(alpha: 0.12),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          spacing: 24,
+                          children: [
+                            _todaysProgress(),
+                            _goalsContentByMonth(),
+                            Divider(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withValues(alpha: 0.12),
+                            ),
+                            _totalProgress(),
+                            _booksList(),
+                          ],
+                        ),
+                      ),
                     ),
-                    _totalProgress(),
-                    _booksList(),
+                    _startResumeButton(),
                   ],
                 ),
               ),
             ),
-            _startResumeButton(),
           ],
         );
       },
     );
   }
 
-  Widget _topBar() {
-    const iconInset = 6.0;
-    final iconStyle = IconButton.styleFrom(
-      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-    );
-    return Row(
-      children: [
-        Transform.translate(
-          offset: const Offset(-iconInset, 0),
-          child: IconButton(
-            style: iconStyle,
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
+  Widget _appBar() {
+    return ReadingPlanAppBar(
+      centerTitle: false,
+      titleSpacing: 0,
+      title: Text(viewModel.planName),
+      onBack: () => Navigator.of(context).pop(),
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.edit_outlined),
+          tooltip: AppLocalizations.of(context)!.edit,
+          onPressed: _editPlan,
         ),
-        Expanded(
-          child: Text(
-            viewModel.planName,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+        IconButton(
+          icon: Icon(
+            viewModel.isBookmarked ? Icons.bookmark : Icons.bookmark_border,
           ),
-        ),
-        Transform.translate(
-          offset: const Offset(iconInset, 0),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconButton(
-                style: iconStyle,
-                icon: const Icon(Icons.edit_outlined),
-                tooltip: AppLocalizations.of(context)!.edit,
-                onPressed: _editPlan,
-              ),
-              IconButton(
-                style: iconStyle,
-                icon: Icon(
-                  viewModel.isBookmarked
-                      ? Icons.bookmark
-                      : Icons.bookmark_border,
-                ),
-                onPressed: () {
-                  viewModel.toggleBookmark();
-                },
-              ),
-            ],
-          ),
+          onPressed: () {
+            viewModel.toggleBookmark();
+          },
         ),
       ],
     );
