@@ -99,17 +99,18 @@ class _MessageCard extends StatelessWidget {
           elevation: 6,
           borderRadius: BorderRadius.circular(12),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 10, 4, 10),
+            padding: const EdgeInsets.fromLTRB(16, 16, 12, 16),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              spacing: 16,
               children: [
                 ExcludeSemantics(
                   child: Icon(
                     _icon(message.severity),
-                    color: palette.foreground,
-                    size: 22,
+                    color: palette.icon,
+                    size: 20,
                   ),
                 ),
-                const SizedBox(width: 12),
                 Expanded(
                   child: Semantics(
                     liveRegion: true,
@@ -121,14 +122,19 @@ class _MessageCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                Semantics(
-                  label: l10n.dismiss,
-                  button: true,
-                  child: IconButton(
-                    key: MessengerHost.dismissButtonKey,
-                    onPressed: onDismiss,
-                    icon: Icon(Icons.close, color: palette.foreground),
-                    iconSize: 20,
+                IconButton(
+                  key: MessengerHost.dismissButtonKey,
+                  onPressed: onDismiss,
+                  color: palette.foreground,
+                  iconSize: 20,
+                  icon: Icon(Icons.close, semanticLabel: l10n.dismiss),
+                  alignment: Alignment.topCenter,
+                  style: IconButton.styleFrom(
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    padding: EdgeInsets.zero,
+                    minimumSize: const Size(28, 28),
+                    maximumSize: const Size(28, 28),
+                    alignment: Alignment.topCenter,
                   ),
                 ),
               ],
@@ -147,41 +153,48 @@ IconData _icon(MessageSeverity severity) => switch (severity) {
   MessageSeverity.error => Icons.error_outline,
 };
 
-({Color background, Color foreground}) _palette(
+({Color background, Color foreground, Color icon}) _palette(
   ThemeData theme,
   MessageSeverity severity,
 ) {
   final isDark = theme.brightness == Brightness.dark;
-  final colors = theme.colorScheme;
 
   return switch (severity) {
-    MessageSeverity.info => (
-      background: colors.secondaryContainer,
-      foreground: colors.onSecondaryContainer,
-    ),
-    MessageSeverity.success =>
+    MessageSeverity.info || MessageSeverity.success =>
       isDark
           ? (
-              background: const Color(0xFF123B22),
-              foreground: const Color(0xFFB7F0C6),
+              background: const Color(0xFF123B3A),
+              foreground: Colors.white,
+              icon: const Color(0xFF7FF0E6),
             )
           : (
-              background: const Color(0xFFDDF6E3),
-              foreground: const Color(0xFF0F4D27),
+              background: const Color(0xFFE0F2F1),
+              foreground: Colors.black,
+              icon: const Color(0xFF00796B),
             ),
     MessageSeverity.warning =>
       isDark
           ? (
               background: const Color(0xFF4A3800),
-              foreground: const Color(0xFFFFE0A3),
+              foreground: Colors.white,
+              icon: const Color(0xFFFBBF24),
             )
           : (
               background: const Color(0xFFFFF1CC),
-              foreground: const Color(0xFF6B4E00),
+              foreground: Colors.black,
+              icon: const Color(0xFF92400E),
             ),
-    MessageSeverity.error => (
-      background: colors.errorContainer,
-      foreground: colors.onErrorContainer,
-    ),
+    MessageSeverity.error =>
+      isDark
+          ? (
+              background: const Color(0xFF4A1210),
+              foreground: Colors.white,
+              icon: const Color(0xFFF87171),
+            )
+          : (
+              background: const Color(0xFFFDE8E8),
+              foreground: Colors.black,
+              icon: const Color(0xFFB3261E),
+            ),
   };
 }
