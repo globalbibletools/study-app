@@ -483,36 +483,45 @@ void main() {
       },
     );
 
-    test('deleting a missing or already-deleted session is a no-op', () async {
-      final manual = await seedSession(
-        startTime: DateTime(2026, 11, 17, 9, 30),
-        readSeconds: 120,
-        verses: 2,
-        isManual: true,
-      );
-      final viewModel = await newDirectViewModel();
-      expect(viewModel.sessions, hasLength(1));
+    test(
+      'deleting a missing or already-deleted session throws without changing state',
+      () async {
+        final manual = await seedSession(
+          startTime: DateTime(2026, 11, 17, 9, 30),
+          readSeconds: 120,
+          verses: 2,
+          isManual: true,
+        );
+        final viewModel = await newDirectViewModel();
+        expect(viewModel.sessions, hasLength(1));
 
-      await viewModel.deleteManualSession(manual.id! + 1000);
+        await expectLater(
+          viewModel.deleteManualSession(manual.id! + 1000),
+          throwsA(isA<StateError>()),
+        );
 
-      expect(viewModel.sessions.map((session) => session.sessionId), [
-        manual.id,
-      ]);
-      expect(viewModel.totalMinutes, 2);
-      expect(viewModel.totalVerses, 2);
+        expect(viewModel.sessions.map((session) => session.sessionId), [
+          manual.id,
+        ]);
+        expect(viewModel.totalMinutes, 2);
+        expect(viewModel.totalVerses, 2);
 
-      await viewModel.deleteManualSession(manual.id!);
+        await viewModel.deleteManualSession(manual.id!);
 
-      expect(viewModel.sessions, isEmpty);
-      expect(await database.session.getById(manual.id!), isNull);
-      expect(await database.daySummary.get(planId, date), isNull);
+        expect(viewModel.sessions, isEmpty);
+        expect(await database.session.getById(manual.id!), isNull);
+        expect(await database.daySummary.get(planId, date), isNull);
 
-      await viewModel.deleteManualSession(manual.id!);
+        await expectLater(
+          viewModel.deleteManualSession(manual.id!),
+          throwsA(isA<StateError>()),
+        );
 
-      expect(viewModel.sessions, isEmpty);
-      expect(viewModel.totalMinutes, 0);
-      expect(viewModel.totalVerses, 0);
-    });
+        expect(viewModel.sessions, isEmpty);
+        expect(viewModel.totalMinutes, 0);
+        expect(viewModel.totalVerses, 0);
+      },
+    );
   });
 
   group('refresh', () {
