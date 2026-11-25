@@ -14,20 +14,6 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import '../../fixtures/bible_navigation_fixture.dart';
 import '../../fixtures/fake_navigation_view_model.dart';
 
-VerseReadOptions _readOptions(
-  int bookId,
-  int chapter,
-  int verse, {
-  bool read = true,
-}) {
-  return VerseReadOptions(
-    bookId: bookId,
-    chapter: chapter,
-    verse: verse,
-    read: read,
-  );
-}
-
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -206,10 +192,20 @@ void main() {
         final viewModel = newViewModel();
         await viewModel.startSession(planId);
 
-        await viewModel.setVerseRead(_readOptions(63, 1, 1, read: true));
+        await viewModel.setVerseRead(
+          bookId: 63,
+          chapter: 1,
+          verse: 1,
+          read: true,
+        );
         expect(viewModel.goalReachedNotifier.value, isFalse);
 
-        await viewModel.setVerseRead(_readOptions(63, 1, 2, read: true));
+        await viewModel.setVerseRead(
+          bookId: 63,
+          chapter: 1,
+          verse: 2,
+          read: true,
+        );
         expect(viewModel.goalReachedNotifier.value, isTrue);
 
         await viewModel.endSession();
@@ -218,7 +214,12 @@ void main() {
         await viewModel.startSession(planId);
         expect(viewModel.session?.goalAlreadyReachedToday, isTrue);
 
-        await viewModel.setVerseRead(_readOptions(63, 1, 3, read: true));
+        await viewModel.setVerseRead(
+          bookId: 63,
+          chapter: 1,
+          verse: 3,
+          read: true,
+        );
         expect(viewModel.goalReachedNotifier.value, isFalse);
 
         viewModel.dispose();
@@ -249,7 +250,12 @@ void main() {
 
         expect(getIt<BibleNavigation>().getVerseCount(19, 1), 6);
         for (int v = 1; v <= 6; v++) {
-          await viewModel.setVerseRead(_readOptions(19, 1, v, read: true));
+          await viewModel.setVerseRead(
+            bookId: 19,
+            chapter: 1,
+            verse: v,
+            read: true,
+          );
         }
 
         expect(bookCompletedCount, 0);
@@ -287,7 +293,12 @@ void main() {
           bookCompletedCount++;
         });
 
-        await viewModel.setVerseRead(_readOptions(19, 150, 6, read: true));
+        await viewModel.setVerseRead(
+          bookId: 19,
+          chapter: 150,
+          verse: 6,
+          read: true,
+        );
 
         expect(bookCompletedCount, 0);
         expect(viewModel.bookCompletedNotifier.value, isNull);
@@ -318,14 +329,24 @@ void main() {
         });
 
         for (int v = 2; v <= 13; v++) {
-          await viewModel.setVerseRead(_readOptions(63, 1, v, read: true));
+          await viewModel.setVerseRead(
+            bookId: 63,
+            chapter: 1,
+            verse: v,
+            read: true,
+          );
         }
         expect(completionReceived, isNull);
 
         var stats = await database.verseState.getBookStats(planId);
         expect(stats[63]!.versesRead, 12);
 
-        await viewModel.setVerseRead(_readOptions(63, 1, 1, read: true));
+        await viewModel.setVerseRead(
+          bookId: 63,
+          chapter: 1,
+          verse: 1,
+          read: true,
+        );
 
         expect(completionReceived?.completedBookId, 63);
         expect(completionReceived?.nextBookId, 64);

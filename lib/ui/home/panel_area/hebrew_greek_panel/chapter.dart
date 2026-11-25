@@ -7,7 +7,6 @@ import 'package:gbt/common/word.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/services/resources/resource.dart';
 import 'package:gbt/services/service_locator.dart';
-import 'package:gbt/reading_plan/ui/reading_session_view_model.dart';
 import 'package:gbt/ui/common/resource_ui_helper.dart';
 import 'package:gbt/services/settings/user_settings.dart';
 import 'package:gbt/ui/home/home_manager.dart';
@@ -222,12 +221,10 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter> {
 
                     final state = checkedVerses[verse];
                     await manager.setVerseRead(
-                      VerseReadOptions(
-                        bookId: widget.bookId,
-                        chapter: widget.chapter,
-                        verse: verse,
-                        read: !(state?.readThisSession ?? false),
-                      ),
+                      bookId: widget.bookId,
+                      chapter: widget.chapter,
+                      verse: verse,
+                      read: !(state?.readThisSession ?? false),
                     );
                   },
                   onVerseNumberLongPress: (verse) {

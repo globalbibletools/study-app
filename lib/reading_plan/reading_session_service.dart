@@ -1,25 +1,13 @@
 import 'dart:math' as math;
 
 import 'package:gbt/common/reference.dart';
+import 'package:gbt/reading_plan/data_access/reading_plan_repository.dart'
+    as repo;
 import 'package:gbt/reading_plan/data_access/rs_database.dart';
 import 'package:gbt/reading_plan/model.dart' show dayString;
 import 'package:gbt/reading_plan/data_access/session_log_repository.dart';
 import 'package:gbt/reading_plan/data_access/session_repository.dart';
 import 'package:gbt/services/service_locator.dart';
-
-class VerseReadOptions {
-  const VerseReadOptions({
-    required this.bookId,
-    required this.chapter,
-    required this.verse,
-    required this.read,
-  });
-
-  final int bookId;
-  final int chapter;
-  final int verse;
-  final bool read;
-}
 
 class BookCompletedEvent {
   const BookCompletedEvent({
@@ -33,12 +21,6 @@ class BookCompletedEvent {
   final Reference? resumePosition;
 }
 
-class VerseReadResult {
-  const VerseReadResult({this.bookCompleted});
-
-  final BookCompletedEvent? bookCompleted;
-}
-
 class ReadingSessionService {
   ReadingSessionService() : this.withDatabase(getIt<ReadingSessionDatabase>());
 
@@ -47,8 +29,7 @@ class ReadingSessionService {
   final ReadingSessionDatabase _database;
 
   Future<int?> startSession(int planId) async {
-    final plan = await _database.readingPlans.getById(planId);
-    if (plan == null) return null;
+    await _requireReadingPlan(planId);
 
     final now = DateTime.now();
     final session = await _database.session.commit(
@@ -70,8 +51,7 @@ class ReadingSessionService {
     required int readSeconds,
     DateTime? at,
   }) async {
-    var session = await _database.session.getById(sessionId);
-    if (session == null) return;
+    final session = await _requireSession(sessionId);
 
     final now = at ?? DateTime.now();
     _ensureSessionIsCurrent(session, now);
@@ -91,34 +71,24 @@ class ReadingSessionService {
     });
   }
 
-  Future<VerseReadResult?> setVerseRead(
-    int sessionId,
-    VerseReadOptions options, {
-    required int readSeconds,
+  Future<BookCompletedEvent?> setVerseRead(
+    int sessionId, {
+    required int bookId,
+    required int chapter,
+    required int verse,
+    required bool read,
     DateTime? at,
   }) async {
-    final bookId = options.bookId;
-    final chapter = options.chapter;
-    final verse = options.verse;
-    final read = options.read;
-
     final now = at ?? DateTime.now();
-    final session = await _database.session.getById(sessionId);
-    if (session == null) return null;
+    final session = await _requireSession(sessionId);
 
     _ensureSessionIsCurrent(session, now);
 
-    final plan = await _database.readingPlans.getById(session.readingPlanId);
-    if (plan == null) return null;
-
     final planId = session.readingPlanId;
-
+    final plan = await _requireReadingPlan(planId);
     if (!plan.bookIds.contains(bookId)) {
-      return const VerseReadResult();
+      return null;
     }
-
-    final effectiveReadSeconds = math.max(session.readSeconds, readSeconds);
-    final hasNewReadSeconds = effectiveReadSeconds > session.readSeconds;
 
     final event = await _database.transaction((txn) async {
       final existingLog = await _database.sessionLog.getVerseLogForSession(
@@ -130,7 +100,7 @@ class ReadingSessionService {
       );
       final readThisSession = existingLog != null;
 
-      var updatedSession = session.copyWith(readSeconds: effectiveReadSeconds);
+      var updatedSession = session;
       BookCompletedEvent? event;
 
       if (read && !readThisSession) {
@@ -156,10 +126,7 @@ class ReadingSessionService {
           executor: txn,
         );
 
-        updatedSession = updatedSession.copyWith(
-          verses: session.verses + 1,
-          endTime: now,
-        );
+        updatedSession = session.copyWith(verses: session.verses + 1);
 
         await _database.verseState.markRead(
           planId,
@@ -200,16 +167,12 @@ class ReadingSessionService {
           executor: txn,
         );
 
-        updatedSession = updatedSession.copyWith(
+        updatedSession = session.copyWith(
           verses: math.max(0, session.verses - 1),
-          endTime: now,
         );
       }
 
-      if (read != readThisSession || hasNewReadSeconds) {
-        if (read == readThisSession) {
-          updatedSession = updatedSession.copyWith(endTime: now);
-        }
+      if (read != readThisSession) {
         await _database.session.commit(updatedSession, executor: txn);
         await _database.daySummary.upsert(
           planId,
@@ -221,17 +184,16 @@ class ReadingSessionService {
       return event;
     });
 
-    return VerseReadResult(bookCompleted: event);
+    return event;
   }
 
-  Future<void> heartbeat(
+  Future<void> extendSession(
     int sessionId, {
     required int readSeconds,
     DateTime? at,
   }) async {
     final now = at ?? DateTime.now();
-    final session = await _database.session.getById(sessionId);
-    if (session == null) return;
+    final session = await _requireSession(sessionId);
 
     _ensureSessionIsCurrent(session, now);
 
@@ -256,8 +218,7 @@ class ReadingSessionService {
     required int oldReadSeconds,
     required int newReadSeconds,
   }) async {
-    final session = await _database.session.getById(sessionId);
-    if (session == null) return null;
+    final session = await _requireSession(sessionId);
 
     final today = _day(at);
     final sessionDay = _day(session.rsDate);
@@ -328,6 +289,22 @@ class ReadingSessionService {
       '${dayString(session.rsDate)}, but the current day is '
       '${dayString(today)}. Call rolloverSession first.',
     );
+  }
+
+  Future<repo.ReadingPlan> _requireReadingPlan(int planId) async {
+    final plan = await _database.readingPlans.getById(planId);
+    if (plan == null) {
+      throw StateError('Reading plan not found: $planId');
+    }
+    return plan;
+  }
+
+  Future<Session> _requireSession(int sessionId) async {
+    final session = await _database.session.getById(sessionId);
+    if (session == null) {
+      throw StateError('Reading session not found: $sessionId');
+    }
+    return session;
   }
 
   static DateTime _day(DateTime date) {

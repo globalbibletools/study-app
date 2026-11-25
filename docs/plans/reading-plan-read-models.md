@@ -266,8 +266,8 @@ Future<void> deleteManualSession(int sessionId);
 // ReadingSessionService
 Future<int?> startSession(int planId); // session id
 Future<void> endSession(int sessionId, ...);
-Future<SetVerseReadResult?> setVerseRead(...); // verse states + book-completed event
-Future<void> heartbeat(int sessionId, ...);
+Future<BookCompletedEvent?> setVerseRead(...); // book-completed event
+Future<void> extendSession(int sessionId, ...);
 Future<int?> rolloverSession(...); // new session id
 ```
 
@@ -498,7 +498,7 @@ steps 6-8.
    reads `getPlanSummary(planId)` (config snapshot + resume target) and
    `getSessionRuntime(sessionId)`. Deletes `ActiveSessionSnapshot` and the
    service-side `ReadingPlanConfig` construction.
-8. **Session, runtime.** `heartbeat` returns void and `rolloverSession`
+8. **Session, runtime.** `extendSession` returns void and `rolloverSession`
    returns the new session id; the view model refetches
    `getSessionRuntime` after each. Deletes `SessionProgress`. Split from
    step 7 because the timer, day-change, and rollover logic is the riskiest

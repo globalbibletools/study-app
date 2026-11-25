@@ -12,8 +12,6 @@ import 'package:gbt/ui/home/common/navigation_view_model.dart';
 
 export 'package:gbt/reading_plan/data_access/reading_plan_read_models.dart'
     show VerseReadState;
-export 'package:gbt/reading_plan/reading_session_service.dart'
-    show VerseReadOptions;
 
 class ReadingSessionUiState {
   const ReadingSessionUiState({
@@ -203,12 +201,14 @@ class ReadingSessionViewModel with WidgetsBindingObserver {
     _clearPresentation();
   }
 
-  Future<Map<int, VerseReadState>?> setVerseRead(
-    VerseReadOptions options,
-  ) async {
+  Future<Map<int, VerseReadState>?> setVerseRead({
+    required int bookId,
+    required int chapter,
+    required int verse,
+    required bool read,
+  }) async {
     if (!_tryLockRequest(
-      'set verse ${options.bookId}:${options.chapter}:${options.verse} '
-      'read state to ${options.read}',
+      'set verse $bookId:$chapter:$verse read state to $read',
     )) {
       return null;
     }
@@ -223,17 +223,18 @@ class ReadingSessionViewModel with WidgetsBindingObserver {
       final sessionId = session?.sessionId;
       if (sessionId == null) return null;
 
-      final result = await _service.setVerseRead(
+      final event = await _service.setVerseRead(
         sessionId,
-        options,
-        readSeconds: _sessionReadSeconds,
+        bookId: bookId,
+        chapter: chapter,
+        verse: verse,
+        read: read,
         at: now,
       );
-      if (_disposed || result == null) return null;
+      if (_disposed) return null;
 
       if (!await _refreshRuntime(sessionId, asOf: now)) return null;
 
-      final event = result.bookCompleted;
       if (event != null) {
         final current = session;
         if (current != null) {
@@ -245,11 +246,7 @@ class ReadingSessionViewModel with WidgetsBindingObserver {
       }
 
       _checkGoalReached();
-      return await _queries.getVerseReadStates(
-        sessionId,
-        options.bookId,
-        options.chapter,
-      );
+      return await _queries.getVerseReadStates(sessionId, bookId, chapter);
     } finally {
       _unlockRequest();
     }
@@ -493,7 +490,7 @@ class ReadingSessionViewModel with WidgetsBindingObserver {
       final sessionId = session?.sessionId;
       if (sessionId == null) return;
 
-      await _service.heartbeat(
+      await _service.extendSession(
         sessionId,
         readSeconds: _sessionReadSeconds,
         at: now,

@@ -13,20 +13,6 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import '../fixtures/bible_navigation_fixture.dart';
 import '../fixtures/fake_navigation_view_model.dart';
 
-VerseReadOptions _readOptions(
-  int bookId,
-  int chapter,
-  int verse, {
-  bool read = true,
-}) {
-  return VerseReadOptions(
-    bookId: bookId,
-    chapter: chapter,
-    verse: verse,
-    read: read,
-  );
-}
-
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -118,11 +104,30 @@ void main() {
         );
 
         await viewModel.startSession(planId);
-        await viewModel.setVerseRead(_readOptions(63, 1, 1, read: true));
+        await viewModel.setVerseRead(
+          bookId: 63,
+          chapter: 1,
+          verse: 1,
+          read: true,
+        );
 
         await Future<void>.delayed(const Duration(seconds: 2));
-        await viewModel.setVerseRead(_readOptions(63, 1, 2, read: true));
-        await viewModel.setVerseRead(_readOptions(63, 1, 3, read: true));
+        await viewModel.setVerseRead(
+          bookId: 63,
+          chapter: 1,
+          verse: 2,
+          read: true,
+        );
+        await viewModel.setVerseRead(
+          bookId: 63,
+          chapter: 1,
+          verse: 3,
+          read: true,
+        );
+
+        // Marks no longer persist session timing; flush it the way the
+        // heartbeat/lifecycle pause does.
+        await viewModel.pauseTimer();
 
         final now = DateTime.now();
         final today = DateTime(now.year, now.month, now.day);
@@ -183,7 +188,12 @@ void main() {
 
         await viewModel.startSession(planId);
         for (int v = 1; v <= 3; v++) {
-          await viewModel.setVerseRead(_readOptions(63, 1, v, read: true));
+          await viewModel.setVerseRead(
+            bookId: 63,
+            chapter: 1,
+            verse: v,
+            read: true,
+          );
         }
         expect((await summaryFor(planId, today)).goalReached, isTrue);
 
@@ -195,7 +205,12 @@ void main() {
           bookIds: [63],
         );
 
-        await viewModel.setVerseRead(_readOptions(63, 1, 4, read: true));
+        await viewModel.setVerseRead(
+          bookId: 63,
+          chapter: 1,
+          verse: 4,
+          read: true,
+        );
 
         final todaysSummary = await summaryFor(planId, today);
         expect(todaysSummary.goalReached, isFalse);
@@ -226,7 +241,12 @@ void main() {
         );
 
         await viewModel.startSession(planId);
-        await viewModel.setVerseRead(_readOptions(63, 1, 1, read: true));
+        await viewModel.setVerseRead(
+          bookId: 63,
+          chapter: 1,
+          verse: 1,
+          read: true,
+        );
 
         final now = DateTime.now();
         final today = DateTime(now.year, now.month, now.day);
@@ -318,7 +338,12 @@ void main() {
       expect(before.containsKey(now.day), isFalse);
 
       await viewModel.startSession(planId);
-      await viewModel.setVerseRead(_readOptions(63, 1, 1, read: true));
+      await viewModel.setVerseRead(
+        bookId: 63,
+        chapter: 1,
+        verse: 1,
+        read: true,
+      );
 
       final after = await rsDb.queries.getMonthDayProgress(planId, month);
       final todayCell = after[now.day]!;
