@@ -41,8 +41,12 @@ void setupServiceLocator() {
     return database;
   });
   getIt.registerSingletonAsync<ReadingSessionDatabase>(() async {
-    final database = ReadingSessionDatabase();
+    final settings = await getIt.getAsync<UserSettings>();
+    final database = ReadingSessionDatabase(
+      legacyDailyGoal: settings.legacyDailyGoal,
+    );
     await database.init();
+    await settings.clearLegacyDailyGoal();
     return database;
   });
   getIt.registerLazySingleton<ReadingPlanQueries>(

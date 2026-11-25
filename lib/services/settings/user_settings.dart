@@ -30,6 +30,7 @@ class UserSettings {
   static const _hasSeenReadingCheckboxGuideKey = '_hasSeenReadingCheckboxGuide';
   static const _hasSeenReadingSessionGuideKey = '_hasSeenReadingSessionGuide';
   static const _occurrenceParallelBiblesKey = 'occurrenceParallelBibles';
+  static const _legacyDailyGoalKey = 'rsDailyGoal';
 
   String? get themeMode {
     return _prefs.getString(_themeModeKey);
@@ -170,6 +171,16 @@ class UserSettings {
 
   Future<void> setHasSeenReadingSessionGuide(bool value) async {
     await _prefs.setBool(_hasSeenReadingSessionGuideKey, value);
+  }
+
+  /// The daily goal stored by the pre-reading-plan reading session settings.
+  /// Format: `<minutes|verses>-<value>`, for example `verses-15`.
+  String? get legacyDailyGoal {
+    return _prefs.getString(_legacyDailyGoalKey);
+  }
+
+  Future<void> clearLegacyDailyGoal() async {
+    await _prefs.remove(_legacyDailyGoalKey);
   }
 
   List<String> get occurrenceParallelBibles {

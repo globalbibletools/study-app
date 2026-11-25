@@ -8,25 +8,31 @@ import 'package:gbt/reading_plan/data_access/reading_plan_repository.dart';
 import 'package:gbt/reading_plan/data_access/session_log_repository.dart';
 import 'package:gbt/reading_plan/data_access/session_repository.dart';
 import 'package:gbt/reading_plan/data_access/verse_state_repository.dart';
+import 'package:gbt/reading_plan/model.dart' show GoalType;
 import 'package:gbt/services/service_locator.dart';
 import 'package:sqflite/sqflite.dart';
 
 class ReadingSessionDatabase {
-  ReadingSessionDatabase({String databaseName = _defaultDatabaseName})
-    : this.withDependencies(
-        databaseName: databaseName,
-        verseInventoryProvider: (bookIds) async {
-          final database = await getIt.getAsync<HebrewGreekDatabase>();
-          return database.getVerseInventory(bookIds: bookIds);
-        },
-      );
+  ReadingSessionDatabase({
+    String databaseName = _defaultDatabaseName,
+    String? legacyDailyGoal,
+  }) : this.withDependencies(
+         databaseName: databaseName,
+         legacyDailyGoal: legacyDailyGoal,
+         verseInventoryProvider: (bookIds) async {
+           final database = await getIt.getAsync<HebrewGreekDatabase>();
+           return database.getVerseInventory(bookIds: bookIds);
+         },
+       );
 
   ReadingSessionDatabase.withDependencies({
     String databaseName = _defaultDatabaseName,
     String? databasePath,
+    String? legacyDailyGoal,
     required VerseInventoryProvider verseInventoryProvider,
   }) : _databaseName = databaseName,
        _databasePath = databasePath,
+       _legacyDailyGoal = legacyDailyGoal,
        _verseInventoryProvider = verseInventoryProvider;
 
   static const _defaultDatabaseName = 'reading_session.db';
@@ -34,6 +40,7 @@ class ReadingSessionDatabase {
 
   final String _databaseName;
   final String? _databasePath;
+  final String? _legacyDailyGoal;
   final VerseInventoryProvider _verseInventoryProvider;
 
   late final ReadingPlanRepository readingPlans = ReadingPlanRepository(
@@ -70,6 +77,10 @@ class ReadingSessionDatabase {
     return _initFuture;
   }
 
+  Future<T> transaction<T>(Future<T> Function(DatabaseExecutor txn) action) {
+    return _database.transaction(action);
+  }
+
   Future<void> resetDatabase() async {
     final path = await getDatabasesPath();
     final dbPath = _databasePath ?? '$path/$_databaseName';
@@ -103,6 +114,9 @@ class ReadingSessionDatabase {
           final file = 'assets/schemas/reading_session_$v.sql';
           final sql = await rootBundle.loadString(file);
           await _executeSqlBatch(db, sql);
+          if (v == 3) {
+            await _applyLegacyDailyGoal(db);
+          }
           if (v == 4) {
             final verseStateRepository = VerseStateRepository(
               db,
@@ -129,8 +143,33 @@ class ReadingSessionDatabase {
     await batch.commit(noResult: true);
   }
 
-  Future<T> transaction<T>(Future<T> Function(DatabaseExecutor txn) action) {
-    return _database.transaction(action);
+  // Legacy goals were user preferences that we have to now inject into the database.
+  Future<void> _applyLegacyDailyGoal(DatabaseExecutor db) async {
+    final goal = _parseLegacyDailyGoal(_legacyDailyGoal);
+    if (goal == null) return;
+
+    await db.update('reading_plan', {
+      'goal_type': goal.type.storageValue,
+      'goal_value': goal.value,
+    }, where: 'id = 1');
+    info(
+      'Restored legacy reading goal: ${goal.type.storageValue}-${goal.value}',
+    );
+  }
+
+  static ({GoalType type, int value})? _parseLegacyDailyGoal(String? raw) {
+    if (raw == null) return null;
+
+    final parts = raw.split('-');
+    final typeName = parts.isNotEmpty ? parts[0] : GoalType.minutes.name;
+    final valueText = parts.length > 1 ? parts[1] : '10';
+    final type = typeName == GoalType.verses.name
+        ? GoalType.verses
+        : GoalType.minutes;
+    final value = int.tryParse(valueText) ?? 10;
+    if (value <= 0) return null;
+
+    return (type: type, value: value);
   }
 
   void dispose() {

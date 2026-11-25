@@ -53,9 +53,10 @@ void main() {
     }
   });
 
-  Future<void> openReadingDatabase() async {
+  Future<void> openReadingDatabase({String? legacyDailyGoal}) async {
     database = ReadingSessionDatabase.withDependencies(
       databasePath: databasePath,
+      legacyDailyGoal: legacyDailyGoal,
       verseInventoryProvider: (bookIds) async =>
           createTestVerseInventory(bookIds: bookIds),
     );
@@ -268,7 +269,7 @@ VALUES
       },
     );
 
-    await openReadingDatabase();
+    await openReadingDatabase(legacyDailyGoal: 'verses-15');
 
     await expectV9Schema();
 
@@ -279,8 +280,8 @@ VALUES
         id: 1,
         planName: 'Whole Bible',
         createdAt: plan.createdAt,
-        goalType: GoalType.minutes,
-        goalValue: 10,
+        goalType: GoalType.verses,
+        goalValue: 15,
         isBookmarked: false,
         bookIds: [for (var bookId = 1; bookId <= 66; bookId++) bookId],
       ),
@@ -346,8 +347,8 @@ VALUES
         rsDate: DateTime(2026, 5, 1),
         rsSeconds: 930,
         rsVerses: 25,
-        goalType: GoalType.minutes,
-        goalValue: 10,
+        goalType: GoalType.verses,
+        goalValue: 15,
         goalReached: true,
       ),
     );
@@ -417,6 +418,10 @@ VALUES
       );
 
       await openReadingDatabase();
+
+      final plan = (await database!.readingPlans.getById(1))!;
+      expect(plan.goalType, GoalType.minutes);
+      expect(plan.goalValue, 10);
 
       final sessions = await database!.session.listForDate(
         DateTime(2026, 6, 1),
