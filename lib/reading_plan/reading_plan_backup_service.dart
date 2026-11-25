@@ -24,18 +24,37 @@ class ReadingSessionBackupInfo {
   final String name;
   final DateTime modifiedAt;
   final int sizeBytes;
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+
+    return other is ReadingSessionBackupInfo &&
+        other.path == path &&
+        other.name == name &&
+        other.modifiedAt == modifiedAt &&
+        other.sizeBytes == sizeBytes;
+  }
+
+  @override
+  int get hashCode => Object.hash(path, name, modifiedAt, sizeBytes);
 }
 
 class ReadingPlanBackupService {
-  ReadingPlanBackupService() : _database = getIt<ReadingSessionDatabase>();
+  ReadingPlanBackupService()
+    : this.withDatabase(getIt<ReadingSessionDatabase>());
 
-  ReadingPlanBackupService.withDatabase(this._database);
+  ReadingPlanBackupService.withDatabase(
+    this._database, {
+    Directory? backupDirectory,
+  }) : _backupDirectory = backupDirectory;
 
   static const _backupFormatVersion = 2;
   static const _backupDirectoryName = 'backups';
   static const _backupFilePrefix = 'reading_session_';
 
   final ReadingSessionDatabase _database;
+  final Directory? _backupDirectory;
 
   Future<String> createBackup() async {
     final backupDir = await _getBackupDirectory();
@@ -258,6 +277,9 @@ class ReadingPlanBackupService {
   }
 
   Future<Directory> _getBackupDirectory() async {
+    final backupDirectory = _backupDirectory;
+    if (backupDirectory != null) return backupDirectory;
+
     final docDir = await getApplicationDocumentsDirectory();
     return Directory(join(docDir.path, _backupDirectoryName));
   }
