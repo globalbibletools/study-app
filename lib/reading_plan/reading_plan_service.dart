@@ -33,6 +33,8 @@ class ReadingPlanService {
       throw ArgumentError('Minutes and verses cannot both be zero.');
     }
 
+    await _requireReadingPlan(readingPlanId);
+
     final day = _dayOnly(date);
     final now = DateTime.now();
     final isToday = _sameDay(day, now);
@@ -62,7 +64,9 @@ class ReadingPlanService {
 
   Future<void> deleteManualSession(int sessionId) async {
     final session = await _database.session.getById(sessionId);
-    if (session == null) return;
+    if (session == null) {
+      throw StateError('Session not found: $sessionId');
+    }
     if (!session.isManual) {
       throw StateError('Only manual sessions can be deleted.');
     }
@@ -96,6 +100,14 @@ class ReadingPlanService {
     return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 
+  Future<repo.ReadingPlan> _requireReadingPlan(int planId) async {
+    final plan = await _database.readingPlans.getById(planId);
+    if (plan == null) {
+      throw StateError('Reading plan not found: $planId');
+    }
+    return plan;
+  }
+
   static DateTime _dayOnly(DateTime date) =>
       DateTime(date.year, date.month, date.day);
 
@@ -106,9 +118,9 @@ class ReadingPlanService {
     required int goalValue,
     required List<int> bookIds,
   }) async {
-    final existingPlan = planId == null || planId == 0
+    final existingPlan = planId == null
         ? null
-        : await _database.readingPlans.getById(planId);
+        : await _requireReadingPlan(planId);
 
     final previousBookIds = existingPlan?.bookIds.toSet() ?? const <int>{};
     final plan = existingPlan == null
@@ -140,25 +152,16 @@ class ReadingPlanService {
   }
 
   Future<void> setReadingPlanBookmark(int planId, bool isBookmarked) async {
-    final savedPlan = await _database.readingPlans.getById(planId);
-    if (savedPlan == null) return;
+    final savedPlan = await _requireReadingPlan(planId);
 
     await _database.readingPlans.commit(
       savedPlan.copyWith(isBookmarked: isBookmarked),
     );
   }
 
-  Future<void> reorderReadingPlanBooks(
-    int readingPlanId,
-    List<int> bookIds,
-  ) async {
-    final plan = await _database.readingPlans.getById(readingPlanId);
-    if (plan == null) return;
-
-    await _database.readingPlans.commit(plan.copyWith(bookIds: bookIds));
-  }
-
   Future<void> deleteReadingPlan(int planId) async {
+    await _requireReadingPlan(planId);
+
     await _database.transaction((txn) async {
       await _database.sessionLog.deleteForPlanId(planId, executor: txn);
       await _database.session.deleteForPlanId(planId, executor: txn);

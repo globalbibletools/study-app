@@ -220,6 +220,31 @@ class DaySummary {
     };
   }
 
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+
+    return other is DaySummary &&
+        other.readingPlanId == readingPlanId &&
+        other.rsDate == rsDate &&
+        other.rsSeconds == rsSeconds &&
+        other.rsVerses == rsVerses &&
+        other.goalType == goalType &&
+        other.goalValue == goalValue &&
+        other.goalReached == goalReached;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    readingPlanId,
+    rsDate,
+    rsSeconds,
+    rsVerses,
+    goalType,
+    goalValue,
+    goalReached,
+  );
+
   /// Formats a local date as the `YYYY-MM-DD` string stored in `rs_date`.
   static String dayString(DateTime date) => model.dayString(date);
 }

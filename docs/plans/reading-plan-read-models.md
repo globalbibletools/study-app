@@ -260,7 +260,6 @@ Commands return ids and events only; the caller refetches:
 Future<int> saveReadingPlan(...);
 Future<void> deleteReadingPlan(int planId);
 Future<void> setReadingPlanBookmark(int planId, bool value);
-Future<void> reorderReadingPlanBooks(...);
 Future<void> addManualSession(...);
 Future<void> deleteManualSession(int sessionId);
 

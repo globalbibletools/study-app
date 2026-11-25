@@ -140,4 +140,29 @@ class SessionLogEntry {
       'date_time': dateTime.toIso8601String(),
     };
   }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+
+    return other is SessionLogEntry &&
+        other.id == id &&
+        other.sessionId == sessionId &&
+        other.readingPlanId == readingPlanId &&
+        other.bookId == bookId &&
+        other.chapter == chapter &&
+        other.verse == verse &&
+        other.dateTime == dateTime;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    sessionId,
+    readingPlanId,
+    bookId,
+    chapter,
+    verse,
+    dateTime,
+  );
 }

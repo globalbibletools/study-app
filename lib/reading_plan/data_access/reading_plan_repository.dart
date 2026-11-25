@@ -234,4 +234,35 @@ class ReadingPlan {
         {'reading_plan_id': id, 'book_id': bookIds[i], 'ord': i + 1},
     ];
   }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+
+    if (other is! ReadingPlan ||
+        other.id != id ||
+        other.planName != planName ||
+        other.createdAt != createdAt ||
+        other.goalType != goalType ||
+        other.goalValue != goalValue ||
+        other.isBookmarked != isBookmarked ||
+        other.bookIds.length != bookIds.length) {
+      return false;
+    }
+    for (var i = 0; i < bookIds.length; i++) {
+      if (other.bookIds[i] != bookIds[i]) return false;
+    }
+    return true;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    planName,
+    createdAt,
+    goalType,
+    goalValue,
+    isBookmarked,
+    Object.hashAll(bookIds),
+  );
 }
