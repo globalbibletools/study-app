@@ -43,17 +43,24 @@ class HebrewGreekChapterManager {
     verseCheckboxNotifier.setVerseReadStates(versesRead);
   }
 
-  Future<void> setVerseRead(VerseReadOptions options) async {
+  Future<void> setVerseRead({
+    required int bookId,
+    required int chapter,
+    required int verse,
+    required bool read,
+  }) async {
     if (!_sessionViewModel.hasActiveSession) return;
     if (_disposed) return;
 
-    final versesRead = await _sessionViewModel.setVerseRead(options);
+    final versesRead = await _sessionViewModel.setVerseRead(
+      bookId: bookId,
+      chapter: chapter,
+      verse: verse,
+      read: read,
+    );
     if (_disposed || versesRead == null) return;
 
-    verseCheckboxNotifier.setVerseReadStates(
-      versesRead,
-      changedVerse: options.verse,
-    );
+    verseCheckboxNotifier.setVerseReadStates(versesRead, changedVerse: verse);
   }
 
   bool isRtl(int bookId) {

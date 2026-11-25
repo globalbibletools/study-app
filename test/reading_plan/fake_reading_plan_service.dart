@@ -24,15 +24,11 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
   final deletedManualSessionIds = <int>[];
   final deletedPlanIds = <int>[];
   final bookmarkedValues = <bool>[];
-  final reorderedBooks = <List<int>>[];
   final saveCalls = <SaveReadingPlanCall>[];
   final savedPlans = <repo.ReadingPlan>[];
 
   /// When set, bookmark writes throw this instead of persisting.
   Object? bookmarkError;
-
-  /// When set, reorder writes throw this instead of persisting.
-  Object? reorderError;
 
   /// When set, saves throw this instead of persisting.
   Object? saveError;
@@ -144,9 +140,7 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
   }
 
   repo.ReadingPlan _planFor(SaveReadingPlanCall call) {
-    final existing = call.planId == null || call.planId == 0
-        ? null
-        : _planForId(call.planId!);
+    final existing = call.planId == null ? null : _planForId(call.planId!);
     final plan = repo.ReadingPlan(
       id: existing?.id ?? _nextPlanId++,
       planName: call.planName,
@@ -193,27 +187,6 @@ class FakeReadingPlanService extends Fake implements ReadingPlanService {
       final config = queries?.configs[planId];
       if (config != null) {
         queries!.configs[planId] = config.copyWith(isBookmarked: isBookmarked);
-      }
-    }
-  }
-
-  @override
-  Future<void> reorderReadingPlanBooks(
-    int readingPlanId,
-    List<int> bookIds,
-  ) async {
-    final error = reorderError;
-    if (error != null) throw error;
-
-    final ordered = List<int>.of(bookIds);
-    reorderedBooks.add(ordered);
-    final index = plans.indexWhere((plan) => plan.id == readingPlanId);
-    if (index != -1) {
-      final plan = plans[index].copyWith(bookIds: ordered);
-      plans[index] = plan;
-      final config = queries?.configs[readingPlanId];
-      if (config != null) {
-        queries!.configs[readingPlanId] = config.copyWith(bookIds: ordered);
       }
     }
   }

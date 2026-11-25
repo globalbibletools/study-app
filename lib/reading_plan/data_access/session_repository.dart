@@ -191,6 +191,33 @@ class Session {
       'is_manual': isManual ? 1 : 0,
     };
   }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+
+    return other is Session &&
+        other.id == id &&
+        other.rsDate == rsDate &&
+        other.startTime == startTime &&
+        other.endTime == endTime &&
+        other.readSeconds == readSeconds &&
+        other.verses == verses &&
+        other.readingPlanId == readingPlanId &&
+        other.isManual == isManual;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    rsDate,
+    startTime,
+    endTime,
+    readSeconds,
+    verses,
+    readingPlanId,
+    isManual,
+  );
 }
 
 int _readSecondsFor(Map<String, Object?> row) {
