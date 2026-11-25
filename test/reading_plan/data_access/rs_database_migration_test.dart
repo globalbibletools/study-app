@@ -1,35 +1,159 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sqlite3/sqlite3.dart';
+import 'package:gbt/common/reference.dart';
+import 'package:gbt/reading_plan/data_access/day_summary_repository.dart';
+import 'package:gbt/reading_plan/data_access/reading_plan_repository.dart';
+import 'package:gbt/reading_plan/data_access/rs_database.dart';
+import 'package:gbt/reading_plan/data_access/session_log_repository.dart';
+import 'package:gbt/reading_plan/data_access/session_repository.dart';
+import 'package:gbt/reading_plan/data_access/verse_state_repository.dart';
+import 'package:gbt/reading_plan/model.dart';
+import 'package:path/path.dart' as p;
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+
+import '../../fixtures/bible_navigation_fixture.dart';
+
+typedef _BookStatsSnapshot = ({
+  int totalVerses,
+  int versesRead,
+  DateTime? lastRead,
+  Reference? resumePosition,
+});
+
+_BookStatsSnapshot _snapshotOf(BookStats stats) => (
+  totalVerses: stats.totalVerses,
+  versesRead: stats.versesRead,
+  lastRead: stats.lastRead,
+  resumePosition: stats.resumePosition,
+);
 
 void main() {
-  group('Reading Session Schema & Data Migration Tests', () {
-    late Database db;
+  TestWidgetsFlutterBinding.ensureInitialized();
 
-    // Helper to execute migration files the same way rs_database.dart does
-    void executeSqlFile(Database db, String filePath) {
-      final sql = File(filePath).readAsStringSync();
-      final statements = sql
-          .split(RegExp(r';\s*\n'))
-          .where((s) => s.trim().isNotEmpty);
+  late Directory tempDir;
+  late String databasePath;
+  ReadingSessionDatabase? database;
 
-      for (final statement in statements) {
-        db.execute(statement);
-      }
+  setUpAll(() {
+    sqfliteFfiInit();
+    databaseFactory = databaseFactoryFfi;
+  });
+
+  setUp(() async {
+    tempDir = await Directory.systemTemp.createTemp('rs_migration_test_');
+    databasePath = p.join(tempDir.path, 'reading_session.db');
+  });
+
+  tearDown(() async {
+    database?.dispose();
+    database = null;
+    if (await tempDir.exists()) {
+      await tempDir.delete(recursive: true);
     }
+  });
 
-    // Helper to fast-forward a fresh v1 database through the migration
-    // chain up to (and including) a given schema version file.
-    void upgradeTo(Database db, int version) {
-      for (int v = 2; v <= version; v++) {
-        executeSqlFile(db, 'assets/schemas/reading_session_$v.sql');
-      }
-    }
+  Future<void> openReadingDatabase() async {
+    database = ReadingSessionDatabase.withDependencies(
+      databasePath: databasePath,
+      verseInventoryProvider: (bookIds) async =>
+          createTestVerseInventory(bookIds: bookIds),
+    );
+    await database!.init();
+  }
 
-    // Helper to create Schema Version 1
-    void createSchemaV1(Database db) {
-      db.execute('''
+  Future<List<Map<String, Object?>>> query(String sql) {
+    return database!.transaction((txn) => txn.rawQuery(sql));
+  }
+
+  Future<void> expectV9Schema() async {
+    expect((await query('PRAGMA user_version')).single['user_version'], 9);
+
+    final tableNames = (await query(
+      "SELECT name FROM sqlite_master WHERE type = 'table'",
+    )).map((row) => row['name']).toSet();
+    expect(
+      tableNames,
+      containsAll([
+        'reading_plan',
+        'reading_plan_book',
+        'rs_session',
+        'rs_log',
+        'rs_verse_state',
+        'rs_day_summary',
+      ]),
+    );
+    expect(
+      tableNames.intersection({'rs_daily_log', 'rs_stats', 'rs_book_progress'}),
+      isEmpty,
+    );
+
+    final indexNames = (await query(
+      "SELECT name FROM sqlite_master WHERE type = 'index'",
+    )).map((row) => row['name']).toSet();
+    expect(indexNames, contains('idx_rs_verse_state_plan_book'));
+    expect(indexNames, isNot(contains('hash_type_date')));
+    expect(indexNames, isNot(contains('hash_rs_book_progress')));
+
+    final planColumns = (await query(
+      'PRAGMA table_info(reading_plan)',
+    )).map((row) => row['name']).toList();
+    expect(planColumns, [
+      'id',
+      'plan_name',
+      'created_at',
+      'goal_type',
+      'goal_value',
+      'is_bookmarked',
+    ]);
+
+    final planBookInfo = await query('PRAGMA table_info(reading_plan_book)');
+    expect(planBookInfo.map((row) => row['name']).toList(), [
+      'reading_plan_id',
+      'book_id',
+      'ord',
+    ]);
+    expect(planBookInfo.map((row) => row['pk']).toList(), [1, 2, 0]);
+
+    expect(await query('PRAGMA foreign_key_check'), isEmpty);
+  }
+
+  int verseCountFor(int bookId) {
+    return createTestVerseInventory(
+      bookIds: {bookId},
+    ).values.fold<int>(0, (total, verses) => total + verses.length);
+  }
+
+  Future<void> createV2Database({
+    bool versesReadLast = false,
+    required Future<void> Function(Database db) seed,
+  }) async {
+    final progressColumns = versesReadLast
+        ? '''
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    book_id INT NOT NULL,
+    chapter INT NOT NULL,
+    verse INT NOT NULL,
+    chapters_read INT NOT NULL,
+    updated_at DATETIME NOT NULL,
+    verses_read INT NOT NULL DEFAULT 0
+'''
+        : '''
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    book_id INT NOT NULL,
+    chapter INT NOT NULL,
+    verse INT NOT NULL,
+    chapters_read INT NOT NULL,
+    verses_read INT NOT NULL DEFAULT 0,
+    updated_at DATETIME NOT NULL
+''';
+
+    final db = await databaseFactory.openDatabase(
+      databasePath,
+      options: OpenDatabaseOptions(
+        version: 2,
+        onCreate: (db, version) async {
+          await db.execute('''
 CREATE TABLE rs_daily_log (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     rs_date DATE NOT NULL,
@@ -37,7 +161,8 @@ CREATE TABLE rs_daily_log (
     end_time TIMESTAMP,
     verses INT NOT NULL
 );
-
+''');
+          await db.execute('''
 CREATE TABLE rs_log (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     rs_daily_log_id INTEGER NOT NULL,
@@ -47,7 +172,8 @@ CREATE TABLE rs_log (
     date_time TIMESTAMP NOT NULL,
     FOREIGN KEY (rs_daily_log_id) REFERENCES rs_daily_log(id)
 );
-
+''');
+          await db.execute('''
 CREATE TABLE rs_stats (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     type VARCHAR(1) NOT NULL,
@@ -56,46 +182,72 @@ CREATE TABLE rs_stats (
     rs_verses INT NOT NULL,
     goal_reached INT NOT NULL
 );
-
-CREATE UNIQUE INDEX hash_type_date ON rs_stats(type, stats_date);
-
-CREATE TABLE rs_book_progress (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    book_id INT NOT NULL,
-    chapter INT NOT NULL,
-    verse INT NOT NULL,
-    chapters_read INT NOT NULL,
-    updated_at DATETIME NOT NULL
-);
-
-CREATE UNIQUE INDEX hash_rs_book_progress ON rs_book_progress(book_id);
 ''');
-    }
+          await db.execute(
+            'CREATE UNIQUE INDEX hash_type_date ON rs_stats(type, stats_date);',
+          );
+          await db.execute('''
+CREATE TABLE rs_book_progress (
+$progressColumns);
+''');
+          await db.execute(
+            'CREATE UNIQUE INDEX hash_rs_book_progress '
+            'ON rs_book_progress(book_id);',
+          );
+        },
+      ),
+    );
+    await seed(db);
+    await db.close();
+  }
 
-    setUp(() {
-      db = sqlite3.openInMemory();
+  test('creates a fresh v9 database with the current schema', () async {
+    await openReadingDatabase();
+
+    await expectV9Schema();
+
+    final plans = await database!.readingPlans.list();
+    expect(plans, hasLength(1));
+    final plan = plans.single;
+    expect(
+      plan,
+      ReadingPlan(
+        id: 1,
+        planName: 'Whole Bible',
+        createdAt: plan.createdAt,
+        goalType: GoalType.minutes,
+        goalValue: 10,
+        isBookmarked: false,
+        bookIds: [for (var bookId = 1; bookId <= 66; bookId++) bookId],
+      ),
+    );
+
+    expect(await database!.session.exportAll(), isEmpty);
+    expect(await database!.sessionLog.exportAll(), isEmpty);
+    expect(await database!.daySummary.exportAll(), isEmpty);
+
+    final stats = await database!.verseState.getBookStats(1);
+    expect(stats.keys.toSet(), {
+      for (var bookId = 1; bookId <= 66; bookId++) bookId,
     });
+    expect(_snapshotOf(stats[63]!), (
+      totalVerses: 13,
+      versesRead: 0,
+      lastRead: null,
+      resumePosition: const Reference(bookId: 63, chapter: 1, verse: 1),
+    ));
+  });
 
-    tearDown(() {
-      db.close();
-    });
+  test('upgrades a released v2 database through every step to v9', () async {
+    const startStr = '2026-05-01T10:00:00.000';
+    const endStr = '2026-05-01T10:15:30.000';
 
-    test(
-      'upgrades seamlessly from Schema 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 preserving all progress',
-      () {
-        // 1. Initialize with Schema 1
-        createSchemaV1(db);
-
-        // Insert representative user reading progress in Schema 1
-        final dateStr = '2026-05-01';
-        final startStr = '2026-05-01T10:00:00.000';
-        final endStr = '2026-05-01T10:15:30.000';
-        final updatedAtGenesis = '2026-05-01T10:15:30.000';
-        final updatedAtMatthew = '2026-05-02T11:00:00.000';
-
-        db.execute('''
+    await createV2Database(
+      versesReadLast: true,
+      seed: (db) async {
+        await db.execute('''
 INSERT INTO rs_daily_log (id, rs_date, start_time, end_time, verses)
-VALUES (1, '$dateStr', '$startStr', '$endStr', 25);
+VALUES (1, '2026-05-01', '$startStr', '$endStr', 25);
 
 INSERT INTO rs_log (id, rs_daily_log_id, book_id, chapter, verse, date_time)
 VALUES
@@ -105,564 +257,276 @@ VALUES
   (4, 1, 40, 1, 1, '$startStr');
 
 INSERT INTO rs_stats (id, type, stats_date, rs_seconds, rs_verses, goal_reached)
-VALUES (1, 'D', '$dateStr', 930, 25, 1);
+VALUES (1, 'D', '2026-05-01', 930, 25, 1);
 
-INSERT INTO rs_book_progress (id, book_id, chapter, verse, chapters_read, updated_at)
+INSERT INTO rs_book_progress
+    (id, book_id, chapter, verse, chapters_read, verses_read, updated_at)
 VALUES
-  (1, 1, 1, 4, 0, '$updatedAtGenesis'),
-  (2, 40, 1, 2, 0, '$updatedAtMatthew');
+  (1, 1, 1, 4, 0, 3, '2026-05-01T10:15:30.000'),
+  (2, 40, 1, 2, 0, 1, '2026-05-02T11:00:00.000');
 ''');
-
-        // 2. Run migration 2 (reading_session_2.sql)
-        executeSqlFile(db, 'assets/schemas/reading_session_2.sql');
-
-        // Verify v2 added verses_read and computed it correctly
-        final v2Progress = db.select(
-          'SELECT id, book_id, chapters_read, verses_read, updated_at FROM rs_book_progress ORDER BY book_id',
-        );
-        expect(v2Progress.length, 2);
-        expect(v2Progress[0]['book_id'], 1);
-        expect(v2Progress[0]['verses_read'], 3); // 3 verses read in Genesis
-        expect(v2Progress[0]['updated_at'], updatedAtGenesis);
-        expect(v2Progress[1]['book_id'], 40);
-        expect(v2Progress[1]['verses_read'], 1); // 1 verse read in Matthew
-        expect(v2Progress[1]['updated_at'], updatedAtMatthew);
-
-        // In v2, ALTER TABLE ADD COLUMN placed verses_read at column index 7 (after updated_at)
-        final v2Columns = db.select("PRAGMA table_info(rs_book_progress);");
-        final colNames = v2Columns.map((r) => r['name']).toList();
-        expect(
-          colNames.indexOf('updated_at'),
-          lessThan(colNames.indexOf('verses_read')),
-        );
-
-        // 3. Run migration 3 (reading_session_3.sql)
-        executeSqlFile(db, 'assets/schemas/reading_session_3.sql');
-
-        // Verify reading plans were created
-        final plans = db.select('SELECT id, plan_name FROM reading_plan');
-        expect(plans.length, 1);
-        expect(plans[0]['id'], 1);
-        expect(plans[0]['plan_name'], 'Whole Bible');
-
-        final planBooks = db.select(
-          'SELECT COUNT(*) AS count FROM reading_plan_book WHERE reading_plan_id = 1',
-        );
-        expect(planBooks.first['count'], 66);
-
-        // Verify rs_daily_log migrated to reading_plan_id = 1
-        final dailyLogs = db.select(
-          'SELECT id, rs_date, verses, reading_plan_id FROM rs_daily_log',
-        );
-        expect(dailyLogs.length, 1);
-        expect(dailyLogs[0]['verses'], 25);
-        expect(dailyLogs[0]['reading_plan_id'], 1);
-
-        // Verify rs_log migrated to reading_plan_id = 1
-        final logs = db.select(
-          'SELECT id, book_id, verse, reading_plan_id FROM rs_log',
-        );
-        expect(logs.length, 4);
-        expect(logs[0]['reading_plan_id'], 1);
-
-        // Verify rs_stats migrated to reading_plan_id = 1
-        final stats = db.select(
-          'SELECT id, type, rs_seconds, rs_verses, reading_plan_id FROM rs_stats',
-        );
-        expect(stats.length, 1);
-        expect(stats[0]['rs_verses'], 25);
-        expect(stats[0]['reading_plan_id'], 1);
-
-        // Verify rs_book_progress has correct column types and values (explicit names prevented any swap!)
-        final v3Progress = db.select(
-          'SELECT id, book_id, chapter, verse, chapters_read, verses_read, updated_at, reading_plan_id FROM rs_book_progress ORDER BY book_id',
-        );
-        expect(v3Progress.length, 2);
-
-        // Genesis
-        expect(v3Progress[0]['book_id'], 1);
-        expect(v3Progress[0]['verses_read'], 3);
-        expect(v3Progress[0]['updated_at'], updatedAtGenesis);
-        expect(v3Progress[0]['reading_plan_id'], 1);
-
-        // Matthew
-        expect(v3Progress[1]['book_id'], 40);
-        expect(v3Progress[1]['verses_read'], 1);
-        expect(v3Progress[1]['updated_at'], updatedAtMatthew);
-        expect(v3Progress[1]['reading_plan_id'], 1);
-
-        // Verify typeof columns in SQLite are correctly integer and text
-        final genesisTypes = db.select(
-          "SELECT typeof(verses_read) AS v_type, typeof(updated_at) AS u_type FROM rs_book_progress WHERE book_id = 1;",
-        );
-        expect(genesisTypes.first['v_type'], 'integer');
-        expect(genesisTypes.first['u_type'], 'text');
-
-        db.execute('''
-INSERT INTO rs_log (rs_daily_log_id, book_id, chapter, verse, date_time, reading_plan_id)
-VALUES (1, 1, 1, 1, '2026-05-03T09:00:00.000', 1);
-
-DELETE FROM reading_plan_book WHERE reading_plan_id = 1 AND book_id = 40;
-''');
-
-        executeSqlFile(db, 'assets/schemas/reading_session_4.sql');
-
-        final verseState = db.select(
-          'SELECT reading_plan_id, book_id, chapter, verse, read_count, last_read '
-          'FROM rs_verse_state ORDER BY book_id, chapter, verse',
-        );
-        expect(verseState.length, 4);
-
-        final genesis11 = verseState.firstWhere(
-          (r) => r['book_id'] == 1 && r['verse'] == 1,
-        );
-        expect(genesis11['reading_plan_id'], 1);
-        expect(genesis11['chapter'], 1);
-        expect(genesis11['read_count'], 2);
-        expect(genesis11['last_read'], '2026-05-03T09:00:00.000');
-
-        final genesis12 = verseState.firstWhere(
-          (r) => r['book_id'] == 1 && r['verse'] == 2,
-        );
-        expect(genesis12['read_count'], 1);
-        expect(genesis12['last_read'], startStr);
-
-        final genesis13 = verseState.firstWhere(
-          (r) => r['book_id'] == 1 && r['verse'] == 3,
-        );
-        expect(genesis13['read_count'], 1);
-
-        final matthew11 = verseState.firstWhere(
-          (r) => r['book_id'] == 40 && r['verse'] == 1,
-        );
-        expect(matthew11['read_count'], 1);
-        expect(matthew11['last_read'], startStr);
-
-        expect(
-          () => db.execute(
-            "INSERT INTO rs_verse_state (reading_plan_id, book_id, chapter, verse) "
-            "VALUES (1, 1, 1, 1);",
-          ),
-          throwsA(isA<SqliteException>()),
-        );
-
-        expect(
-          db.select(
-            "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'rs_book_progress'",
-          ),
-          isEmpty,
-        );
-        expect(
-          db.select(
-            "SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'hash_rs_book_progress'",
-          ),
-          isEmpty,
-        );
-
-        // 5. Run migration 5 (reading_session_5.sql): the consolidated
-        // rs_session + rs_day_summary upgrade -- session rename, orphan
-        // finalization, summary backfill, and rs_stats retirement in one
-        // atomic step.
-        executeSqlFile(db, 'assets/schemas/reading_session_5.sql');
-
-        // rs_daily_log and rs_stats are gone; their data lives on in
-        // rs_session and rs_day_summary.
-        expect(
-          db.select(
-            "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'rs_daily_log'",
-          ),
-          isEmpty,
-        );
-        expect(
-          db.select(
-            "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'rs_stats'",
-          ),
-          isEmpty,
-        );
-        expect(
-          db.select(
-            "SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'hash_type_date'",
-          ),
-          isEmpty,
-        );
-
-        final sessions = db.select(
-          'SELECT id, rs_date, verses, reading_plan_id FROM rs_session',
-        );
-        expect(sessions.length, 1);
-        expect(sessions[0]['id'], 1);
-        expect(sessions[0]['verses'], 25);
-        expect(sessions[0]['reading_plan_id'], 1);
-
-        final logColumns = db
-            .select('PRAGMA table_info(rs_log)')
-            .map((r) => r['name'])
-            .toList();
-        expect(logColumns, contains('rs_session_id'));
-        expect(logColumns, isNot(contains('rs_daily_log_id')));
-
-        final migratedLogs = db.select(
-          'SELECT id, rs_session_id, book_id, reading_plan_id FROM rs_log ORDER BY id',
-        );
-        expect(migratedLogs.length, 5);
-        for (final log in migratedLogs) {
-          expect(log['rs_session_id'], 1);
-          expect(log['reading_plan_id'], 1);
-        }
-
-        // Totals are recomputed from the session, the flag comes from the
-        // historical rs_stats row, and the goal snapshot comes from the plan.
-        final summary = db.select(
-          'SELECT reading_plan_id, rs_date, rs_seconds, rs_verses, goal_type, goal_value, goal_reached '
-          'FROM rs_day_summary',
-        );
-        expect(summary.length, 1);
-        expect(summary[0]['reading_plan_id'], 1);
-        expect(summary[0]['rs_date'], '2026-05-01');
-        expect(summary[0]['rs_seconds'], 930);
-        expect(summary[0]['rs_verses'], 25);
-        expect(summary[0]['goal_type'], 'M');
-        expect(summary[0]['goal_value'], 10);
-        expect(summary[0]['goal_reached'], 1);
-
-        // 6. Run migration 6 (reading_session_6.sql): sessions gain an
-        // accumulated read duration, backfilled from the old wall-clock
-        // interval for already-closed sessions.
-        executeSqlFile(db, 'assets/schemas/reading_session_6.sql');
-
-        final sessionColumns = db
-            .select('PRAGMA table_info(rs_session)')
-            .map((r) => r['name'])
-            .toList();
-        expect(sessionColumns, contains('read_seconds'));
-
-        final readTimes = db.select(
-          'SELECT id, read_seconds FROM rs_session ORDER BY id',
-        );
-        expect(readTimes, hasLength(1));
-        expect(readTimes[0]['read_seconds'], 930);
-
-        // 7. Run migration 7 (reading_session_7.sql): sessions gain the
-        // manual-session flag, defaulting existing sessions to normal.
-        executeSqlFile(db, 'assets/schemas/reading_session_7.sql');
-
-        final sessionColumnsAfterV7 = db
-            .select('PRAGMA table_info(rs_session)')
-            .map((r) => r['name'])
-            .toList();
-        expect(sessionColumnsAfterV7, contains('is_manual'));
-
-        final manualFlags = db.select(
-          'SELECT id, is_manual FROM rs_session ORDER BY id',
-        );
-        expect(manualFlags, hasLength(1));
-        expect(manualFlags[0]['is_manual'], 0);
-
-        db.execute('''
-INSERT INTO rs_session (rs_date, start_time, end_time, verses, reading_plan_id, read_seconds)
-VALUES ('2026-05-02', '2026-05-02T09:00:00.000', '2026-05-02T09:10:00.000', 2, 1, 600);
-''');
-        final newSessionFlag = db.select(
-          'SELECT is_manual FROM rs_session WHERE rs_date = ?',
-          ['2026-05-02'],
-        );
-        expect(newSessionFlag.single['is_manual'], 0);
-
-        // 8. Run migration 8 (reading_session_8.sql): the plan's collection
-        // id is dropped via a table rebuild while rows, ids, defaults, and
-        // foreign keys are preserved.
-        executeSqlFile(db, 'assets/schemas/reading_session_8.sql');
-
-        final planColumnsAfterV8 = db
-            .select('PRAGMA table_info(reading_plan)')
-            .map((r) => r['name'])
-            .toList();
-        expect(planColumnsAfterV8, isNot(contains('collection_id')));
-        expect(
-          planColumnsAfterV8,
-          containsAll(['id', 'plan_name', 'goal_type']),
-        );
-
-        final preservedPlan = db.select(
-          'SELECT id, plan_name, goal_type, goal_value, is_bookmarked '
-          'FROM reading_plan',
-        );
-        expect(preservedPlan, hasLength(1));
-        expect(preservedPlan.single['id'], 1);
-        expect(preservedPlan.single['plan_name'], 'Whole Bible');
-        expect(preservedPlan.single['goal_type'], 'M');
-        expect(preservedPlan.single['goal_value'], 10);
-        expect(preservedPlan.single['is_bookmarked'], 0);
-
-        final planBooksAfterV8 = db.select(
-          'SELECT COUNT(*) AS count FROM reading_plan_book '
-          'WHERE reading_plan_id = 1',
-        );
-        expect(planBooksAfterV8.first['count'], 65);
-
-        expect(db.select('PRAGMA foreign_key_check'), isEmpty);
       },
     );
 
-    test(
-      'v5/v6 migration finalizes orphans, keeps empty sessions, renames sessions, backfills summaries and read times, and retires rs_stats',
-      () {
-        createSchemaV1(db);
-        upgradeTo(db, 4);
+    await openReadingDatabase();
 
-        // Plan 1 is seeded by migration 3 with goal_type 'M' (minutes) and
-        // goal_value 10, so the goal is reached at >= 600 seconds.
-        db.execute(
-          "UPDATE reading_plan SET goal_type = 'M', goal_value = 10 WHERE id = 1",
-        );
+    await expectV9Schema();
 
-        // Day 1: two closed sessions (600s + 330s = 930s, 25 verses),
-        // stats row says goal_reached = 1.
-        db.execute('''
-INSERT INTO rs_daily_log (id, rs_date, start_time, end_time, verses, reading_plan_id)
-VALUES
-  (1, '2026-06-01T00:00:00.000', '2026-06-01T10:00:00.000', '2026-06-01T10:10:00.000', 15, 1),
-  (2, '2026-06-01T00:00:00.000', '2026-06-01T11:00:00.000', '2026-06-01T11:05:30.000', 10, 1);
-''');
-
-        // Day 2: one closed session (300s, 5 verses) plus a killed session
-        // (end_time null, 4 verses) whose last log row is at 09:50:00. The
-        // stats row (flag 0) was computed under the old semantics, which
-        // excluded the killed session -- the historical flag must win over
-        // recomputation.
-        db.execute('''
-INSERT INTO rs_daily_log (id, rs_date, start_time, end_time, verses, reading_plan_id)
-VALUES
-  (3, '2026-06-02T00:00:00.000', '2026-06-02T09:00:00.000', '2026-06-02T09:05:00.000', 5, 1),
-  (4, '2026-06-02T00:00:00.000', '2026-06-02T09:45:00.000', null, 4, 1);
-''');
-        db.execute('''
-INSERT INTO rs_log (id, rs_daily_log_id, book_id, chapter, verse, date_time, reading_plan_id)
-VALUES
-  (1, 4, 1, 1, 1, '2026-06-02T09:46:00.000', 1),
-  (2, 4, 1, 1, 2, '2026-06-02T09:48:00.000', 1),
-  (3, 4, 1, 1, 3, '2026-06-02T09:49:00.000', 1),
-  (4, 4, 1, 1, 4, '2026-06-02T09:50:00.000', 1);
-''');
-
-        // Day 3: only a killed session (2 verses, logs 08:01 and 08:02) and
-        // no stats row -- best-effort evaluation against the current goal.
-        db.execute('''
-INSERT INTO rs_daily_log (id, rs_date, start_time, end_time, verses, reading_plan_id)
-VALUES (5, '2026-06-03T00:00:00.000', '2026-06-03T08:00:00.000', null, 2, 1);
-''');
-        db.execute('''
-INSERT INTO rs_log (id, rs_daily_log_id, book_id, chapter, verse, date_time, reading_plan_id)
-VALUES
-  (5, 5, 1, 1, 1, '2026-06-03T08:01:00.000', 1),
-  (6, 5, 1, 1, 2, '2026-06-03T08:02:00.000', 1);
-''');
-
-        // Day 4: empty session (verses 0, end_time null, no logs) -- kept.
-        db.execute('''
-INSERT INTO rs_daily_log (id, rs_date, start_time, end_time, verses, reading_plan_id)
-VALUES (6, '2026-06-04T00:00:00.000', '2026-06-04T07:00:00.000', null, 0, 1);
-''');
-
-        // Stats rows: daily flags for days 1 and 2, plus a monthly row that
-        // nothing reads and must be ignored.
-        db.execute('''
-INSERT INTO rs_stats (id, type, stats_date, rs_seconds, rs_verses, goal_reached, reading_plan_id)
-VALUES
-  (1, 'D', '2026-06-01T00:00:00.000', 930, 25, 1, 1),
-  (2, 'D', '2026-06-02T00:00:00.000', 300, 5, 0, 1),
-  (3, 'M', '2026-06-30T00:00:00.000', 9999, 99, 1, 1);
-''');
-
-        executeSqlFile(db, 'assets/schemas/reading_session_5.sql');
-
-        // The old tables and index are gone.
-        for (final name in ['rs_daily_log', 'rs_stats', 'hash_type_date']) {
-          expect(
-            db.select("SELECT name FROM sqlite_master WHERE name = '$name'"),
-            isEmpty,
-          );
-        }
-
-        // Killed sessions are finalized from their last log row; the empty
-        // session is preserved with no end_time because it has no logs.
-        final sessions = db.select(
-          'SELECT id, end_time, verses FROM rs_session ORDER BY id',
-        );
-        expect(sessions.map((r) => r['id']).toList(), [1, 2, 3, 4, 5, 6]);
-        expect(
-          db
-              .select('SELECT id FROM rs_session WHERE end_time IS NULL')
-              .map((r) => r['id'])
-              .toList(),
-          [6],
-        );
-        expect(
-          db
-              .select('SELECT end_time FROM rs_session WHERE id = 4')
-              .first['end_time'],
-          '2026-06-02T09:50:00.000',
-        );
-        expect(
-          db
-              .select('SELECT end_time FROM rs_session WHERE id = 5')
-              .first['end_time'],
-          '2026-06-03T08:02:00.000',
-        );
-
-        // rs_log rows are preserved and re-pointed at rs_session.
-        final logColumns = db
-            .select('PRAGMA table_info(rs_log)')
-            .map((r) => r['name'])
-            .toList();
-        expect(logColumns, contains('rs_session_id'));
-        expect(logColumns, isNot(contains('rs_daily_log_id')));
-        final logs = db.select(
-          'SELECT id, rs_session_id FROM rs_log ORDER BY id',
-        );
-        expect(logs, hasLength(6));
-        for (final log in logs) {
-          expect(log['rs_session_id'], log['id'] <= 4 ? 4 : 5);
-        }
-
-        // Summaries: totals recomputed (finalized orphans now count), flags
-        // from rs_stats where present, best-effort otherwise. The monthly
-        // stats row creates no summary for 2026-06-30. The preserved empty
-        // session contributes a zero-total row for 2026-06-04.
-        final summaries = db.select(
-          'SELECT rs_date, rs_seconds, rs_verses, goal_type, goal_value, goal_reached '
-          'FROM rs_day_summary ORDER BY rs_date',
-        );
-        expect(summaries.map((r) => r['rs_date']).toList(), [
-          '2026-06-01',
-          '2026-06-02',
-          '2026-06-03',
-          '2026-06-04',
-        ]);
-
-        // Day 1: totals recomputed from sessions, flag from rs_stats.
-        expect(summaries[0]['rs_seconds'], 930);
-        expect(summaries[0]['rs_verses'], 25);
-        expect(summaries[0]['goal_reached'], 1);
-        expect(summaries[0]['goal_type'], 'M');
-        expect(summaries[0]['goal_value'], 10);
-
-        // Day 2: totals now include the finalized killed session (300s +
-        // 300s = 600s, 9 verses) while the historical flag (0) survives --
-        // recomputation would say reached, but the recorded flag wins.
-        expect(summaries[1]['rs_seconds'], 600);
-        expect(summaries[1]['rs_verses'], 9);
-        expect(summaries[1]['goal_reached'], 0);
-
-        // Day 3: brand new row from the finalized orphan, best-effort flag
-        // against the current goal (120s < 600s).
-        expect(summaries[2]['rs_seconds'], 120);
-        expect(summaries[2]['rs_verses'], 2);
-        expect(summaries[2]['goal_reached'], 0);
-
-        // Day 4: the preserved empty session is all zeroes and not reached.
-        expect(summaries[3]['rs_seconds'], 0);
-        expect(summaries[3]['rs_verses'], 0);
-        expect(summaries[3]['goal_reached'], 0);
-
-        // The composite PK rejects a duplicate (plan, date) row.
-        expect(
-          () => db.execute(
-            "INSERT INTO rs_day_summary (reading_plan_id, rs_date, rs_seconds, rs_verses, goal_reached) "
-            "VALUES (1, '2026-06-01', 0, 0, 0)",
-          ),
-          throwsA(isA<SqliteException>()),
-        );
-
-        // v6 adds the accumulated foreground read time, backfilled from the
-        // legacy wall-clock interval. The empty session stays at zero.
-        executeSqlFile(db, 'assets/schemas/reading_session_6.sql');
-        final readTimes = db.select(
-          'SELECT id, read_seconds FROM rs_session ORDER BY id',
-        );
-        expect(readTimes.map((r) => r['read_seconds']).toList(), [
-          600,
-          330,
-          300,
-          300,
-          120,
-          0,
-        ]);
-
-        expect(db.select('PRAGMA foreign_key_check'), isEmpty);
-      },
+    final plan = (await database!.readingPlans.getById(1))!;
+    expect(
+      plan,
+      ReadingPlan(
+        id: 1,
+        planName: 'Whole Bible',
+        createdAt: plan.createdAt,
+        goalType: GoalType.minutes,
+        goalValue: 10,
+        isBookmarked: false,
+        bookIds: [for (var bookId = 1; bookId <= 66; bookId++) bookId],
+      ),
     );
 
-    test(
-      'explicit column mapping correctly migrates databases regardless of old table column order',
-      () {
-        // Simulate an old table that has verses_read BEFORE updated_at (as in fresh v2 installations)
-        db.execute('''
-CREATE TABLE rs_daily_log (id INTEGER PRIMARY KEY, rs_date DATE, start_time TIMESTAMP, end_time TIMESTAMP, verses INT);
-CREATE TABLE rs_log (id INTEGER PRIMARY KEY, rs_daily_log_id INT, book_id INT, chapter INT, verse INT, date_time TIMESTAMP);
-CREATE TABLE rs_stats (id INTEGER PRIMARY KEY, type VARCHAR(1), stats_date DATE, rs_seconds INT, rs_verses INT, goal_reached INT);
-CREATE TABLE rs_book_progress (
-    id INTEGER PRIMARY KEY,
-    book_id INT,
-    chapter INT,
-    verse INT,
-    chapters_read INT,
-    verses_read INT,
-    updated_at DATETIME
-);
-CREATE UNIQUE INDEX hash_type_date ON rs_stats(type, stats_date);
-CREATE UNIQUE INDEX hash_rs_book_progress ON rs_book_progress(book_id);
-''');
-
-        final testDate = '2026-05-05T12:00:00.000';
-        db.execute('''
-INSERT INTO rs_book_progress (id, book_id, chapter, verse, chapters_read, verses_read, updated_at)
-VALUES (1, 19, 23, 1, 22, 118, '$testDate');
-''');
-
-        // Run migration 3
-        executeSqlFile(db, 'assets/schemas/reading_session_3.sql');
-
-        final row = db
-            .select('SELECT * FROM rs_book_progress WHERE book_id = 19;')
-            .first;
-        expect(row['verses_read'], 118);
-        expect(row['updated_at'], testDate);
-      },
+    expect(
+      await database!.session.getById(1),
+      Session(
+        id: 1,
+        rsDate: DateTime.parse('2026-05-01'),
+        startTime: DateTime.parse(startStr),
+        endTime: DateTime.parse(endStr),
+        readSeconds: 930,
+        verses: 25,
+        readingPlanId: 1,
+        isManual: false,
+      ),
     );
 
-    test(
-      'hash_type_date unique index allows stats for multiple reading plans on the same date',
-      () {
-        createSchemaV1(db);
-        executeSqlFile(db, 'assets/schemas/reading_session_2.sql');
-        executeSqlFile(db, 'assets/schemas/reading_session_3.sql');
+    expect(await database!.sessionLog.listForSession(1), [
+      SessionLogEntry(
+        id: 1,
+        sessionId: 1,
+        readingPlanId: 1,
+        bookId: 1,
+        chapter: 1,
+        verse: 1,
+        dateTime: DateTime.parse(startStr),
+      ),
+      SessionLogEntry(
+        id: 2,
+        sessionId: 1,
+        readingPlanId: 1,
+        bookId: 1,
+        chapter: 1,
+        verse: 2,
+        dateTime: DateTime.parse(startStr),
+      ),
+      SessionLogEntry(
+        id: 3,
+        sessionId: 1,
+        readingPlanId: 1,
+        bookId: 1,
+        chapter: 1,
+        verse: 3,
+        dateTime: DateTime.parse(startStr),
+      ),
+      SessionLogEntry(
+        id: 4,
+        sessionId: 1,
+        readingPlanId: 1,
+        bookId: 40,
+        chapter: 1,
+        verse: 1,
+        dateTime: DateTime.parse(startStr),
+      ),
+    ]);
 
-        // Insert plan 1 stats
-        db.execute('''
-INSERT INTO rs_stats (id, type, stats_date, rs_seconds, rs_verses, goal_reached, reading_plan_id)
-VALUES (1, 'D', '2026-05-10', 600, 20, 1, 1);
-''');
-
-        // Create plan 2
-        db.execute('''
-INSERT INTO reading_plan (id, plan_name, created_at, last_read, collection_id, goal_type, goal_value, is_bookmarked)
-VALUES (2, 'New Testament', '2026-05-10T08:00:00.000', null, 3, 'M', 15, 0);
-''');
-
-        // Insert plan 2 stats on the EXACT same date
-        db.execute('''
-INSERT INTO rs_stats (id, type, stats_date, rs_seconds, rs_verses, goal_reached, reading_plan_id)
-VALUES (2, 'D', '2026-05-10', 900, 30, 1, 2);
-''');
-
-        final stats = db.select(
-          "SELECT * FROM rs_stats WHERE stats_date = '2026-05-10' ORDER BY reading_plan_id;",
-        );
-        expect(stats.length, 2);
-        expect(stats[0]['reading_plan_id'], 1);
-        expect(stats[1]['reading_plan_id'], 2);
-      },
+    expect(
+      await database!.daySummary.get(1, DateTime(2026, 5, 1)),
+      DaySummary(
+        readingPlanId: 1,
+        rsDate: DateTime(2026, 5, 1),
+        rsSeconds: 930,
+        rsVerses: 25,
+        goalType: GoalType.minutes,
+        goalValue: 10,
+        goalReached: true,
+      ),
     );
+
+    expect(await database!.verseState.getReadCount(1, 1, 1, 1), 1);
+    expect(await database!.verseState.getReadCount(1, 1, 1, 2), 1);
+    expect(await database!.verseState.getReadCount(1, 1, 1, 3), 1);
+    expect(await database!.verseState.getReadCount(1, 40, 1, 1), 1);
+    expect(await database!.verseState.getReadCount(1, 1, 1, 4), 0);
+    expect(await database!.verseState.getReadCount(1, 63, 1, 1), 0);
+
+    final stats = await database!.verseState.getBookStats(1);
+    expect(stats.keys, hasLength(66));
+    expect(_snapshotOf(stats[1]!), (
+      totalVerses: verseCountFor(1),
+      versesRead: 3,
+      lastRead: DateTime.parse(startStr),
+      resumePosition: const Reference(bookId: 1, chapter: 1, verse: 4),
+    ));
+    expect(_snapshotOf(stats[40]!), (
+      totalVerses: verseCountFor(40),
+      versesRead: 1,
+      lastRead: DateTime.parse(startStr),
+      resumePosition: const Reference(bookId: 40, chapter: 1, verse: 2),
+    ));
+    expect(_snapshotOf(stats[63]!), (
+      totalVerses: 13,
+      versesRead: 0,
+      lastRead: null,
+      resumePosition: const Reference(bookId: 63, chapter: 1, verse: 1),
+    ));
   });
+
+  test(
+    'upgrades v2 sessions with finalization, read times, and summaries',
+    () async {
+      await createV2Database(
+        seed: (db) async {
+          await db.execute('''
+INSERT INTO rs_daily_log (id, rs_date, start_time, end_time, verses)
+VALUES
+  (1, '2026-06-01T00:00:00.000', '2026-06-01T10:00:00.000', '2026-06-01T10:10:00.000', 15),
+  (2, '2026-06-01T00:00:00.000', '2026-06-01T11:00:00.000', '2026-06-01T11:05:30.000', 10),
+  (3, '2026-06-02T00:00:00.000', '2026-06-02T09:00:00.000', '2026-06-02T09:05:00.000', 5),
+  (4, '2026-06-02T00:00:00.000', '2026-06-02T09:45:00.000', null, 4),
+  (5, '2026-06-03T00:00:00.000', '2026-06-03T08:00:00.000', null, 2),
+  (6, '2026-06-04T00:00:00.000', '2026-06-04T07:00:00.000', null, 0);
+''');
+          await db.execute('''
+INSERT INTO rs_log (id, rs_daily_log_id, book_id, chapter, verse, date_time)
+VALUES
+  (1, 4, 1, 1, 1, '2026-06-02T09:46:00.000'),
+  (2, 4, 1, 1, 2, '2026-06-02T09:48:00.000'),
+  (3, 4, 1, 1, 3, '2026-06-02T09:49:00.000'),
+  (4, 4, 1, 1, 4, '2026-06-02T09:50:00.000'),
+  (5, 5, 1, 1, 1, '2026-06-03T08:01:00.000'),
+  (6, 5, 1, 1, 2, '2026-06-03T08:02:00.000');
+''');
+          await db.execute('''
+INSERT INTO rs_stats (id, type, stats_date, rs_seconds, rs_verses, goal_reached)
+VALUES
+  (1, 'D', '2026-06-01T00:00:00.000', 930, 25, 1),
+  (2, 'D', '2026-06-02T00:00:00.000', 300, 5, 0),
+  (3, 'M', '2026-06-30T00:00:00.000', 9999, 99, 1);
+''');
+        },
+      );
+
+      await openReadingDatabase();
+
+      final sessions = await database!.session.listForDate(
+        DateTime(2026, 6, 1),
+        1,
+      );
+      expect(sessions, hasLength(2));
+      expect(sessions[0].id, 1);
+      expect(sessions[0].readSeconds, 600);
+      expect(sessions[1].id, 2);
+      expect(sessions[1].readSeconds, 330);
+
+      expect(
+        await database!.session.getById(3),
+        Session(
+          id: 3,
+          rsDate: DateTime(2026, 6, 2),
+          startTime: DateTime.parse('2026-06-02T09:00:00.000'),
+          endTime: DateTime.parse('2026-06-02T09:05:00.000'),
+          readSeconds: 300,
+          verses: 5,
+          readingPlanId: 1,
+          isManual: false,
+        ),
+      );
+      expect(
+        await database!.session.getById(4),
+        Session(
+          id: 4,
+          rsDate: DateTime(2026, 6, 2),
+          startTime: DateTime.parse('2026-06-02T09:45:00.000'),
+          endTime: DateTime.parse('2026-06-02T09:50:00.000'),
+          readSeconds: 300,
+          verses: 4,
+          readingPlanId: 1,
+          isManual: false,
+        ),
+      );
+      expect(
+        await database!.session.getById(5),
+        Session(
+          id: 5,
+          rsDate: DateTime(2026, 6, 3),
+          startTime: DateTime.parse('2026-06-03T08:00:00.000'),
+          endTime: DateTime.parse('2026-06-03T08:02:00.000'),
+          readSeconds: 120,
+          verses: 2,
+          readingPlanId: 1,
+          isManual: false,
+        ),
+      );
+      expect(
+        await database!.session.getById(6),
+        Session(
+          id: 6,
+          rsDate: DateTime(2026, 6, 4),
+          startTime: DateTime.parse('2026-06-04T07:00:00.000'),
+          verses: 0,
+          readingPlanId: 1,
+          isManual: false,
+        ),
+      );
+
+      expect(await database!.sessionLog.listForSession(4), hasLength(4));
+      expect(await database!.sessionLog.listForSession(5), hasLength(2));
+
+      expect(
+        await database!.daySummary.listBetween(
+          1,
+          DateTime(2026, 6, 1),
+          DateTime(2026, 6, 4),
+        ),
+        [
+          DaySummary(
+            readingPlanId: 1,
+            rsDate: DateTime(2026, 6, 1),
+            rsSeconds: 930,
+            rsVerses: 25,
+            goalType: GoalType.minutes,
+            goalValue: 10,
+            goalReached: true,
+          ),
+          DaySummary(
+            readingPlanId: 1,
+            rsDate: DateTime(2026, 6, 2),
+            rsSeconds: 600,
+            rsVerses: 9,
+            goalType: GoalType.minutes,
+            goalValue: 10,
+            goalReached: false,
+          ),
+          DaySummary(
+            readingPlanId: 1,
+            rsDate: DateTime(2026, 6, 3),
+            rsSeconds: 120,
+            rsVerses: 2,
+            goalType: GoalType.minutes,
+            goalValue: 10,
+            goalReached: false,
+          ),
+          DaySummary(
+            readingPlanId: 1,
+            rsDate: DateTime(2026, 6, 4),
+            rsSeconds: 0,
+            rsVerses: 0,
+            goalType: GoalType.minutes,
+            goalValue: 10,
+            goalReached: false,
+          ),
+        ],
+      );
+    },
+  );
 }
