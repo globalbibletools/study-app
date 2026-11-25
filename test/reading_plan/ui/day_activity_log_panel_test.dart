@@ -11,6 +11,7 @@ import 'package:gbt/reading_plan/ui/day_activity_log_panel.dart';
 import 'package:gbt/reading_plan/ui/day_activity_log_view_model.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/messaging/messenger_host.dart';
+import 'package:gbt/ui/messaging/messenger_view_model.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
@@ -64,6 +65,12 @@ void main() {
       queries: database.queries,
       planService: planService,
     );
+  }
+
+  Future<DayActivityLogViewModel> newDirectViewModel() async {
+    final viewModel = await newViewModel();
+    addTearDown(viewModel.dispose);
+    return viewModel;
   }
 
   Future<Session> seedSession({
@@ -378,137 +385,199 @@ void main() {
       expect(summary!.rsSeconds, 300);
       expect(summary.rsVerses, 3);
     });
+
+    testWidgets('shows an error when adding a manual session fails', (
+      tester,
+    ) async {
+      final viewModel = await pumpPanel(tester);
+      await tester.tap(find.byKey(const ValueKey('addManualSessionButton')));
+      await tester.pumpAndSettle();
+      await tester.enterText(minutesField(), '5');
+      await tester.enterText(versesField(), '2');
+
+      await tester.runAsync(() async {
+        database.dispose();
+        databaseDisposed = true;
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+      });
+      await tester.tap(find.byKey(const ValueKey('manualSessionSubmit')));
+      await waitFor(tester, () => messenger.messages.isNotEmpty);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AlertDialog), findsNothing);
+      expect(viewModel.sessions, isEmpty);
+      expect(messenger.messages.single.text, startsWith('Error: '));
+
+      await tester.pump(const Duration(seconds: 8));
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('shows an error when deleting a manual session fails', (
+      tester,
+    ) async {
+      final manual = (await tester.runAsync(
+        () => seedSession(
+          startTime: DateTime(2026, 11, 17, 9, 30),
+          readSeconds: 120,
+          verses: 2,
+          isManual: true,
+        ),
+      ))!;
+      final viewModel = (await tester.runAsync(newViewModel))!;
+      getIt.registerSingleton<MessengerViewModel>(messenger);
+
+      await tester.pumpWidget(
+        buildApp(DayActivityLogPanel(viewModel: viewModel)),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.runAsync(() async {
+        database.dispose();
+        databaseDisposed = true;
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+      });
+      await tester.tap(
+        find.byKey(ValueKey('deleteManualSession-${manual.id}')),
+      );
+      await waitFor(tester, () => messenger.messages.isNotEmpty);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Manually added'), findsOneWidget);
+      expect(messenger.messages.single.text, startsWith('Error: '));
+
+      await tester.pump(const Duration(seconds: 8));
+      await tester.pumpAndSettle();
+    });
+
+    test(
+      'invalid manual input throws without changing state, then a valid add works',
+      () async {
+        await seedSession(
+          startTime: DateTime(2026, 11, 17, 8),
+          readSeconds: 60,
+          verses: 1,
+        );
+        final viewModel = await newDirectViewModel();
+        final sessionsBefore = viewModel.sessions;
+        final minutesBefore = viewModel.totalMinutes;
+        final versesBefore = viewModel.totalVerses;
+
+        await expectLater(
+          viewModel.addManualSession(minutes: -1, verses: 1),
+          throwsArgumentError,
+        );
+
+        expect(viewModel.sessions, sessionsBefore);
+        expect(viewModel.totalMinutes, minutesBefore);
+        expect(viewModel.totalVerses, versesBefore);
+        expect(await database.session.listForDate(date, planId), hasLength(1));
+
+        await viewModel.addManualSession(minutes: 5.5, verses: 2);
+
+        expect(viewModel.sessions, hasLength(2));
+        expect(viewModel.sessions.last.isManual, isTrue);
+        expect(viewModel.sessions.last.readSeconds, 330);
+        expect(viewModel.totalMinutes, minutesBefore + 5.5);
+        expect(viewModel.totalVerses, versesBefore + 2);
+        expect(await database.session.listForDate(date, planId), hasLength(2));
+      },
+    );
+
+    test('deleting a missing or already-deleted session is a no-op', () async {
+      final manual = await seedSession(
+        startTime: DateTime(2026, 11, 17, 9, 30),
+        readSeconds: 120,
+        verses: 2,
+        isManual: true,
+      );
+      final viewModel = await newDirectViewModel();
+      expect(viewModel.sessions, hasLength(1));
+
+      await viewModel.deleteManualSession(manual.id! + 1000);
+
+      expect(viewModel.sessions.map((session) => session.sessionId), [
+        manual.id,
+      ]);
+      expect(viewModel.totalMinutes, 2);
+      expect(viewModel.totalVerses, 2);
+
+      await viewModel.deleteManualSession(manual.id!);
+
+      expect(viewModel.sessions, isEmpty);
+      expect(await database.session.getById(manual.id!), isNull);
+      expect(await database.daySummary.get(planId, date), isNull);
+
+      await viewModel.deleteManualSession(manual.id!);
+
+      expect(viewModel.sessions, isEmpty);
+      expect(viewModel.totalMinutes, 0);
+      expect(viewModel.totalVerses, 0);
+    });
   });
 
-  group('view model edge cases', () {
-    group('with the real database', () {
-      Future<DayActivityLogViewModel> newDirectViewModel() async {
-        final viewModel = await newViewModel();
-        addTearDown(viewModel.dispose);
-        return viewModel;
-      }
+  group('refresh', () {
+    test('a newer refresh cancels the in-flight one and wins', () async {
+      await seedSession(readSeconds: 60, verses: 1);
+      final viewModel = await newDirectViewModel();
 
-      test('create propagates a load error from a closed database', () async {
+      final first = viewModel.refresh();
+      final second = viewModel.refresh();
+
+      await expectLater(first, throwsA(isA<CancelledError>()));
+      await second;
+
+      expect(viewModel.sessions, hasLength(1));
+      expect(viewModel.sessions.single.verses, 1);
+      expect(viewModel.totalMinutes, 1);
+    });
+
+    test(
+      'does not notify after dispose while a refresh is in flight',
+      () async {
+        await seedSession(readSeconds: 60, verses: 1);
+        final viewModel = await DayActivityLogViewModel.create(
+          readingPlanId: planId,
+          date: date,
+          queries: database.queries,
+          planService: planService,
+        );
+        var notifications = 0;
+        viewModel.addListener(() => notifications++);
+
+        final future = viewModel.refresh();
+        viewModel.dispose();
+
+        await expectLater(future, throwsA(isA<CancelledError>()));
+        expect(notifications, 0);
+      },
+    );
+
+    test(
+      'propagates an error after a successful load and keeps state',
+      () async {
+        await seedSession(readSeconds: 60, verses: 1);
+        final viewModel = await newDirectViewModel();
         database.dispose();
         databaseDisposed = true;
         await Future<void>.delayed(const Duration(milliseconds: 100));
 
-        await expectLater(newViewModel(), throwsA(isA<Object>()));
-      });
-
-      test('a newer refresh cancels the in-flight one and wins', () async {
-        await seedSession(readSeconds: 60, verses: 1);
-        final viewModel = await newDirectViewModel();
-
-        final first = viewModel.refresh();
-        final second = viewModel.refresh();
-
-        await expectLater(first, throwsA(isA<CancelledError>()));
-        await second;
+        await expectLater(viewModel.refresh(), throwsA(isA<Object>()));
 
         expect(viewModel.sessions, hasLength(1));
-        expect(viewModel.sessions.single.verses, 1);
         expect(viewModel.totalMinutes, 1);
-      });
-
-      test(
-        'does not notify after dispose while a refresh is in flight',
-        () async {
-          await seedSession(readSeconds: 60, verses: 1);
-          final viewModel = await DayActivityLogViewModel.create(
-            readingPlanId: planId,
-            date: date,
-            queries: database.queries,
-            planService: planService,
-          );
-          var notifications = 0;
-          viewModel.addListener(() => notifications++);
-
-          final future = viewModel.refresh();
-          viewModel.dispose();
-
-          await expectLater(future, throwsA(isA<CancelledError>()));
-          expect(notifications, 0);
-        },
-      );
-
-      test(
-        'invalid manual input throws without changing state, then a valid add works',
-        () async {
-          await seedSession(
-            startTime: DateTime(2026, 11, 17, 8),
-            readSeconds: 60,
-            verses: 1,
-          );
-          final viewModel = await newDirectViewModel();
-          final sessionsBefore = viewModel.sessions;
-          final minutesBefore = viewModel.totalMinutes;
-          final versesBefore = viewModel.totalVerses;
-
-          await expectLater(
-            viewModel.addManualSession(minutes: -1, verses: 1),
-            throwsArgumentError,
-          );
-
-          expect(viewModel.sessions, sessionsBefore);
-          expect(viewModel.totalMinutes, minutesBefore);
-          expect(viewModel.totalVerses, versesBefore);
-          expect(
-            await database.session.listForDate(date, planId),
-            hasLength(1),
-          );
-
-          await viewModel.addManualSession(minutes: 5.5, verses: 2);
-
-          expect(viewModel.sessions, hasLength(2));
-          expect(viewModel.sessions.last.isManual, isTrue);
-          expect(viewModel.sessions.last.readSeconds, 330);
-          expect(viewModel.totalMinutes, minutesBefore + 5.5);
-          expect(viewModel.totalVerses, versesBefore + 2);
-          expect(
-            await database.session.listForDate(date, planId),
-            hasLength(2),
-          );
-        },
-      );
-
-      test(
-        'deleting a missing or already-deleted session is a no-op',
-        () async {
-          final manual = await seedSession(
-            startTime: DateTime(2026, 11, 17, 9, 30),
-            readSeconds: 120,
-            verses: 2,
-            isManual: true,
-          );
-          final viewModel = await newDirectViewModel();
-          expect(viewModel.sessions, hasLength(1));
-
-          await viewModel.deleteManualSession(manual.id! + 1000);
-
-          expect(viewModel.sessions.map((session) => session.sessionId), [
-            manual.id,
-          ]);
-          expect(viewModel.totalMinutes, 2);
-          expect(viewModel.totalVerses, 2);
-
-          await viewModel.deleteManualSession(manual.id!);
-
-          expect(viewModel.sessions, isEmpty);
-          expect(await database.session.getById(manual.id!), isNull);
-          expect(await database.daySummary.get(planId, date), isNull);
-
-          await viewModel.deleteManualSession(manual.id!);
-
-          expect(viewModel.sessions, isEmpty);
-          expect(viewModel.totalMinutes, 0);
-          expect(viewModel.totalVerses, 0);
-        },
-      );
-    });
+      },
+    );
   });
 
   group('navigation', () {
+    test('create propagates a load error from a closed database', () async {
+      database.dispose();
+      databaseDisposed = true;
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+
+      await expectLater(newViewModel(), throwsA(isA<Object>()));
+    });
+
     testWidgets('back closes the panel', (tester) async {
       await tester.runAsync(() => seedSession(readSeconds: 60, verses: 1));
       final viewModel = (await tester.runAsync(newViewModel))!;
@@ -566,6 +635,35 @@ void main() {
       await tester.pumpAndSettle();
     });
 
+    testWidgets(
+      'navigateTo uses the registered messenger when none is provided',
+      (tester) async {
+        registerRealDependencies();
+        getIt.registerSingleton<MessengerViewModel>(messenger);
+        await tester.runAsync(() async {
+          database.dispose();
+          databaseDisposed = true;
+          await Future<void>.delayed(const Duration(milliseconds: 100));
+        });
+
+        await tester.pumpWidget(
+          buildApp(_NavigateToLauncher(date: date, readingPlanId: planId)),
+        );
+        await tester.tap(find.text('Open activity'));
+        await waitFor(tester, () => messenger.messages.isNotEmpty);
+        await tester.pumpAndSettle();
+
+        expect(find.byType(DayActivityLogPanel), findsNothing);
+        final l10n = AppLocalizations.of(
+          tester.element(find.text('Open activity')),
+        )!;
+        expect(messenger.messages.single.text, l10n.errorLoadingContent);
+
+        await tester.pump(const Duration(seconds: 8));
+        await tester.pumpAndSettle();
+      },
+    );
+
     testWidgets('navigateTo opens the panel for the requested day', (
       tester,
     ) async {
@@ -599,6 +697,37 @@ void main() {
       expect(find.text('09:05'), findsOneWidget);
       expect(find.text('5 min • 2 verses'), findsNWidgets(2));
       expect(messenger.messages, isEmpty);
+    });
+
+    testWidgets('navigateTo disposes the view model when context unmounts', (
+      tester,
+    ) async {
+      registerRealDependencies();
+      late BuildContext staleContext;
+
+      await tester.pumpWidget(
+        buildApp(
+          Builder(
+            builder: (context) {
+              staleContext = context;
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      );
+      await tester.pumpWidget(buildApp(const SizedBox.shrink()));
+      await tester.runAsync(
+        () => DayActivityLogPanel.navigateTo(
+          staleContext,
+          date,
+          readingPlanId: planId,
+          messenger: messenger,
+        ),
+      );
+
+      expect(find.byType(DayActivityLogPanel), findsNothing);
+      expect(messenger.messages, isEmpty);
+      expect(tester.takeException(), isNull);
     });
   });
 }
@@ -635,12 +764,12 @@ class _NavigateToLauncher extends StatelessWidget {
   const _NavigateToLauncher({
     required this.date,
     required this.readingPlanId,
-    required this.messenger,
+    this.messenger,
   });
 
   final DateTime date;
   final int readingPlanId;
-  final FakeMessengerViewModel messenger;
+  final FakeMessengerViewModel? messenger;
 
   @override
   Widget build(BuildContext context) {
