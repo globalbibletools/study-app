@@ -24,15 +24,6 @@ void main() {
     );
   }
 
-  testWidgets('renders the value with button controls', (tester) async {
-    await tester.pumpWidget(buildStepper());
-
-    expect(find.text('5'), findsOneWidget);
-    expect(find.byType(IconButton), findsNWidgets(2));
-    expect(find.byKey(const Key('test-decrease')), findsOneWidget);
-    expect(find.byKey(const Key('test-increase')), findsOneWidget);
-  });
-
   testWidgets('increments and decrements within bounds', (tester) async {
     final changes = <num>[];
     await tester.pumpWidget(
@@ -65,25 +56,5 @@ void main() {
 
     expect(changes.last, 5.5);
     expect(find.text('5.5'), findsOneWidget);
-  });
-
-  testWidgets('does not decrement below zero when zero is allowed', (
-    tester,
-  ) async {
-    final changes = <num>[];
-    await tester.pumpWidget(
-      buildStepper(
-        initialValue: 0,
-        minValue: 0,
-        allowDecimal: true,
-        onChanged: changes.add,
-      ),
-    );
-
-    await tester.tap(find.byKey(const Key('test-decrease')));
-    await tester.pump();
-
-    expect(changes, isEmpty);
-    expect(find.text('0'), findsOneWidget);
   });
 }

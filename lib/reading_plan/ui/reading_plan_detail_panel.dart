@@ -18,15 +18,8 @@ typedef NavigateToReadingPlanDetailRoute =
 
 class ReadingPlanDetailPanel extends StatefulWidget {
   final ReadingPlanDetailViewModel viewModel;
-  final NavigateToExistingReadingPlanRoute? navigateToEditPlanRoute;
-  final NavigateToDayActivityLogRoute? navigateToDayActivityLogRoute;
 
-  const ReadingPlanDetailPanel({
-    super.key,
-    required this.viewModel,
-    this.navigateToEditPlanRoute,
-    this.navigateToDayActivityLogRoute,
-  });
+  const ReadingPlanDetailPanel({super.key, required this.viewModel});
 
   static Future<void> navigateTo(
     BuildContext context,
@@ -151,10 +144,7 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
   }
 
   Future<void> _editPlan() async {
-    final navigate =
-        widget.navigateToEditPlanRoute ??
-        EditReadingPlanPanel.navigateToExisting;
-    await navigate(context, viewModel.planId);
+    await EditReadingPlanPanel.navigateToExisting(context, viewModel.planId);
 
     if (!mounted) return;
     await viewModel.refresh();
@@ -333,10 +323,11 @@ class ReadingPlanDetailPanelState extends State<ReadingPlanDetailPanel> {
 
     _openingActivityLog = true;
     try {
-      final navigate =
-          widget.navigateToDayActivityLogRoute ??
-          DayActivityLogPanel.navigateTo;
-      await navigate(context, date, readingPlanId: viewModel.planId);
+      await DayActivityLogPanel.navigateTo(
+        context,
+        date,
+        readingPlanId: viewModel.planId,
+      );
     } finally {
       _openingActivityLog = false;
     }
