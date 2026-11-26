@@ -1,4 +1,8 @@
+import 'dart:async';
+
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gbt/asyncutils/serial_queue.dart';
 import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/common/reference.dart';
 import 'package:gbt/reading_plan/data_access/rs_database.dart';
@@ -34,11 +38,10 @@ void main() {
     getIt.registerSingleton<BibleNavigation>(createTestBibleNavigation());
 
     database = ReadingSessionDatabase.withDependencies(
-      databaseName: 'reading_session_view_model_test.db',
+      databasePath: inMemoryDatabasePath,
       verseInventoryProvider: (bookIds) async =>
           createTestVerseInventory(bookIds: bookIds),
     );
-    await database.resetDatabase();
     await database.init();
     planService = ReadingPlanService.withDependencies(database: database);
     sessionService = ReadingSessionService.withDatabase(database);
@@ -60,6 +63,62 @@ void main() {
     );
   }
 
+  DateTime today() {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, now.day);
+  }
+
+  Future<void> seedDayProgress(
+    int planId, {
+    required int verses,
+    required int seconds,
+  }) async {
+    final day = today();
+    final start = DateTime(day.year, day.month, day.day, 9);
+
+    await database.session.commit(
+      Session(
+        rsDate: day,
+        startTime: start,
+        endTime: start.add(Duration(seconds: seconds)),
+        readSeconds: seconds,
+        verses: verses,
+        readingPlanId: planId,
+      ),
+    );
+    await database.daySummary.upsert(planId, day);
+  }
+
+  group('initial state', () {
+    test('starts empty and toggles HUD visibility', () async {
+      final viewModel = newViewModel();
+      addTearDown(viewModel.dispose);
+
+      expect(viewModel.planConfig, isNull);
+      expect(viewModel.sessionRuntime, isNull);
+      expect(viewModel.hasActiveSession, isFalse);
+      expect(viewModel.sessionId, isNull);
+      expect(viewModel.nextResumePosition, isNull);
+      expect(viewModel.readingPlanBooks, isNull);
+      expect(viewModel.hudVisible, isFalse);
+      expect(viewModel.secondsToday.value, 0);
+      expect(viewModel.sessionSeconds.value, 0);
+      expect(viewModel.goalReached.isBroadcast, isTrue);
+      expect(viewModel.bookCompleted.isBroadcast, isTrue);
+
+      var notifications = 0;
+      viewModel.addListener(() => notifications++);
+
+      viewModel.toggleDisplayGoalProgress();
+      expect(viewModel.hudVisible, isTrue);
+      expect(notifications, 1);
+
+      viewModel.toggleDisplayGoalProgress();
+      expect(viewModel.hudVisible, isFalse);
+      expect(notifications, 2);
+    });
+  });
+
   group('session lifecycle', () {
     test('starts a session from a plan id and clears it on end', () async {
       final planId = await planService.saveReadingPlan(
@@ -80,6 +139,13 @@ void main() {
       expect(viewModel.planConfig?.planId, planId);
       expect(viewModel.planConfig?.dailyGoal.type, GoalType.minutes);
       expect(viewModel.planConfig?.dailyGoal.value, 20);
+      expect(viewModel.readingPlanBooks, {19});
+      expect(viewModel.sessionRuntime, isNotNull);
+      expect(viewModel.sessionRuntime?.sessionId, viewModel.sessionId);
+      expect(viewModel.sessionRuntime?.planId, planId);
+      expect(viewModel.hudVisible, isTrue);
+      expect(viewModel.secondsToday.value, 0);
+      expect(viewModel.sessionSeconds.value, 0);
       expect(navigationViewModel.navigatedReferences, [
         const Reference(bookId: 19, chapter: 1, verse: 1),
       ]);
@@ -87,8 +153,60 @@ void main() {
       await viewModel.endSession();
 
       expect(viewModel.planConfig, isNull);
+      expect(viewModel.sessionRuntime, isNull);
+      expect(viewModel.hasActiveSession, isFalse);
+      expect(viewModel.sessionId, isNull);
+      expect(viewModel.readingPlanBooks, isNull);
+      expect(viewModel.nextResumePosition, isNull);
+      expect(viewModel.hudVisible, isFalse);
+      expect(viewModel.secondsToday.value, 0);
+      expect(viewModel.sessionSeconds.value, 0);
+
+      viewModel.dispose();
+    });
+
+    test('dispatches lifecycle changes through the command queue', () async {
+      final planId = await planService.saveReadingPlan(
+        planName: 'Lifecycle Test',
+        goalType: GoalType.verses,
+        goalValue: 10,
+        bookIds: [63],
+      );
+
+      final viewModel = newViewModel();
+      await viewModel.startSession(planId);
+
+      viewModel.didChangeAppLifecycleState(AppLifecycleState.inactive);
+      viewModel.didChangeAppLifecycleState(AppLifecycleState.paused);
+      viewModel.didChangeAppLifecycleState(AppLifecycleState.hidden);
+      viewModel.didChangeAppLifecycleState(AppLifecycleState.detached);
+      viewModel.didChangeAppLifecycleState(AppLifecycleState.resumed);
+
+      await viewModel.endSession();
+
       expect(viewModel.hasActiveSession, isFalse);
 
+      viewModel.dispose();
+    });
+
+    test('initializes progress from the stored day', () async {
+      final planId = await planService.saveReadingPlan(
+        planName: 'Stored Progress Test',
+        goalType: GoalType.verses,
+        goalValue: 10,
+        bookIds: [63],
+      );
+      await seedDayProgress(planId, verses: 3, seconds: 90);
+
+      final viewModel = newViewModel();
+      await viewModel.startSession(planId);
+
+      expect(viewModel.sessionRuntime?.versesToday, 3);
+      expect(viewModel.sessionRuntime?.goalAlreadyReachedToday, isFalse);
+      expect(viewModel.secondsToday.value, 90);
+      expect(viewModel.sessionSeconds.value, 0);
+
+      await viewModel.endSession();
       viewModel.dispose();
     });
 
@@ -178,6 +296,182 @@ void main() {
     });
   });
 
+  group('verse state', () {
+    test('marks and unmarks a verse and returns chapter state', () async {
+      final planId = await planService.saveReadingPlan(
+        planName: 'Verse State Test',
+        goalType: GoalType.verses,
+        goalValue: 10,
+        bookIds: [63],
+      );
+
+      final viewModel = newViewModel();
+      await viewModel.startSession(planId);
+
+      var states = await viewModel.setVerseRead(
+        bookId: 63,
+        chapter: 1,
+        verse: 1,
+        read: true,
+      );
+
+      expect(states![1]!.readCount, 1);
+      expect(states[1]!.readThisSession, isTrue);
+      expect(states[2]!.readCount, 0);
+      expect(states[2]!.readThisSession, isFalse);
+      expect(viewModel.sessionRuntime?.versesToday, 1);
+
+      var session = await database.session.getById(viewModel.sessionId!);
+      expect(session!.verses, 1);
+
+      var chapterStates = await viewModel.getVerseReadStates(63, 1);
+      expect(chapterStates[1]!.readCount, 1);
+      expect(chapterStates[1]!.readThisSession, isTrue);
+
+      states = await viewModel.setVerseRead(
+        bookId: 63,
+        chapter: 1,
+        verse: 1,
+        read: false,
+      );
+
+      expect(states![1]!.readCount, 0);
+      expect(states[1]!.readThisSession, isFalse);
+      expect(viewModel.sessionRuntime?.versesToday, 0);
+
+      session = await database.session.getById(viewModel.sessionId!);
+      expect(session!.verses, 0);
+      chapterStates = await viewModel.getVerseReadStates(63, 1);
+      expect(chapterStates[1]!.readCount, 0);
+
+      viewModel.dispose();
+    });
+
+    test('returns no state without an active session', () async {
+      final viewModel = newViewModel();
+      addTearDown(viewModel.dispose);
+
+      expect(
+        await viewModel.setVerseRead(
+          bookId: 63,
+          chapter: 1,
+          verse: 1,
+          read: true,
+        ),
+        isNull,
+      );
+      expect(await viewModel.getVerseReadStates(63, 1), isEmpty);
+      expect(viewModel.sessionRuntime, isNull);
+
+      await viewModel.endSession();
+      await viewModel.pauseTimer();
+      await viewModel.resumeTimer();
+      await viewModel.resetForDatabaseRestore();
+      expect(viewModel.hasActiveSession, isFalse);
+    });
+
+    test('ignores verses outside the plan books', () async {
+      final planId = await planService.saveReadingPlan(
+        planName: 'Outside Plan Test',
+        goalType: GoalType.verses,
+        goalValue: 10,
+        bookIds: [63],
+      );
+
+      final viewModel = newViewModel();
+      await viewModel.startSession(planId);
+
+      var completionCount = 0;
+      final subscription = viewModel.bookCompleted.listen((_) {
+        completionCount++;
+      });
+      addTearDown(subscription.cancel);
+
+      final states = await viewModel.setVerseRead(
+        bookId: 64,
+        chapter: 1,
+        verse: 1,
+        read: true,
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      expect(states, isEmpty);
+      expect(completionCount, 0);
+      expect(viewModel.sessionRuntime?.versesToday, 0);
+      final session = await database.session.getById(viewModel.sessionId!);
+      expect(session!.verses, 0);
+
+      viewModel.dispose();
+    });
+
+    test('does not notify when a repeated mark changes nothing', () async {
+      final planId = await planService.saveReadingPlan(
+        planName: 'Repeated Mark Test',
+        goalType: GoalType.verses,
+        goalValue: 10,
+        bookIds: [63],
+      );
+
+      final viewModel = newViewModel();
+      await viewModel.startSession(planId);
+      await viewModel.setVerseRead(
+        bookId: 63,
+        chapter: 1,
+        verse: 1,
+        read: true,
+      );
+
+      var notifications = 0;
+      viewModel.addListener(() => notifications++);
+
+      await viewModel.setVerseRead(
+        bookId: 63,
+        chapter: 1,
+        verse: 1,
+        read: true,
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      expect(notifications, 0);
+      expect(viewModel.sessionRuntime?.versesToday, 1);
+
+      viewModel.dispose();
+    });
+
+    test('resetForDatabaseRestore clears all presentation state', () async {
+      final planId = await planService.saveReadingPlan(
+        planName: 'Reset Presentation Test',
+        goalType: GoalType.verses,
+        goalValue: 10,
+        bookIds: [63],
+      );
+
+      final viewModel = newViewModel();
+      await viewModel.startSession(planId);
+      await viewModel.setVerseRead(
+        bookId: 63,
+        chapter: 1,
+        verse: 1,
+        read: true,
+      );
+
+      await viewModel.resetForDatabaseRestore();
+
+      expect(viewModel.planConfig, isNull);
+      expect(viewModel.sessionRuntime, isNull);
+      expect(viewModel.hasActiveSession, isFalse);
+      expect(viewModel.sessionId, isNull);
+      expect(viewModel.readingPlanBooks, isNull);
+      expect(viewModel.nextResumePosition, isNull);
+      expect(viewModel.hudVisible, isFalse);
+      expect(viewModel.secondsToday.value, 0);
+      expect(viewModel.sessionSeconds.value, 0);
+      expect(await viewModel.getVerseReadStates(63, 1), isEmpty);
+
+      viewModel.dispose();
+    });
+  });
+
   group('goal celebration', () {
     test(
       'celebrates the goal once per day and suppresses it on restart',
@@ -192,13 +486,20 @@ void main() {
         final viewModel = newViewModel();
         await viewModel.startSession(planId);
 
+        var goalReachedCount = 0;
+        final subscription = viewModel.goalReached.listen(
+          (_) => goalReachedCount++,
+        );
+        addTearDown(subscription.cancel);
+
         await viewModel.setVerseRead(
           bookId: 63,
           chapter: 1,
           verse: 1,
           read: true,
         );
-        expect(viewModel.goalReachedNotifier.value, isFalse);
+        await Future<void>.delayed(Duration.zero);
+        expect(goalReachedCount, 0);
 
         await viewModel.setVerseRead(
           bookId: 63,
@@ -206,13 +507,15 @@ void main() {
           verse: 2,
           read: true,
         );
-        expect(viewModel.goalReachedNotifier.value, isTrue);
+        await Future<void>.delayed(Duration.zero);
+        expect(goalReachedCount, 1);
 
         await viewModel.endSession();
-        expect(viewModel.goalReachedNotifier.value, isFalse);
+        await Future<void>.delayed(Duration.zero);
+        expect(goalReachedCount, 1);
 
         await viewModel.startSession(planId);
-        expect(viewModel.session?.goalAlreadyReachedToday, isTrue);
+        expect(viewModel.sessionRuntime?.goalAlreadyReachedToday, isTrue);
 
         await viewModel.setVerseRead(
           bookId: 63,
@@ -220,11 +523,39 @@ void main() {
           verse: 3,
           read: true,
         );
-        expect(viewModel.goalReachedNotifier.value, isFalse);
+        await Future<void>.delayed(Duration.zero);
+        expect(goalReachedCount, 1);
 
         viewModel.dispose();
       },
     );
+
+    test('celebrates a minutes goal after enough elapsed time', () async {
+      final planId = await planService.saveReadingPlan(
+        planName: 'Minutes Goal Test',
+        goalType: GoalType.minutes,
+        goalValue: 1,
+        bookIds: [63],
+      );
+      await seedDayProgress(planId, verses: 0, seconds: 59);
+
+      final viewModel = newViewModel();
+      await viewModel.startSession(planId);
+
+      var goalReachedCount = 0;
+      final subscription = viewModel.goalReached.listen((_) {
+        goalReachedCount++;
+      });
+      addTearDown(subscription.cancel);
+
+      await Future<void>.delayed(const Duration(milliseconds: 2500));
+      await viewModel.endSession();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(goalReachedCount, 1);
+
+      viewModel.dispose();
+    });
   });
 
   group('book completion notifications', () {
@@ -243,10 +574,11 @@ void main() {
 
         int bookCompletedCount = 0;
         BookCompletedEvent? lastCompletion;
-        viewModel.bookCompletedNotifier.addListener(() {
+        final subscription = viewModel.bookCompleted.listen((event) {
           bookCompletedCount++;
-          lastCompletion = viewModel.bookCompletedNotifier.value;
+          lastCompletion = event;
         });
+        addTearDown(subscription.cancel);
 
         expect(getIt<BibleNavigation>().getVerseCount(19, 1), 6);
         for (int v = 1; v <= 6; v++) {
@@ -289,9 +621,10 @@ void main() {
         await viewModel.startSession(planId);
 
         int bookCompletedCount = 0;
-        viewModel.bookCompletedNotifier.addListener(() {
+        final subscription = viewModel.bookCompleted.listen((_) {
           bookCompletedCount++;
         });
+        addTearDown(subscription.cancel);
 
         await viewModel.setVerseRead(
           bookId: 19,
@@ -301,7 +634,6 @@ void main() {
         );
 
         expect(bookCompletedCount, 0);
-        expect(viewModel.bookCompletedNotifier.value, isNull);
 
         final stats = await database.verseState.getBookStats(planId);
         expect(stats[19]!.versesRead, 1);
@@ -324,9 +656,10 @@ void main() {
         await viewModel.startSession(planId);
 
         BookCompletedEvent? completionReceived;
-        viewModel.bookCompletedNotifier.addListener(() {
-          completionReceived = viewModel.bookCompletedNotifier.value;
+        final subscription = viewModel.bookCompleted.listen((event) {
+          completionReceived = event;
         });
+        addTearDown(subscription.cancel);
 
         for (int v = 2; v <= 13; v++) {
           await viewModel.setVerseRead(
@@ -347,6 +680,7 @@ void main() {
           verse: 1,
           read: true,
         );
+        await Future<void>.delayed(Duration.zero);
 
         expect(completionReceived?.completedBookId, 63);
         expect(completionReceived?.nextBookId, 64);
@@ -360,5 +694,200 @@ void main() {
         viewModel.dispose();
       },
     );
+
+    test(
+      'completing the final book has no next book or resume position',
+      () async {
+        final planId = await planService.saveReadingPlan(
+          planName: 'Final Book Test',
+          goalType: GoalType.verses,
+          goalValue: 20,
+          bookIds: [63],
+        );
+
+        final viewModel = newViewModel();
+        await viewModel.startSession(planId);
+
+        BookCompletedEvent? completionReceived;
+        final subscription = viewModel.bookCompleted.listen((event) {
+          completionReceived = event;
+        });
+        addTearDown(subscription.cancel);
+
+        final verseCount = getIt<BibleNavigation>().getVerseCount(63, 1);
+        for (var verse = 1; verse <= verseCount; verse++) {
+          await viewModel.setVerseRead(
+            bookId: 63,
+            chapter: 1,
+            verse: verse,
+            read: true,
+          );
+        }
+        await Future<void>.delayed(Duration.zero);
+
+        expect(completionReceived?.completedBookId, 63);
+        expect(completionReceived?.nextBookId, isNull);
+        expect(completionReceived?.resumePosition, isNull);
+        expect(viewModel.nextResumePosition, isNull);
+
+        viewModel.dispose();
+      },
+    );
+  });
+
+  group('command serialization', () {
+    test('concurrent verse marks both persist', () async {
+      final planId = await planService.saveReadingPlan(
+        planName: 'Concurrent Marks Test',
+        goalType: GoalType.verses,
+        goalValue: 10,
+        bookIds: [63],
+      );
+
+      final viewModel = newViewModel();
+      await viewModel.startSession(planId);
+
+      final first = viewModel.setVerseRead(
+        bookId: 63,
+        chapter: 1,
+        verse: 1,
+        read: true,
+      );
+      final second = viewModel.setVerseRead(
+        bookId: 63,
+        chapter: 1,
+        verse: 2,
+        read: true,
+      );
+
+      await first;
+      await second;
+
+      final session = await database.session.getById(viewModel.sessionId!);
+      expect(session!.verses, 2);
+      final stats = await database.verseState.getBookStats(planId);
+      expect(stats[63]!.versesRead, 2);
+
+      viewModel.dispose();
+    });
+
+    test('ending a session waits for queued marks', () async {
+      final planId = await planService.saveReadingPlan(
+        planName: 'End Waits Test',
+        goalType: GoalType.verses,
+        goalValue: 10,
+        bookIds: [63],
+      );
+
+      final viewModel = newViewModel();
+      await viewModel.startSession(planId);
+
+      final mark = viewModel.setVerseRead(
+        bookId: 63,
+        chapter: 1,
+        verse: 1,
+        read: true,
+      );
+      final end = viewModel.endSession();
+
+      await mark;
+      await end;
+
+      expect(viewModel.hasActiveSession, isFalse);
+
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final sessions = await database.session.listForDate(today, planId);
+      expect(sessions, hasLength(1));
+      expect(sessions.single.verses, 1);
+      expect(sessions.single.endTime, isNotNull);
+
+      viewModel.dispose();
+    });
+
+    test(
+      'dispose finishes the current command and drops pending ones',
+      () async {
+        final planId = await planService.saveReadingPlan(
+          planName: 'Dispose Drains Test',
+          goalType: GoalType.verses,
+          goalValue: 10,
+          bookIds: [63],
+        );
+
+        final viewModel = newViewModel();
+        await viewModel.startSession(planId);
+        final sessionId = viewModel.sessionId!;
+
+        final current = viewModel.setVerseRead(
+          bookId: 63,
+          chapter: 1,
+          verse: 1,
+          read: true,
+        );
+        final pending = viewModel.setVerseRead(
+          bookId: 63,
+          chapter: 1,
+          verse: 2,
+          read: true,
+        );
+
+        final pendingExpectation = expectLater(
+          pending,
+          throwsA(isA<SerialQueueClosed>()),
+        );
+        viewModel.dispose();
+
+        await current;
+        await pendingExpectation;
+
+        final session = await database.session.getById(sessionId);
+        expect(session!.verses, 1);
+      },
+    );
+
+    test('concurrent starts are serialized', () async {
+      final planId = await planService.saveReadingPlan(
+        planName: 'Concurrent Starts Test',
+        goalType: GoalType.verses,
+        goalValue: 10,
+        bookIds: [63],
+      );
+
+      final viewModel = newViewModel();
+
+      final first = viewModel.startSession(planId);
+      final second = viewModel.startSession(planId);
+
+      await first;
+      await second;
+
+      expect(viewModel.hasActiveSession, isTrue);
+      expect(navigationViewModel.navigatedReferences, hasLength(2));
+
+      final sessions = await database.session.listForDate(today(), planId);
+      expect(sessions, hasLength(2));
+      expect(
+        sessions.map((session) => session.id),
+        contains(viewModel.sessionId),
+      );
+
+      viewModel.dispose();
+    });
+  });
+
+  group('disposal', () {
+    test('closes event streams', () async {
+      final viewModel = newViewModel();
+      final goalDone = Completer<void>();
+      final bookDone = Completer<void>();
+
+      viewModel.goalReached.listen((_) {}, onDone: goalDone.complete);
+      viewModel.bookCompleted.listen((_) {}, onDone: bookDone.complete);
+
+      viewModel.dispose();
+
+      await Future.wait([goalDone.future, bookDone.future]);
+    });
   });
 }

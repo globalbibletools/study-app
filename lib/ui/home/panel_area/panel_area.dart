@@ -3,7 +3,7 @@ import 'package:gbt/common/reference.dart';
 import 'package:gbt/ui/home/panel_area/bible_panel/bible_panel.dart';
 import 'package:gbt/ui/home/panel_area/common/book_completed_overlay.dart';
 import 'package:gbt/ui/home/panel_area/common/goal_reached_overlay.dart';
-import 'package:gbt/ui/home/panel_area/common/reading_session_overlay.dart';
+import 'package:gbt/ui/home/panel_area/common/reading_session_hud.dart';
 import 'package:gbt/ui/home/panel_area/hebrew_greek_panel/chapter.dart';
 import 'package:gbt/ui/home/panel_area/hebrew_greek_panel/panel.dart';
 import 'package:gbt/ui/home/home_manager.dart';
@@ -36,8 +36,7 @@ class BiblePanelArea extends StatelessWidget {
           manager.navigationViewModel.anchor,
           manager.isSinglePanelNotifier,
           manager.settingsVersionNotifier,
-          manager.readingSessionViewModel.sessionNotifier,
-          manager.readingSessionViewModel.hudVisible,
+          manager.readingSessionViewModel,
           manager.appGuideManager.readingCheckboxGuideDismissedNotifier,
           manager.appGuideManager.readingSessionGuideDismissedNotifier,
         ]),
@@ -47,7 +46,7 @@ class BiblePanelArea extends StatelessWidget {
           final settingsVersion = manager.settingsVersionNotifier.value;
           final shouldOffsetForProgress =
               manager.readingSessionViewModel.hasActiveSession &&
-              manager.readingSessionViewModel.hudVisible.value;
+              manager.readingSessionViewModel.hudVisible;
 
           final shouldShowReadingCheckboxGuide =
               manager.appGuideManager.shouldShowReadingCheckboxGuide;
@@ -106,17 +105,18 @@ class BiblePanelArea extends StatelessWidget {
                 top: 0,
                 start: 0,
                 end: 0,
-                child: ReadingSessionOverlay(
+                child: ReadingSessionHud(
                   viewModel: manager.readingSessionViewModel,
                 ),
               ),
 
-              GoalReachedOverlay(viewModel: manager.readingSessionViewModel),
-
-              BookCompletedOverlay(
-                viewModel: manager.readingSessionViewModel,
-                onNextBook: (bookId) => onNextBook(context, bookId),
-              ),
+              if (manager.readingSessionViewModel.hasActiveSession) ...[
+                GoalReachedOverlay(viewModel: manager.readingSessionViewModel),
+                BookCompletedOverlay(
+                  viewModel: manager.readingSessionViewModel,
+                  onNextBook: (bookId) => onNextBook(context, bookId),
+                ),
+              ],
             ],
           );
         },

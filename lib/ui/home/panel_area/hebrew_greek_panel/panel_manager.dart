@@ -18,8 +18,7 @@ class HebrewGreekPanelManager {
     _settings.verseLayout,
   );
 
-  ValueNotifier<ReadingSessionUiState?> get sessionNotifier =>
-      _sessionViewModel.sessionNotifier;
+  ReadingSessionViewModel get sessionViewModel => _sessionViewModel;
 
   Set<int>? get readingPlanBooks => _sessionViewModel.readingPlanBooks;
 

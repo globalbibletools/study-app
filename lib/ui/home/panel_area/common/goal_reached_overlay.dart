@@ -3,22 +3,57 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/reading_plan/ui/reading_session_view_model.dart';
+import 'package:gbt/ui/common/stream_dialog_host.dart';
 import 'package:gbt/ui/home/panel_area/common/confetti_view.dart';
 
-class GoalReachedOverlay extends StatefulWidget {
+class GoalReachedOverlay extends StatelessWidget {
   const GoalReachedOverlay({super.key, required this.viewModel});
 
   final ReadingSessionViewModel viewModel;
 
   @override
-  State<GoalReachedOverlay> createState() => _GoalReachedOverlayState();
+  Widget build(BuildContext context) {
+    return StreamDialogHost<void>(
+      stream: viewModel.goalReached,
+      builder: (context, _, dismiss) {
+        return _GoalReachedDialog(
+          onDismiss: dismiss,
+          onEndSession: viewModel.endSession,
+        );
+      },
+    );
+  }
 }
 
-class _GoalReachedOverlayState extends State<GoalReachedOverlay> {
+class _GoalReachedDialog extends StatefulWidget {
+  const _GoalReachedDialog({
+    required this.onDismiss,
+    required this.onEndSession,
+  });
+
+  final VoidCallback onDismiss;
+  final Future<void> Function() onEndSession;
+
+  @override
+  State<_GoalReachedDialog> createState() => _GoalReachedDialogState();
+}
+
+class _GoalReachedDialogState extends State<_GoalReachedDialog> {
   static const _celebrationDuration = Duration(seconds: 2);
 
   Timer? _transitionTimer;
   bool _showContinuePrompt = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _transitionTimer = Timer(_celebrationDuration, () {
+      if (!mounted) return;
+
+      setState(() => _showContinuePrompt = true);
+      _transitionTimer = null;
+    });
+  }
 
   @override
   void dispose() {
@@ -26,77 +61,32 @@ class _GoalReachedOverlayState extends State<GoalReachedOverlay> {
     super.dispose();
   }
 
-  void _handleGoalReachedChanged(bool goalReached) {
-    if (!goalReached) {
-      _transitionTimer?.cancel();
-      if (_showContinuePrompt) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) {
-            setState(() {
-              _showContinuePrompt = false;
-            });
-          }
-        });
-      }
-      return;
-    }
-
-    if (_transitionTimer != null || _showContinuePrompt) {
-      return;
-    }
-
-    _transitionTimer = Timer(_celebrationDuration, () {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _showContinuePrompt = true;
-      });
-      _transitionTimer = null;
-    });
-  }
-
-  void _dismissOverlay() {
-    widget.viewModel.goalReachedNotifier.value = false;
-  }
-
   Future<void> _endSession() async {
-    _dismissOverlay();
-    await widget.viewModel.endSession();
+    widget.onDismiss();
+    await widget.onEndSession();
   }
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<bool>(
-      valueListenable: widget.viewModel.goalReachedNotifier,
-      builder: (context, goalReached, _) {
-        _handleGoalReachedChanged(goalReached);
-
-        if (!goalReached) {
-          return const SizedBox.shrink();
-        }
-
-        return Positioned.fill(
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              if (!_showContinuePrompt) IgnorePointer(child: ConfettiOverlay()),
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 250),
-                child: _showContinuePrompt
-                    ? _ContinueReadingPrompt(
-                        key: const ValueKey('continue-reading-prompt'),
-                        onYes: _dismissOverlay,
-                        onNo: _endSession,
-                      )
-                    : const _GoalReachedMessage(
-                        key: ValueKey('goal-reached-message'),
-                      ),
-              ),
-            ],
+    return Positioned.fill(
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          if (!_showContinuePrompt) IgnorePointer(child: ConfettiOverlay()),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 250),
+            child: _showContinuePrompt
+                ? _ContinueReadingPrompt(
+                    key: const ValueKey('continue-reading-prompt'),
+                    onYes: widget.onDismiss,
+                    onNo: _endSession,
+                  )
+                : const _GoalReachedMessage(
+                    key: ValueKey('goal-reached-message'),
+                  ),
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 }

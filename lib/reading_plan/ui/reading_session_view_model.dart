@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
+import 'package:gbt/asyncutils/serial_queue.dart';
 import 'package:gbt/common/reference.dart';
 import 'package:gbt/reading_plan/data_access/reading_plan_queries.dart';
 import 'package:gbt/reading_plan/data_access/reading_plan_read_models.dart';
@@ -13,50 +15,8 @@ import 'package:gbt/ui/home/common/navigation_view_model.dart';
 export 'package:gbt/reading_plan/data_access/reading_plan_read_models.dart'
     show VerseReadState;
 
-class ReadingSessionUiState {
-  const ReadingSessionUiState({
-    required this.sessionId,
-    required this.config,
-    required this.bookIds,
-    required this.versesToday,
-    required this.goalAlreadyReachedToday,
-    required this.resumePosition,
-    required this.sessionStartTime,
-  });
-
-  final int sessionId;
-  final ReadingPlanConfig config;
-  final Set<int> bookIds;
-  final int versesToday;
-  final bool goalAlreadyReachedToday;
-  final Reference? resumePosition;
-  final DateTime sessionStartTime;
-
-  static const _undefined = Object();
-
-  ReadingSessionUiState copyWith({
-    int? sessionId,
-    int? versesToday,
-    bool? goalAlreadyReachedToday,
-    Object? resumePosition = _undefined,
-    DateTime? sessionStartTime,
-  }) {
-    return ReadingSessionUiState(
-      sessionId: sessionId ?? this.sessionId,
-      config: config,
-      bookIds: bookIds,
-      versesToday: versesToday ?? this.versesToday,
-      goalAlreadyReachedToday:
-          goalAlreadyReachedToday ?? this.goalAlreadyReachedToday,
-      resumePosition: resumePosition == _undefined
-          ? this.resumePosition
-          : resumePosition as Reference?,
-      sessionStartTime: sessionStartTime ?? this.sessionStartTime,
-    );
-  }
-}
-
-class ReadingSessionViewModel with WidgetsBindingObserver {
+class ReadingSessionViewModel extends ChangeNotifier
+    with WidgetsBindingObserver {
   ReadingSessionViewModel()
     : this.withDependencies(
         service: getIt<ReadingSessionService>(),
@@ -74,28 +34,42 @@ class ReadingSessionViewModel with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
   }
 
-  static Duration heartbeatInterval = const Duration(seconds: 60);
-
   final ReadingSessionService _service;
   final ReadingPlanQueries _queries;
   final NavigationViewModel _navigationViewModel;
 
-  final sessionNotifier = ValueNotifier<ReadingSessionUiState?>(null);
-  final secondsTodayNotifier = ValueNotifier<int>(0);
-  final sessionSecondsNotifier = ValueNotifier<int>(0);
-  final goalReachedNotifier = ValueNotifier<bool>(false);
-  final bookCompletedNotifier = ValueNotifier<BookCompletedEvent?>(null);
-  final hudVisible = ValueNotifier<bool>(false);
+  final _commands = SerialQueue();
 
-  ReadingSessionUiState? get session => sessionNotifier.value;
-  ReadingPlanConfig? get planConfig => session?.config;
-  Set<int>? get readingPlanBooks => session?.bookIds;
-  Reference? get nextResumePosition => session?.resumePosition;
-  bool get hasActiveSession => session != null;
-  int? get sessionId => session?.sessionId;
+  final _goalReachedController = StreamController<void>.broadcast();
+  late final Stream<void> goalReached = _goalReachedController.stream;
 
-  bool _requestLocked = false;
-  bool _disposed = false;
+  final _bookCompletedController =
+      StreamController<BookCompletedEvent>.broadcast();
+  late final Stream<BookCompletedEvent> bookCompleted =
+      _bookCompletedController.stream;
+
+  ReadingPlanConfig? _config;
+  ReadingPlanConfig? get planConfig => _config;
+
+  SessionRuntime? _runtime;
+  SessionRuntime? get sessionRuntime => _runtime;
+  bool get hasActiveSession => _runtime != null;
+  int? get sessionId => _runtime?.sessionId;
+
+  Reference? _resumePosition;
+  Reference? get nextResumePosition => _resumePosition;
+
+  Set<int>? get readingPlanBooks => _config?.bookIds.toSet();
+
+  bool _hudVisible = false;
+  bool get hudVisible => _hudVisible;
+
+  final _secondsTodayNotifier = ValueNotifier<int>(0);
+  ValueListenable<int> get secondsToday => _secondsTodayNotifier;
+
+  final _sessionSecondsNotifier = ValueNotifier<int>(0);
+  ValueListenable<int> get sessionSeconds => _sessionSecondsNotifier;
+
   bool _goalLatch = false;
   bool _timerPaused = false;
 
@@ -108,18 +82,15 @@ class ReadingSessionViewModel with WidgetsBindingObserver {
   int get _sessionReadSeconds => _sessionReadMilliseconds ~/ 1000;
 
   Timer? _tickTimer;
+  static Duration heartbeatInterval = const Duration(seconds: 60);
 
-  Future<void> startSession(int planId) async {
-    if (!_tryLockRequest('start session for plan $planId')) return;
-
-    try {
+  Future<void> startSession(int planId) {
+    return _commands.run(() async {
       if (hasActiveSession) {
         await _endActiveSession();
-        if (_disposed) return;
       }
 
       final sessionId = await _service.startSession(planId);
-      if (_disposed) return;
 
       if (sessionId == null) {
         throw StateError('Reading plan not found: $planId');
@@ -127,7 +98,6 @@ class ReadingSessionViewModel with WidgetsBindingObserver {
 
       final summary = await _queries.getPlanSummary(planId);
       final runtime = await _queries.getSessionRuntime(sessionId);
-      if (_disposed) return;
 
       if (summary == null || runtime == null) {
         throw StateError('Reading session not found: $sessionId');
@@ -144,58 +114,44 @@ class ReadingSessionViewModel with WidgetsBindingObserver {
       _lastFlushAt = now;
       _goalLatch = progress.goalReached;
 
-      sessionNotifier.value = ReadingSessionUiState(
-        sessionId: sessionId,
-        config: config,
-        bookIds: config.bookIds.toSet(),
-        versesToday: progress.verses,
-        goalAlreadyReachedToday: progress.goalReached,
-        resumePosition: null,
-        sessionStartTime: runtime.sessionStartTime,
-      );
-      secondsTodayNotifier.value = progress.seconds;
-      sessionSecondsNotifier.value = _sessionReadSeconds;
-      goalReachedNotifier.value = false;
-      bookCompletedNotifier.value = null;
-      hudVisible.value = true;
+      _setState(() {
+        _config = config;
+        _runtime = runtime;
+        _resumePosition = null;
+        _hudVisible = true;
+      });
+      _secondsTodayNotifier.value = progress.seconds;
+      _sessionSecondsNotifier.value = _sessionReadSeconds;
 
       _navigationViewModel.navigateTo(summary.resumeTarget);
 
       _scheduleNextTick();
-    } finally {
-      _unlockRequest();
-    }
+    });
   }
 
-  Future<void> endSession() async {
-    if (!_tryLockRequest('end session')) return;
-
-    try {
-      await _endActiveSession();
-    } finally {
-      _unlockRequest();
-    }
+  Future<void> endSession() {
+    return _commands.run(_endActiveSession);
   }
 
-  /// Finalizes the active session. The caller must hold the request lock.
+  /// Finalizes the active session.
   Future<void> _endActiveSession() async {
     _tickTimer?.cancel();
     _tickTimer = null;
 
     final now = DateTime.now();
     await _rolloverIfNeeded(now, timerActive: !_timerPaused);
+
     if (!_timerPaused) {
       _accumulateElapsed(now);
     }
 
-    final sessionId = session?.sessionId;
+    final sessionId = _runtime?.sessionId;
     if (sessionId != null) {
       await _service.endSession(
         sessionId,
         readSeconds: _sessionReadSeconds,
         at: now,
       );
-      if (_disposed) return;
     }
 
     _clearPresentation();
@@ -206,21 +162,16 @@ class ReadingSessionViewModel with WidgetsBindingObserver {
     required int chapter,
     required int verse,
     required bool read,
-  }) async {
-    if (!_tryLockRequest(
-      'set verse $bookId:$chapter:$verse read state to $read',
-    )) {
-      return null;
-    }
-
-    try {
+  }) {
+    return _commands.run(() async {
       final now = DateTime.now();
       await _rolloverIfNeeded(now, timerActive: !_timerPaused);
+
       if (!_timerPaused) {
         _accumulateElapsed(now);
       }
 
-      final sessionId = session?.sessionId;
+      final sessionId = _runtime?.sessionId;
       if (sessionId == null) return null;
 
       final event = await _service.setVerseRead(
@@ -231,38 +182,32 @@ class ReadingSessionViewModel with WidgetsBindingObserver {
         read: read,
         at: now,
       );
-      if (_disposed) return null;
 
       if (!await _refreshRuntime(sessionId, asOf: now)) return null;
 
       if (event != null) {
-        final current = session;
-        if (current != null) {
-          sessionNotifier.value = current.copyWith(
-            resumePosition: event.resumePosition,
-          );
+        if (_runtime != null && event.resumePosition != _resumePosition) {
+          _setState(() => _resumePosition = event.resumePosition);
         }
-        bookCompletedNotifier.value = event;
+        _bookCompletedController.add(event);
       }
 
       _checkGoalReached();
       return await _queries.getVerseReadStates(sessionId, bookId, chapter);
-    } finally {
-      _unlockRequest();
-    }
+    });
   }
 
   Future<Map<int, VerseReadState>> getVerseReadStates(
     int bookId,
     int chapter,
   ) async {
-    final sessionId = session?.sessionId;
+    final sessionId = _runtime?.sessionId;
     if (sessionId == null) return const {};
     return _queries.getVerseReadStates(sessionId, bookId, chapter);
   }
 
   void toggleDisplayGoalProgress() {
-    hudVisible.value = !hudVisible.value;
+    _setState(() => _hudVisible = !_hudVisible);
   }
 
   @override
@@ -283,84 +228,66 @@ class ReadingSessionViewModel with WidgetsBindingObserver {
 
   /// Stops accumulating read time while the app is backgrounded. The current
   /// elapsed time is flushed to the database so a kill cannot lose it.
-  Future<void> pauseTimer() async {
-    if (_disposed || _timerPaused) return;
+  Future<void> pauseTimer() {
+    return _commands.run(() async {
+      if (_timerPaused) return;
 
-    final now = DateTime.now();
-    _timerPaused = true;
-    _tickTimer?.cancel();
-    _tickTimer = null;
+      final now = DateTime.now();
+      _timerPaused = true;
+      _tickTimer?.cancel();
+      _tickTimer = null;
 
-    if (!hasActiveSession) return;
+      if (!hasActiveSession) return;
 
-    try {
-      await _flush(at: now, timerActive: true);
-    } catch (error, stackTrace) {
-      log.error(
-        'Failed to flush reading session while pausing',
-        error: error,
-        stackTrace: stackTrace,
-      );
-    }
+      try {
+        await _flush(at: now, timerActive: true);
+      } catch (error, stackTrace) {
+        log.error(
+          'Failed to flush reading session while pausing',
+          error: error,
+          stackTrace: stackTrace,
+        );
+      }
+    });
   }
 
   /// Resumes accumulating read time without counting the time spent
   /// backgrounded. Rolls the session forward if the day changed while the
   /// timer was paused.
-  Future<void> resumeTimer() async {
-    if (_disposed || !_timerPaused) return;
+  Future<void> resumeTimer() {
+    return _commands.run(() async {
+      if (!_timerPaused) return;
 
-    final now = DateTime.now();
-    try {
-      await _rolloverIfNeeded(now, timerActive: false);
-    } catch (error, stackTrace) {
-      log.error(
-        'Failed to roll reading session over on resume',
-        error: error,
-        stackTrace: stackTrace,
-      );
-    }
-    if (_disposed) return;
+      final now = DateTime.now();
+      try {
+        await _rolloverIfNeeded(now, timerActive: false);
+      } catch (error, stackTrace) {
+        log.error(
+          'Failed to roll reading session over on resume',
+          error: error,
+          stackTrace: stackTrace,
+        );
+      }
 
-    _timerPaused = false;
-    _lastTickAt = DateTime.now();
-    _lastFlushAt = DateTime.now();
-    _scheduleNextTick();
+      _timerPaused = false;
+      _lastTickAt = DateTime.now();
+      _lastFlushAt = DateTime.now();
+      _scheduleNextTick();
+    });
   }
 
-  Future<void> resetForDatabaseRestore() async {
-    if (!_tryLockRequest('reset session for database restore')) return;
-
-    try {
+  Future<void> resetForDatabaseRestore() {
+    return _commands.run(() async {
       _tickTimer?.cancel();
       _tickTimer = null;
 
       _clearPresentation();
-    } finally {
-      _unlockRequest();
-    }
-  }
-
-  bool _tryLockRequest(String request) {
-    if (_disposed) {
-      log.info('Ignoring $request because the view model was disposed');
-      return false;
-    }
-    if (_requestLocked) {
-      log.info('Ignoring $request because another session request is pending');
-      return false;
-    }
-    _requestLocked = true;
-    return true;
-  }
-
-  void _unlockRequest() {
-    _requestLocked = false;
+    });
   }
 
   Future<bool> _refreshRuntime(int sessionId, {DateTime? asOf}) async {
     final runtime = await _queries.getSessionRuntime(sessionId);
-    if (_disposed || runtime == null) return false;
+    if (runtime == null) return false;
 
     _applyRuntime(runtime, asOf: asOf);
     return true;
@@ -372,7 +299,7 @@ class ReadingSessionViewModel with WidgetsBindingObserver {
     final previousDay = _sessionDay;
     final dayChanged =
         previousDay != null && !_sameDay(previousDay, runtime.sessionDay);
-    final currentSessionId = session?.sessionId;
+    final currentSessionId = _runtime?.sessionId;
     final sessionChanged =
         currentSessionId != null && currentSessionId != runtime.sessionId;
 
@@ -398,115 +325,107 @@ class ReadingSessionViewModel with WidgetsBindingObserver {
     }
     _lastFlushAt = now;
 
-    final current = session;
+    final current = _runtime;
     if (current != null) {
-      final updated = current.copyWith(
-        sessionId: runtime.sessionId,
-        versesToday: progress.verses,
-        goalAlreadyReachedToday: progress.goalReached,
-        sessionStartTime: runtime.sessionStartTime,
-      );
-      if (updated.sessionId != current.sessionId ||
-          updated.versesToday != current.versesToday ||
-          updated.goalAlreadyReachedToday != current.goalAlreadyReachedToday ||
-          updated.sessionStartTime != current.sessionStartTime) {
-        sessionNotifier.value = updated;
-      }
+      final presentationChanged =
+          current.sessionId != runtime.sessionId ||
+          current.versesToday != runtime.versesToday ||
+          current.goalAlreadyReachedToday != runtime.goalAlreadyReachedToday ||
+          current.sessionStartTime != runtime.sessionStartTime;
+      _setState(() => _runtime = runtime, notify: presentationChanged);
     }
 
-    sessionSecondsNotifier.value = _sessionReadSeconds;
-    secondsTodayNotifier.value = _dayReadMilliseconds ~/ 1000;
+    _sessionSecondsNotifier.value = _sessionReadSeconds;
+    _secondsTodayNotifier.value = _dayReadMilliseconds ~/ 1000;
   }
 
   void _checkGoalReached() {
-    final current = session;
-    if (current == null) return;
+    final runtime = _runtime;
+    final config = _config;
+    if (runtime == null || config == null) return;
 
-    final dailyGoal = current.config.dailyGoal;
+    final dailyGoal = config.dailyGoal;
     final reached = dailyGoal.type == GoalType.verses
-        ? current.versesToday >= dailyGoal.value
-        : secondsTodayNotifier.value >= 60 * dailyGoal.value;
+        ? runtime.versesToday >= dailyGoal.value
+        : _secondsTodayNotifier.value >= 60 * dailyGoal.value;
 
     if (!reached || _goalLatch) return;
 
     _goalLatch = true;
-    goalReachedNotifier.value = true;
+    _goalReachedController.add(null);
   }
 
   void _onTick() {
-    if (_disposed || _timerPaused || !hasActiveSession) return;
+    if (_commands.isClosed) return;
 
-    final now = DateTime.now();
-    final dayChanged = _sessionDay != null && !_sameDay(_sessionDay!, now);
+    unawaited(
+      _commands.runCoalesced('tick', () async {
+        try {
+          if (_timerPaused || !hasActiveSession) return;
 
-    if (dayChanged) {
-      if (!_tryLockRequest('day rollover')) {
-        _scheduleNextTick();
-        return;
-      }
+          final now = DateTime.now();
+          final dayChanged =
+              _sessionDay != null && !_sameDay(_sessionDay!, now);
 
-      unawaited(_rolloverAtMidnight(now));
-      return;
-    }
+          if (dayChanged) {
+            try {
+              await _rolloverIfNeeded(now, timerActive: true);
+              _checkGoalReached();
+            } catch (error, stackTrace) {
+              log.error(
+                'Failed to roll reading session over at midnight',
+                error: error,
+                stackTrace: stackTrace,
+              );
+            }
+            return;
+          }
 
-    _accumulateElapsed(now);
-    _checkGoalReached();
+          _accumulateElapsed(now);
+          _checkGoalReached();
 
-    if (now.difference(_lastFlushAt) >= heartbeatInterval) {
-      unawaited(_flush(at: now));
-    }
-
-    _scheduleNextTick();
-  }
-
-  Future<void> _rolloverAtMidnight(DateTime now) async {
-    try {
-      await _rolloverIfNeeded(now, timerActive: true);
-      if (_disposed) return;
-
-      _checkGoalReached();
-    } catch (error, stackTrace) {
-      log.error(
-        'Failed to roll reading session over at midnight',
-        error: error,
-        stackTrace: stackTrace,
-      );
-    } finally {
-      _unlockRequest();
-      _scheduleNextTick();
-    }
+          if (now.difference(_lastFlushAt) >= heartbeatInterval) {
+            try {
+              await _flush(at: now);
+            } catch (error, stackTrace) {
+              log.error(
+                'Failed to flush reading session heartbeat',
+                error: error,
+                stackTrace: stackTrace,
+              );
+            }
+          }
+        } finally {
+          _scheduleNextTick();
+        }
+      }),
+    );
   }
 
   Future<void> _flush({DateTime? at, bool timerActive = true}) async {
-    if (!_tryLockRequest('heartbeat')) return;
+    final now = at ?? DateTime.now();
+    await _rolloverIfNeeded(now, timerActive: timerActive);
 
-    try {
-      final now = at ?? DateTime.now();
-      await _rolloverIfNeeded(now, timerActive: timerActive);
-      if (timerActive) {
-        _accumulateElapsed(now);
-      }
-
-      final sessionId = session?.sessionId;
-      if (sessionId == null) return;
-
-      await _service.extendSession(
-        sessionId,
-        readSeconds: _sessionReadSeconds,
-        at: now,
-      );
-      if (_disposed) return;
-      if (!await _refreshRuntime(sessionId, asOf: now)) return;
-
-      _checkGoalReached();
-    } finally {
-      _unlockRequest();
+    if (timerActive) {
+      _accumulateElapsed(now);
     }
+
+    final sessionId = _runtime?.sessionId;
+    if (sessionId == null) return;
+
+    await _service.extendSession(
+      sessionId,
+      readSeconds: _sessionReadSeconds,
+      at: now,
+    );
+    if (!await _refreshRuntime(sessionId, asOf: now)) return;
+
+    _checkGoalReached();
   }
 
   void _scheduleNextTick() {
     _tickTimer?.cancel();
-    if (_disposed || _timerPaused || !hasActiveSession) return;
+    if (_commands.isClosed || _timerPaused || !hasActiveSession) return;
 
     _tickTimer = Timer(const Duration(seconds: 1), _onTick);
   }
@@ -522,12 +441,14 @@ class ReadingSessionViewModel with WidgetsBindingObserver {
     _lastTickAt = DateTime.now();
     _lastFlushAt = DateTime.now();
 
-    sessionNotifier.value = null;
-    secondsTodayNotifier.value = 0;
-    sessionSecondsNotifier.value = 0;
-    goalReachedNotifier.value = false;
-    bookCompletedNotifier.value = null;
-    hudVisible.value = false;
+    _setState(() {
+      _config = null;
+      _runtime = null;
+      _resumePosition = null;
+      _hudVisible = false;
+    });
+    _secondsTodayNotifier.value = 0;
+    _sessionSecondsNotifier.value = 0;
   }
 
   void _accumulateElapsed(DateTime now) {
@@ -537,15 +458,15 @@ class ReadingSessionViewModel with WidgetsBindingObserver {
     _lastTickAt = now;
     _sessionReadMilliseconds += elapsedMilliseconds;
     _dayReadMilliseconds += elapsedMilliseconds;
-    sessionSecondsNotifier.value = _sessionReadSeconds;
-    secondsTodayNotifier.value = _dayReadMilliseconds ~/ 1000;
+    _sessionSecondsNotifier.value = _sessionReadSeconds;
+    _secondsTodayNotifier.value = _dayReadMilliseconds ~/ 1000;
   }
 
   Future<void> _rolloverIfNeeded(
     DateTime now, {
     required bool timerActive,
   }) async {
-    final sessionId = session?.sessionId;
+    final sessionId = _runtime?.sessionId;
     final sessionDay = _sessionDay;
     if (sessionId == null || sessionDay == null || _sameDay(sessionDay, now)) {
       return;
@@ -569,7 +490,7 @@ class ReadingSessionViewModel with WidgetsBindingObserver {
       oldReadSeconds: _sessionReadSeconds + oldDayExtra,
       newReadSeconds: newDayExtra,
     );
-    if (_disposed || newSessionId == null) return;
+    if (newSessionId == null) return;
 
     await _refreshRuntime(newSessionId, asOf: now);
   }
@@ -578,20 +499,29 @@ class ReadingSessionViewModel with WidgetsBindingObserver {
     return DateTime(date.year, date.month, date.day);
   }
 
+  static bool _sameDay(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
+
+  void _setState(VoidCallback fn, {bool notify = true}) {
+    fn();
+    if (notify) notifyListeners();
+  }
+
+  @override
   void dispose() {
-    _disposed = true;
     WidgetsBinding.instance.removeObserver(this);
     _tickTimer?.cancel();
     _tickTimer = null;
-    sessionNotifier.dispose();
-    secondsTodayNotifier.dispose();
-    sessionSecondsNotifier.dispose();
-    goalReachedNotifier.dispose();
-    bookCompletedNotifier.dispose();
-    hudVisible.dispose();
-  }
 
-  static bool _sameDay(DateTime a, DateTime b) {
-    return a.year == b.year && a.month == b.month && a.day == b.day;
+    unawaited(() async {
+      await _commands.close();
+
+      _secondsTodayNotifier.dispose();
+      _sessionSecondsNotifier.dispose();
+      _goalReachedController.close();
+      _bookCompletedController.close();
+      super.dispose();
+    }());
   }
 }

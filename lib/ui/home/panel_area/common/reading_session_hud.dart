@@ -6,78 +6,73 @@ import 'package:gbt/reading_plan/data_access/reading_plan_read_models.dart'
     show DailyGoal, GoalType;
 import 'package:gbt/reading_plan/ui/reading_session_view_model.dart';
 
-class ReadingSessionOverlay extends StatelessWidget {
-  const ReadingSessionOverlay({super.key, required this.viewModel});
+class ReadingSessionHud extends StatelessWidget {
+  const ReadingSessionHud({super.key, required this.viewModel});
 
   final ReadingSessionViewModel viewModel;
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder(
-      valueListenable: viewModel.sessionNotifier,
-      builder: (context, session, _) {
-        return ValueListenableBuilder(
-          valueListenable: viewModel.hudVisible,
-          builder: (context, displayGoalProgress, _) {
-            final dailyGoal = viewModel.session?.config.dailyGoal;
-            late final Widget child;
-            if (session == null || dailyGoal == null) {
-              child = const SizedBox.shrink(key: ValueKey('hidden'));
-            } else if (!displayGoalProgress) {
-              child = _CollapsedGoalProgress(
-                key: const ValueKey('collapsed'),
-                viewModel: viewModel,
-              );
-            } else if (dailyGoal.type == GoalType.verses) {
-              child = _VersesGoalProgressBar(
-                key: const ValueKey('verses-progress'),
-                viewModel: viewModel,
-                dailyGoal: dailyGoal,
-                versesToday: session.versesToday,
-              );
-            } else {
-              child = _MinutesGoalProgressBar(
-                key: const ValueKey('minutes-progress'),
-                viewModel: viewModel,
-                dailyGoal: dailyGoal,
-              );
-            }
+    return ListenableBuilder(
+      listenable: viewModel,
+      builder: (context, _) {
+        final runtime = viewModel.sessionRuntime;
+        final displayGoalProgress = viewModel.hudVisible;
+        final dailyGoal = viewModel.planConfig?.dailyGoal;
+        late final Widget child;
+        if (runtime == null || dailyGoal == null) {
+          child = const SizedBox.shrink(key: ValueKey('hidden'));
+        } else if (!displayGoalProgress) {
+          child = _CollapsedGoalProgress(
+            key: const ValueKey('collapsed'),
+            viewModel: viewModel,
+          );
+        } else if (dailyGoal.type == GoalType.verses) {
+          child = _VersesGoalProgressBar(
+            key: const ValueKey('verses-progress'),
+            viewModel: viewModel,
+            dailyGoal: dailyGoal,
+            versesToday: runtime.versesToday,
+          );
+        } else {
+          child = _MinutesGoalProgressBar(
+            key: const ValueKey('minutes-progress'),
+            viewModel: viewModel,
+            dailyGoal: dailyGoal,
+          );
+        }
 
-            final textDirection = Directionality.of(context);
-            final edgeAlignment = textDirection == TextDirection.ltr
-                ? Alignment.centerRight
-                : Alignment.centerLeft;
-            final axisAlignment = textDirection == TextDirection.ltr
-                ? 1.0
-                : -1.0;
+        final textDirection = Directionality.of(context);
+        final edgeAlignment = textDirection == TextDirection.ltr
+            ? Alignment.centerRight
+            : Alignment.centerLeft;
+        final axisAlignment = textDirection == TextDirection.ltr ? 1.0 : -1.0;
 
-            return AnimatedSwitcher(
-              duration: const Duration(milliseconds: 220),
-              reverseDuration: const Duration(milliseconds: 180),
-              switchInCurve: Curves.easeOutCubic,
-              switchOutCurve: Curves.easeInCubic,
-              layoutBuilder: (currentChild, previousChildren) {
-                return Stack(
-                  alignment: edgeAlignment,
-                  children: [...previousChildren, ?currentChild],
-                );
-              },
-              transitionBuilder: (child, animation) {
-                return Align(
-                  alignment: edgeAlignment,
-                  child: ClipRect(
-                    child: SizeTransition(
-                      axis: Axis.horizontal,
-                      alignment: Alignment(axisAlignment, 0),
-                      sizeFactor: animation,
-                      child: child,
-                    ),
-                  ),
-                );
-              },
-              child: child,
+        return AnimatedSwitcher(
+          duration: const Duration(milliseconds: 220),
+          reverseDuration: const Duration(milliseconds: 180),
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeInCubic,
+          layoutBuilder: (currentChild, previousChildren) {
+            return Stack(
+              alignment: edgeAlignment,
+              children: [...previousChildren, ?currentChild],
             );
           },
+          transitionBuilder: (child, animation) {
+            return Align(
+              alignment: edgeAlignment,
+              child: ClipRect(
+                child: SizeTransition(
+                  axis: Axis.horizontal,
+                  alignment: Alignment(axisAlignment, 0),
+                  sizeFactor: animation,
+                  child: child,
+                ),
+              ),
+            );
+          },
+          child: child,
         );
       },
     );
@@ -100,9 +95,7 @@ class _CollapsedGoalProgress extends StatelessWidget {
         child: _GoalProgressToggleButton(
           label: l10n.show.toUpperCase(),
           icon: Icons.arrow_drop_down,
-          onTap: () {
-            viewModel.hudVisible.value = true;
-          },
+          onTap: viewModel.toggleDisplayGoalProgress,
         ),
       ),
     );
@@ -151,7 +144,7 @@ class _MinutesGoalProgressBar extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
 
     return ValueListenableBuilder<int>(
-      valueListenable: viewModel.secondsTodayNotifier,
+      valueListenable: viewModel.secondsToday,
       builder: (context, totalSeconds, _) {
         final progress = math.min(1, totalSeconds / 60 / dailyGoal.value);
 
@@ -221,9 +214,7 @@ class _ProgressContainer extends StatelessWidget {
           _GoalProgressToggleButton(
             label: l10n.hide.toUpperCase(),
             icon: Icons.arrow_drop_up,
-            onTap: () {
-              viewModel.hudVisible.value = false;
-            },
+            onTap: viewModel.toggleDisplayGoalProgress,
           ),
         ],
       ),

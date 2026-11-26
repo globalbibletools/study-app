@@ -50,7 +50,7 @@ class _ReadingSessionTimerViewState extends State<ReadingSessionTimerView> {
             ),
             const SizedBox(width: 8),
             ValueListenableBuilder(
-              valueListenable: _sessionViewModel.sessionSecondsNotifier,
+              valueListenable: _sessionViewModel.sessionSeconds,
               builder: (context, elapsedSeconds, _) {
                 return Text(
                   _formatDuration(elapsedSeconds),

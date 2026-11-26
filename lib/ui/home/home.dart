@@ -111,10 +111,11 @@ class _HomeScreenState extends State<HomeScreen> {
   PreferredSizeWidget _buildAppBar() {
     return PreferredSize(
       preferredSize: const Size.fromHeight(kToolbarHeight),
-      child: ValueListenableBuilder(
-        valueListenable: manager.readingSessionViewModel.sessionNotifier,
-        builder: (context, session, child) {
-          final readingSessionStarted = session != null;
+      child: ListenableBuilder(
+        listenable: manager.readingSessionViewModel,
+        builder: (context, child) {
+          final readingSessionStarted =
+              manager.readingSessionViewModel.hasActiveSession;
           return ListenableBuilder(
             listenable: manager.navigationViewModel,
             builder: (context, _) {
@@ -200,7 +201,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return ListenableBuilder(
       listenable: Listenable.merge([
         manager.appGuideManager.checkBoxSpotlightRect,
-        manager.readingSessionViewModel.sessionNotifier,
+        manager.readingSessionViewModel,
         manager.appGuideManager.readingSessionButtonSpotlightRect,
         manager.appGuideManager.readingCheckboxGuideDismissedNotifier,
         manager.appGuideManager.readingSessionGuideDismissedNotifier,

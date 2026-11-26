@@ -80,11 +80,12 @@ and exposes the results in a form widgets can subscribe to cheaply and precisely
 - Does not know: the widget tree. No `BuildContext`, no `GlobalKey`, no
   widgets. It exposes state; it does not decide where or how it is drawn.
 
-A view model is where async gets tamed. Raw futures from services become
-guarded updates: completion is checked against the current state, and stale
-answers from abandoned loads (fast chapter switches, closed panels) must
-never overwrite fresh ones. When a newer invocation supersedes an older one,
-use the cancellation utility described in [Cancellation](#cancellation).
+A view model is where async gets tamed. Mutating work becomes serialized
+commands, and read results become guarded updates: completion is checked
+against the current state, and stale answers from abandoned loads (fast
+chapter switches, closed panels) must never overwrite fresh ones. Use the
+mechanisms described in [Asynchrony in view
+models](#asynchrony-in-view-models).
 
 View models may reference other view models, but only along the ownership
 tree: a view model may know view models *above* it (its owner, an
@@ -326,47 +327,66 @@ directly — doing so makes the widget do view model work. View models own
 their subscriptions: every subscription and notifier is disposed with the
 view model, and streams used for events are broadcast.
 
-## Cancellation
+## Asynchrony in view models
 
-Here, cancellation usually means **supersession**: a newer invocation of an
-operation makes an older in-flight invocation irrelevant. It does not abort
-the underlying I/O; the old request may still finish. What matters is that
-the old invocation stops observing it and stops touching shared state. The
-cancel-and-replace utility is `lib/asyncutils/cancellation.dart`; its
-rationale and rejected alternatives are in [the decision
-record](decisions/2026-11-18-cancel-and-replace.md).
+Asynchronous work belongs to the view model. Two mechanisms cover it:
 
-### When to use it
+- **`SerialQueue`** is the default for commands and other work that must happen
+  in order.
+- **`CancellationScope`** is for publishing the result of a read when a newer
+  read makes an older one irrelevant.
 
-Use a `CancellationScope` when all three are true:
+### Serialized commands
 
-1. The operation awaits I/O (network, disk, audio player).
-2. It can be invoked again before the current invocation finishes.
-3. It writes state the newer invocation also writes.
+Use `SerialQueue` (`lib/asyncutils/serial_queue.dart`) for every operation that
+mutates view-model state or a shared resource: lifecycle transitions, user
+commands, rollover, heartbeat flushes, and similar work. The queue makes
+ordering explicit instead of depending on where `await` happens to yield. Its
+rationale and alternatives are in [the decision
+record](decisions/2026-11-25-serialized-view-model-commands.md).
+
+- Queue the command body directly in the public method. Shared implementation
+  helpers stay private and unqueued; a queued body must not await another
+  public queued method, or it deadlocks waiting on itself.
+- Commands read state when they run, not when they were submitted. An earlier
+  queue entry can make a later command a no-op.
+- Coalesce redundant periodic work with `runCoalesced`; a newer tick or
+  heartbeat shares the pending job instead of adding more work.
+- A failed command completes its own future with the error but does not block
+  later commands.
+- `SerialQueue.close()` rejects new work, drops pending work, and waits for the
+  running command. View models call it during their asynchronous disposal path.
+- Pure reads and UI-only state changes do not need the queue.
+
+The queue is not cancellation. A running command finishes; the queue controls
+what starts next. Do not use cancellation to order commands: a superseded
+command may already have written to the database, and cancellation only stops
+the caller from observing the result.
+
+### Latest-wins reads
+
+Cancellation here means **supersession**: a newer invocation of a read makes an
+older in-flight read irrelevant. It does not abort the underlying I/O; the old
+request may still finish, but its result must not overwrite the newer one.
+
+Use `CancellationScope` (`lib/asyncutils/cancellation.dart`) when an operation:
+
+1. awaits I/O;
+2. can be invoked again before it finishes;
+3. has no domain side effects beyond publishing the result of the read.
 
 The canonical example is loading audio for a chapter while the user keeps
-navigating: the newest chapter must win, and an older load must not later
-set the reference, error, or playback state.
+navigating: the newest chapter must win, and an older load must not later set
+the reference, error, or playback state. If an operation writes domain state,
+route it through the queue instead.
 
-Do not add cancellation just because a function is async. One-shot work,
-read-only queries, and operations that must run to completion need none. If
-calls must happen in order rather than latest-wins, queue them; cancellation
-is not a mutex. A scope belongs to the object whose state the operation
-mutates, one scope per operation, not one per call.
-
-User-initiated download cancellation is a different concern: `CancelToken`
-signals an explicit user decision, and `DownloadCanceledException` is an
-expected failure surfaced to the UI. It is not supersession and does not use
-`CancellationScope`.
-
-### Protecting a function
-
-The operation's entry point starts a run and contains its whole body. Every
-`await` in that body — including awaits inside helpers — goes through the
-run's guard:
+A scope belongs to the object whose state the operation publishes, one scope
+per operation, not one per call. The operation's entry point starts a run and
+contains its whole body; every `await` in that body, including awaits inside
+helpers, goes through the run's guard:
 
 ```dart
-class ChapterController {
+class ChapterLoader {
   final _loadScope = CancellationScope();
 
   Future<void> load(Reference reference) {
@@ -388,43 +408,35 @@ class ChapterController {
 }
 ```
 
-Pass `guard` to helpers rather than capturing the scope or token inside
-them: it keeps the cancellation dependency visible in the signature and
-keeps every await guarded. A guard checks before waiting and again when the
-future settles. If the run was superseded, a value and an error both become
-`CancelledError`. If a command must not even be issued by a stale run, guard
-the await immediately before it; the check on resume is the last chance
-before the next statement runs.
+Pass `guard` to helpers rather than capturing the scope or token inside them:
+it keeps the cancellation dependency visible in the signature and keeps every
+await guarded. A guard checks before waiting and again when the future settles.
+If the run was superseded, a value and an error both become `CancelledError`.
 
-Call `cancelAll()` in `dispose()` for any owner with a live scope. This does
-not await the in-flight operation; it only ensures it cannot act on a
-disposed object.
+Call `cancelAll()` in `dispose()` for any owner with a live scope. This does not
+await the in-flight operation; it only ensures it cannot act on a disposed
+object.
 
 ### Handling `CancelledError`
 
-`CancelledError` is control flow, not a failure. It means *another
-invocation now owns this state*. The rules:
+`CancelledError` is control flow, not a failure. It means *another invocation
+now owns this state*. The rules:
 
-- **Inside a run, let it escape.** Put `on CancelledError { rethrow; }`
-  before any generic `catch`. A typed clause for a specific domain error
-  cannot catch it, so it needs no special handling. Never log it, reset
-  state, or show an error in response to it; that is precisely the stale
-  write cancellation exists to prevent.
-- **At the call site, handle it only where you can act on it.** Usually that
-  is an early `return`, because there is nothing to report and the newer
-  invocation is responsible. A handler that would otherwise show an error
-  dialog should return instead when it catches cancellation.
-- **Fire-and-forget call sites may leave it unhandled.** The global handler
-  in `main.dart` discards `CancelledError` without logging, while genuine
-  unhandled errors are still logged. Do not wrap such a call in a generic
-  catch just to silence it.
-- **A catch-all that wraps a run must rethrow it first.** If a method awaits
-  a run and also has a generic `catch (e)` recovery clause, put an
-  `on CancelledError` clause that rethrows before it; otherwise abandonment
+- **Inside a run, let it escape.** Put `on CancelledError { rethrow; }` before
+  any generic `catch`. Never log it, reset state, or show an error in response
+  to it.
+- **At the call site, handle it only where you can act on it.** Usually that is
+  an early `return`, because the newer invocation is responsible.
+- **Fire-and-forget call sites may leave it unhandled.** The global handler in
+  `main.dart` discards `CancelledError` without logging while genuine errors
+  are still logged. Do not wrap such a call in a generic catch just to silence
+  it.
+- **A catch-all that wraps a run must rethrow it first.** Otherwise abandonment
   becomes a user-visible failure.
+- An inner run's `CancelledError` crossing into an outer run remains
+  cancellation; the outer guard rethrows it or raises its own.
 
-When an inner run's `CancelledError` crosses into an outer run, it is still
-cancellation: the outer guard rethrows it or raises its own
-`CancelledError`. It never becomes a domain error, so outer catch blocks
-follow the same rule.
-
+User-initiated download cancellation is a different concern: `CancelToken`
+signals an explicit user decision, and `DownloadCanceledException` is an
+expected failure surfaced to the UI. It is not supersession and does not use
+`CancellationScope`.

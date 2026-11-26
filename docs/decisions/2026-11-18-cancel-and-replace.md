@@ -1,9 +1,14 @@
 # Cancel-and-Replace Cancellation
 
 - Date: 2026-11-18
-- Status: In Review
+- Status: Superseded
 - Supersedes: None
-- Superseded By: None
+- Superseded By: [Serialized View Model Commands](2026-11-25-serialized-view-model-commands.md)
+
+> Superseded as the general view-model asynchrony policy. New work that mutates
+> state or must happen in order uses `SerialQueue`. `CancellationScope` remains
+> available for read-only latest-wins reads; this record preserves the original
+> policy and its mechanics.
 
 # Context
 
