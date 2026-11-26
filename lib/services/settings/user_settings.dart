@@ -1,6 +1,8 @@
 import 'dart:ui';
 
+import 'package:gbt/common/reference.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import 'settings_migrations.dart';
 
 enum VerseLayout { paragraph, versePerLine }
@@ -16,6 +18,7 @@ class UserSettings {
   static const _themeModeKey = 'themeMode';
   static const _currentChapterKey = 'currentChapter';
   static const _currentBookIdKey = 'currentBookId';
+  static const _currentVerseKey = 'currentVerse';
   static const _hebrewFontScaleKey = 'hebrewFontScale';
   static const _greekFontScaleKey = 'greekFontScale';
   static const _bibleFontScaleKey = 'bibleFontScale';
@@ -46,15 +49,17 @@ class UserSettings {
 
   bool get hasSetLocale => _prefs.containsKey(_localeKey);
 
-  (int, int) get currentBookChapter {
+  Reference get currentReference {
     final bookId = _prefs.getInt(_currentBookIdKey) ?? 1;
     final chapter = _prefs.getInt(_currentChapterKey) ?? 1;
-    return (bookId, chapter);
+    final verse = _prefs.getInt(_currentVerseKey) ?? 1;
+    return Reference(bookId: bookId, chapter: chapter, verse: verse);
   }
 
-  Future<void> setCurrentBookChapter(int bookId, int chapter) async {
-    await _prefs.setInt(_currentBookIdKey, bookId);
-    await _prefs.setInt(_currentChapterKey, chapter);
+  Future<void> setCurrentReference(Reference ref) async {
+    await _prefs.setInt(_currentBookIdKey, ref.bookId);
+    await _prefs.setInt(_currentChapterKey, ref.chapter);
+    await _prefs.setInt(_currentVerseKey, ref.verse);
   }
 
   double get baseFontSize => 20.0;

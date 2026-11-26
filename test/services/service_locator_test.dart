@@ -20,6 +20,7 @@ void main() {
     SharedPreferences.setMockInitialValues({
       'currentBookId': 19,
       'currentChapter': 23,
+      'currentVerse': 5,
     });
 
     getIt.registerSingletonAsync<UserSettings>(() async {
@@ -33,16 +34,19 @@ void main() {
 
     await getIt.allReady();
 
-    expect(getIt<UserSettings>().currentBookChapter, (19, 23));
+    expect(
+      getIt<UserSettings>().currentReference,
+      const Reference(bookId: 19, chapter: 23, verse: 5),
+    );
 
     final viewModel = getIt<NavigationViewModel>();
     expect(
       viewModel.anchor.value,
-      const Reference(bookId: 19, chapter: 23, verse: 1),
+      const Reference(bookId: 19, chapter: 23, verse: 5),
     );
     expect(
       viewModel.displayReference,
-      const Reference(bookId: 19, chapter: 23, verse: 1),
+      const Reference(bookId: 19, chapter: 23, verse: 5),
     );
     expect(viewModel.position, isNotNull);
   });

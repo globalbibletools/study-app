@@ -7,9 +7,9 @@ import 'fake_user_settings.dart';
 
 const _verse = Reference(bookId: 1, chapter: 2, verse: 4);
 
-SyncPosition _positionFor(Reference ref) {
+SyncPosition _positionFor(Reference ref, {double t = 0}) {
   final anchor = Anchor(ref, AnchorEnd.start);
-  return SyncPosition(anchor, anchor, 0);
+  return SyncPosition(anchor, anchor, t);
 }
 
 void main() {
@@ -37,10 +37,23 @@ void main() {
       expect(viewModel.anchor.value, ref);
       expect(settings.saveCalls, 0);
     });
+
+    test('restores the saved verse', () {
+      settings = FakeUserSettings(bookId: 19, chapter: 23, verse: 5);
+      viewModel = NavigationViewModel(settings);
+
+      const ref = Reference(bookId: 19, chapter: 23, verse: 5);
+      expect(viewModel.position, _positionFor(ref));
+      expect(viewModel.displayReference, ref);
+      expect(viewModel.currentReference, ref);
+      expect(viewModel.anchor.value, ref);
+      expect(viewModel.lastUpdateIsSeek, isTrue);
+      expect(settings.saveCalls, 0);
+    });
   });
 
   group('navigateTo', () {
-    test('writes position, display and anchor, and persists the chapter', () {
+    test('writes position, display and anchor, and persists the reference', () {
       viewModel.navigateTo(_verse);
 
       expect(viewModel.position, _positionFor(_verse));
@@ -50,7 +63,7 @@ void main() {
         viewModel.anchor.value,
         const Reference(bookId: 1, chapter: 2, verse: 1),
       );
-      expect(settings.currentBookChapter, (1, 2));
+      expect(settings.currentReference, _verse);
       expect(settings.saveCalls, 1);
     });
 
@@ -58,7 +71,10 @@ void main() {
       viewModel.navigateTo(_verse, persist: false);
 
       expect(viewModel.currentReference, _verse);
-      expect(settings.currentBookChapter, (1, 1));
+      expect(
+        settings.currentReference,
+        const Reference(bookId: 1, chapter: 1, verse: 1),
+      );
       expect(settings.saveCalls, 0);
     });
 
@@ -81,23 +97,30 @@ void main() {
       expect(viewModel.currentReference, _verse);
     });
 
-    test('persists only when the chapter changes', () {
+    test('dedupes the same verse and persists when the verse changes', () {
+      viewModel.navigateTo(_verse);
+      expect(settings.saveCalls, 1);
+
       viewModel.navigateTo(_verse);
       expect(settings.saveCalls, 1);
 
       viewModel.navigateTo(const Reference(bookId: 1, chapter: 2, verse: 9));
-      expect(settings.saveCalls, 1);
+      expect(
+        settings.currentReference,
+        const Reference(bookId: 1, chapter: 2, verse: 9),
+      );
+      expect(settings.saveCalls, 2);
 
       viewModel.navigateTo(const Reference(bookId: 1, chapter: 3, verse: 1));
-      expect(settings.saveCalls, 2);
+      expect(settings.saveCalls, 3);
     });
 
-    test('navigateTo after a preview still persists the chapter', () {
+    test('navigateTo after a preview still persists the reference', () {
       viewModel.navigateTo(_verse, persist: false);
       expect(settings.saveCalls, 0);
 
       viewModel.navigateTo(_verse);
-      expect(settings.currentBookChapter, (1, 2));
+      expect(settings.currentReference, _verse);
       expect(settings.saveCalls, 1);
     });
 
@@ -171,9 +194,21 @@ void main() {
       expect(viewModel.lastUpdateAnimated, isTrue);
     });
 
-    test('persists the target chapter', () {
+    test('persists the target reference including the verse', () {
       viewModel.seekTo(_verse);
-      expect(settings.currentBookChapter, (1, 2));
+      expect(settings.currentReference, _verse);
+      expect(settings.saveCalls, 1);
+    });
+
+    test('audio reference changes persist the verse', () {
+      final audio = ValueNotifier<Reference?>(null);
+      viewModel.bindAudioReference(audio);
+      addTearDown(audio.dispose);
+
+      audio.value = _verse;
+
+      expect(settings.currentReference, _verse);
+      expect(settings.saveCalls, 1);
     });
 
     test('leader reports clear the seek flags', () {
@@ -221,14 +256,67 @@ void main() {
       expect(viewModel.anchor.value, originalAnchor);
     });
 
-    test('persists chapter changes from scrolling', () {
+    test('persists the display verse from scrolling', () {
       viewModel.setActiveSource('panel');
       viewModel.reportPosition('panel', _positionFor(_verse), display: _verse);
 
-      expect(settings.currentBookChapter, (1, 2));
+      expect(settings.currentReference, _verse);
       expect(settings.saveCalls, 1);
     });
+
+    test('dedupes the same verse and persists when the verse changes', () {
+      viewModel.setActiveSource('panel');
+      viewModel.reportPosition('panel', _positionFor(_verse), display: _verse);
+      expect(settings.saveCalls, 1);
+
+      // A different scroll position in the same verse is still a new report,
+      // but it should not write settings again.
+      viewModel.reportPosition(
+        'panel',
+        _positionFor(_verse, t: 0.25),
+        display: _verse,
+      );
+      expect(settings.saveCalls, 1);
+
+      const nextVerse = Reference(bookId: 1, chapter: 2, verse: 5);
+      viewModel.reportPosition(
+        'panel',
+        _positionFor(nextVerse),
+        display: nextVerse,
+      );
+      expect(settings.currentReference, nextVerse);
+      expect(settings.saveCalls, 2);
+    });
+
+    test('keeps the anchor chapter-scoped while persisting verse reports', () {
+      viewModel.navigateTo(const Reference(bookId: 1, chapter: 2, verse: 1));
+      viewModel.setActiveSource('panel');
+
+      viewModel.reportPosition('panel', _positionFor(_verse), display: _verse);
+
+      expect(
+        viewModel.anchor.value,
+        const Reference(bookId: 1, chapter: 2, verse: 1),
+      );
+      expect(settings.currentReference, _verse);
+    });
   });
+
+  test(
+    'persistCurrentChapter persists the current reference including verse',
+    () async {
+      viewModel.navigateTo(_verse, persist: false);
+      expect(settings.saveCalls, 0);
+
+      await viewModel.persistCurrentChapter();
+
+      expect(settings.currentReference, _verse);
+      expect(settings.saveCalls, 1);
+
+      await viewModel.persistCurrentChapter();
+      expect(settings.saveCalls, 1);
+    },
+  );
 
   test(
     'reanchorToCurrentReference moves the anchor to the display chapter',
