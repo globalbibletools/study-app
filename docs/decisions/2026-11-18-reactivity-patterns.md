@@ -70,6 +70,11 @@ future occurrences, it is an event — a stream.
   code today, to be addressed.
 - `NavigationViewModel` guarding position updates within a tolerance is the
   canonical example of notification guarding.
+- These tools govern state exposure and events. Asynchrony and ordering in view
+  models are governed by [Serialized View Model
+  Commands](2026-11-25-serialized-view-model-commands.md): mutating work runs
+  through `SerialQueue`, and cancellation is reserved for read-only
+  latest-wins work.
 
 # Alternatives
 
@@ -86,4 +91,5 @@ future occurrences, it is an event — a stream.
 # References
 
 - `docs/ARCHITECTURE.md` — the reactivity model in full
+- [Serialized View Model Commands](2026-11-25-serialized-view-model-commands.md)
 - [Four-Layer Architecture](2026-11-18-four-layer-architecture.md)
