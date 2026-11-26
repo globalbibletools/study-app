@@ -18,16 +18,14 @@ them in yourself:
   written, not necessarily how it is today.
 - `docs/DEVELOPMENT.md` — practical details for day-to-day work. Use this when
   you need to understand how tools are used or how work is done.
-- `docs/decisions/` — numbered decision records explaining why significant
-  changes were made. Reference these before making any kind of architectural
-  change or cleanup.
+- `docs/decisions/` — records of significant architecture decisions. Reference
+  these before making any kind of architectural change or cleanup.
 
 ## Ground rules
 
 - Verify changes with the test command listed in `docs/DEVELOPMENT.md` before
   considering a task complete.
-- When you make a decision that a future reader would ask "why?" about, record
-  it in `docs/decisions/` (see the numbering convention there).
+- When you make an architectural decision, record it in `docs/decisions/`
 - If this file and another doc disagree, trust the more specific doc and fix
   this file.
 - Keep this file concise. Instead put new context in other files and point to

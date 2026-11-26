@@ -10,6 +10,12 @@
 * 2026-11-18 [Dependency Injection](2026-11-18-dependency-injection.md) [Accepted]
 * 2026-11-18 [N-1 Flutter Upgrade Strategy](2026-11-18-flutter-upgrade-strategy.md) [Accepted]
 
+## Scope
+
+Decision records are for **app-wide architecture decisions only**: patterns,
+conventions, or trade-offs that apply across multiple domains/slices or that
+someone must understand before working anywhere in the codebase.
+
 ## Guidelines
 
 - One decision per file.
