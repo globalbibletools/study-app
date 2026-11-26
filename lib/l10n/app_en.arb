@@ -32,6 +32,14 @@
   "@emailCopied": {
     "description": "Message shown after email button clicked"
   },
+  "readerSettings": "Reader Settings",
+  "@readerSettings": {
+    "description": "Title of the reader settings bottom sheet"
+  },
+  "parallelBible": "Parallel Bible",
+  "@parallelBible": {
+    "description": "Toggle label for showing the parallel Bible panel"
+  },
   "settings": "Settings",
   "@settings": {
     "description": "The title of the Settings screen"

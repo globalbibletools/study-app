@@ -14,7 +14,7 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
   final bool readingSessionStarted;
   final Function(int bookId, int chapter) onChapterSelected;
   final Function(int verse) onVerseSelected;
-  final VoidCallback onTogglePanel;
+  final VoidCallback onOpenReaderSettings;
   final VoidCallback onPlayAudio;
   final GlobalKey<ReferenceChooserState> referenceChooserKey;
   final ValueChanged<ReferenceInputMode> onInputModeChanged;
@@ -29,7 +29,7 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
     required this.displayVerse,
     required this.onChapterSelected,
     required this.onVerseSelected,
-    required this.onTogglePanel,
+    required this.onOpenReaderSettings,
     required this.onPlayAudio,
     required this.referenceChooserKey,
     required this.onInputModeChanged,
@@ -113,8 +113,8 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
           style: IconButton.styleFrom(
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
-          onPressed: onTogglePanel,
-          icon: Icon(Icons.splitscreen),
+          onPressed: onOpenReaderSettings,
+          icon: Icon(Icons.settings),
           constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
         ),
       ],

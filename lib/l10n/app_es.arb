@@ -8,6 +8,14 @@
     "appName": "Herramientas Bíblicas Globales",
     "sourceCode": "Código fuente",
     "emailCopied": "Correo electrónico copiado",
+    "readerSettings": "Ajustes del lector",
+    "@readerSettings": {
+        "description": "Title of the reader settings bottom sheet"
+    },
+    "parallelBible": "Biblia paralela",
+    "@parallelBible": {
+        "description": "Toggle label for showing the parallel Bible panel"
+    },
     "settings": "Ajustes",
     "language": "Idioma",
     "glossLanguage": "Idioma del glosario",

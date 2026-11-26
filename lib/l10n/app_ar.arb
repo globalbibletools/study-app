@@ -8,6 +8,14 @@
     "appName": "أدوات الكتاب المقدس العالمية",
     "sourceCode": "الشيفرة المصدرية",
     "emailCopied": "تم نسخ البريد الإلكتروني",
+    "readerSettings": "إعدادات القراءة",
+    "@readerSettings": {
+        "description": "Title of the reader settings bottom sheet"
+    },
+    "parallelBible": "الكتاب المقدس الموازي",
+    "@parallelBible": {
+        "description": "Toggle label for showing the parallel Bible panel"
+    },
     "settings": "الإعدادات",
     "language": "اللغة",
     "glossLanguage": "لغة التفسير",
