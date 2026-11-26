@@ -122,11 +122,38 @@ passes the standard verification
 Build the new surface without changing any picker behavior. No settings
 migration yet.
 
+**Follow the reading-plan panel patterns** (the canonical example of the
+current UI conventions):
+
+- *Bottom sheet navigation* — `lib/reading_plan/ui/reading_sheet.dart`:
+  a static `navigateTo` that constructs the view model first
+  (`await ViewModel.create()`), shows `showModalBottomSheet`
+  (`isScrollControlled`, `useSafeArea`, rounded top corners), wraps content
+  in a fixed-height sheet body (ClipRRect + Material + SafeArea, handle bar,
+  sheet-internal `Navigator` for sub-routes), and disposes the view model on
+  failure or unmounted context.
+- *View model* — `lib/reading_plan/ui/reading_plan_panel_view_model.dart`:
+  private constructor plus a static async `create()` factory taking optional
+  injected dependencies (getIt defaults inside `create`, not field
+  initializers), `ChangeNotifier`, commands serialized through `SerialQueue`
+  (`runCoalesced` for fast idempotent ones), `_setState` guarded by
+  `_disposed`, and a dispose path that closes the queue before
+  `super.dispose()`.
+- *Widget construction* — `lib/reading_plan/ui/reading_plan_panel.dart`:
+  the panel widget receives the view model constructed by `navigateTo`,
+  subscribes with `ListenableBuilder`, and keeps l10n reads in `build`.
+
+The sheet follows these patterns from the start: `ReaderSettingsSheet`
+wraps a `ReaderSettingsViewModel` (state: the parallel-Bible toggle and
+settings version), and the existing section widgets render inside it. The
+section widgets themselves keep their current getIt-based shape in this
+chunk; converting them to the view-model pattern is not in scope.
+
 - New `lib/ui/home/settings/reader_settings_sheet.dart`:
-  `showReaderSettingsSheet(context, onChanged)` — a
-  `DraggableScrollableSheet` listing the reader-facing options. The gloss
-  and Bible rows keep their **current** pickers (the gloss SimpleDialog and
-  `chooseBible`) for now; chunk 3 replaces them.
+  `ReaderSettingsSheet.navigateTo(context, onChanged)` following the
+  ReadingSheet pattern (see above). The gloss and Bible rows keep their
+  **current** pickers (the gloss SimpleDialog and `chooseBible`) for now;
+  chunk 3 replaces them.
 - Move the reader-facing sections from `lib/ui/settings/` to
   `lib/ui/home/settings/` (the sheet is their only consumer once the
   Settings page drops them): `section_bible.dart`,
