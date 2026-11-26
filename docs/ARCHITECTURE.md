@@ -167,8 +167,8 @@ A slice may not:
   entry point to that data.
 - talk to another slice's local view models outside their paired widgets.
 
-Infrastructure used by several slices (logging, downloads, resources,
-cancellation) remains shared rather than being copied into each slice.
+Infrastructure used by several slices (logging, downloads, resources) remains
+shared rather than being copied into each slice.
 
 ### Surface area
 
@@ -329,114 +329,29 @@ view model, and streams used for events are broadcast.
 
 ## Asynchrony in view models
 
-Asynchronous work belongs to the view model. Two mechanisms cover it:
+Asynchronous work belongs to the view model and is serialized through
+`SerialQueue` (`lib/asyncutils/serial_queue.dart`). Queue every async entry
+point that mutates view-model state or a shared resource — commands, stream
+callbacks, resource callbacks, state refreshses. Pure reads that cannot overlap,
+and UI-only state changes, skip the queue. Rationale and alternatives are in
+[the decision record](decisions/2026-11-25-serialized-view-model-commands.md);
 
-- **`SerialQueue`** is the default for commands and other work that must happen
-  in order.
-- **`CancellationScope`** is for publishing the result of a read when a newer
-  read makes an older one irrelevant.
+- Queue the command body in the public method; shared helpers stay private
+  and unqueued. A queued body must not await another public queued method
+  (it deadlocks on itself).
+- Commands read state when they run, not when submitted; an earlier queue
+  entry can make a later command a no-op.
+- Fast commands made indempotent with `runCoaleseced` need no pending flag to
+  block the UI. The rerender is not worth it, and the subsequent command will
+  be dropped.
+- Use `run` if you want each repeat action to be queued independently.
+- If you want to prevent repeat actions from being queued, you have a few options
+  - `runCoalesced` - repeat calls run once and share the same result. Use when
+    you want all callers to be able to react to the result. Each call will be
+    able to run side effects upon completion or failure
+  - `runUnique` - repeat calls are dropped with [InFlightError]. Use when only
+    the first caller should react to the result with side effects.
+- `SerialQueue.close()` is called during the view model's asynchronous
+  disposal path and the parent dispose is only called when the queue's pending
+  action has completed. This allows us to skip checking dispose state.
 
-### Serialized commands
-
-Use `SerialQueue` (`lib/asyncutils/serial_queue.dart`) for every operation that
-mutates view-model state or a shared resource: lifecycle transitions, user
-commands, rollover, heartbeat flushes, and similar work. The queue makes
-ordering explicit instead of depending on where `await` happens to yield. Its
-rationale and alternatives are in [the decision
-record](decisions/2026-11-25-serialized-view-model-commands.md).
-
-- Queue the command body directly in the public method. Shared implementation
-  helpers stay private and unqueued; a queued body must not await another
-  public queued method, or it deadlocks waiting on itself.
-- Commands read state when they run, not when they were submitted. An earlier
-  queue entry can make a later command a no-op.
-- Coalesce redundant periodic work with `runCoalesced`; a newer tick or
-  heartbeat shares the pending job instead of adding more work.
-- A failed command completes its own future with the error but does not block
-  later commands.
-- `SerialQueue.close()` rejects new work, drops pending work, and waits for the
-  running command. View models call it during their asynchronous disposal path.
-- Pure reads and UI-only state changes do not need the queue.
-
-The queue is not cancellation. A running command finishes; the queue controls
-what starts next. Do not use cancellation to order commands: a superseded
-command may already have written to the database, and cancellation only stops
-the caller from observing the result.
-
-### Latest-wins reads
-
-Cancellation here means **supersession**: a newer invocation of a read makes an
-older in-flight read irrelevant. It does not abort the underlying I/O; the old
-request may still finish, but its result must not overwrite the newer one.
-
-Use `CancellationScope` (`lib/asyncutils/cancellation.dart`) when an operation:
-
-1. awaits I/O;
-2. can be invoked again before it finishes;
-3. has no domain side effects beyond publishing the result of the read.
-
-The canonical example is loading audio for a chapter while the user keeps
-navigating: the newest chapter must win, and an older load must not later set
-the reference, error, or playback state. If an operation writes domain state,
-route it through the queue instead.
-
-A scope belongs to the object whose state the operation publishes, one scope
-per operation, not one per call. The operation's entry point starts a run and
-contains its whole body; every `await` in that body, including awaits inside
-helpers, goes through the run's guard:
-
-```dart
-class ChapterLoader {
-  final _loadScope = CancellationScope();
-
-  Future<void> load(Reference reference) {
-    return _loadScope.run((guard) async {
-      final chapter = await guard(_fetch(reference));
-      await _apply(guard, chapter);
-    });
-  }
-
-  Future<void> _apply(Guard guard, Chapter chapter) async {
-    final text = await guard(_render(chapter));
-    _chapter.value = text; // only the current run gets here
-  }
-
-  void dispose() {
-    _loadScope.cancelAll();
-    // ...
-  }
-}
-```
-
-Pass `guard` to helpers rather than capturing the scope or token inside them:
-it keeps the cancellation dependency visible in the signature and keeps every
-await guarded. A guard checks before waiting and again when the future settles.
-If the run was superseded, a value and an error both become `CancelledError`.
-
-Call `cancelAll()` in `dispose()` for any owner with a live scope. This does not
-await the in-flight operation; it only ensures it cannot act on a disposed
-object.
-
-### Handling `CancelledError`
-
-`CancelledError` is control flow, not a failure. It means *another invocation
-now owns this state*. The rules:
-
-- **Inside a run, let it escape.** Put `on CancelledError { rethrow; }` before
-  any generic `catch`. Never log it, reset state, or show an error in response
-  to it.
-- **At the call site, handle it only where you can act on it.** Usually that is
-  an early `return`, because the newer invocation is responsible.
-- **Fire-and-forget call sites may leave it unhandled.** The global handler in
-  `main.dart` discards `CancelledError` without logging while genuine errors
-  are still logged. Do not wrap such a call in a generic catch just to silence
-  it.
-- **A catch-all that wraps a run must rethrow it first.** Otherwise abandonment
-  becomes a user-visible failure.
-- An inner run's `CancelledError` crossing into an outer run remains
-  cancellation; the outer guard rethrows it or raises its own.
-
-User-initiated download cancellation is a different concern: `CancelToken`
-signals an explicit user decision, and `DownloadCanceledException` is an
-expected failure surfaced to the UI. It is not supersession and does not use
-`CancellationScope`.

@@ -7,7 +7,6 @@ class SerialQueueClosed implements Exception {
   String toString() => 'SerialQueueClosed';
 }
 
-/// Another action with the same key is already pending or running.
 class InFlightError implements Exception {
   const InFlightError(this.key);
 
@@ -35,6 +34,7 @@ class SerialQueue {
     return (_idleCompleter ??= Completer<void>()).future;
   }
 
+  /// Queue an [action] that must be run serially in the queue.
   Future<T> run<T>(Future<T> Function() action) {
     if (_closed) return Future<T>.error(const SerialQueueClosed());
 
@@ -43,9 +43,8 @@ class SerialQueue {
     return task.result;
   }
 
-  /// Runs [action] once per [key] while it is pending or running. Repeated
-  /// calls with the same key return the in-flight future, including its
-  /// result, so every caller observes the same outcome.
+  /// Queue an [action] that must be run only once per [key] while enqueued.
+  /// Repeated calls with the same key will all share the same future and outcome.
   Future<T> runCoalesced<T>(Object key, Future<T> Function() action) {
     final pending = _coalesced[key];
     if (pending != null) return pending as Future<T>;
@@ -64,9 +63,8 @@ class SerialQueue {
     return task.result;
   }
 
-  /// Runs [action] only if no other action with [key] is pending or running.
-  /// A duplicate call fails with [InFlightError] instead of joining, so
-  /// exactly one caller owns the outcome.
+  /// Queue an [action] that must be run only once per [key] while enqueued.
+  /// Repeated calls with the same key will fail with [InFlightError].
   Future<T> runUnique<T>(Object key, Future<T> Function() action) {
     if (_closed) return Future<T>.error(const SerialQueueClosed());
     if (!_inFlightKeys.add(key)) return Future<T>.error(InFlightError(key));
