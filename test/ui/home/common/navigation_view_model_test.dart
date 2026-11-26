@@ -302,6 +302,65 @@ void main() {
     });
   });
 
+  group('flashVerse', () {
+    testWidgets('sets the flashed reference and clears it after 1.5 seconds', (
+      tester,
+    ) async {
+      const target = Reference(bookId: 8, chapter: 4, verse: 17);
+      final seededPosition = viewModel.position;
+      final seededDisplay = viewModel.displayReference;
+
+      viewModel.flashVerse(target);
+
+      expect(viewModel.flashedReference.value, target);
+      expect(viewModel.position, seededPosition);
+      expect(viewModel.displayReference, seededDisplay);
+      expect(settings.saveCalls, 0);
+
+      await tester.pump(const Duration(milliseconds: 1000));
+      expect(viewModel.flashedReference.value, target);
+
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(viewModel.flashedReference.value, isNull);
+      expect(viewModel.position, seededPosition);
+      expect(viewModel.displayReference, seededDisplay);
+      expect(settings.saveCalls, 0);
+    });
+
+    testWidgets('a second flash replaces the first and restarts the timer', (
+      tester,
+    ) async {
+      const first = Reference(bookId: 1, chapter: 2, verse: 4);
+      const second = Reference(bookId: 8, chapter: 4, verse: 17);
+
+      viewModel.flashVerse(first);
+      await tester.pump(const Duration(milliseconds: 1000));
+
+      viewModel.flashVerse(second);
+      expect(viewModel.flashedReference.value, second);
+
+      // The first timer would have fired at 1500ms; it was cancelled.
+      await tester.pump(const Duration(milliseconds: 600));
+      expect(viewModel.flashedReference.value, second);
+
+      await tester.pump(const Duration(milliseconds: 900));
+      expect(viewModel.flashedReference.value, isNull);
+    });
+
+    testWidgets('dispose cancels a pending flash timer', (tester) async {
+      final localViewModel = NavigationViewModel(FakeUserSettings());
+      const target = Reference(bookId: 8, chapter: 4, verse: 17);
+
+      localViewModel.flashVerse(target);
+      final flashedReference = localViewModel.flashedReference;
+      localViewModel.dispose();
+
+      await tester.pump(const Duration(seconds: 2));
+
+      expect(flashedReference.value, target);
+    });
+  });
+
   test(
     'persistCurrentChapter persists the current reference including verse',
     () async {
