@@ -78,15 +78,6 @@ class ReadingSessionDatabase {
     return _initFuture;
   }
 
-  /// Runs [action] as one atomic unit of work.
-  ///
-  /// All repository operations made through the supplied [UnitOfWork] share a
-  /// single transaction: the transaction commits when [action] completes
-  /// successfully and rolls back if it throws. There is no manual commit.
-  ///
-  /// Units of work must never nest. Sqflite does not support nested
-  /// transactions, so do not call [unitOfWork] while already inside one, and
-  /// do not call another service's unit-of-work methods mid-unit-of-work.
   Future<T> unitOfWork<T>(Future<T> Function(UnitOfWork uow) action) {
     return _database.transaction((txn) async {
       final uow = UnitOfWork(

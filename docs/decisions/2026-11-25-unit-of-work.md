@@ -1,4 +1,4 @@
-# Unit-of-Work Pattern for Database Transactions
+# Unit-of-Work Pattern for Database Access
 
 - Date: 2026-11-25
 - Status: In Review
@@ -7,87 +7,81 @@
 
 # Context
 
-Services that need several repository writes to succeed or fail together used
-sqflite transactions directly. Each service opened its own
-`Database.transaction`, and every repository method took an optional
-`executor:` parameter so callers could redirect it into that transaction.
-Atomicity was therefore opt-in per call site: forgetting to pass the executor
-silently wrote outside the transaction, and validation reads that happened
-before the transaction could disagree with the state the writes saw.
+Services often need several repository reads and writes to succeed or fail
+together. Letting each call site open a database transaction directly makes
+atomicity opt-in: forgetting it silently writes outside the transaction, and
+validation reads performed before the transaction can disagree with the state
+the writes see.
 
-Threading `executor:` through every call was boilerplate with no type-level
-guarantee that a repository was used inside the transaction it was meant for.
-The repositories themselves also opened transactions in some paths (for
-example `DaySummaryRepository.upsert` when called without an executor), which
-made transaction ownership ambiguous.
+Threading a transaction executor through repository calls has the same problem
+from the other direction. Every method grows an optional `executor:` parameter,
+callers must remember to pass it, and nothing in the type system guarantees a
+repository call is actually running in the transaction it was meant for.
+Repositories that open their own transactions make ownership even less clear.
 
 # Decisions
 
-**A closure-scoped unit of work on the database:**
+**Use a closure-scoped unit of work as the standard way services get atomic
+access to a database's repositories.** A database exposes:
 
 ```dart
 Future<T> unitOfWork<T>(Future<T> Function(UnitOfWork uow) action);
 ```
 
-It runs `action` inside one sqflite transaction. Success commits; any throw
-rolls back. There is intentionally no `commit()` API.
+It runs `action` inside one transaction. Success commits; any throw rolls back.
+There is intentionally no manual `commit()` API.
 
-**`UnitOfWork` binds repositories to the transaction executor.** The class
-lives in `lib/reading_plan/data_access/unit_of_work.dart` and exposes the five
-repositories — `session`, `sessionLog`, `verseState`, `daySummary`, and
-`readingPlans` — constructed against the executor for that closure.
+**`UnitOfWork` binds repositories to the transaction executor.** It exposes the
+database's repositories constructed against the executor for that closure, so
+every operation made through it participates in the same transaction.
 
 **Repositories are executor-free.** Each repository takes its
 `DatabaseExecutor` in its constructor and no method accepts an `executor:`
 parameter. Repositories never open transactions; atomicity belongs to the unit
-of work. The database still exposes repositories bound to its raw connection
-for simple reads and tests, but services use the unit of work.
+of work. Simple reads may still use repositories bound to the database's raw
+connection, but anything that must be atomic goes through a unit of work.
 
-**Services own one scope per operation.** Every service method that touches a
-repository does its whole body inside exactly one `unitOfWork`, including
-validation reads. Helpers such as `_requireSession` and `_requireReadingPlan`
-take the unit-of-work repository as a parameter, closing races between
-validation and write. The backup service's export and import paths use the
-same mechanism; there is no privileged raw-transaction path.
+**Services own one scope per operation.** A service method that touches
+repositories does its whole body inside exactly one `unitOfWork`, including
+validation reads. Helpers that look up existing data take the unit-of-work
+repository as a parameter, so validation and writes see the same transaction.
+Multi-table operations such as backup export or restore use the same mechanism;
+there is no privileged raw-transaction path.
 
-**Units of work never nest.** Sqflite has no nested transactions. A
-`unitOfWork` call inside another, or a service calling another service's
-unit-of-work methods while already inside one, is a bug. This rule is stated
-in the `unitOfWork` dartdoc.
+**Units of work never nest.** Sqflite has no nested transactions. Opening a
+unit of work inside another, or calling another service's unit-of-work methods
+while already inside one, is a bug.
 
-**Scope.** The pattern currently applies to `ReadingSessionDatabase` only.
-`ReadingPlanQueries` backs view models and stays as it is; other databases will
-adopt the pattern in later changes.
+**Apply the pattern going forward.** New database operations use a unit of work,
+and existing databases adopt it as they are worked on.
 
 # Implementation Notes
 
-- `ReadingSessionDatabase.transaction()` was removed once its production
-  callers moved to `unitOfWork`.
-- The schema `onCreate`/`onUpgrade` code constructs `VerseStateRepository`
-  directly against the open-helper database, matching the new constructor
-  shape.
-- Tests assert both guarantees directly: a successful closure commits all
-  repository writes, and a throw rolls all of them back.
-- `UnitOfWork.executor` is exposed as a low-level escape hatch for raw queries
-  (schema checks and test seeding), not as a reason to bypass the repositories
-  in production.
+- The unit of work keeps its transaction executor accessible for low-level
+  queries and schema work, but production service code should use the bound
+  repositories rather than bypassing them.
+- Schema `onCreate`/`onUpgrade` code constructs repositories directly against
+  the open-helper database, matching the repository constructor shape.
+- Tests can use the still-exposed repositories bound to the raw connection for
+  setup and simple assertions, or go through `unitOfWork` when they need an
+  explicit transaction boundary.
 
 # Alternatives
 
 - **Manual `commit()` / `rollback()` API.** Discarded: callers can forget to
   commit or commit twice, and exceptions between writes would leave the
   transaction open. The closure makes the lifetime unambiguous.
-- **Keep `executor:` threading.** Discarded: it is the boilerplate this change
-  removes, and it makes atomicity opt-in at every call site rather than the
-  default shape of a service operation.
+- **Keep `executor:` threading.** Discarded: it is boilerplate, and it makes
+  atomicity opt-in at every call site rather than the default shape of a
+  service operation.
 - **Ambient or reentrant transactions.** Discarded: implicit transaction
   discovery across calls hides which operations are actually atomic, and
   sqflite cannot nest transactions anyway. A unit of work is explicit at the
   operation boundary.
 - **Repositories opening their own transactions.** Discarded: it makes a
-  repository call implicitly atomic, preventing a service from grouping
-  several repository calls into one larger transaction and giving transaction
-  ownership to the wrong layer.
+  repository call implicitly atomic, preventing a service from grouping several
+  repository calls into one larger transaction and giving transaction ownership
+  to the wrong layer.
 
 # References
 
