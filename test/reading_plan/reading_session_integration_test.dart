@@ -35,11 +35,10 @@ void main() {
     getIt.registerSingleton<BibleNavigation>(createTestBibleNavigation());
 
     rsDb = ReadingSessionDatabase.withDependencies(
-      databaseName: 'reading_session_integration_test.db',
+      databasePath: inMemoryDatabasePath,
       verseInventoryProvider: (bookIds) async =>
           createTestVerseInventory(bookIds: bookIds),
     );
-    await rsDb.resetDatabase();
     await rsDb.init();
     planService = ReadingPlanService.withDependencies(database: rsDb);
     sessionService = ReadingSessionService.withDatabase(rsDb);
