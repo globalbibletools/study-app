@@ -41,11 +41,11 @@ class ReadingSessionViewModel extends ChangeNotifier
   final _commands = SerialQueue();
 
   final _goalReachedController = StreamController<void>.broadcast();
-  Stream<void> get goalReached => _goalReachedController.stream;
+  late final Stream<void> goalReached = _goalReachedController.stream;
 
   final _bookCompletedController =
       StreamController<BookCompletedEvent>.broadcast();
-  Stream<BookCompletedEvent> get bookCompleted =>
+  late final Stream<BookCompletedEvent> bookCompleted =
       _bookCompletedController.stream;
 
   ReadingPlanConfig? _config;
