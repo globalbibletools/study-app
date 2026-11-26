@@ -7,7 +7,7 @@ import 'package:gbt/services/resources/resource_service.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/about/about.dart';
 import 'package:gbt/l10n/app_localizations.dart';
-import 'package:gbt/ui/backup_restore/backup_restore.dart';
+import 'package:gbt/reading_plan/ui/backup_restore_page.dart';
 import 'package:gbt/ui/download/download_manager_page.dart';
 import 'package:gbt/ui/messaging/messenger_view_model.dart';
 import 'package:gbt/ui/search/search.dart';

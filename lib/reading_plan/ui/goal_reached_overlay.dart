@@ -2,9 +2,9 @@ import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:gbt/l10n/app_localizations.dart';
+import 'package:gbt/reading_plan/ui/confetti_view.dart';
 import 'package:gbt/reading_plan/ui/reading_session_view_model.dart';
 import 'package:gbt/ui/common/stream_dialog_host.dart';
-import 'package:gbt/ui/home/panel_area/common/confetti_view.dart';
 
 class GoalReachedOverlay extends StatelessWidget {
   const GoalReachedOverlay({super.key, required this.viewModel});
