@@ -5,7 +5,7 @@ import 'package:sqflite/sqflite.dart';
 class ReadingPlanRepository {
   ReadingPlanRepository(this._database);
 
-  final Database _database;
+  final DatabaseExecutor _database;
 
   Future<ReadingPlan?> getById(int planId) async {
     final planRows = await _database.query(
@@ -58,45 +58,40 @@ class ReadingPlanRepository {
     ];
   }
 
-  Future<int> commit(ReadingPlan plan) {
-    return _database.transaction((txn) async {
-      final planMap = plan.toPlanMap();
-      final int planId;
-      if (plan.id != 0) {
-        planId = plan.id;
-        await txn.update(
-          'reading_plan',
-          planMap,
-          where: 'id = ?',
-          whereArgs: [planId],
-        );
-      } else {
-        planId = await txn.insert('reading_plan', planMap..remove('id'));
-      }
-
-      await txn.delete(
-        'reading_plan_book',
-        where: 'reading_plan_id = ?',
+  Future<int> commit(ReadingPlan plan) async {
+    final planMap = plan.toPlanMap();
+    final int planId;
+    if (plan.id != 0) {
+      planId = plan.id;
+      await _database.update(
+        'reading_plan',
+        planMap,
+        where: 'id = ?',
         whereArgs: [planId],
       );
+    } else {
+      planId = await _database.insert('reading_plan', planMap..remove('id'));
+    }
 
-      final batch = txn.batch();
-      for (final row in plan.copyWith(id: planId).toBookMaps()) {
-        batch.insert('reading_plan_book', row);
-      }
-      await batch.commit(noResult: true);
+    await _database.delete(
+      'reading_plan_book',
+      where: 'reading_plan_id = ?',
+      whereArgs: [planId],
+    );
 
-      return planId;
-    });
+    final batch = _database.batch();
+    for (final row in plan.copyWith(id: planId).toBookMaps()) {
+      batch.insert('reading_plan_book', row);
+    }
+    await batch.commit(noResult: true);
+
+    return planId;
   }
 
-  Future<Map<String, List<Map<String, Object?>>>> exportAll({
-    DatabaseExecutor? executor,
-  }) async {
-    final db = executor ?? _database;
+  Future<Map<String, List<Map<String, Object?>>>> exportAll() async {
     return {
-      'reading_plan': await db.query('reading_plan', orderBy: 'id'),
-      'reading_plan_book': await db.query(
+      'reading_plan': await _database.query('reading_plan', orderBy: 'id'),
+      'reading_plan_book': await _database.query(
         'reading_plan_book',
         orderBy: 'reading_plan_id, ord',
       ),
@@ -114,19 +109,16 @@ class ReadingPlanRepository {
 
   static const _planBookColumns = ['reading_plan_id', 'book_id', 'ord'];
 
-  Future<void> importAll(
-    Map<String, Object?> tables, {
-    required DatabaseExecutor executor,
-  }) async {
+  Future<void> importAll(Map<String, Object?> tables) async {
     final planRows = parseBackupRows(tables['reading_plan'], 'reading_plan');
     final bookRows = parseBackupRows(
       tables['reading_plan_book'],
       'reading_plan_book',
     );
 
-    await deleteAll(executor: executor);
+    await deleteAll();
 
-    final batch = executor.batch();
+    final batch = _database.batch();
     for (final row in planRows) {
       batch.insert('reading_plan', pickBackupColumns(row, _planColumns));
     }
@@ -139,27 +131,22 @@ class ReadingPlanRepository {
     await batch.commit(noResult: true);
   }
 
-  Future<void> deleteAll({DatabaseExecutor? executor}) async {
-    final db = executor ?? _database;
-    await db.delete('reading_plan_book');
-    await db.delete('reading_plan');
+  Future<void> deleteAll() async {
+    await _database.delete('reading_plan_book');
+    await _database.delete('reading_plan');
   }
 
-  Future<void> delete(int planId, {DatabaseExecutor? executor}) async {
-    Future<void> deleteRows(DatabaseExecutor db) async {
-      await db.delete(
-        'reading_plan_book',
-        where: 'reading_plan_id = ?',
-        whereArgs: [planId],
-      );
-      await db.delete('reading_plan', where: 'id = ?', whereArgs: [planId]);
-    }
-
-    if (executor != null) {
-      await deleteRows(executor);
-    } else {
-      await _database.transaction(deleteRows);
-    }
+  Future<void> delete(int planId) async {
+    await _database.delete(
+      'reading_plan_book',
+      where: 'reading_plan_id = ?',
+      whereArgs: [planId],
+    );
+    await _database.delete(
+      'reading_plan',
+      where: 'id = ?',
+      whereArgs: [planId],
+    );
   }
 }
 

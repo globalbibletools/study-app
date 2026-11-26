@@ -42,6 +42,16 @@ models, and runs queries. That is all.
 When a database needs something owned elsewhere, it declares that need and
 lets the caller provide it, rather than reaching sideways.
 
+Services get atomic access through a **unit of work**, not by opening
+`Database.transaction` themselves. `ReadingSessionDatabase.unitOfWork` runs a
+closure inside one transaction and hands it a `UnitOfWork` exposing the
+database's repositories bound to that transaction. Success commits; a throw
+rolls back; there is no manual commit. Repositories take their executor in the
+constructor and never open transactions of their own. Units of work never
+nest, because sqflite has no nested transactions. The pattern currently
+applies to `ReadingSessionDatabase` and will spread to the other databases as
+they are worked on.
+
 Lifetime is not the database's concern: whoever opens a database closes it.
 Some databases are process-wide singletons (the HebrewGreek text); others
 are opened per resource on demand (a downloaded bible), and deciding which

@@ -19,10 +19,8 @@ class VerseStateRepository {
     int chapter,
     int verse, {
     DateTime? timestamp,
-    DatabaseExecutor? executor,
   }) async {
-    final db = executor ?? _database;
-    await db.rawUpdate(
+    await _database.rawUpdate(
       'UPDATE rs_verse_state '
       'SET read_count = read_count + 1, last_read = ? '
       'WHERE reading_plan_id = ? AND book_id = ? AND chapter = ? AND verse = ?',
@@ -40,11 +38,9 @@ class VerseStateRepository {
     int readingPlanId,
     int bookId,
     int chapter,
-    int verse, {
-    DatabaseExecutor? executor,
-  }) async {
-    final db = executor ?? _database;
-    await db.rawUpdate(
+    int verse,
+  ) async {
+    await _database.rawUpdate(
       'UPDATE rs_verse_state '
       'SET read_count = MAX(read_count - 1, 0), '
       '    last_read = CASE WHEN read_count <= 1 THEN NULL ELSE last_read END '
@@ -53,24 +49,20 @@ class VerseStateRepository {
     );
   }
 
-  Future<int> deleteForPlanId(int readingPlanId, {DatabaseExecutor? executor}) {
-    final db = executor ?? _database;
-
-    return db.delete(
+  Future<int> deleteForPlanId(int readingPlanId) {
+    return _database.delete(
       'rs_verse_state',
       where: 'reading_plan_id = ?',
       whereArgs: [readingPlanId],
     );
   }
 
-  Future<int> deleteAll({DatabaseExecutor? executor}) {
-    final db = executor ?? _database;
-    return db.delete('rs_verse_state');
+  Future<int> deleteAll() {
+    return _database.delete('rs_verse_state');
   }
 
-  Future<void> backfillFromLog({DatabaseExecutor? executor}) async {
-    final db = executor ?? _database;
-    await db.rawInsert(
+  Future<void> backfillFromLog() async {
+    await _database.rawInsert(
       'INSERT OR REPLACE INTO rs_verse_state '
       '(reading_plan_id, book_id, chapter, verse, read_count, last_read) '
       'SELECT reading_plan_id, book_id, chapter, verse, '
@@ -80,21 +72,15 @@ class VerseStateRepository {
     );
   }
 
-  Future<void> materializeAll({DatabaseExecutor? executor}) async {
-    final db = executor ?? _database;
-    final plans = await db.query('reading_plan', columns: ['id']);
+  Future<void> materializeAll() async {
+    final plans = await _database.query('reading_plan', columns: ['id']);
     for (final plan in plans) {
-      await materialize(plan['id'] as int, executor: db);
+      await materialize(plan['id'] as int);
     }
   }
 
-  Future<void> materialize(
-    int planId, {
-    Set<int>? bookIds,
-    DatabaseExecutor? executor,
-  }) async {
-    final db = executor ?? _database;
-    final rows = await db.query(
+  Future<void> materialize(int planId, {Set<int>? bookIds}) async {
+    final rows = await _database.query(
       'reading_plan_book',
       columns: ['book_id'],
       where: 'reading_plan_id = ?',
@@ -109,7 +95,7 @@ class VerseStateRepository {
     final inventory = await _verseInventoryProvider(targetBookIds);
     if (inventory.isEmpty) return;
 
-    final batch = db.batch();
+    final batch = _database.batch();
     for (final entry in inventory.entries) {
       final (bookId, chapter) = entry.key;
       for (final verse in entry.value) {
@@ -128,11 +114,9 @@ class VerseStateRepository {
     int readingPlanId,
     int bookId,
     int chapter,
-    int verse, {
-    DatabaseExecutor? executor,
-  }) async {
-    final db = executor ?? _database;
-    final rows = await db.query(
+    int verse,
+  ) async {
+    final rows = await _database.query(
       'rs_verse_state',
       columns: ['read_count'],
       where:
@@ -144,12 +128,8 @@ class VerseStateRepository {
     return rows.isEmpty ? null : rows.first['read_count'] as int;
   }
 
-  Future<Map<int, BookStats>> getBookStats(
-    int readingPlanId, {
-    DatabaseExecutor? executor,
-  }) async {
-    final db = executor ?? _database;
-    final rows = await db.rawQuery(
+  Future<Map<int, BookStats>> getBookStats(int readingPlanId) async {
+    final rows = await _database.rawQuery(
       'SELECT v.book_id AS book_id, '
       '       COUNT(*) AS total_verses, '
       '       SUM(CASE WHEN v.read_count > 0 THEN 1 ELSE 0 END) AS verses_read, '
@@ -197,13 +177,8 @@ class VerseStateRepository {
     };
   }
 
-  Future<bool> isBookComplete(
-    int readingPlanId,
-    int bookId, {
-    DatabaseExecutor? executor,
-  }) async {
-    final db = executor ?? _database;
-    final rows = await db.rawQuery(
+  Future<bool> isBookComplete(int readingPlanId, int bookId) async {
+    final rows = await _database.rawQuery(
       'SELECT COUNT(*) AS total_verses, '
       '       SUM(CASE WHEN read_count > 0 THEN 1 ELSE 0 END) AS read_verses '
       'FROM rs_verse_state v '

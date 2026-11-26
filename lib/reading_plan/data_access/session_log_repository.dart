@@ -4,22 +4,15 @@ import 'package:sqflite/sqflite.dart';
 class SessionLogRepository {
   SessionLogRepository(this._database);
 
-  final Database _database;
+  final DatabaseExecutor _database;
 
-  Future<int> append(
-    SessionLogEntry entry, {
-    DatabaseExecutor? executor,
-  }) async {
-    final db = executor ?? _database;
-    final id = await db.insert('rs_log', entry.toMap()..remove('id'));
+  Future<int> append(SessionLogEntry entry) async {
+    final id = await _database.insert('rs_log', entry.toMap()..remove('id'));
     return id;
   }
 
-  Future<List<Map<String, Object?>>> exportAll({
-    DatabaseExecutor? executor,
-  }) async {
-    final db = executor ?? _database;
-    return db.query('rs_log', orderBy: 'id');
+  Future<List<Map<String, Object?>>> exportAll() async {
+    return _database.query('rs_log', orderBy: 'id');
   }
 
   static const _logColumns = [
@@ -32,43 +25,32 @@ class SessionLogRepository {
     'date_time',
   ];
 
-  Future<void> importAll(
-    Object? rows, {
-    required DatabaseExecutor executor,
-  }) async {
+  Future<void> importAll(Object? rows) async {
     final logRows = parseBackupRows(rows, 'rs_log');
 
-    await executor.delete('rs_log');
+    await _database.delete('rs_log');
 
-    final batch = executor.batch();
+    final batch = _database.batch();
     for (final row in logRows) {
       batch.insert('rs_log', pickBackupColumns(row, _logColumns));
     }
     await batch.commit(noResult: true);
   }
 
-  Future<int> remove(int id, {DatabaseExecutor? executor}) {
-    final db = executor ?? _database;
-
-    return db.delete('rs_log', where: 'id = ?', whereArgs: [id]);
+  Future<int> remove(int id) {
+    return _database.delete('rs_log', where: 'id = ?', whereArgs: [id]);
   }
 
-  Future<int> deleteForPlanId(int readingPlanId, {DatabaseExecutor? executor}) {
-    final db = executor ?? _database;
-
-    return db.delete(
+  Future<int> deleteForPlanId(int readingPlanId) {
+    return _database.delete(
       'rs_log',
       where: 'reading_plan_id = ?',
       whereArgs: [readingPlanId],
     );
   }
 
-  Future<List<SessionLogEntry>> listForSession(
-    int sessionId, {
-    DatabaseExecutor? executor,
-  }) async {
-    final db = executor ?? _database;
-    final rows = await db.query(
+  Future<List<SessionLogEntry>> listForSession(int sessionId) async {
+    final rows = await _database.query(
       'rs_log',
       where: 'rs_session_id = ?',
       whereArgs: [sessionId],
@@ -82,11 +64,9 @@ class SessionLogRepository {
     int sessionId,
     int bookId,
     int chapter,
-    int verse, {
-    DatabaseExecutor? executor,
-  }) async {
-    final db = executor ?? _database;
-    final rows = await db.query(
+    int verse,
+  ) async {
+    final rows = await _database.query(
       'rs_log',
       where: 'rs_session_id = ? AND book_id = ? AND chapter = ? AND verse = ?',
       whereArgs: [sessionId, bookId, chapter, verse],

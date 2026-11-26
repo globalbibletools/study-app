@@ -145,8 +145,8 @@ void main() {
     test('normalizes legacy stored goal type strings', () async {
       final planId = await createPlan('Legacy');
 
-      await database.transaction(
-        (txn) => txn.update(
+      await database.unitOfWork(
+        (uow) => uow.executor.update(
           'reading_plan',
           {'goal_type': 'M'},
           where: 'id = ?',
@@ -658,15 +658,15 @@ void main() {
 }
 
 Future<void> _deleteAllPlans(ReadingSessionDatabase database) async {
-  await database.transaction((txn) async {
-    final rows = await txn.query('reading_plan', columns: ['id']);
+  await database.unitOfWork((uow) async {
+    final rows = await uow.executor.query('reading_plan', columns: ['id']);
     for (final row in rows) {
       final planId = row['id'] as int;
-      await database.sessionLog.deleteForPlanId(planId, executor: txn);
-      await database.session.deleteForPlanId(planId, executor: txn);
-      await database.daySummary.deleteForPlanId(planId, executor: txn);
-      await database.verseState.deleteForPlanId(planId, executor: txn);
-      await database.readingPlans.delete(planId, executor: txn);
+      await uow.sessionLog.deleteForPlanId(planId);
+      await uow.session.deleteForPlanId(planId);
+      await uow.daySummary.deleteForPlanId(planId);
+      await uow.verseState.deleteForPlanId(planId);
+      await uow.readingPlans.delete(planId);
     }
   });
 }

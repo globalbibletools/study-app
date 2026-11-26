@@ -6,11 +6,11 @@ import 'package:gbt/reading_plan/data_access/backup_rows.dart';
 import 'package:gbt/reading_plan/data_access/reading_plan_repository.dart'
     show ReadingPlan;
 import 'package:gbt/reading_plan/data_access/rs_database.dart';
+import 'package:gbt/reading_plan/data_access/unit_of_work.dart';
 import 'package:gbt/reading_plan/model.dart' show GoalType, dayString;
 import 'package:gbt/services/service_locator.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:sqflite/sqflite.dart' show DatabaseExecutor;
 
 class ReadingSessionBackupInfo {
   const ReadingSessionBackupInfo({
@@ -88,12 +88,12 @@ class ReadingPlanBackupService {
 
   Future<Map<String, List<Map<String, Object?>>>> exportTables() async {
     await _database.init();
-    return _database.transaction((txn) async {
+    return _database.unitOfWork((uow) async {
       return {
-        ...await _database.readingPlans.exportAll(executor: txn),
-        'rs_session': await _database.session.exportAll(executor: txn),
-        'rs_log': await _database.sessionLog.exportAll(executor: txn),
-        'rs_day_summary': await _database.daySummary.exportAll(executor: txn),
+        ...await uow.readingPlans.exportAll(),
+        'rs_session': await uow.session.exportAll(),
+        'rs_log': await uow.sessionLog.exportAll(),
+        'rs_day_summary': await uow.daySummary.exportAll(),
       };
     });
   }
@@ -153,46 +153,40 @@ class ReadingPlanBackupService {
     }
 
     await _database.init();
-    await _database.transaction((txn) async {
-      await _database.verseState.deleteAll(executor: txn);
+    await _database.unitOfWork((uow) async {
+      await uow.verseState.deleteAll();
 
       if (version == 1) {
-        await _restoreV1(tables, txn);
+        await _restoreV1(tables, uow);
       } else {
-        await _restoreCurrentFormat(tables, txn);
+        await _restoreCurrentFormat(tables, uow);
       }
 
-      await _database.verseState.backfillFromLog(executor: txn);
-      await _database.verseState.materializeAll(executor: txn);
+      await uow.verseState.backfillFromLog();
+      await uow.verseState.materializeAll();
     });
   }
 
   Future<void> _restoreCurrentFormat(
     Map<String, dynamic> tables,
-    DatabaseExecutor txn,
+    UnitOfWork uow,
   ) async {
-    await _database.readingPlans.importAll(tables, executor: txn);
-    await _database.session.importAll(tables['rs_session'], executor: txn);
-    await _database.sessionLog.importAll(tables['rs_log'], executor: txn);
-    await _database.daySummary.importAll(
-      tables['rs_day_summary'],
-      executor: txn,
-    );
+    await uow.readingPlans.importAll(tables);
+    await uow.session.importAll(tables['rs_session']);
+    await uow.sessionLog.importAll(tables['rs_log']);
+    await uow.daySummary.importAll(tables['rs_day_summary']);
   }
 
-  Future<void> _restoreV1(
-    Map<String, dynamic> tables,
-    DatabaseExecutor txn,
-  ) async {
+  Future<void> _restoreV1(Map<String, dynamic> tables, UnitOfWork uow) async {
     final sessionRows = parseBackupRows(tables['rs_daily_log'], 'rs_daily_log');
     final logRows = parseBackupRows(tables['rs_log'], 'rs_log');
     final statsRows = parseBackupRows(tables['rs_stats'], 'rs_stats');
 
     final defaultPlan = _defaultReadingPlan();
-    await _database.readingPlans.importAll({
+    await uow.readingPlans.importAll({
       'reading_plan': [defaultPlan.toPlanMap()],
       'reading_plan_book': defaultPlan.toBookMaps(),
-    }, executor: txn);
+    });
 
     for (final row in sessionRows) {
       row['reading_plan_id'] = defaultPlan.id;
@@ -202,9 +196,9 @@ class ReadingPlanBackupService {
       row['rs_session_id'] = row.remove('rs_daily_log_id');
     }
 
-    await _database.session.importAll(sessionRows, executor: txn);
-    await _database.sessionLog.importAll(logRows, executor: txn);
-    await _rebuildDaySummariesFromV1Stats(txn, statsRows, defaultPlan);
+    await uow.session.importAll(sessionRows);
+    await uow.sessionLog.importAll(logRows);
+    await _rebuildDaySummariesFromV1Stats(uow, statsRows, defaultPlan);
   }
 
   ReadingPlan _defaultReadingPlan() {
@@ -220,7 +214,7 @@ class ReadingPlanBackupService {
   }
 
   Future<void> _rebuildDaySummariesFromV1Stats(
-    DatabaseExecutor txn,
+    UnitOfWork uow,
     List<Map<String, Object?>> statsRows,
     ReadingPlan plan,
   ) async {
@@ -235,7 +229,7 @@ class ReadingPlanBackupService {
     }
 
     final dayTotals = <String, ({int seconds, int verses})>{};
-    for (final row in await _database.session.exportAll(executor: txn)) {
+    for (final row in await uow.session.exportAll()) {
       if (row['reading_plan_id'] != plan.id) continue;
       final day = dayString(DateTime.parse(row['rs_date'] as String));
       final totals = dayTotals[day] ?? (seconds: 0, verses: 0);
@@ -273,7 +267,7 @@ class ReadingPlanBackupService {
       });
     }
 
-    await _database.daySummary.importAll(summaryRows, executor: txn);
+    await uow.daySummary.importAll(summaryRows);
   }
 
   Future<Directory> _getBackupDirectory() async {
