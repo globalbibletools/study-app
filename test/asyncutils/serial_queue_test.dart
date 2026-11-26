@@ -80,6 +80,28 @@ void main() {
       expect(calls, 2);
     });
 
+    test('shares one result per key', () async {
+      final queue = SerialQueue();
+      final release = Completer<void>();
+      var calls = 0;
+
+      Future<bool> command() => queue.runCoalesced('work', () async {
+        calls++;
+        await release.future;
+        return true;
+      });
+
+      final first = command();
+      final second = command();
+      expect(identical(first, second), isTrue);
+
+      release.complete();
+
+      expect(await first, isTrue);
+      expect(await second, isTrue);
+      expect(calls, 1);
+    });
+
     test('different keys run as separate tasks', () async {
       final queue = SerialQueue();
       final events = <String>[];
@@ -112,6 +134,86 @@ void main() {
     );
   });
 
+  group('runUnique', () {
+    test('runs one action per key and rejects duplicates', () async {
+      final queue = SerialQueue();
+      final release = Completer<void>();
+      var calls = 0;
+
+      final first = queue.runUnique('work', () async {
+        calls++;
+        await release.future;
+        return 1;
+      });
+      final duplicate = queue.runUnique('work', () async {
+        calls++;
+        return 2;
+      });
+
+      await expectLater(duplicate, throwsA(isA<InFlightError>()));
+      expect(calls, 1);
+
+      release.complete();
+      expect(await first, 1);
+      expect(calls, 1);
+    });
+
+    test('rejects a duplicate while the first is queued', () async {
+      final queue = SerialQueue();
+      final release = Completer<void>();
+
+      final current = queue.run(() => release.future);
+      final first = queue.runUnique('work', () async => 1);
+      final duplicate = queue.runUnique('work', () async => 2);
+
+      await expectLater(duplicate, throwsA(isA<InFlightError>()));
+
+      release.complete();
+      expect(await first, 1);
+      await current;
+    });
+
+    test('allows a new action once the previous one settles', () async {
+      final queue = SerialQueue();
+      var calls = 0;
+
+      Future<int> command() => queue.runUnique('work', () async => ++calls);
+
+      expect(await command(), 1);
+      expect(await command(), 2);
+    });
+
+    test('a failed action releases the key', () async {
+      final queue = SerialQueue();
+
+      await expectLater(
+        queue.runUnique<void>('work', () async => throw StateError('boom')),
+        throwsStateError,
+      );
+
+      expect(await queue.runUnique('work', () async => 42), 42);
+    });
+
+    test('different keys do not block each other', () async {
+      final queue = SerialQueue();
+      final release = Completer<void>();
+      final events = <String>[];
+
+      final first = queue.runUnique('a', () async {
+        await release.future;
+        events.add('a');
+      });
+      final second = queue.runUnique('b', () async {
+        events.add('b');
+      });
+
+      release.complete();
+      await Future.wait([first, second]);
+
+      expect(events, ['a', 'b']);
+    });
+  });
+
   group('close', () {
     test('waits for current work and drops pending work', () async {
       final queue = SerialQueue();
@@ -140,6 +242,29 @@ void main() {
       expect(pendingRan, isFalse);
       await expectLater(
         queue.run(() async => pendingRan = true),
+        throwsA(isA<SerialQueueClosed>()),
+      );
+    });
+
+    test('fails pending unique work and rejects new work', () async {
+      final queue = SerialQueue();
+      final release = Completer<void>();
+
+      final current = queue.run(() => release.future);
+      final pending = queue.runUnique('work', () async => 1);
+      final pendingExpectation = expectLater(
+        pending,
+        throwsA(isA<SerialQueueClosed>()),
+      );
+
+      final closing = queue.close();
+      release.complete();
+      await current;
+      await closing;
+      await pendingExpectation;
+
+      await expectLater(
+        queue.runUnique('work', () async => 1),
         throwsA(isA<SerialQueueClosed>()),
       );
     });

@@ -1,7 +1,8 @@
+import 'dart:async';
 import 'dart:collection';
 
 import 'package:flutter/foundation.dart';
-import 'package:gbt/asyncutils/cancellation.dart';
+import 'package:gbt/asyncutils/serial_queue.dart';
 import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/reading_plan/bible_collection.dart';
 import 'package:gbt/reading_plan/data_access/reading_plan_queries.dart';
@@ -177,49 +178,43 @@ class EditReadingPlanViewModel extends ChangeNotifier {
 
   // Save and delete
 
-  bool _isSubmitting = false;
-  bool get isSubmitting => _isSubmitting;
+  final _commands = SerialQueue();
 
-  bool get canSubmit =>
-      !_isSubmitting && _name.trim().isNotEmpty && _orderedBookIds.isNotEmpty;
+  bool get canSubmit => _name.trim().isNotEmpty && _orderedBookIds.isNotEmpty;
 
-  final _submitScope = CancellationScope();
+  Future<bool> submit() async {
+    try {
+      return await _commands.runUnique('submit', () async {
+        if (!canSubmit) return false;
 
-  Future<bool> submit() {
-    if (!canSubmit) return Future.value(false);
-
-    return _submitScope.run((guard) async {
-      _setState(() {
-        _isSubmitting = true;
-      });
-
-      try {
-        await guard(
-          _planService.saveReadingPlan(
-            planId: _planId,
-            planName: _name,
-            goalType: _goalType,
-            goalValue: _goalValue,
-            bookIds: _orderedBookIds,
-          ),
+        await _planService.saveReadingPlan(
+          planId: _planId,
+          planName: _name,
+          goalType: _goalType,
+          goalValue: _goalValue,
+          bookIds: _orderedBookIds,
         );
         return true;
-      } finally {
-        _setState(() {
-          _isSubmitting = false;
-        });
-      }
-    });
+      });
+    } on InFlightError {
+      // A save is already running; that call owns the outcome.
+      return false;
+    }
   }
 
-  final _deleteScope = CancellationScope();
-
   Future<void> delete() {
-    final planId = _planId;
-    if (planId == null) return Future.value();
+    return _commands.runCoalesced('delete', () async {
+      final planId = _planId;
+      if (planId == null) return;
 
-    return _deleteScope.run((guard) async {
-      await guard(_planService.deleteReadingPlan(planId));
+      try {
+        await _planService.deleteReadingPlan(planId);
+      } on StateError catch (error) {
+        // A plan the user already deleted is gone: the intent is satisfied.
+        if (!error.message.toString().startsWith('Reading plan not found')) {
+          rethrow;
+        }
+      }
     });
   }
 
@@ -236,8 +231,10 @@ class EditReadingPlanViewModel extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
-    _submitScope.cancelAll();
-    _deleteScope.cancelAll();
-    super.dispose();
+    unawaited(() async {
+      await _commands.close();
+
+      super.dispose();
+    }());
   }
 }

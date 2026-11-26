@@ -1,5 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
-import 'package:gbt/asyncutils/cancellation.dart';
+import 'package:gbt/asyncutils/serial_queue.dart';
 import 'package:gbt/reading_plan/data_access/reading_plan_queries.dart';
 import 'package:gbt/reading_plan/data_access/reading_plan_read_models.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
@@ -43,35 +45,37 @@ class DayActivityLogViewModel extends ChangeNotifier {
   final ReadingPlanQueries _queries;
   final ReadingPlanService _planService;
 
-  final _refreshScope = CancellationScope();
+  final _commands = SerialQueue();
 
-  Future<void> refresh() {
-    return _refreshScope.run((guard) async {
-      final activity = await guard(
-        _queries.getDayActivity(readingPlanId, date),
-      );
-      _setState(() {
-        _activity = activity;
-      });
+  Future<void> refresh() => _commands.runCoalesced('refresh', _refresh);
+
+  Future<void> _refresh() async {
+    final activity = await _queries.getDayActivity(readingPlanId, date);
+    _setState(() {
+      _activity = activity;
     });
   }
 
   Future<void> addManualSession({
     required double minutes,
     required int verses,
-  }) async {
-    await _planService.addManualSession(
-      readingPlanId: readingPlanId,
-      date: date,
-      minutes: minutes,
-      verses: verses,
-    );
-    await refresh();
+  }) {
+    return _commands.run(() async {
+      await _planService.addManualSession(
+        readingPlanId: readingPlanId,
+        date: date,
+        minutes: minutes,
+        verses: verses,
+      );
+      await _refresh();
+    });
   }
 
-  Future<void> deleteManualSession(int sessionId) async {
-    await _planService.deleteManualSession(sessionId);
-    await refresh();
+  Future<void> deleteManualSession(int sessionId) {
+    return _commands.runCoalesced('deleteSession:$sessionId', () async {
+      await _planService.deleteManualSession(sessionId);
+      await _refresh();
+    });
   }
 
   final int readingPlanId;
@@ -99,7 +103,10 @@ class DayActivityLogViewModel extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
-    _refreshScope.cancelAll();
-    super.dispose();
+    unawaited(() async {
+      await _commands.close();
+
+      super.dispose();
+    }());
   }
 }

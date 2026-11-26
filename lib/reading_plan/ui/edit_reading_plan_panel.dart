@@ -402,24 +402,17 @@ class _EditReadingPlanPanelState extends State<EditReadingPlanPanel> {
 
   Widget _addPlanButton() {
     final canSubmit = viewModel.canSubmit;
-    final isSubmitting = viewModel.isSubmitting;
 
     return SizedBox(
       width: double.infinity,
       child: FilledButton(
         onPressed: canSubmit ? _handleAddPlan : null,
-        child: isSubmitting
-            ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : Text(
-                viewModel.isExisting
-                    ? AppLocalizations.of(context)!.updateReadingPlan
-                    : AppLocalizations.of(context)!.addReadingPlan,
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
+        child: Text(
+          viewModel.isExisting
+              ? AppLocalizations.of(context)!.updateReadingPlan
+              : AppLocalizations.of(context)!.addReadingPlan,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
       ),
     );
   }

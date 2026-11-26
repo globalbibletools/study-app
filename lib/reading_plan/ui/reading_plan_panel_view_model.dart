@@ -1,5 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
-import 'package:gbt/asyncutils/cancellation.dart';
+import 'package:gbt/asyncutils/serial_queue.dart';
 import 'package:gbt/reading_plan/data_access/reading_plan_queries.dart';
 import 'package:gbt/reading_plan/data_access/reading_plan_read_models.dart';
 import 'package:gbt/reading_plan/ui/reading_session_view_model.dart';
@@ -37,10 +39,11 @@ class ReadingPlanPanelViewModel extends ChangeNotifier {
   late List<ReadingPlanSummary> _plans;
   List<ReadingPlanSummary> get plans => _plans;
 
-  final _refreshScope = CancellationScope();
+  final _commands = SerialQueue();
+
   Future<void> refresh() {
-    return _refreshScope.run((guard) async {
-      final plans = await guard(_queries.getPlanSummaries());
+    return _commands.runCoalesced('refresh', () async {
+      final plans = await _queries.getPlanSummaries();
       _setState(() {
         _plans = plans;
       });
@@ -62,7 +65,10 @@ class ReadingPlanPanelViewModel extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
-    _refreshScope.cancelAll();
-    super.dispose();
+    unawaited(() async {
+      await _commands.close();
+
+      super.dispose();
+    }());
   }
 }

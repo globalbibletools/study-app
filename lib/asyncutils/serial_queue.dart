@@ -7,9 +7,20 @@ class SerialQueueClosed implements Exception {
   String toString() => 'SerialQueueClosed';
 }
 
+/// Another action with the same key is already pending or running.
+class InFlightError implements Exception {
+  const InFlightError(this.key);
+
+  final Object key;
+
+  @override
+  String toString() => 'InFlightError($key)';
+}
+
 class SerialQueue {
   final List<_QueueEntry> _pending = [];
-  final Map<Object, Future<void>> _coalesced = {};
+  final Map<Object, Future<Object?>> _coalesced = {};
+  final Set<Object> _inFlightKeys = {};
 
   _QueueEntry? _current;
   Completer<void>? _idleCompleter;
@@ -32,34 +43,44 @@ class SerialQueue {
     return task.result;
   }
 
-  Future<void> runCoalesced(Object key, Future<void> Function() action) {
+  /// Runs [action] once per [key] while it is pending or running. Repeated
+  /// calls with the same key return the in-flight future, including its
+  /// result, so every caller observes the same outcome.
+  Future<T> runCoalesced<T>(Object key, Future<T> Function() action) {
     final pending = _coalesced[key];
-    if (pending != null) return pending;
-    if (_closed) return Future<void>.error(const SerialQueueClosed());
+    if (pending != null) return pending as Future<T>;
+    if (_closed) return Future<T>.error(const SerialQueueClosed());
 
-    final done = Completer<void>();
-    _coalesced[key] = done.future;
-
-    final task = _QueueTask<void>(() async {
+    final task = _QueueTask<T>(() async {
       try {
-        await action();
+        return await action();
       } finally {
         _coalesced.remove(key);
       }
     });
-
-    task.result.then(
-      (_) {
-        if (!done.isCompleted) done.complete();
-      },
-      onError: (Object error, StackTrace stackTrace) {
-        _coalesced.remove(key);
-        if (!done.isCompleted) done.completeError(error, stackTrace);
-      },
-    );
+    _coalesced[key] = task.result;
 
     _enqueue(task);
-    return done.future;
+    return task.result;
+  }
+
+  /// Runs [action] only if no other action with [key] is pending or running.
+  /// A duplicate call fails with [InFlightError] instead of joining, so
+  /// exactly one caller owns the outcome.
+  Future<T> runUnique<T>(Object key, Future<T> Function() action) {
+    if (_closed) return Future<T>.error(const SerialQueueClosed());
+    if (!_inFlightKeys.add(key)) return Future<T>.error(InFlightError(key));
+
+    final task = _QueueTask<T>(() async {
+      try {
+        return await action();
+      } finally {
+        _inFlightKeys.remove(key);
+      }
+    });
+
+    _enqueue(task);
+    return task.result;
   }
 
   Future<void> close() => _closeFuture ??= _close();
@@ -73,6 +94,7 @@ class SerialQueue {
     }
     _pending.clear();
     _coalesced.clear();
+    _inFlightKeys.clear();
 
     if (_current == null) {
       _completeIdle();

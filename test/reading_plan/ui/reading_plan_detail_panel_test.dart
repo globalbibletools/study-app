@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gbt/asyncutils/cancellation.dart';
+import 'package:gbt/asyncutils/serial_queue.dart';
 import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/reading_plan/data_access/day_summary_repository.dart';
@@ -433,6 +433,21 @@ void main() {
 
       expect(viewModel.isBookmarked, isFalse);
     });
+
+    test('rapid taps share one toggle execution', () async {
+      final planId = await createPlan();
+      final viewModel = await newDirectViewModel(planId);
+
+      final first = viewModel.toggleBookmark();
+      final second = viewModel.toggleBookmark();
+      expect(identical(first, second), isTrue);
+
+      await Future.wait([first, second]);
+
+      expect(viewModel.isBookmarked, isTrue);
+      final plan = await database.readingPlans.getById(planId);
+      expect(plan!.isBookmarked, isTrue);
+    });
   });
 
   group('edit plan', () {
@@ -654,28 +669,20 @@ void main() {
       expect(find.byIcon(Icons.check_rounded), findsOneWidget);
     });
 
-    test(
-      'a newer month navigation cancels the in-flight one and wins',
-      () async {
-        final planId = await createPlan();
-        final viewModel = await newDirectViewModel(planId);
-        final previousMonth = DateTime(
-          currentMonth.year,
-          currentMonth.month - 1,
-        );
+    test('two rapid next-month taps advance two months', () async {
+      final planId = await createPlan();
+      final viewModel = await newDirectViewModel(planId);
+      final twoMonths = DateTime(currentMonth.year, currentMonth.month + 2);
 
-        final first = viewModel.showNextMonth();
-        final second = viewModel.showPreviousMonth();
+      final first = viewModel.showNextMonth();
+      final second = viewModel.showNextMonth();
+      await Future.wait([first, second]);
 
-        await expectLater(first, throwsA(isA<CancelledError>()));
-        await second;
-
-        expect(viewModel.visibleMonth, previousMonth);
-      },
-    );
+      expect(viewModel.visibleMonth, twoMonths);
+    });
 
     test(
-      'does not notify after dispose while a month load is in flight',
+      'dispose finishes the in-flight month load and drops pending ones',
       () async {
         final planId = await createPlan();
         final viewModel = await ReadingPlanDetailViewModel.create(
@@ -687,11 +694,19 @@ void main() {
         var notifications = 0;
         viewModel.addListener(() => notifications++);
 
-        final future = viewModel.showNextMonth();
+        final current = viewModel.showNextMonth();
+        final pending = viewModel.showNextMonth();
+        final pendingExpectation = expectLater(
+          pending,
+          throwsA(isA<SerialQueueClosed>()),
+        );
+
         viewModel.dispose();
 
-        await expectLater(future, throwsA(isA<CancelledError>()));
+        await current;
+        await pendingExpectation;
         expect(notifications, 0);
+        expect(viewModel.visibleMonth, currentMonth);
       },
     );
 
@@ -803,23 +818,39 @@ void main() {
   });
 
   group('refresh', () {
-    test('a newer refresh cancels the in-flight one and wins', () async {
+    test('rapid refreshes share one execution', () async {
       final planId = await createPlan(name: 'Concurrent Plan');
       final viewModel = await newDirectViewModel(planId);
 
       final first = viewModel.refresh();
       final second = viewModel.refresh();
 
-      await expectLater(first, throwsA(isA<CancelledError>()));
-      await second;
+      expect(identical(first, second), isTrue);
+      await Future.wait([first, second]);
 
       expect(viewModel.planName, 'Concurrent Plan');
       expect(viewModel.totalVerses, 85);
       expect(viewModel.bookStats[8]!.totalVerses, 85);
     });
 
+    test('a refresh queued behind a mutation sees the write', () async {
+      final planId = await createPlan(name: 'Ordered Plan');
+      final viewModel = await newDirectViewModel(planId);
+      final nextMonth = DateTime(currentMonth.year, currentMonth.month + 1);
+
+      final monthRead = viewModel.showNextMonth();
+      final toggle = viewModel.toggleBookmark();
+      final refresh = viewModel.refresh();
+
+      expect(identical(monthRead, refresh), isFalse);
+      await Future.wait([monthRead, toggle, refresh]);
+
+      expect(viewModel.visibleMonth, nextMonth);
+      expect(viewModel.isBookmarked, isTrue);
+    });
+
     test(
-      'does not notify after dispose while a refresh is in flight',
+      'does not notify when disposed while a refresh is in flight',
       () async {
         final planId = await createPlan(name: 'Dispose Plan');
         final viewModel = await ReadingPlanDetailViewModel.create(
@@ -834,7 +865,7 @@ void main() {
         final future = viewModel.refresh();
         viewModel.dispose();
 
-        await expectLater(future, throwsA(isA<CancelledError>()));
+        await future;
         expect(notifications, 0);
       },
     );
