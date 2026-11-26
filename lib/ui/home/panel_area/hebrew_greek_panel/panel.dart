@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:gbt/common/reference.dart';
 import 'package:gbt/services/settings/user_settings.dart';
@@ -11,7 +12,8 @@ class HebrewGreekPanel extends StatefulWidget {
     super.key,
     required this.bookId,
     required this.chapter,
-    required this.highlightNotifier,
+    required this.audioHighlightNotifier,
+    required this.flashHighlightNotifier,
     required this.settingsVersion,
     this.scrollingEnabled = true,
     required this.showReadingCheckboxGuide,
@@ -21,7 +23,8 @@ class HebrewGreekPanel extends StatefulWidget {
 
   final int bookId;
   final int chapter;
-  final ValueNotifier<Reference?> highlightNotifier;
+  final ValueListenable<Reference?> audioHighlightNotifier;
+  final ValueListenable<Reference?> flashHighlightNotifier;
   final int settingsVersion;
   final bool scrollingEnabled;
   final bool showReadingCheckboxGuide;
@@ -131,7 +134,10 @@ class HebrewGreekPanelState extends State<HebrewGreekPanel> {
                               key: ValueKey('page-$bookId-$chapter'),
                               bookId: bookId,
                               chapter: chapter,
-                              highlightNotifier: widget.highlightNotifier,
+                              audioHighlightNotifier:
+                                  widget.audioHighlightNotifier,
+                              flashHighlightNotifier:
+                                  widget.flashHighlightNotifier,
                               fontSize: fontSize,
                               verseLayout: verseLayout,
                               readingModeEnabled:

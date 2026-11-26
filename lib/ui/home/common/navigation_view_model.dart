@@ -147,6 +147,28 @@ class NavigationViewModel extends ChangeNotifier {
     _persistSeek(ref, animated: animated);
   }
 
+  final ValueNotifier<Reference?> _flashedReference = ValueNotifier(null);
+
+  /// A verse to highlight transiently, independent of the audio position.
+  ValueListenable<Reference?> get flashedReference => _flashedReference;
+
+  Timer? _flashTimer;
+
+  /// Highlights [ref] briefly without changing navigation or audio state.
+  ///
+  /// Repeated calls replace the prior flash and restart the timer.
+  void flashVerse(
+    Reference ref, {
+    Duration duration = const Duration(milliseconds: 1500),
+  }) {
+    _flashTimer?.cancel();
+    _flashedReference.value = ref;
+    _flashTimer = Timer(duration, () {
+      _flashedReference.value = null;
+      _flashTimer = null;
+    });
+  }
+
   void _persistSeek(Reference ref, {required bool animated}) {
     if (_seek(ref, animated: animated)) {
       unawaited(_persistReference(ref));
@@ -277,8 +299,11 @@ class NavigationViewModel extends ChangeNotifier {
 
   @override
   void dispose() {
+    _flashTimer?.cancel();
+    _flashTimer = null;
     unawaited(_hardNavigationController.close());
     _audioReferenceNotifier?.removeListener(_onAudioReferenceChanged);
+    _flashedReference.dispose();
     anchor.dispose();
     super.dispose();
   }

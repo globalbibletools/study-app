@@ -1,4 +1,6 @@
 import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:gbt/common/book_name.dart';
@@ -36,7 +38,8 @@ class HebrewGreekChapter extends StatefulWidget {
     required this.fontSize,
     required this.verseLayout,
     required this.readingModeEnabled,
-    required this.highlightNotifier,
+    required this.audioHighlightNotifier,
+    required this.flashHighlightNotifier,
     this.onReadingCheckboxGuideRectChanged,
     this.onReadingCheckboxGuideCompleted,
   });
@@ -48,7 +51,8 @@ class HebrewGreekChapter extends StatefulWidget {
   final bool readingModeEnabled;
   final ValueChanged<Rect?>? onReadingCheckboxGuideRectChanged;
   final VoidCallback? onReadingCheckboxGuideCompleted;
-  final ValueNotifier<Reference?> highlightNotifier;
+  final ValueListenable<Reference?> audioHighlightNotifier;
+  final ValueListenable<Reference?> flashHighlightNotifier;
 
   @override
   State<HebrewGreekChapter> createState() => HebrewGreekChapterState();
@@ -173,14 +177,29 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter> {
           builder: (context, words, child) {
             if (words.isEmpty) return const SizedBox();
 
-            return ValueListenableBuilder<Reference?>(
-              valueListenable: widget.highlightNotifier,
-              builder: (context, reference, _) {
+            return ListenableBuilder(
+              listenable: Listenable.merge([
+                widget.flashHighlightNotifier,
+                widget.audioHighlightNotifier,
+              ]),
+              builder: (context, _) {
+                final flashedReference = widget.flashHighlightNotifier.value;
+                final audioReference = widget.audioHighlightNotifier.value;
                 int? verseToHighlight;
-                if (reference != null &&
-                    reference.bookId == widget.bookId &&
-                    reference.chapter == widget.chapter) {
-                  verseToHighlight = reference.verse;
+                final flashMatchesHere =
+                    flashedReference != null &&
+                    flashedReference.bookId == widget.bookId &&
+                    flashedReference.chapter == widget.chapter;
+                final audioMatchesHere =
+                    audioReference != null &&
+                    audioReference.bookId == widget.bookId &&
+                    audioReference.chapter == widget.chapter;
+
+                // A flash in this chapter wins over the audio highlight.
+                if (flashMatchesHere) {
+                  verseToHighlight = flashedReference.verse;
+                } else if (audioMatchesHere) {
+                  verseToHighlight = audioReference.verse;
                 }
 
                 //always show first verse only (basic logic)

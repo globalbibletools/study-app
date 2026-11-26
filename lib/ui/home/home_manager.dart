@@ -280,22 +280,10 @@ class HomeManager {
 
     // Temporary preview: do not persist the visited chapter.
     navigationViewModel.navigateTo(ref, persist: false, hard: false);
-    flashVerse(ref);
+    navigationViewModel.flashVerse(ref);
   }
 
-  Timer? _flashTimer;
   Timer? _wordFlashTimer;
-
-  /// Flashes the highlight for a given verse reference for 1.5 seconds.
-  void flashVerse(Reference ref) {
-    _flashTimer?.cancel();
-    audioPlayerViewModel.reference.value = ref;
-    _flashTimer = Timer(const Duration(milliseconds: 1500), () {
-      if (audioPlayerViewModel.playbackState != AudioPlaybackState.playing) {
-        audioPlayerViewModel.reference.value = null;
-      }
-    });
-  }
 
   /// Flashes the highlight for a given word ID for 1.5 seconds.
   void flashWord(String wordId) {
@@ -312,7 +300,6 @@ class HomeManager {
   }
 
   void dispose() {
-    _flashTimer?.cancel();
     _wordFlashTimer?.cancel();
     dismissWordStudySession(keepCurrentLocation: true);
     _bibleService.removeBibleResourceChangeListener(_onBibleResourceChanged);

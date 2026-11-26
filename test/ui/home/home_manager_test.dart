@@ -1,4 +1,5 @@
 import 'dart:ui' show TextDirection;
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gbt/common/reference.dart';
 import 'package:gbt/services/app_guide/app_guide_manager.dart';
@@ -290,28 +291,9 @@ void main() {
       expect(homeManager.wordStudySessionNotifier.value, isNotNull);
     });
 
-    testWidgets('flashVerse sets highlight and clears it after 1.5 seconds', (
+    testWidgets('jumpToContextReference seeks the sync controller', (
       tester,
     ) async {
-      const targetRef = Reference(bookId: 8, chapter: 4, verse: 17);
-      homeManager.flashVerse(targetRef);
-
-      expect(
-        homeManager.audioPlayerViewModel.reference.value,
-        equals(targetRef),
-      );
-
-      await tester.pump(const Duration(milliseconds: 1000));
-      expect(
-        homeManager.audioPlayerViewModel.reference.value,
-        equals(targetRef),
-      );
-
-      await tester.pump(const Duration(milliseconds: 600));
-      expect(homeManager.audioPlayerViewModel.reference.value, isNull);
-    });
-
-    test('jumpToContextReference seeks the sync controller', () {
       const targetRef = Reference(bookId: 8, chapter: 4, verse: 17);
       const word = WordDetails(
         word: 'דָּוִד',
@@ -337,6 +319,11 @@ void main() {
       expect(position.t, 0);
       expect(homeManager.navigationViewModel.displayReference, targetRef);
       expect(homeManager.navigationViewModel.lastUpdateIsSeek, isTrue);
+      expect(homeManager.navigationViewModel.flashedReference.value, targetRef);
+
+      // Let the flash timer clear so this test leaves no pending timer.
+      await tester.pump(const Duration(milliseconds: 1500));
+      expect(homeManager.navigationViewModel.flashedReference.value, isNull);
     });
 
     test('startWordStudy captures originalReference and creates session', () {
