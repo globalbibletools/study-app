@@ -36,8 +36,7 @@ class BiblePanelArea extends StatelessWidget {
           manager.navigationViewModel.anchor,
           manager.isSinglePanelNotifier,
           manager.settingsVersionNotifier,
-          manager.readingSessionViewModel.sessionNotifier,
-          manager.readingSessionViewModel.hudVisible,
+          manager.readingSessionViewModel,
           manager.appGuideManager.readingCheckboxGuideDismissedNotifier,
           manager.appGuideManager.readingSessionGuideDismissedNotifier,
         ]),
@@ -47,7 +46,7 @@ class BiblePanelArea extends StatelessWidget {
           final settingsVersion = manager.settingsVersionNotifier.value;
           final shouldOffsetForProgress =
               manager.readingSessionViewModel.hasActiveSession &&
-              manager.readingSessionViewModel.hudVisible.value;
+              manager.readingSessionViewModel.hudVisible;
 
           final shouldShowReadingCheckboxGuide =
               manager.appGuideManager.shouldShowReadingCheckboxGuide;

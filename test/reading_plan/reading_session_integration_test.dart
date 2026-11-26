@@ -283,7 +283,7 @@ void main() {
         await Future<void>.delayed(const Duration(seconds: 2));
 
         await viewModel.pauseTimer();
-        final pausedSeconds = viewModel.sessionSecondsNotifier.value;
+        final pausedSeconds = viewModel.sessionSeconds.value;
         expect(pausedSeconds, greaterThanOrEqualTo(1));
 
         final now = DateTime.now();
@@ -296,7 +296,7 @@ void main() {
 
         // No time is accumulated while the app is backgrounded.
         await Future<void>.delayed(const Duration(seconds: 3));
-        expect(viewModel.sessionSecondsNotifier.value, pausedSeconds);
+        expect(viewModel.sessionSeconds.value, pausedSeconds);
 
         viewModel.resumeTimer();
         await Future<void>.delayed(const Duration(seconds: 2));

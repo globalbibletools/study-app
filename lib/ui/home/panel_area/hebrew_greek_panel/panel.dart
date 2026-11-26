@@ -75,10 +75,10 @@ class HebrewGreekPanelState extends State<HebrewGreekPanel> {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder(
-      valueListenable: _manager.sessionNotifier,
-      builder: (context, session, child) {
-        final readingModeEnabled = session != null;
+    return ListenableBuilder(
+      listenable: _manager.sessionViewModel,
+      builder: (context, child) {
+        final readingModeEnabled = _manager.sessionViewModel.hasActiveSession;
         return ValueListenableBuilder<VerseLayout>(
           valueListenable: _manager.verseLayoutNotifier,
           builder: (context, verseLayout, child) {
