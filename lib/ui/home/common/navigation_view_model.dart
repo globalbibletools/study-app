@@ -74,8 +74,7 @@ class NavigationViewModel extends ChangeNotifier {
   NavigationViewModel(this._settings)
     : anchor = ValueNotifier(_restoredReference(_settings)) {
     final ref = anchor.value;
-    _lastSavedBook = ref.bookId;
-    _lastSavedChapter = ref.chapter;
+    _lastSavedReference = ref;
 
     final top = Anchor(ref, AnchorEnd.start);
     _applyPosition(
@@ -83,7 +82,7 @@ class NavigationViewModel extends ChangeNotifier {
       SyncPosition(top, top, 0.0),
       displayReference: ref,
       animated: false,
-      isSeek: false,
+      isSeek: true,
     );
   }
 
@@ -116,8 +115,7 @@ class NavigationViewModel extends ChangeNotifier {
 
   Reference? get currentReference => _displayReference ?? _chapterOf(_position);
 
-  int? _lastSavedBook;
-  int? _lastSavedChapter;
+  Reference? _lastSavedReference;
 
   bool _lastUpdateAnimated = false;
 
@@ -128,8 +126,7 @@ class NavigationViewModel extends ChangeNotifier {
   bool get lastUpdateIsSeek => _lastUpdateIsSeek;
 
   static Reference _restoredReference(UserSettings settings) {
-    final (bookId, chapter) = settings.currentBookChapter;
-    return Reference(bookId: bookId, chapter: chapter, verse: 1);
+    return settings.currentReference;
   }
 
   void navigateTo(
@@ -139,9 +136,9 @@ class NavigationViewModel extends ChangeNotifier {
     bool hard = true,
   }) {
     clearActiveSource();
-    _writeAnchor(ref);
+    _writeChapterAnchor(ref);
     _seek(ref, animated: animated);
-    if (persist) unawaited(_persistChapter(ref.bookId, ref.chapter));
+    if (persist) unawaited(_persistReference(ref));
     if (hard) _hardNavigationController.add(HardNavigation(ref));
   }
 
@@ -152,7 +149,7 @@ class NavigationViewModel extends ChangeNotifier {
 
   void _persistSeek(Reference ref, {required bool animated}) {
     if (_seek(ref, animated: animated)) {
-      unawaited(_persistChapter(ref.bookId, ref.chapter));
+      unawaited(_persistReference(ref));
     }
   }
 
@@ -179,17 +176,17 @@ class NavigationViewModel extends ChangeNotifier {
       animated: false,
       isSeek: false,
     );
-    if (changed) _persistCurrentChapter();
+    if (changed) _persistCurrentReference();
   }
 
   void reanchorToCurrentReference() {
     final ref = currentReference;
-    if (ref != null) _writeAnchor(ref);
+    if (ref != null) _writeChapterAnchor(ref);
   }
 
-  Future<void> persistCurrentChapter() => _persistCurrentChapter();
+  Future<void> persistCurrentChapter() => _persistCurrentReference();
 
-  void _writeAnchor(Reference ref) {
+  void _writeChapterAnchor(Reference ref) {
     final current = anchor.value;
     if (current.bookId == ref.bookId && current.chapter == ref.chapter) {
       return;
@@ -228,17 +225,22 @@ class NavigationViewModel extends ChangeNotifier {
     return true;
   }
 
-  Future<void> _persistCurrentChapter() {
+  Future<void> _persistCurrentReference() {
     final ref = currentReference;
     if (ref == null) return Future.value();
-    return _persistChapter(ref.bookId, ref.chapter);
+    return _persistReference(ref);
   }
 
-  Future<void> _persistChapter(int bookId, int chapter) async {
-    if (_lastSavedBook == bookId && _lastSavedChapter == chapter) return;
-    _lastSavedBook = bookId;
-    _lastSavedChapter = chapter;
-    await _settings.setCurrentBookChapter(bookId, chapter);
+  Future<void> _persistReference(Reference ref) async {
+    final last = _lastSavedReference;
+    if (last != null &&
+        last.bookId == ref.bookId &&
+        last.chapter == ref.chapter &&
+        last.verse == ref.verse) {
+      return;
+    }
+    _lastSavedReference = ref;
+    await _settings.setCurrentReference(ref);
   }
 
   Reference? _chapterOf(SyncPosition? position) {
