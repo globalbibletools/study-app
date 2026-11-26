@@ -5,10 +5,12 @@
 - Supersedes: None
 - Superseded By: [Serialized View Model Commands](2026-11-25-serialized-view-model-commands.md)
 
-> Superseded as the general view-model asynchrony policy. New work that mutates
-> state or must happen in order uses `SerialQueue`. `CancellationScope` remains
-> available for read-only latest-wins reads; this record preserves the original
-> policy and its mechanics.
+> Fully superseded. `SerialQueue` covers all view-model asynchrony, and
+> newest-wins supersession is retired from the target model. Cancellation is not
+> a mechanism new code may use. The audio player’s remaining use is migration
+> debt (see [Serialized View Model
+> Commands](2026-11-25-serialized-view-model-commands.md)). This record
+> preserves the original policy and its mechanics.
 
 # Context
 

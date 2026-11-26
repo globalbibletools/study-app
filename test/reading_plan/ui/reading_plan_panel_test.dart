@@ -1,5 +1,4 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gbt/asyncutils/cancellation.dart';
 import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/reading_plan/data_access/reading_plan_queries.dart';
@@ -336,21 +335,21 @@ void main() {
       );
     });
 
-    test('a newer refresh cancels the in-flight one and wins', () async {
+    test('rapid refreshes share one execution', () async {
       await createPlan(name: 'Concurrent');
       final viewModel = await newDirectViewModel();
 
       final first = viewModel.refresh();
       final second = viewModel.refresh();
 
-      await expectLater(first, throwsA(isA<CancelledError>()));
-      await second;
+      expect(identical(first, second), isTrue);
+      await Future.wait([first, second]);
 
       expect(viewModel.plans.single.planName, 'Concurrent');
     });
 
     test(
-      'does not notify after dispose while a refresh is in flight',
+      'does not notify when disposed while a refresh is in flight',
       () async {
         await createPlan(name: 'Dispose');
         final viewModel = await ReadingPlanPanelViewModel.create(
@@ -361,11 +360,10 @@ void main() {
         viewModel.addListener(() => notifications++);
 
         final future = viewModel.refresh();
-        final notificationsBeforeDispose = notifications;
         viewModel.dispose();
 
-        await expectLater(future, throwsA(isA<CancelledError>()));
-        expect(notifications, notificationsBeforeDispose);
+        await future;
+        expect(notifications, 0);
       },
     );
   });

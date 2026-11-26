@@ -72,9 +72,8 @@ future occurrences, it is an event — a stream.
   canonical example of notification guarding.
 - These tools govern state exposure and events. Asynchrony and ordering in view
   models are governed by [Serialized View Model
-  Commands](2026-11-25-serialized-view-model-commands.md): mutating work runs
-  through `SerialQueue`, and cancellation is reserved for read-only
-  latest-wins work.
+  Commands](2026-11-25-serialized-view-model-commands.md): all asynchronous work
+  runs through `SerialQueue`, and latest-wins cancellation is retired.
 
 # Alternatives
 

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gbt/asyncutils/cancellation.dart';
+import 'package:gbt/asyncutils/serial_queue.dart';
 import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/reading_plan/bible_collection.dart';
@@ -515,22 +515,41 @@ void main() {
       expect(saved.bookIds, [1, 3, 2]);
     });
 
-    test('shows submitting state and ignores a second submit', () async {
+    test('a submit while one is in flight is ignored', () async {
       final viewModel = await newDirectViewModel('Daily Bread');
       viewModel.setBooks([1, 2]);
       var notifications = 0;
       viewModel.addListener(() => notifications++);
 
       final first = viewModel.submit();
-      expect(viewModel.isSubmitting, isTrue);
-      expect(viewModel.canSubmit, isFalse);
-      expect(await viewModel.submit(), isFalse);
-      expect(await first, isTrue);
+      final duplicate = viewModel.submit();
 
-      expect(viewModel.isSubmitting, isFalse);
-      expect(viewModel.canSubmit, isTrue);
-      expect(notifications, 2);
+      expect(await first, isTrue);
+      expect(await duplicate, isFalse);
+      expect(notifications, 0);
+
+      final plans = await database.readingPlans.list();
+      expect(
+        plans.where((plan) => plan.planName == 'Daily Bread'),
+        hasLength(1),
+      );
       expect(await savedBookIds('Daily Bread'), [1, 2]);
+    });
+
+    test('rechecks validity when the queued command runs', () async {
+      final viewModel = await newDirectViewModel('Plan');
+      viewModel.setBooks([1]);
+
+      // Occupy the queue, then invalidate the plan before submit runs.
+      final delete = viewModel.delete();
+      final submit = viewModel.submit();
+      viewModel.setPlanName('');
+
+      await delete;
+
+      expect(await submit, isFalse);
+      final plans = await database.readingPlans.list();
+      expect(plans.where((plan) => plan.planName == 'Plan'), isEmpty);
     });
 
     test('does not save with an empty name or no books', () async {
@@ -559,23 +578,19 @@ void main() {
       expect(plans.any((plan) => plan.planName == '  Padded  '), isTrue);
     });
 
-    test('propagates save errors and resets the submitting state', () async {
+    test('propagates save errors', () async {
       final viewModel = await newDirectViewModel('Plan');
       viewModel.setBooks([1]);
       database.dispose();
       databaseDisposed = true;
       await Future<void>.delayed(const Duration(milliseconds: 100));
-      var notifications = 0;
-      viewModel.addListener(() => notifications++);
 
       await expectLater(viewModel.submit(), throwsA(isA<Object>()));
 
-      expect(viewModel.isSubmitting, isFalse);
       expect(viewModel.canSubmit, isTrue);
-      expect(notifications, 2);
     });
 
-    test('does not notify after dispose while a save is in flight', () async {
+    test('finishes an in-flight save when disposed', () async {
       final viewModel = await EditReadingPlanViewModel.createNew(
         'Plan',
         queries: database.queries,
@@ -587,11 +602,10 @@ void main() {
       viewModel.addListener(() => notifications++);
 
       final future = viewModel.submit();
-      final notificationsBeforeDispose = notifications;
       viewModel.dispose();
 
-      await expectLater(future, throwsA(isA<CancelledError>()));
-      expect(notifications, notificationsBeforeDispose);
+      expect(await future, isTrue);
+      expect(notifications, 0);
     });
   });
 
@@ -652,20 +666,47 @@ void main() {
       await expectLater(viewModel.delete(), throwsA(isA<Object>()));
     });
 
-    test('cancels an in-flight delete when disposed', () async {
-      final planId = await createPlan(name: 'Doomed');
-      final viewModel = await EditReadingPlanViewModel.createExisting(
-        planId,
-        queries: database.queries,
-        planService: planService,
-        bibleNavigation: bibleNavigation,
-      );
+    test(
+      'a repeated delete joins the in-flight one instead of failing',
+      () async {
+        final planId = await createPlan(name: 'Doomed');
+        final viewModel = await existingDirectViewModel(planId);
 
-      final future = viewModel.delete();
-      viewModel.dispose();
+        final first = viewModel.delete();
+        final second = viewModel.delete();
+        expect(identical(first, second), isTrue);
 
-      await expectLater(future, throwsA(isA<CancelledError>()));
-    });
+        await Future.wait([first, second]);
+
+        expect(await database.readingPlans.getById(planId), isNull);
+      },
+    );
+
+    test(
+      'dispose finishes in-flight work and drops pending commands',
+      () async {
+        final planId = await createPlan(name: 'Doomed');
+        final viewModel = await EditReadingPlanViewModel.createExisting(
+          planId,
+          queries: database.queries,
+          planService: planService,
+          bibleNavigation: bibleNavigation,
+        );
+
+        final current = viewModel.submit();
+        final pending = viewModel.delete();
+        final pendingExpectation = expectLater(
+          pending,
+          throwsA(isA<SerialQueueClosed>()),
+        );
+
+        viewModel.dispose();
+
+        expect(await current, isTrue);
+        await pendingExpectation;
+        expect(await database.readingPlans.getById(planId), isNotNull);
+      },
+    );
   });
 
   group('book sorting', () {

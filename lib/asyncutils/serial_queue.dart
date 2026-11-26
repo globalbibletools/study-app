@@ -7,9 +7,19 @@ class SerialQueueClosed implements Exception {
   String toString() => 'SerialQueueClosed';
 }
 
+class InFlightError implements Exception {
+  const InFlightError(this.key);
+
+  final Object key;
+
+  @override
+  String toString() => 'InFlightError($key)';
+}
+
 class SerialQueue {
   final List<_QueueEntry> _pending = [];
-  final Map<Object, Future<void>> _coalesced = {};
+  final Map<Object, Future<Object?>> _coalesced = {};
+  final Set<Object> _inFlightKeys = {};
 
   _QueueEntry? _current;
   Completer<void>? _idleCompleter;
@@ -24,6 +34,7 @@ class SerialQueue {
     return (_idleCompleter ??= Completer<void>()).future;
   }
 
+  /// Queue an [action] that must be run serially in the queue.
   Future<T> run<T>(Future<T> Function() action) {
     if (_closed) return Future<T>.error(const SerialQueueClosed());
 
@@ -32,34 +43,42 @@ class SerialQueue {
     return task.result;
   }
 
-  Future<void> runCoalesced(Object key, Future<void> Function() action) {
+  /// Queue an [action] that must be run only once per [key] while enqueued.
+  /// Repeated calls with the same key will all share the same future and outcome.
+  Future<T> runCoalesced<T>(Object key, Future<T> Function() action) {
     final pending = _coalesced[key];
-    if (pending != null) return pending;
-    if (_closed) return Future<void>.error(const SerialQueueClosed());
+    if (pending != null) return pending as Future<T>;
+    if (_closed) return Future<T>.error(const SerialQueueClosed());
 
-    final done = Completer<void>();
-    _coalesced[key] = done.future;
-
-    final task = _QueueTask<void>(() async {
+    final task = _QueueTask<T>(() async {
       try {
-        await action();
+        return await action();
       } finally {
         _coalesced.remove(key);
       }
     });
-
-    task.result.then(
-      (_) {
-        if (!done.isCompleted) done.complete();
-      },
-      onError: (Object error, StackTrace stackTrace) {
-        _coalesced.remove(key);
-        if (!done.isCompleted) done.completeError(error, stackTrace);
-      },
-    );
+    _coalesced[key] = task.result;
 
     _enqueue(task);
-    return done.future;
+    return task.result;
+  }
+
+  /// Queue an [action] that must be run only once per [key] while enqueued.
+  /// Repeated calls with the same key will fail with [InFlightError].
+  Future<T> runUnique<T>(Object key, Future<T> Function() action) {
+    if (_closed) return Future<T>.error(const SerialQueueClosed());
+    if (!_inFlightKeys.add(key)) return Future<T>.error(InFlightError(key));
+
+    final task = _QueueTask<T>(() async {
+      try {
+        return await action();
+      } finally {
+        _inFlightKeys.remove(key);
+      }
+    });
+
+    _enqueue(task);
+    return task.result;
   }
 
   Future<void> close() => _closeFuture ??= _close();
@@ -73,6 +92,7 @@ class SerialQueue {
     }
     _pending.clear();
     _coalesced.clear();
+    _inFlightKeys.clear();
 
     if (_current == null) {
       _completeIdle();

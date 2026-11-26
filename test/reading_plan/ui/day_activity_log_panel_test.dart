@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gbt/asyncutils/cancellation.dart';
+import 'package:gbt/asyncutils/serial_queue.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/reading_plan/data_access/reading_plan_queries.dart';
 import 'package:gbt/reading_plan/data_access/reading_plan_read_models.dart';
@@ -449,6 +449,39 @@ void main() {
       await tester.pumpAndSettle();
     });
 
+    test('rapid deletes of one session share one execution', () async {
+      final manual = await seedSession(
+        startTime: DateTime(2026, 11, 17, 9, 30),
+        readSeconds: 120,
+        verses: 2,
+        isManual: true,
+      );
+      final viewModel = await newDirectViewModel();
+
+      final first = viewModel.deleteManualSession(manual.id!);
+      final second = viewModel.deleteManualSession(manual.id!);
+      expect(identical(first, second), isTrue);
+
+      await Future.wait([first, second]);
+
+      expect(viewModel.sessions, isEmpty);
+      expect(await database.session.getById(manual.id!), isNull);
+    });
+
+    test('a refresh queued behind an add sees the new session', () async {
+      await seedSession(readSeconds: 60, verses: 1);
+      final viewModel = await newDirectViewModel();
+
+      final add = viewModel.addManualSession(minutes: 5, verses: 2);
+      final refresh = viewModel.refresh();
+
+      await refresh;
+
+      expect(viewModel.sessions, hasLength(2));
+      expect(viewModel.totalVerses, 3);
+      await add;
+    });
+
     test(
       'invalid manual input throws without changing state, then a valid add works',
       () async {
@@ -525,15 +558,15 @@ void main() {
   });
 
   group('refresh', () {
-    test('a newer refresh cancels the in-flight one and wins', () async {
+    test('rapid refreshes share one execution', () async {
       await seedSession(readSeconds: 60, verses: 1);
       final viewModel = await newDirectViewModel();
 
       final first = viewModel.refresh();
       final second = viewModel.refresh();
 
-      await expectLater(first, throwsA(isA<CancelledError>()));
-      await second;
+      expect(identical(first, second), isTrue);
+      await Future.wait([first, second]);
 
       expect(viewModel.sessions, hasLength(1));
       expect(viewModel.sessions.single.verses, 1);
@@ -541,7 +574,7 @@ void main() {
     });
 
     test(
-      'does not notify after dispose while a refresh is in flight',
+      'does not notify when disposed while a refresh is in flight',
       () async {
         await seedSession(readSeconds: 60, verses: 1);
         final viewModel = await DayActivityLogViewModel.create(
@@ -556,8 +589,34 @@ void main() {
         final future = viewModel.refresh();
         viewModel.dispose();
 
-        await expectLater(future, throwsA(isA<CancelledError>()));
+        await future;
         expect(notifications, 0);
+      },
+    );
+
+    test(
+      'dispose finishes the in-flight command and drops pending ones',
+      () async {
+        await seedSession(readSeconds: 60, verses: 1);
+        final viewModel = await DayActivityLogViewModel.create(
+          readingPlanId: planId,
+          date: date,
+          queries: database.queries,
+          planService: planService,
+        );
+
+        final current = viewModel.refresh();
+        final pending = viewModel.addManualSession(minutes: 5, verses: 2);
+        final pendingExpectation = expectLater(
+          pending,
+          throwsA(isA<SerialQueueClosed>()),
+        );
+
+        viewModel.dispose();
+
+        await current;
+        await pendingExpectation;
+        expect(viewModel.sessions, hasLength(1));
       },
     );
 

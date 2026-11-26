@@ -1,5 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
-import 'package:gbt/asyncutils/cancellation.dart';
+import 'package:gbt/asyncutils/serial_queue.dart';
 import 'package:gbt/common/reference.dart';
 import 'package:gbt/reading_plan/data_access/reading_plan_queries.dart';
 import 'package:gbt/reading_plan/data_access/reading_plan_read_models.dart';
@@ -46,18 +48,20 @@ class ReadingPlanDetailViewModel extends ChangeNotifier {
   final ReadingPlanService _planService;
   final ReadingSessionViewModel _sessionViewModel;
 
-  final _refreshScope = CancellationScope();
+  final _commands = SerialQueue();
 
   Future<void> refresh() {
-    return _refreshScope.run((guard) async {
-      final summary = await guard(_queries.getPlanSummary(_planId));
+    return _commands.runCoalesced('refresh', () async {
+      final summary = await _queries.getPlanSummary(_planId);
       if (summary == null) throw StateError('Reading plan not found');
 
-      final todaysProgress = await guard(
-        _queries.getDayProgress(_planId, DateTime.now()),
+      final todaysProgress = await _queries.getDayProgress(
+        _planId,
+        DateTime.now(),
       );
-      final monthProgress = await guard(
-        _queries.getMonthDayProgress(_planId, _visibleMonth),
+      final monthProgress = await _queries.getMonthDayProgress(
+        _planId,
+        _visibleMonth,
       );
 
       _setState(() {
@@ -77,13 +81,16 @@ class ReadingPlanDetailViewModel extends ChangeNotifier {
   String get planName => _summary.planName;
 
   bool get isBookmarked => _summary.isBookmarked;
-  Future<void> toggleBookmark() async {
-    final isBookmarked = !_summary.isBookmarked;
-    await _planService.setReadingPlanBookmark(_planId, isBookmarked);
-    _setState(() {
-      _summary = _summary.copyWith(
-        config: _summary.config.copyWith(isBookmarked: isBookmarked),
-      );
+
+  Future<void> toggleBookmark() {
+    return _commands.runCoalesced('bookmark', () async {
+      final isBookmarked = !_summary.isBookmarked;
+      await _planService.setReadingPlanBookmark(_planId, isBookmarked);
+      _setState(() {
+        _summary = _summary.copyWith(
+          config: _summary.config.copyWith(isBookmarked: isBookmarked),
+        );
+      });
     });
   }
 
@@ -169,18 +176,15 @@ class ReadingPlanDetailViewModel extends ChangeNotifier {
     return (read / value).clamp(0.0, 1.0);
   }
 
-  Future<void> showPreviousMonth() => _loadMonthStats(-1);
-  Future<void> showNextMonth() => _loadMonthStats(1);
+  Future<void> showPreviousMonth() => _commands.run(() => _loadMonthStats(-1));
+  Future<void> showNextMonth() => _commands.run(() => _loadMonthStats(1));
 
-  final _monthScope = CancellationScope();
   Future<void> _loadMonthStats(int delta) async {
-    return _monthScope.run((guard) async {
-      final month = DateTime(_visibleMonth.year, _visibleMonth.month + delta);
-      final data = await guard(_queries.getMonthDayProgress(_planId, month));
-      _setState(() {
-        _visibleMonth = month;
-        _monthProgress = data;
-      });
+    final month = DateTime(_visibleMonth.year, _visibleMonth.month + delta);
+    final data = await _queries.getMonthDayProgress(_planId, month);
+    _setState(() {
+      _visibleMonth = month;
+      _monthProgress = data;
     });
   }
 
@@ -196,8 +200,10 @@ class ReadingPlanDetailViewModel extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
-    _refreshScope.cancelAll();
-    _monthScope.cancelAll();
-    super.dispose();
+    unawaited(() async {
+      await _commands.close();
+
+      super.dispose();
+    }());
   }
 }
