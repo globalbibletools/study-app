@@ -186,12 +186,6 @@ class NavigationViewModel extends ChangeNotifier {
 
   Future<void> persistCurrentChapter() => _persistCurrentReference();
 
-  /// Updates the chapter-level navigation [anchor].
-  ///
-  /// The anchor is intentionally chapter-scoped (verse 1): panels rebuild when
-  /// its book/chapter changes, so carrying the reading verse here would rebuild
-  /// them on every verse crossing. The persisted reading position keeps its
-  /// verse separately.
   void _writeChapterAnchor(Reference ref) {
     final current = anchor.value;
     if (current.bookId == ref.bookId && current.chapter == ref.chapter) {
