@@ -11,9 +11,9 @@ import 'package:gbt/services/app_guide/app_guide_manager.dart';
 import 'package:gbt/services/bible/bible_service.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/services/settings/user_settings.dart';
-import 'package:gbt/ui/common/bible_chooser.dart';
 import 'package:gbt/ui/home/appbar/reference_chooser/reference_chooser.dart';
 import 'package:gbt/ui/home/common/navigation_view_model.dart';
+import 'package:gbt/ui/home/settings/reader_settings_sheet.dart';
 import 'package:gbt/reading_plan/ui/reading_session_view_model.dart';
 import 'package:gbt/ui/home/word_details_dialog/dialog_manager.dart';
 import 'package:gbt/ui/home/word_details_dialog/similar_verses/similar_verses_page.dart';
@@ -98,6 +98,9 @@ class HomeManager {
   StreamSubscription<HardNavigation>? _hardNavigationSubscription;
 
   HomeManager() {
+    // Mirror the persisted panel visibility for the widgets that listen to
+    // [isSinglePanelNotifier].
+    isSinglePanelNotifier.value = !_settings.parallelBibleEnabled;
     _bibleService.addBibleResourceChangeListener(_onBibleResourceChanged);
     navigationViewModel.bindAudioReference(audioPlayerViewModel.reference);
     _hardNavigationSubscription = navigationViewModel.hardNavigation.listen(
@@ -143,7 +146,7 @@ class HomeManager {
   void notifySettingsChanged() {
     // No Bible selected: the Bible panel has nothing to show, so close it.
     if (_settings.currentBible == null) {
-      isSinglePanelNotifier.value = true;
+      unawaited(_setPanelVisible(false));
     }
     settingsVersionNotifier.value++;
   }
@@ -153,7 +156,7 @@ class HomeManager {
   }
 
   void closeBiblePanel() {
-    isSinglePanelNotifier.value = true;
+    unawaited(_setPanelVisible(false));
   }
 
   void setEnabledDigits(Set<int> digits) {
@@ -171,16 +174,43 @@ class HomeManager {
   // Closes the keypad
   void resetKeypad() => chooserKey.currentState?.resetAll();
 
-  Future<void> togglePanelState(BuildContext context) async {
-    // Opening the Bible panel requires a selected Bible. If none is selected,
-    // prompt the user to pick one first instead of opening an empty panel.
-    if (isSinglePanelNotifier.value && _settings.currentBible == null) {
-      final chosen = await chooseBible(context);
-      if (!chosen) return;
+  /// Opens the reader settings bottom sheet. [onChanged] fires when the
+  /// sheet closes so callers can re-read settings.
+  Future<void> openReaderSettings(BuildContext context) async {
+    await ReaderSettingsSheet.navigateTo(
+      context,
+      onChanged: notifySettingsChanged,
+    );
+  }
+
+  /// Sets whether the parallel Bible panel is visible, persisting the
+  /// preference.
+  ///
+  /// Opening the panel requires a selected Bible. When [value] is true and
+  /// none is selected, [pickBible] runs first (usually the Bible chooser
+  /// dialog) and the panel stays off if it reports no selection.
+  Future<void> setParallelBibleEnabled(
+    bool value, {
+    required Future<bool> Function() pickBible,
+  }) async {
+    if (value && _settings.currentBible == null) {
+      if (!await pickBible()) {
+        value = false;
+      }
     }
 
-    navigationViewModel.reanchorToCurrentReference();
-    isSinglePanelNotifier.value = !isSinglePanelNotifier.value;
+    if (value) {
+      navigationViewModel.reanchorToCurrentReference();
+    }
+
+    await _setPanelVisible(value);
+  }
+
+  Future<void> _setPanelVisible(bool visible) async {
+    if (_settings.parallelBibleEnabled != visible) {
+      await _settings.setParallelBibleEnabled(visible);
+    }
+    isSinglePanelNotifier.value = !visible;
   }
 
   Future<void> toggleAudio(BuildContext context) async {

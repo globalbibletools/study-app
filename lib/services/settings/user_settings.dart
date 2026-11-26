@@ -28,6 +28,7 @@ class UserSettings {
   static const _isHebrewSearchKey = 'isHebrewSearch';
   static const _useSystemKeyboardKey = 'useSystemKeyboard';
   static const _currentBible = 'currentBible';
+  static const _parallelBibleEnabledKey = 'parallelBibleEnabled';
   static const _downloadLangKey = 'downloadLang';
   static const _verseLayout = "verseLayout";
   static const _hasSeenReadingCheckboxGuideKey = '_hasSeenReadingCheckboxGuide';
@@ -140,6 +141,13 @@ class UserSettings {
     } else {
       await _prefs.setString(_currentBible, bibleCode);
     }
+  }
+
+  bool get parallelBibleEnabled =>
+      _prefs.getBool(_parallelBibleEnabledKey) ?? false;
+
+  Future<void> setParallelBibleEnabled(bool value) async {
+    await _prefs.setBool(_parallelBibleEnabledKey, value);
   }
 
   String? get downloadLang {

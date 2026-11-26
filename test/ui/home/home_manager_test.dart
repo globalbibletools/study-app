@@ -74,6 +74,153 @@ class FakeAppGuideManager implements AppGuideManager {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  group('HomeManager parallel Bible toggle', () {
+    late UserSettings settings;
+    late HomeManager homeManager;
+
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({});
+      await getIt.reset();
+
+      settings = UserSettings();
+      await settings.init();
+      getIt.registerSingleton<UserSettings>(settings);
+      getIt.registerSingleton<NavigationViewModel>(
+        NavigationViewModel(settings),
+      );
+      getIt.registerSingleton<DownloadService>(FakeDownloadService());
+      getIt.registerSingleton<ResourceService>(FakeResourceService());
+      getIt.registerSingleton<BibleService>(FakeBibleService());
+      getIt.registerSingleton<ReadingSessionViewModel>(
+        FakeReadingSessionViewModel(),
+      );
+      getIt.registerSingleton<AppGuideManager>(FakeAppGuideManager());
+
+      homeManager = HomeManager();
+    });
+
+    tearDown(() {
+      homeManager.dispose();
+    });
+
+    test('panel visibility starts from the persisted setting', () async {
+      await settings.setParallelBibleEnabled(true);
+      homeManager.dispose();
+
+      homeManager = HomeManager();
+
+      expect(homeManager.isSinglePanelNotifier.value, isFalse);
+    });
+
+    test(
+      'toggling on with a selected Bible persists the panel state',
+      () async {
+        await settings.setCurrentBible('test_bible');
+        var pickBibleCalls = 0;
+
+        await homeManager.setParallelBibleEnabled(
+          true,
+          pickBible: () async {
+            pickBibleCalls++;
+            return true;
+          },
+        );
+
+        expect(pickBibleCalls, 0, reason: 'a Bible is already selected');
+        expect(settings.parallelBibleEnabled, isTrue);
+        expect(homeManager.isSinglePanelNotifier.value, isFalse);
+
+        // Recreating the manager restores the panel from the persisted state.
+        homeManager.dispose();
+        homeManager = HomeManager();
+        expect(homeManager.isSinglePanelNotifier.value, isFalse);
+      },
+    );
+
+    test(
+      'toggling on with no Bible prompts and reverts to off on cancel',
+      () async {
+        // Fresh installs get a Bible from migration; the no-Bible state only
+        // arises when the user picks None in the chooser.
+        await settings.setCurrentBible(null);
+        expect(settings.currentBible, isNull);
+        var pickBibleCalls = 0;
+
+        await homeManager.setParallelBibleEnabled(
+          true,
+          pickBible: () async {
+            pickBibleCalls++;
+            return false;
+          },
+        );
+
+        expect(pickBibleCalls, 1);
+        expect(settings.parallelBibleEnabled, isFalse);
+        expect(homeManager.isSinglePanelNotifier.value, isTrue);
+      },
+    );
+
+    test('toggling on with no Bible succeeds after choosing one', () async {
+      homeManager.navigationViewModel.navigateTo(
+        const Reference(bookId: 1, chapter: 2, verse: 1),
+      );
+      homeManager.navigationViewModel.seekTo(
+        const Reference(bookId: 1, chapter: 3, verse: 5),
+      );
+
+      await homeManager.setParallelBibleEnabled(
+        true,
+        pickBible: () async {
+          await settings.setCurrentBible('chosen_bible');
+          return true;
+        },
+      );
+
+      expect(settings.parallelBibleEnabled, isTrue);
+      expect(homeManager.isSinglePanelNotifier.value, isFalse);
+      // Opening the panel reanchors to the current reference's chapter top.
+      expect(
+        homeManager.navigationViewModel.anchor.value,
+        const Reference(bookId: 1, chapter: 3, verse: 1),
+      );
+    });
+
+    test('toggling off persists the panel state', () async {
+      await settings.setCurrentBible('test_bible');
+      await homeManager.setParallelBibleEnabled(
+        true,
+        pickBible: () async => true,
+      );
+
+      await homeManager.setParallelBibleEnabled(
+        false,
+        pickBible: () async => true,
+      );
+
+      expect(settings.parallelBibleEnabled, isFalse);
+      expect(homeManager.isSinglePanelNotifier.value, isTrue);
+    });
+
+    test(
+      'notifySettingsChanged closes the panel when no Bible is selected',
+      () async {
+        await settings.setCurrentBible('test_bible');
+        await homeManager.setParallelBibleEnabled(
+          true,
+          pickBible: () async => true,
+        );
+        await settings.setCurrentBible(null);
+
+        homeManager.notifySettingsChanged();
+
+        // The write is async; let it land before asserting.
+        await Future<void>.delayed(Duration.zero);
+        expect(settings.parallelBibleEnabled, isFalse);
+        expect(homeManager.isSinglePanelNotifier.value, isTrue);
+      },
+    );
+  });
+
   group('HomeManager Context Navigation & Pill Lifecycle', () {
     late HomeManager homeManager;
 
