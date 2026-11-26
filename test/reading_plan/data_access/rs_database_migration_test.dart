@@ -64,7 +64,7 @@ void main() {
   }
 
   Future<List<Map<String, Object?>>> query(String sql) {
-    return database!.transaction((txn) => txn.rawQuery(sql));
+    return database!.unitOfWork((uow) => uow.executor.rawQuery(sql));
   }
 
   Future<void> expectV9Schema() async {

@@ -7,6 +7,7 @@ import 'package:gbt/reading_plan/data_access/reading_plan_queries.dart'
 import 'package:gbt/reading_plan/data_access/reading_plan_repository.dart';
 import 'package:gbt/reading_plan/data_access/session_log_repository.dart';
 import 'package:gbt/reading_plan/data_access/session_repository.dart';
+import 'package:gbt/reading_plan/data_access/unit_of_work.dart';
 import 'package:gbt/reading_plan/data_access/verse_state_repository.dart';
 import 'package:gbt/reading_plan/model.dart' show GoalType;
 import 'package:gbt/services/service_locator.dart';
@@ -77,8 +78,14 @@ class ReadingSessionDatabase {
     return _initFuture;
   }
 
-  Future<T> transaction<T>(Future<T> Function(DatabaseExecutor txn) action) {
-    return _database.transaction(action);
+  Future<T> unitOfWork<T>(Future<T> Function(UnitOfWork uow) action) {
+    return _database.transaction((txn) async {
+      final uow = UnitOfWork(
+        txn,
+        verseInventoryProvider: _verseInventoryProvider,
+      );
+      return action(uow);
+    });
   }
 
   Future<void> resetDatabase() async {
@@ -104,7 +111,7 @@ class ReadingSessionDatabase {
           verseInventoryProvider: _verseInventoryProvider,
         );
         // We have to materialize here because there is a default reading plan that needs verse state setup correctly.
-        await verseStateRepository.materializeAll(executor: db);
+        await verseStateRepository.materializeAll();
       },
       onUpgrade: (db, oldVersion, newVersion) async {
         info(
@@ -122,7 +129,7 @@ class ReadingSessionDatabase {
               db,
               verseInventoryProvider: _verseInventoryProvider,
             );
-            await verseStateRepository.materializeAll(executor: db);
+            await verseStateRepository.materializeAll();
           }
         }
       },

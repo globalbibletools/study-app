@@ -6,92 +6,74 @@ import 'package:sqflite/sqflite.dart';
 class DaySummaryRepository {
   DaySummaryRepository(this._database);
 
-  final Database _database;
+  final DatabaseExecutor _database;
 
   Future<void> upsert(
     int readingPlanId,
     DateTime date, {
     bool preserveStoredGoalSnapshot = false,
-    DatabaseExecutor? executor,
   }) async {
-    Future<void> upsert(DatabaseExecutor txn) async {
-      final totals = await txn.rawQuery(
-        'SELECT coalesce(sum(read_seconds), 0) AS rs_seconds, '
-        'coalesce(sum(verses), 0) AS rs_verses '
-        'FROM rs_session '
-        'WHERE reading_plan_id = ? AND date(rs_date) = date(?)',
-        [readingPlanId, date.toIso8601String()],
-      );
+    final totals = await _database.rawQuery(
+      'SELECT coalesce(sum(read_seconds), 0) AS rs_seconds, '
+      'coalesce(sum(verses), 0) AS rs_verses '
+      'FROM rs_session '
+      'WHERE reading_plan_id = ? AND date(rs_date) = date(?)',
+      [readingPlanId, date.toIso8601String()],
+    );
 
-      final rsSeconds = totals.first['rs_seconds'] as int? ?? 0;
-      final rsVerses = totals.first['rs_verses'] as int? ?? 0;
+    final rsSeconds = totals.first['rs_seconds'] as int? ?? 0;
+    final rsVerses = totals.first['rs_verses'] as int? ?? 0;
 
-      String? storedGoalType;
-      int? storedGoalValue;
-      if (preserveStoredGoalSnapshot) {
-        final stored = await txn.query(
-          'rs_day_summary',
-          columns: ['goal_type', 'goal_value'],
-          where: 'reading_plan_id = ? AND rs_date = ?',
-          whereArgs: [readingPlanId, DaySummary.dayString(date)],
-          limit: 1,
-        );
-        if (stored.isNotEmpty) {
-          storedGoalType = stored.first['goal_type'] as String?;
-          storedGoalValue = stored.first['goal_value'] as int?;
-        }
-      }
-      if (storedGoalType == null || storedGoalValue == null) {
-        final plan = await txn.query(
-          'reading_plan',
-          columns: ['goal_type', 'goal_value'],
-          where: 'id = ?',
-          whereArgs: [readingPlanId],
-          limit: 1,
-        );
-        storedGoalType = plan.isEmpty
-            ? null
-            : plan.first['goal_type'] as String?;
-        storedGoalValue = plan.isEmpty
-            ? null
-            : plan.first['goal_value'] as int?;
-      }
-
-      final goalType = GoalType.fromStorage(storedGoalType);
-      final goalValue = storedGoalValue ?? 0;
-      final goalReached = goalType == GoalType.minutes
-          ? rsSeconds >= goalValue * 60
-          : rsVerses >= goalValue;
-
-      await txn.insert(
+    String? storedGoalType;
+    int? storedGoalValue;
+    if (preserveStoredGoalSnapshot) {
+      final stored = await _database.query(
         'rs_day_summary',
-        DaySummary(
-          readingPlanId: readingPlanId,
-          rsDate: DateTime(date.year, date.month, date.day),
-          rsSeconds: rsSeconds,
-          rsVerses: rsVerses,
-          goalType: goalType,
-          goalValue: goalValue,
-          goalReached: goalReached,
-        ).toMap(),
-        conflictAlgorithm: ConflictAlgorithm.replace,
+        columns: ['goal_type', 'goal_value'],
+        where: 'reading_plan_id = ? AND rs_date = ?',
+        whereArgs: [readingPlanId, DaySummary.dayString(date)],
+        limit: 1,
       );
+      if (stored.isNotEmpty) {
+        storedGoalType = stored.first['goal_type'] as String?;
+        storedGoalValue = stored.first['goal_value'] as int?;
+      }
+    }
+    if (storedGoalType == null || storedGoalValue == null) {
+      final plan = await _database.query(
+        'reading_plan',
+        columns: ['goal_type', 'goal_value'],
+        where: 'id = ?',
+        whereArgs: [readingPlanId],
+        limit: 1,
+      );
+      storedGoalType = plan.isEmpty ? null : plan.first['goal_type'] as String?;
+      storedGoalValue = plan.isEmpty ? null : plan.first['goal_value'] as int?;
     }
 
-    if (executor != null) {
-      await upsert(executor);
-    } else {
-      await _database.transaction(upsert);
-    }
+    final goalType = GoalType.fromStorage(storedGoalType);
+    final goalValue = storedGoalValue ?? 0;
+    final goalReached = goalType == GoalType.minutes
+        ? rsSeconds >= goalValue * 60
+        : rsVerses >= goalValue;
+
+    await _database.insert(
+      'rs_day_summary',
+      DaySummary(
+        readingPlanId: readingPlanId,
+        rsDate: DateTime(date.year, date.month, date.day),
+        rsSeconds: rsSeconds,
+        rsVerses: rsVerses,
+        goalType: goalType,
+        goalValue: goalValue,
+        goalReached: goalReached,
+      ).toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
-  Future<DaySummary?> get(
-    int readingPlanId,
-    DateTime date, {
-    DatabaseExecutor? executor,
-  }) async {
-    final db = executor ?? _database;
-    final rows = await db.query(
+  Future<DaySummary?> get(int readingPlanId, DateTime date) async {
+    final rows = await _database.query(
       'rs_day_summary',
       where: 'reading_plan_id = ? AND rs_date = ?',
       whereArgs: [readingPlanId, DaySummary.dayString(date)],
@@ -104,11 +86,9 @@ class DaySummaryRepository {
   Future<List<DaySummary>> listBetween(
     int readingPlanId,
     DateTime start,
-    DateTime end, {
-    DatabaseExecutor? executor,
-  }) async {
-    final db = executor ?? _database;
-    final rows = await db.query(
+    DateTime end,
+  ) async {
+    final rows = await _database.query(
       'rs_day_summary',
       where: 'reading_plan_id = ? AND rs_date BETWEEN ? AND ?',
       whereArgs: [
@@ -122,11 +102,11 @@ class DaySummaryRepository {
     return [for (final row in rows) DaySummary.fromMap(row)];
   }
 
-  Future<List<Map<String, Object?>>> exportAll({
-    DatabaseExecutor? executor,
-  }) async {
-    final db = executor ?? _database;
-    return db.query('rs_day_summary', orderBy: 'reading_plan_id, rs_date');
+  Future<List<Map<String, Object?>>> exportAll() async {
+    return _database.query(
+      'rs_day_summary',
+      orderBy: 'reading_plan_id, rs_date',
+    );
   }
 
   static const _summaryColumns = [
@@ -139,37 +119,28 @@ class DaySummaryRepository {
     'goal_reached',
   ];
 
-  Future<void> importAll(
-    Object? rows, {
-    required DatabaseExecutor executor,
-  }) async {
+  Future<void> importAll(Object? rows) async {
     final summaryRows = parseBackupRows(rows, 'rs_day_summary');
 
-    await executor.delete('rs_day_summary');
+    await _database.delete('rs_day_summary');
 
-    final batch = executor.batch();
+    final batch = _database.batch();
     for (final row in summaryRows) {
       batch.insert('rs_day_summary', pickBackupColumns(row, _summaryColumns));
     }
     await batch.commit(noResult: true);
   }
 
-  Future<int> deleteForDay(
-    int readingPlanId,
-    DateTime date, {
-    DatabaseExecutor? executor,
-  }) {
-    final db = executor ?? _database;
-    return db.delete(
+  Future<int> deleteForDay(int readingPlanId, DateTime date) {
+    return _database.delete(
       'rs_day_summary',
       where: 'reading_plan_id = ? AND rs_date = ?',
       whereArgs: [readingPlanId, DaySummary.dayString(date)],
     );
   }
 
-  Future<int> deleteForPlanId(int readingPlanId, {DatabaseExecutor? executor}) {
-    final db = executor ?? _database;
-    return db.delete(
+  Future<int> deleteForPlanId(int readingPlanId) {
+    return _database.delete(
       'rs_day_summary',
       where: 'reading_plan_id = ?',
       whereArgs: [readingPlanId],

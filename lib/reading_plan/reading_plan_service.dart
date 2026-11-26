@@ -1,8 +1,8 @@
 import 'package:gbt/reading_plan/data_access/reading_plan_repository.dart'
     as repo;
 import 'package:gbt/reading_plan/data_access/rs_database.dart';
-import 'package:gbt/reading_plan/model.dart';
 import 'package:gbt/reading_plan/data_access/session_repository.dart';
+import 'package:gbt/reading_plan/model.dart';
 import 'package:gbt/services/service_locator.dart';
 
 class ReadingPlanService {
@@ -33,14 +33,14 @@ class ReadingPlanService {
       throw ArgumentError('Minutes and verses cannot both be zero.');
     }
 
-    await _requireReadingPlan(readingPlanId);
+    await _database.unitOfWork((uow) async {
+      await _requireReadingPlan(uow.readingPlans, readingPlanId);
 
-    final day = _dayOnly(date);
-    final now = DateTime.now();
-    final isToday = _sameDay(day, now);
+      final day = _dayOnly(date);
+      final now = DateTime.now();
+      final isToday = _sameDay(day, now);
 
-    await _database.transaction((txn) async {
-      await _database.session.commit(
+      await uow.session.commit(
         Session(
           rsDate: day,
           startTime: now,
@@ -50,47 +50,42 @@ class ReadingPlanService {
           readingPlanId: readingPlanId,
           isManual: true,
         ),
-        executor: txn,
       );
 
-      await _database.daySummary.upsert(
+      await uow.daySummary.upsert(
         readingPlanId,
         day,
         preserveStoredGoalSnapshot: !isToday,
-        executor: txn,
       );
     });
   }
 
-  Future<void> deleteManualSession(int sessionId) async {
-    final session = await _database.session.getById(sessionId);
-    if (session == null) {
-      throw StateError('Session not found: $sessionId');
-    }
-    if (!session.isManual) {
-      throw StateError('Only manual sessions can be deleted.');
-    }
+  Future<void> deleteManualSession(int sessionId) {
+    return _database.unitOfWork((uow) async {
+      final session = await uow.session.getById(sessionId);
+      if (session == null) {
+        throw StateError('Session not found: $sessionId');
+      }
+      if (!session.isManual) {
+        throw StateError('Only manual sessions can be deleted.');
+      }
 
-    await _database.transaction((txn) async {
-      await _database.session.delete(sessionId, executor: txn);
+      await uow.session.delete(sessionId);
 
-      final remaining = await _database.session.countForDate(
+      final remaining = await uow.session.countForDate(
         session.rsDate,
         session.readingPlanId,
-        executor: txn,
       );
       if (remaining == 0) {
-        await _database.daySummary.deleteForDay(
+        await uow.daySummary.deleteForDay(
           session.readingPlanId,
           session.rsDate,
-          executor: txn,
         );
       } else {
-        await _database.daySummary.upsert(
+        await uow.daySummary.upsert(
           session.readingPlanId,
           session.rsDate,
           preserveStoredGoalSnapshot: !_sameDay(session.rsDate, DateTime.now()),
-          executor: txn,
         );
       }
     });
@@ -100,8 +95,11 @@ class ReadingPlanService {
     return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 
-  Future<repo.ReadingPlan> _requireReadingPlan(int planId) async {
-    final plan = await _database.readingPlans.getById(planId);
+  Future<repo.ReadingPlan> _requireReadingPlan(
+    repo.ReadingPlanRepository readingPlans,
+    int planId,
+  ) async {
+    final plan = await readingPlans.getById(planId);
     if (plan == null) {
       throw StateError('Reading plan not found: $planId');
     }
@@ -117,57 +115,61 @@ class ReadingPlanService {
     required GoalType goalType,
     required int goalValue,
     required List<int> bookIds,
-  }) async {
-    final existingPlan = planId == null
-        ? null
-        : await _requireReadingPlan(planId);
+  }) {
+    return _database.unitOfWork((uow) async {
+      final existingPlan = planId == null
+          ? null
+          : await _requireReadingPlan(uow.readingPlans, planId);
 
-    final previousBookIds = existingPlan?.bookIds.toSet() ?? const <int>{};
-    final plan = existingPlan == null
-        ? repo.ReadingPlan(
-            id: 0,
-            planName: planName,
-            createdAt: DateTime.now(),
-            goalType: goalType,
-            goalValue: goalValue,
-            isBookmarked: false,
-            bookIds: List<int>.of(bookIds),
-          )
-        : existingPlan.copyWith(
-            planName: planName,
-            goalType: goalType,
-            goalValue: goalValue,
-            bookIds: List<int>.of(bookIds),
-          );
+      final previousBookIds = existingPlan?.bookIds.toSet() ?? const <int>{};
+      final plan = existingPlan == null
+          ? repo.ReadingPlan(
+              id: 0,
+              planName: planName,
+              createdAt: DateTime.now(),
+              goalType: goalType,
+              goalValue: goalValue,
+              isBookmarked: false,
+              bookIds: List<int>.of(bookIds),
+            )
+          : existingPlan.copyWith(
+              planName: planName,
+              goalType: goalType,
+              goalValue: goalValue,
+              bookIds: List<int>.of(bookIds),
+            );
 
-    final committedPlanId = await _database.readingPlans.commit(plan);
+      final committedPlanId = await uow.readingPlans.commit(plan);
 
-    final newlyAddedBookIds = bookIds.toSet().difference(previousBookIds);
-    await _database.verseState.materialize(
-      committedPlanId,
-      bookIds: newlyAddedBookIds,
-    );
+      final newlyAddedBookIds = bookIds.toSet().difference(previousBookIds);
+      await uow.verseState.materialize(
+        committedPlanId,
+        bookIds: newlyAddedBookIds,
+      );
 
-    return committedPlanId;
+      return committedPlanId;
+    });
   }
 
-  Future<void> setReadingPlanBookmark(int planId, bool isBookmarked) async {
-    final savedPlan = await _requireReadingPlan(planId);
+  Future<void> setReadingPlanBookmark(int planId, bool isBookmarked) {
+    return _database.unitOfWork((uow) async {
+      final savedPlan = await _requireReadingPlan(uow.readingPlans, planId);
 
-    await _database.readingPlans.commit(
-      savedPlan.copyWith(isBookmarked: isBookmarked),
-    );
+      await uow.readingPlans.commit(
+        savedPlan.copyWith(isBookmarked: isBookmarked),
+      );
+    });
   }
 
-  Future<void> deleteReadingPlan(int planId) async {
-    await _requireReadingPlan(planId);
+  Future<void> deleteReadingPlan(int planId) {
+    return _database.unitOfWork((uow) async {
+      await _requireReadingPlan(uow.readingPlans, planId);
 
-    await _database.transaction((txn) async {
-      await _database.sessionLog.deleteForPlanId(planId, executor: txn);
-      await _database.session.deleteForPlanId(planId, executor: txn);
-      await _database.daySummary.deleteForPlanId(planId, executor: txn);
-      await _database.verseState.deleteForPlanId(planId, executor: txn);
-      await _database.readingPlans.delete(planId, executor: txn);
+      await uow.sessionLog.deleteForPlanId(planId);
+      await uow.session.deleteForPlanId(planId);
+      await uow.daySummary.deleteForPlanId(planId);
+      await uow.verseState.deleteForPlanId(planId);
+      await uow.readingPlans.delete(planId);
     });
   }
 }
