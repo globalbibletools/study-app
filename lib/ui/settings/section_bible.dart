@@ -60,7 +60,7 @@ class _BibleSectionState extends State<BibleSection> {
   }
 
   Future<void> _chooseBible() async {
-    await chooseBible(context, allowNone: true);
+    await chooseBible(context);
     if (mounted) setState(() {});
   }
 
@@ -71,7 +71,7 @@ class _BibleSectionState extends State<BibleSection> {
     return ListTile(
       title: Text(l10n.bibleTranslation),
       trailing: Text(
-        currentBibleName ?? l10n.glossNone,
+        currentBibleName ?? l10n.notSet,
         style: Theme.of(context).textTheme.bodyMedium,
       ),
       onTap: () {

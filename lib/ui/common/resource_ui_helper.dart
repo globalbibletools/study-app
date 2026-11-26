@@ -35,32 +35,24 @@ class ResourceUIHelper {
       return true;
     }
 
+    if (resourceType == ResourceType.gloss &&
+        ResourceDownloadPromptDialog.glossDeclinedRecently(id)) {
+      return false;
+    }
+
     if (!context.mounted) return false;
     final l10n = AppLocalizations.of(context)!;
     final messenger = getIt<MessengerViewModel>();
 
     // 1. Show Prompt
-    final shouldDownload =
-        await showDialog<bool>(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => AlertDialog(
-            content: Text(l10n.downloadResourcesMessage),
-            actions: [
-              TextButton(
-                child: Text(l10n.cancel),
-                onPressed: () => Navigator.pop(context, false),
-              ),
-              FilledButton(
-                child: Text(l10n.download),
-                onPressed: () => Navigator.pop(context, true),
-              ),
-            ],
-          ),
-        ) ??
-        false;
+    final shouldDownload = await ResourceDownloadPromptDialog.show(context);
 
-    if (!shouldDownload) return false;
+    if (!shouldDownload) {
+      if (resourceType == ResourceType.gloss) {
+        ResourceDownloadPromptDialog.markGlossDeclined(id);
+      }
+      return false;
+    }
 
     // 2. Show Download Dialog
     try {
@@ -81,5 +73,58 @@ class ResourceUIHelper {
       }
       return false;
     }
+  }
+}
+
+class ResourceDownloadPromptDialog extends StatelessWidget {
+  const ResourceDownloadPromptDialog({super.key});
+
+  static final Map<String, DateTime> _glossDeclinedAt = {};
+
+  static const repromptDelay = Duration(hours: 1);
+
+  @visibleForTesting
+  static DateTime Function() clock = DateTime.now;
+
+  static bool glossDeclinedRecently(String langCode) {
+    final declinedAt = _glossDeclinedAt[langCode];
+    if (declinedAt == null) return false;
+    return clock().difference(declinedAt) < repromptDelay;
+  }
+
+  static void markGlossDeclined(String langCode) {
+    _glossDeclinedAt[langCode] = clock();
+  }
+
+  @visibleForTesting
+  static void resetDeclineTracking() {
+    _glossDeclinedAt.clear();
+  }
+
+  static Future<bool> show(BuildContext context) async {
+    return await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => const ResourceDownloadPromptDialog(),
+        ) ??
+        false;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return AlertDialog(
+      content: Text(l10n.downloadResourcesMessage),
+      actions: [
+        TextButton(
+          child: Text(l10n.cancel),
+          onPressed: () => Navigator.pop(context, false),
+        ),
+        FilledButton(
+          child: Text(l10n.download),
+          onPressed: () => Navigator.pop(context, true),
+        ),
+      ],
+    );
   }
 }

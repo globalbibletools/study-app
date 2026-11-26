@@ -366,12 +366,7 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter> {
       langCode,
     );
 
-    if (!success && mounted) {
-      // If they clicked "Cancel" or download failed,
-      // tell the manager to stop trying to load localized glosses
-      // for this session so they aren't prompted on every single tap.
-      manager.unsetGlossLang();
-    } else if (success && mounted) {
+    if (success && mounted) {
       // Refresh the UI so the words show the newly downloaded glosses
       setState(() {});
     }

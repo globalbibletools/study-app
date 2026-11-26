@@ -48,9 +48,6 @@ class _GlossLanguageSectionState extends State<GlossLanguageSection> {
     }
   }
 
-  /// Sentinel representing "no gloss language" in the picker.
-  static final _noneGloss = GlossLanguageOption('', '');
-
   String? get currentGlossLangCode => _settings.glossLang;
 
   String? get currentGlossLangName {
@@ -79,42 +76,27 @@ class _GlossLanguageSectionState extends State<GlossLanguageSection> {
       builder: (BuildContext context) {
         return SimpleDialog(
           title: Text(l10n.glossLanguage),
-          children: [
-            SimpleDialogOption(
-              onPressed: () => Navigator.pop(context, _noneGloss),
-              child: Text(l10n.glossNone, style: textStyle),
-            ),
-            ...glossResources.map((resource) {
+          children: glossResources.map((resource) {
               return SimpleDialogOption(
                 onPressed: () => Navigator.pop(context, resource),
                 child: Text(resource.name, style: textStyle),
               );
-            }),
-          ],
+            }).toList(),
         );
       },
     );
 
     if (selected == null || selected.id == previousCode) return;
 
-    if (selected == _noneGloss) {
-      await setGlossLang(null);
-      return;
-    }
-
     await setGlossLang(selected.id);
 
     if (!mounted) return;
-    final success = await ResourceUIHelper.ensureResource(
+
+    await ResourceUIHelper.ensureResource(
       context,
       ResourceType.gloss,
       selected.id,
     );
-
-    // Revert if they cancelled or it failed
-    if (!success && mounted) {
-      await setGlossLang(previousCode);
-    }
   }
 
   @override
@@ -124,7 +106,7 @@ class _GlossLanguageSectionState extends State<GlossLanguageSection> {
     return ListTile(
       title: Text(l10n.glossLanguage),
       trailing: Text(
-        currentGlossLangName ?? l10n.glossNone,
+        currentGlossLangName ?? l10n.notSet,
         style: Theme.of(context).textTheme.bodyMedium,
       ),
       onTap: () {

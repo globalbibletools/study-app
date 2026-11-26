@@ -12,7 +12,7 @@
     "language": "اللغة",
     "glossLanguage": "لغة التفسير",
     "bibleTranslation": "ترجمة الكتاب المقدس",
-    "glossNone": "لا شيء",
+    "notSet": "غير محدد",
     "currentLanguage": "العربية",
     "textSize": "حجم النص",
     "hebrewTextSize": "العبرية",
