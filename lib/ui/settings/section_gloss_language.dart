@@ -48,11 +48,10 @@ class _GlossLanguageSectionState extends State<GlossLanguageSection> {
     }
   }
 
-  String? get currentGlossLangCode => _settings.glossLang;
+  String get currentGlossLangCode => _settings.glossLang;
 
   String? get currentGlossLangName {
     final code = currentGlossLangCode;
-    if (code == null) return null;
 
     try {
       return glossResources.firstWhere((r) => r.id == code).name;
@@ -61,7 +60,7 @@ class _GlossLanguageSectionState extends State<GlossLanguageSection> {
     }
   }
 
-  Future<void> setGlossLang(String? code) async {
+  Future<void> setGlossLang(String code) async {
     await _settings.setGlossLang(code);
     setState(() {});
   }
@@ -77,11 +76,11 @@ class _GlossLanguageSectionState extends State<GlossLanguageSection> {
         return SimpleDialog(
           title: Text(l10n.glossLanguage),
           children: glossResources.map((resource) {
-              return SimpleDialogOption(
-                onPressed: () => Navigator.pop(context, resource),
-                child: Text(resource.name, style: textStyle),
-              );
-            }).toList(),
+            return SimpleDialogOption(
+              onPressed: () => Navigator.pop(context, resource),
+              child: Text(resource.name, style: textStyle),
+            );
+          }).toList(),
         );
       },
     );

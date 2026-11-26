@@ -28,9 +28,6 @@ class GlossService {
   }) async {
     final langCode = _settings.glossLang;
 
-    // No gloss language chosen yet — there is nothing to look up.
-    if (langCode == null) return null;
-
     // Ensure the active database matches the current language.
     if (_currentLangCode != langCode) {
       try {

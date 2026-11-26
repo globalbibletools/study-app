@@ -102,16 +102,12 @@ class UserSettings {
     }
   }
 
-  String? get glossLang {
-    return _prefs.getString(_glossLangKey);
+  String get glossLang {
+    return _prefs.getString(_glossLangKey) ?? 'eng';
   }
 
-  Future<void> setGlossLang(String? code) async {
-    if (code == null) {
-      await _prefs.remove(_glossLangKey);
-    } else {
-      await _prefs.setString(_glossLangKey, code);
-    }
+  Future<void> setGlossLang(String code) async {
+    await _prefs.setString(_glossLangKey, code);
   }
 
   bool get isHebrewSearch {
@@ -130,16 +126,16 @@ class UserSettings {
     await _prefs.setBool(_useSystemKeyboardKey, value);
   }
 
-  String? get currentBible {
-    return _prefs.getString(_currentBible);
+  String get currentBible {
+    return _prefs.getString(_currentBible) ?? 'eng_bsb';
   }
 
-  Future<void> setCurrentBible(String? bibleCode) async {
-    if (bibleCode == null) {
-      await _prefs.remove(_currentBible);
-    } else {
-      await _prefs.setString(_currentBible, bibleCode);
-    }
+  Future<void> setCurrentBible(String bibleId) async {
+    await _prefs.setString(_currentBible, bibleId);
+  }
+
+  Future<void> clearCurrentBible() async {
+    await _prefs.remove(_currentBible);
   }
 
   String? get downloadLang {

@@ -46,11 +46,10 @@ class _BibleSectionState extends State<BibleSection> {
     }
   }
 
-  String? get currentBibleId => _settings.currentBible;
+  String get currentBibleId => _settings.currentBible;
 
   String? get currentBibleName {
     final code = currentBibleId;
-    if (code == null) return null;
 
     try {
       return bibleResources.firstWhere((r) => r.id == code).name;

@@ -33,11 +33,11 @@ Future<bool> chooseBible(BuildContext context) async {
     builder: (context) => SimpleDialog(
       title: Text(l10n.bibleTranslation),
       children: options.map((resource) {
-          return SimpleDialogOption(
-            onPressed: () => Navigator.pop(context, resource),
-            child: Text(resource.name, style: textStyle),
-          );
-        }).toList(),
+        return SimpleDialogOption(
+          onPressed: () => Navigator.pop(context, resource),
+          child: Text(resource.name, style: textStyle),
+        );
+      }).toList(),
     ),
   );
 
