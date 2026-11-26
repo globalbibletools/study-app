@@ -4,16 +4,18 @@ import 'package:sqflite/sqflite.dart';
 class SessionRepository {
   SessionRepository(this._database);
 
-  final Database _database;
+  final DatabaseExecutor _database;
 
-  Future<Session> commit(Session session, {DatabaseExecutor? executor}) async {
-    final db = executor ?? _database;
+  Future<Session> commit(Session session) async {
     if (session.id == null) {
-      final id = await db.insert('rs_session', session.toMap()..remove('id'));
+      final id = await _database.insert(
+        'rs_session',
+        session.toMap()..remove('id'),
+      );
       return session.copyWith(id: id);
     }
 
-    await db.update(
+    await _database.update(
       'rs_session',
       session.toMap(),
       where: 'id = ?',
@@ -22,11 +24,8 @@ class SessionRepository {
     return session;
   }
 
-  Future<List<Map<String, Object?>>> exportAll({
-    DatabaseExecutor? executor,
-  }) async {
-    final db = executor ?? _database;
-    return db.query('rs_session', orderBy: 'id');
+  Future<List<Map<String, Object?>>> exportAll() async {
+    return _database.query('rs_session', orderBy: 'id');
   }
 
   static const _sessionColumns = [
@@ -40,15 +39,12 @@ class SessionRepository {
     'is_manual',
   ];
 
-  Future<void> importAll(
-    Object? rows, {
-    required DatabaseExecutor executor,
-  }) async {
+  Future<void> importAll(Object? rows) async {
     final sessionRows = parseBackupRows(rows, 'rs_session');
 
-    await executor.delete('rs_session');
+    await _database.delete('rs_session');
 
-    final batch = executor.batch();
+    final batch = _database.batch();
     for (final row in sessionRows) {
       batch.insert('rs_session', {
         ...pickBackupColumns(row, _sessionColumns),
@@ -59,25 +55,20 @@ class SessionRepository {
     await batch.commit(noResult: true);
   }
 
-  Future<int> delete(int id, {DatabaseExecutor? executor}) {
-    final db = executor ?? _database;
-
-    return db.delete('rs_session', where: 'id = ?', whereArgs: [id]);
+  Future<int> delete(int id) {
+    return _database.delete('rs_session', where: 'id = ?', whereArgs: [id]);
   }
 
-  Future<int> deleteForPlanId(int readingPlanId, {DatabaseExecutor? executor}) {
-    final db = executor ?? _database;
-
-    return db.delete(
+  Future<int> deleteForPlanId(int readingPlanId) {
+    return _database.delete(
       'rs_session',
       where: 'reading_plan_id = ?',
       whereArgs: [readingPlanId],
     );
   }
 
-  Future<Session?> getById(int id, {DatabaseExecutor? executor}) async {
-    final db = executor ?? _database;
-    final rows = await db.query(
+  Future<Session?> getById(int id) async {
+    final rows = await _database.query(
       'rs_session',
       where: 'id = ?',
       whereArgs: [id],
@@ -87,13 +78,8 @@ class SessionRepository {
     return rows.isEmpty ? null : Session.fromMap(rows.first);
   }
 
-  Future<List<Session>> listForDate(
-    DateTime date,
-    int readingPlanId, {
-    DatabaseExecutor? executor,
-  }) async {
-    final db = executor ?? _database;
-    final rows = await db.query(
+  Future<List<Session>> listForDate(DateTime date, int readingPlanId) async {
+    final rows = await _database.query(
       'rs_session',
       where: 'date(rs_date) = date(?) AND reading_plan_id = ?',
       whereArgs: [date.toIso8601String(), readingPlanId],
@@ -103,13 +89,8 @@ class SessionRepository {
     return [for (final row in rows) Session.fromMap(row)];
   }
 
-  Future<int> countForDate(
-    DateTime date,
-    int readingPlanId, {
-    DatabaseExecutor? executor,
-  }) async {
-    final db = executor ?? _database;
-    final result = await db.rawQuery(
+  Future<int> countForDate(DateTime date, int readingPlanId) async {
+    final result = await _database.rawQuery(
       'SELECT COUNT(*) FROM rs_session '
       'WHERE date(rs_date) = date(?) AND reading_plan_id = ?',
       [date.toIso8601String(), readingPlanId],

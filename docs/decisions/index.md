@@ -1,5 +1,6 @@
 # Architecture Decision Records
 
+* 2026-11-25 [Unit-of-Work Pattern for Database Transactions](2026-11-25-unit-of-work.md) [In Review]
 * 2026-11-23 [App-Level Ephemeral Messages](2026-11-23-ephemeral-messages.md) [In Review]
 * 2026-11-19 [Vertical Slices](2026-11-19-vertical-slices.md) [In Review]
 * 2026-11-18 [Cancel-and-Replace Cancellation](2026-11-18-cancel-and-replace.md) [In Review]

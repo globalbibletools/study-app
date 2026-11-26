@@ -153,8 +153,8 @@ void main() {
     required DailyGoal goal,
     required bool goalReached,
   }) async {
-    await database.transaction((txn) async {
-      await txn.insert(
+    await database.unitOfWork((uow) async {
+      await uow.executor.insert(
         'rs_day_summary',
         DaySummary(
           readingPlanId: planId,
