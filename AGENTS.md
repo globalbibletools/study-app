@@ -25,6 +25,11 @@ them in yourself:
 
 - Verify changes with the test command listed in `docs/DEVELOPMENT.md` before
   considering a task complete.
+- Comments are rare. Code and names explain *what*; commit messages explain
+  *why a change was made*. Add a comment only when the code genuinely cannot
+  speak for itself: a non-obvious algorithm, a workaround for an upstream
+  quirk, or a surprising constraint. Do not narrate changes, restate the code,
+  or leave notes about past or future work in comments.
 - When you make an architectural decision, record it in `docs/decisions/`
 - If this file and another doc disagree, trust the more specific doc and fix
   this file.
