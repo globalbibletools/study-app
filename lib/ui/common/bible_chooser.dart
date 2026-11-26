@@ -12,7 +12,7 @@ class BibleOption {
   final String name;
 }
 
-Future<bool> chooseBible(BuildContext context, {bool allowNone = false}) async {
+Future<bool> chooseBible(BuildContext context) async {
   final settings = getIt<UserSettings>();
   final resourceService = getIt<ResourceService>();
   final l10n = AppLocalizations.of(context)!;
@@ -26,35 +26,22 @@ Future<bool> chooseBible(BuildContext context, {bool allowNone = false}) async {
     for (final r in resources) BibleOption(r.id, r.resourceName),
   ];
 
-  const noneBible = BibleOption('', '');
   final previousBibleId = settings.currentBible;
 
   final selected = await showDialog<BibleOption>(
     context: context,
     builder: (context) => SimpleDialog(
       title: Text(l10n.bibleTranslation),
-      children: [
-        if (allowNone)
-          SimpleDialogOption(
-            onPressed: () => Navigator.pop(context, noneBible),
-            child: Text(l10n.glossNone, style: textStyle),
-          ),
-        ...options.map((resource) {
-          return SimpleDialogOption(
-            onPressed: () => Navigator.pop(context, resource),
-            child: Text(resource.name, style: textStyle),
-          );
-        }),
-      ],
+      children: options.map((resource) {
+        return SimpleDialogOption(
+          onPressed: () => Navigator.pop(context, resource),
+          child: Text(resource.name, style: textStyle),
+        );
+      }).toList(),
     ),
   );
 
   if (selected == null) return false;
-
-  if (selected == noneBible) {
-    await settings.setCurrentBible(null);
-    return false;
-  }
 
   if (selected.id != previousBibleId) {
     await settings.setCurrentBible(selected.id);

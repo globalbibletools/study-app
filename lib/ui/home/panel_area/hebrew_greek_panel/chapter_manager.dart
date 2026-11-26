@@ -4,14 +4,12 @@ import 'package:gbt/services/gloss/gloss_service.dart';
 import 'package:gbt/services/hebrew_greek/database.dart';
 import 'package:gbt/reading_plan/ui/reading_session_view_model.dart';
 import 'package:gbt/services/service_locator.dart';
-import 'package:gbt/services/settings/user_settings.dart';
 import 'package:gbt/ui/common/resource_language_text_direction.dart';
 import 'package:gbt/ui/home/panel_area/hebrew_greek_panel/text.dart';
 
 class HebrewGreekChapterManager {
   final _hebrewGreekDb = getIt<HebrewGreekDatabase>();
   final _glossService = getIt<GlossService>();
-  final _settings = getIt<UserSettings>();
   final _sessionViewModel = getIt<ReadingSessionViewModel>();
 
   final textNotifier = _SafeValueNotifier<List<HebrewGreekWord>>([]);
@@ -82,10 +80,6 @@ class HebrewGreekChapterManager {
       isAiGenerated: gloss.isAiGenerated,
       textDirection: gloss.textDirection.toTextDirection,
     );
-  }
-
-  Future<void> unsetGlossLang() async {
-    await _settings.setGlossLang(null);
   }
 
   String getVerseText(int verse) {

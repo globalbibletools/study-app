@@ -46,11 +46,10 @@ class _BibleSectionState extends State<BibleSection> {
     }
   }
 
-  String? get currentBibleId => _settings.currentBible;
+  String get currentBibleId => _settings.currentBible;
 
   String? get currentBibleName {
     final code = currentBibleId;
-    if (code == null) return null;
 
     try {
       return bibleResources.firstWhere((r) => r.id == code).name;
@@ -60,7 +59,7 @@ class _BibleSectionState extends State<BibleSection> {
   }
 
   Future<void> _chooseBible() async {
-    await chooseBible(context, allowNone: true);
+    await chooseBible(context);
     if (mounted) setState(() {});
   }
 
@@ -71,7 +70,7 @@ class _BibleSectionState extends State<BibleSection> {
     return ListTile(
       title: Text(l10n.bibleTranslation),
       trailing: Text(
-        currentBibleName ?? l10n.glossNone,
+        currentBibleName ?? l10n.notSet,
         style: Theme.of(context).textTheme.bodyMedium,
       ),
       onTap: () {

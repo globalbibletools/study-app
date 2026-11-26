@@ -60,7 +60,6 @@ class BibleService {
     void Function(String bibleId)? onDatabaseMissing,
   }) async {
     final bibleId = _settings.currentBible;
-    if (bibleId == null) return [];
 
     // Ensure the active database matches the current bible.
     if (currentBibleId != bibleId) {

@@ -140,7 +140,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   );
                 },
                 onInputModeChanged: manager.setInputMode,
-                onTogglePanel: () => manager.togglePanelState(context),
+                onTogglePanel: manager.togglePanelState,
                 onPlayAudio: () => manager.toggleAudio(context),
                 onAvailableDigitsChanged: manager.setEnabledDigits,
                 onToggleReadingSession: () => toggleReadingSession(context),

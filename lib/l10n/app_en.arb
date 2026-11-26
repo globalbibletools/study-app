@@ -48,9 +48,9 @@
   "@bibleTranslation": {
     "description": "Settings menu item to change the Bible translation"
   },
-  "glossNone": "None",
-  "@glossNone": {
-    "description": "Displayed in settings when no gloss language is selected"
+  "notSet": "Not set",
+  "@notSet": {
+    "description": "Displayed in settings when no value is selected"
   },
   "currentLanguage": "English",
   "@currentLanguage": {

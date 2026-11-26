@@ -12,7 +12,7 @@
     "language": "Idioma",
     "glossLanguage": "Idioma del glosario",
     "bibleTranslation": "Traducción de la Biblia",
-    "glossNone": "Ninguno",
+    "notSet": "Sin establecer",
     "currentLanguage": "Español",
     "textSize": "Tamaño del texto",
     "hebrewTextSize": "Hebreo",

@@ -11,7 +11,6 @@ import 'package:gbt/services/app_guide/app_guide_manager.dart';
 import 'package:gbt/services/bible/bible_service.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/services/settings/user_settings.dart';
-import 'package:gbt/ui/common/bible_chooser.dart';
 import 'package:gbt/ui/home/appbar/reference_chooser/reference_chooser.dart';
 import 'package:gbt/ui/home/common/navigation_view_model.dart';
 import 'package:gbt/reading_plan/ui/reading_session_view_model.dart';
@@ -109,7 +108,7 @@ class HomeManager {
     if (_settings.currentBible != bibleId) return;
 
     if (!await _bibleService.bibleExists(bibleId)) {
-      await _settings.setCurrentBible(null);
+      await _settings.clearCurrentBible();
     }
 
     notifySettingsChanged();
@@ -141,10 +140,6 @@ class HomeManager {
   }
 
   void notifySettingsChanged() {
-    // No Bible selected: the Bible panel has nothing to show, so close it.
-    if (_settings.currentBible == null) {
-      isSinglePanelNotifier.value = true;
-    }
     settingsVersionNotifier.value++;
   }
 
@@ -171,14 +166,7 @@ class HomeManager {
   // Closes the keypad
   void resetKeypad() => chooserKey.currentState?.resetAll();
 
-  Future<void> togglePanelState(BuildContext context) async {
-    // Opening the Bible panel requires a selected Bible. If none is selected,
-    // prompt the user to pick one first instead of opening an empty panel.
-    if (isSinglePanelNotifier.value && _settings.currentBible == null) {
-      final chosen = await chooseBible(context);
-      if (!chosen) return;
-    }
-
+  void togglePanelState() {
     navigationViewModel.reanchorToCurrentReference();
     isSinglePanelNotifier.value = !isSinglePanelNotifier.value;
   }
