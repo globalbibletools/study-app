@@ -20,6 +20,10 @@
   "@about": {
     "description": "The title of the About screen"
   },
+  "changelog": "Changelog",
+  "@changelog": {
+    "description": "Title of the Changelog screen and drawer menu item"
+  },
   "appName": "Global Bible Tools",
   "@appName": {
     "description": "Displayed on the About page"
