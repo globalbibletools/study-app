@@ -1,0 +1,53 @@
+[
+  {
+    "version": "26.9.0",
+    "date": "2026-10-01",
+    "type": "major",
+    "changes": [
+      "Download and manage Bibles, glosses, and audio.",
+      "New settings for the Bible translation and gloss language.",
+      "Show AI-generated glosses when no human gloss is available.",
+      "Allow different audio voices for the Old and New Testaments.",
+      "Updated the Greek New Testament text to the SR GNT."
+    ]
+  },
+  {
+    "version": "26.9.1",
+    "date": "2026-10-03",
+    "type": "minor",
+    "changes": [
+      "Use the language of each downloaded resource to set its text direction."
+    ]
+  },
+  {
+    "version": "26.9.2",
+    "date": "2026-10-09",
+    "type": "minor",
+    "changes": [
+      "Ask to download a missing resource only once.",
+      "Hide resources removed from the server on the Downloads page.",
+      "Fixed missing verses in Greek text rendering.",
+      "Fixed audio synchronization for recordings with missing verses."
+    ]
+  },
+  {
+    "version": "26.9.3",
+    "date": "2026-10-15",
+    "type": "minor",
+    "changes": [
+      "Filter downloadable resources by language.",
+      "Restored automatic scrolling to the verse that is playing.",
+      "Improved performance of similar verses and verse word lookups.",
+      "Fixed Greek grammar parsing for the New Testament."
+    ]
+  },
+  {
+    "version": "26.10.0",
+    "date": "2026-10-29",
+    "type": "minor",
+    "changes": [
+      "Logs export for solving issues in the app.",
+      "Fixed audio playback problems when changing chapters or audio sources."
+    ]
+  }
+]
