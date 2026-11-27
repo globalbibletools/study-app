@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:gbt/changelog/changelog_dialog.dart';
 import 'package:gbt/common/reference.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/ui/home/appbar/reference_chooser/reference_chooser.dart';
@@ -9,10 +10,10 @@ import 'package:gbt/ui/home/common/guide_bubble.dart';
 import 'package:gbt/ui/home/panel_area/panel_area.dart';
 import 'package:gbt/ui/home/keypad/keypad_layer.dart';
 import 'package:gbt/reading_plan/ui/reading_sheet.dart';
+import 'package:gbt/services/service_locator.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import 'appbar/appbar.dart';
-import 'package:gbt/services/service_locator.dart';
 import 'word_details_dialog/floating_return_pill.dart';
 import 'home_manager.dart';
 import 'word_study_overlay_layer.dart';
@@ -35,6 +36,7 @@ class _HomeScreenState extends State<HomeScreen> {
     WakelockPlus.enable();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       manager.checkOnboarding(context);
+      ChangelogDialog.showOnStartup(context);
     });
   }
 
