@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:gbt/changelog/changelog_service.dart';
 import 'package:gbt/changelog/changelog_view.dart';
 import 'package:gbt/l10n/app_localizations.dart';
+import 'package:gbt/l10n/localizations.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/services/settings/user_settings.dart';
 import 'package:material_ui/material_ui.dart';
@@ -57,7 +58,7 @@ void main() {
   Widget buildApp(Widget home) {
     return MaterialApp(
       locale: const Locale('en'),
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      localizationsDelegates: appLocalizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       home: home,
     );

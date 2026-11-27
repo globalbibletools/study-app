@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/l10n/app_localizations.dart';
+import 'package:gbt/l10n/localizations.dart';
 import 'package:gbt/reading_plan/data_access/reading_plan_queries.dart';
 import 'package:gbt/reading_plan/data_access/reading_plan_read_models.dart';
 import 'package:gbt/reading_plan/data_access/rs_database.dart';
@@ -149,7 +150,7 @@ void main() {
   Widget buildApp(Widget home) {
     return MaterialApp(
       locale: const Locale('en'),
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      localizationsDelegates: appLocalizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       builder: (context, child) => Material(
         color: Theme.of(context).colorScheme.surface,

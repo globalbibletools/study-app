@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gbt/l10n/app_localizations.dart';
+import 'package:gbt/l10n/localizations.dart';
 import 'package:gbt/ui/messaging/messenger_host.dart';
 import 'package:gbt/ui/messaging/messenger_view_model.dart';
 
@@ -14,7 +15,7 @@ void main() {
   Widget buildApp(MessengerViewModel messenger, {Widget? home}) {
     return MaterialApp(
       locale: const Locale('en'),
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      localizationsDelegates: appLocalizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       builder: (context, child) => MessengerHost(
         messenger: messenger,
