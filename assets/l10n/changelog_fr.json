@@ -1,0 +1,53 @@
+[
+  {
+    "version": "26.9.0",
+    "date": "2026-10-01",
+    "type": "major",
+    "changes": [
+      "Téléchargez et gérez les Bibles, les glosses et l’audio.",
+      "Nouveaux réglages pour la traduction de la Bible et la langue du glossaire.",
+      "Affiche des glosses générées par IA lorsqu’aucune glose humaine n’est disponible.",
+      "Permet de choisir des voix audio différentes pour l’Ancien et le Nouveau Testament.",
+      "Met à jour le texte du Nouveau Testament grec vers la SR GNT."
+    ]
+  },
+  {
+    "version": "26.9.1",
+    "date": "2026-10-03",
+    "type": "minor",
+    "changes": [
+      "Utilise la langue de chaque ressource téléchargée pour définir la direction du texte."
+    ]
+  },
+  {
+    "version": "26.9.2",
+    "date": "2026-10-09",
+    "type": "minor",
+    "changes": [
+      "Ne demande qu’une seule fois le téléchargement d’une ressource manquante.",
+      "Masque dans la page Téléchargements les ressources supprimées du serveur.",
+      "Corrige les versets manquants dans l’affichage du texte grec.",
+      "Corrige la synchronisation audio pour les enregistrements comportant des versets manquants."
+    ]
+  },
+  {
+    "version": "26.9.3",
+    "date": "2026-10-15",
+    "type": "minor",
+    "changes": [
+      "Filtre les ressources téléchargeables par langue.",
+      "Rétablit le défilement automatique vers le verset en cours de lecture.",
+      "Améliore les performances de la consultation des versets similaires et des mots d’un verset.",
+      "Corrige l’analyse de la grammaire grecque du Nouveau Testament."
+    ]
+  },
+  {
+    "version": "26.10.0",
+    "date": "2026-10-29",
+    "type": "minor",
+    "changes": [
+      "Exportez les journaux pour résoudre les problèmes de l’application.",
+      "Corrige des problèmes de lecture audio lors du changement de chapitre ou de source audio."
+    ]
+  }
+]

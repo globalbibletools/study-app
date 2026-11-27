@@ -1,5 +1,6 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:gbt/changelog/changelog_view.dart';
 import 'package:gbt/services/logging/app_logger.dart';
 import 'package:gbt/services/logging/log.dart';
 import 'package:gbt/services/logging/log_exporter.dart';
@@ -95,6 +96,15 @@ class AppDrawer extends StatelessWidget {
                   context,
                   MaterialPageRoute(builder: (context) => const AboutPage()),
                 );
+              },
+            ),
+            ListTile(
+              title: Text(AppLocalizations.of(context)!.changelog),
+              leading: Icon(Icons.history),
+              onTap: () {
+                final pageContext = Scaffold.of(context).context;
+                Navigator.pop(context);
+                ChangelogView.navigateTo(pageContext);
               },
             ),
             ListTile(

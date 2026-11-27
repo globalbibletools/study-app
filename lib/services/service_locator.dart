@@ -1,5 +1,6 @@
 import 'package:get_it/get_it.dart';
 import 'package:gbt/app_state.dart';
+import 'package:gbt/changelog/changelog_service.dart';
 import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/services/app_guide/app_guide_manager.dart';
 import 'package:gbt/reading_plan/reading_plan_backup_service.dart';
@@ -78,6 +79,7 @@ void setupServiceLocator() {
     () => ReadingSessionViewModel(),
   );
   getIt.registerLazySingleton<AppGuideManager>(() => AppGuideManager());
+  getIt.registerLazySingleton<ChangelogService>(() => ChangelogService());
   getIt.registerLazySingleton<HomeManager>(() => HomeManager());
   getIt.registerLazySingleton<MessengerViewModel>(() => MessengerViewModel());
 }

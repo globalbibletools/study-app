@@ -34,6 +34,7 @@ class UserSettings {
   static const _hasSeenReadingSessionGuideKey = '_hasSeenReadingSessionGuide';
   static const _occurrenceParallelBiblesKey = 'occurrenceParallelBibles';
   static const _legacyDailyGoalKey = 'rsDailyGoal';
+  static const _lastSeenChangelogVersionKey = 'lastSeenChangelogVersion';
 
   String? get themeMode {
     return _prefs.getString(_themeModeKey);
@@ -182,6 +183,14 @@ class UserSettings {
 
   Future<void> clearLegacyDailyGoal() async {
     await _prefs.remove(_legacyDailyGoalKey);
+  }
+
+  String? get lastSeenChangelogVersion {
+    return _prefs.getString(_lastSeenChangelogVersionKey);
+  }
+
+  Future<void> setLastSeenChangelogVersion(String value) async {
+    await _prefs.setString(_lastSeenChangelogVersionKey, value);
   }
 
   List<String> get occurrenceParallelBibles {
