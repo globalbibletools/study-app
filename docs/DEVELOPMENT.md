@@ -35,6 +35,17 @@ run automatically during builds).
 flutter analyze && dart format --output=none --set-exit-if-changed . && flutter test
 ```
 
+## Releasing
+
+See `docs/RELEASING.md`. Agents should load
+`.agents/skills/release/SKILL.md` and use the tested CLI for every version:
+
+```
+dart run tool/release/release.dart next --kind beta|public
+dart run tool/release/release.dart prepare ...
+dart run tool/release/release.dart verify --tag <tag>
+```
+
 ## Emulators
 
 The `emulator` command comes from the Android SDK in the Nix shell.

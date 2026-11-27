@@ -2,7 +2,7 @@ name: gbt
 description: "Global Bible Tools Hebrew and Greek Study App"
 publish_to: 'none'
 
-version: 26.10.0+44
+version: 26.10.0
 
 environment:
   sdk: ^3.9.0

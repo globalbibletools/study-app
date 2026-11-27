@@ -41,8 +41,9 @@ entry in the shipped file is by definition at or below the running version.
 sequence.** Translation lag is handled per file (ship English copy in the
 next release), not by letting locale arrays diverge in length, because a
 stored version must be locatable in every locale file. A repo test asserts
-this consistency and that the current `pubspec.yaml` version has an entry,
-so a release cannot ship without notes.
+this consistency. Release notes are optional for public releases and are
+appended by the release tool; see
+[Release Versioning](2026-11-27-release-versioning.md).
 
 **Absence of the stored version means fresh install.** First run after this
 feature ships (or any fresh install) writes the latest version silently and
