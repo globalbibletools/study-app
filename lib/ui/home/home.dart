@@ -26,13 +26,12 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  late final HomeManager manager;
+  final manager = getIt<HomeManager>();
   final _guideOverlayKey = GlobalKey();
 
   @override
   void initState() {
     super.initState();
-    manager = getIt<HomeManager>();
     WakelockPlus.enable();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       manager.checkOnboarding(context);

@@ -6,9 +6,10 @@ import 'package:gbt/ui/home/home_manager.dart';
 import 'package:gbt/ui/home/word_details_dialog/similar_verses/similar_verses_page.dart';
 
 class FloatingReturnPill extends StatelessWidget {
-  const FloatingReturnPill({super.key, required this.contextData});
+  FloatingReturnPill({super.key, required this.contextData});
 
   final OccurrenceSearchContext contextData;
+  final _homeManager = getIt<HomeManager>();
 
   String _displayWord() {
     if (contextData.searchType == SearchType.root) {
@@ -29,7 +30,6 @@ class FloatingReturnPill extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
-    final homeManager = getIt<HomeManager>();
 
     return Material(
       color: Colors.transparent,
@@ -51,7 +51,7 @@ class FloatingReturnPill extends StatelessWidget {
                 left: Radius.circular(24),
               ),
               onTap: () {
-                homeManager.setWordStudyOverlayVisible(true);
+                _homeManager.setWordStudyOverlayVisible(true);
               },
               child: Padding(
                 padding: const EdgeInsets.symmetric(
@@ -95,7 +95,7 @@ class FloatingReturnPill extends StatelessWidget {
               constraints: const BoxConstraints(),
               splashRadius: 18,
               onPressed: () {
-                homeManager.dismissWordStudySession(keepCurrentLocation: true);
+                _homeManager.dismissWordStudySession(keepCurrentLocation: true);
               },
             ),
             const SizedBox(width: 4),

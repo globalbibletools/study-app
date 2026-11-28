@@ -21,8 +21,9 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
   final ValueChanged<Set<int>>? onAvailableDigitsChanged;
   final VoidCallback onToggleReadingSession;
   final ValueChanged<Rect?>? onReadingSessionButtonRectChanged;
+  final _resourceService = getIt<ResourceService>();
 
-  const HomeAppBar({
+  HomeAppBar({
     super.key,
     required this.displayBookId,
     required this.displayChapter,
@@ -45,7 +46,7 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
       centerTitle: false,
       titleSpacing: 0,
       leading: ValueListenableBuilder<OutdatedResourceCounts>(
-        valueListenable: getIt<ResourceService>().outdatedResourceCounts,
+        valueListenable: _resourceService.outdatedResourceCounts,
         builder: (context, counts, _) {
           return Badge(
             isLabelVisible: counts.total > 0,

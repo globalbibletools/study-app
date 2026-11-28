@@ -56,6 +56,7 @@ class VerseListItem extends StatefulWidget {
 
 class _VerseListItemState extends State<VerseListItem> {
   final List<TapGestureRecognizer> _recognizers = [];
+  final _glossService = getIt<GlossService>();
 
   void _clearRecognizers() {
     for (final recognizer in _recognizers) {
@@ -74,11 +75,11 @@ class _VerseListItemState extends State<VerseListItem> {
     HebrewGreekWord word,
     Offset globalPosition,
   ) async {
-    final gloss = await getIt<GlossService>().glossForId(
+    final gloss = await _glossService.glossForId(
       wordId: word.id,
       onDatabaseMissing: (langCode) async {
         if (!mounted) return;
-        await ResourceUIHelper.ensureResource(
+        await ResourceUIHelper().ensureResource(
           context,
           ResourceType.gloss,
           langCode,

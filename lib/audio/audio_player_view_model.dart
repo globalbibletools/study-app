@@ -149,7 +149,7 @@ class AudioPlayerViewModel extends ChangeNotifier {
 
   final player = AudioPlayer();
 
-  late final _bibleNavigation = getIt<BibleNavigation>();
+  final _bibleNavigation = getIt<BibleNavigation>();
   final _audioService = AudioService();
   Reference? _chapterReference;
   List<AudioTiming> _timings = [];
