@@ -170,6 +170,17 @@ A slice may not:
 Infrastructure used by several slices (logging, downloads, resources) remains
 shared rather than being copied into each slice.
 
+Slices integrate a feature across every layer; shared foundations integrate
+a consistent pattern across a layer for all slices. Presentation has one
+such foundation: `lib/design/` holds tokens, atoms, and molecules that are
+generic — no domain vocabulary in their APIs. Generic components may be
+pre-extracted there before a second slice needs them, so the foundation is
+discoverable; domain-specific widgets stay in the slice that owns the domain
+even when other slices render them. Foundation components are purely
+presentational: data and callbacks in, no `getIt`, services, or view models.
+The full rules are in
+[Shared Design Foundation](decisions/2026-11-27-shared-design-foundation.md).
+
 ### Surface area
 
 Keep the surface area of a slice small. This is a design goal, not an

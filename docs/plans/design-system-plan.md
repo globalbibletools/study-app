@@ -17,12 +17,11 @@ corresponding foundation is built. They are cheap to make now and expensive to
 reverse later.
 
 1. **Where the design system lives, and the promotion rule.**
-   The vertical-slices model governs data; UI has no equivalent. Decide: a
-   dedicated shared slice (e.g. `lib/design/` or `lib/ui/kit/`) holding
-   tokens, atoms, and molecules, distinct from today's grab-bag
-   `lib/ui/common/`; and a promotion rule mirroring the one for state —
-   a component moves from its slice into the kit exactly when a second slice
-   needs it. This unblocks every extraction in Phase 2.
+   Decided in
+   [Shared Design Foundation](../decisions/2026-11-27-shared-design-foundation.md):
+   `lib/design/` holds generic tokens, atoms, and molecules, pre-extracted
+   for discoverability; domain-specific components stay in their owning
+   slice. This unblocks every extraction in Phase 2.
    *Impact: highest — without it, extracted components have no home and the
    current scatter (reading plan's own app bar, home's keypad) continues.*
 
