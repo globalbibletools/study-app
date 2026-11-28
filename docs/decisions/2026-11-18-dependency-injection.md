@@ -1,9 +1,9 @@
 # Dependency Injection
 
 - Date: 2026-11-18
-- Status: Accepted
+- Status: Superseded
 - Supersedes: None
-- Superseded By: None
+- Superseded By: [Single-Constructor Dependency Resolution](2026-11-27-single-constructor-resolution.md)
 
 # Context
 

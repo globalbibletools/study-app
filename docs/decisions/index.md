@@ -2,6 +2,7 @@
 
 * 2026-11-27 [Design Token Mechanism](2026-11-27-design-token-mechanism.md) [In Review]
 * 2026-11-27 [Shared Design Foundation](2026-11-27-shared-design-foundation.md) [In Review]
+* 2026-11-27 [Single-Constructor Dependency Resolution](2026-11-27-single-constructor-resolution.md) [In Review]
 * 2026-11-27 [Release Versioning](2026-11-27-release-versioning.md) [In Review]
 * 2026-11-26 [In-App Changelog](2026-11-26-changelog.md) [In Review]
 * 2026-11-25 [Serialized View Model Commands](2026-11-25-serialized-view-model-commands.md) [In Review]
@@ -11,7 +12,7 @@
 * 2026-11-18 [Cancel-and-Replace Cancellation](2026-11-18-cancel-and-replace.md) [Superseded]
 * 2026-11-18 [Four-Layer Architecture](2026-11-18-four-layer-architecture.md) [Accepted]
 * 2026-11-18 [Reactivity Patterns](2026-11-18-reactivity-patterns.md) [Accepted]
-* 2026-11-18 [Dependency Injection](2026-11-18-dependency-injection.md) [Accepted]
+* 2026-11-18 [Dependency Injection](2026-11-18-dependency-injection.md) [Superseded]
 * 2026-11-18 [N-1 Flutter Upgrade Strategy](2026-11-18-flutter-upgrade-strategy.md) [Accepted]
 
 ## Scope

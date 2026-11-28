@@ -197,67 +197,20 @@ convention as `lib/services` → `test/services` without a `lib/` segment.
 
 ## Dependency injection
 
-Dependency injection exists for **shared references**: databases, services,
-and global view models. These are things whose lifetime is the process and
-which several parts of the app need. The registered set stays small; most
-things are scoped to the view that cares about them.
-
-### The construction pattern
-
-Every class that has dependencies offers both of these:
-
-- A **`withDependencies` constructor** taking every dependency explicitly.
-  This is the test seam: tests construct the class with fakes directly,
-  without touching getIt.
-- A **default constructor** that fills the same dependencies in from getIt.
-  This is the production seam, and it is the sanctioned way dependencies
-  arrive: injection happens through getIt.
-
-Because of this, `getIt` may be called from exactly two places: the service
-locator itself, and these default constructors. Nowhere else — not in field
-initializers, not mid-method, not `late final x = getIt<T>()`. Resolution
-happens once, at construction; afterwards the object simply has its
-dependencies and never reaches for the locator again. (Classes that resolve
-lazily after construction — a current habit — hide their dependencies from
-callers and make test fakes impossible.)
-
-Ask for exactly what the class uses, nothing more. A short dependency list
-keeps test construction small, and an oversized one is a visible signal that
-a class does too much. Dependencies that would cross sideways across a
-boundary become narrow function or interface seams — the
-verse-inventory-provider approach — so the fake can be a one-line lambda.
-
-### Registration and lifetime
-
-All shared composition happens in the service locator: if a class is shared,
-it is registered there, and nowhere is it constructed ad hoc.
-
-- **Databases and services**: registered lazily. They initialize on first
-  use, and `registerSingletonAsync` ensures concurrent first-callers share
-  one `init()` rather than racing. Only what the first frame genuinely
-  needs is awaited at startup — everything else stays lazy so the app does
-  not block on resources it may not open this session.
-- **Global view models**: registered eagerly, since they are global — the
-  app cannot be half-initialized. Use the async registration when they
-depend on async things like settings.
-
-Ownership and disposal is the flip side of registration: **whatever
-constructs a thing disposes it.** Registered singletons live for the process
-and are never disposed by a widget; page-scoped view models are constructed
-*and* disposed by their page, and never registered. A widget disposing an
-object it did not construct is a layering violation (the registered-but-
-widget-disposed manager is the failure mode to avoid). The test: if it needs
-disposal when a screen goes away, it cannot be registered.
-
-Cycles are not a wiring problem. Lazy singletons make mutual dependencies
-runnable, which only hides the real issue: a missing third thing that owns
-the shared concern, or a wrong ownership split. The locator never contains a
-workaround for a cycle.
-
-Widgets never participate: the locator holds databases, services, and global
-view models — never widgets — and no widget asks the locator for anything except
-global view models. A page constructs its view model; children receive theirs
-through constructors from their parent.
+- Dependency injection exists for **shared references**: databases, services,
+  and global view models.
+- These are things whose lifetime is the process and which several parts of the
+  app need. These objects should not be disposed.
+- Register shared references in the service locator.
+- View models are eagerly initialized because they are global app state.
+- Other non-critical references like services and databases can be lazy initialized for
+  faster startup.
+- Widgets are never registered as shared references.
+- Import cycles among shared references are prohibited.
+- Declare shared references at the top of the class or static function,
+  for example `final _planService = getIt<ReadingPlanService>();`.
+- Tests can seed fake versions of shared references to isolate a vertical slice.
+  `getIt.reset()` is necessary after each test.
 
 ## Reactivity
 
