@@ -110,7 +110,10 @@ Renders what the view model exposes and forwards user gestures to it.
 
 Because data lives in the view model, a widget that constructs a view model
 also owns and disposes it; a widget disposing something it did not
-construct is a layering violation. Widgets subscribe with
+construct is a layering violation. Page routes are the one deliberate
+split: the route entry point constructs the view model and the page's
+`State` disposes it, per [View initialization and
+navigation](#view-initialization-and-navigation). Widgets subscribe with
 `ListenableBuilder` / `ValueListenableBuilder`, scoped as narrowly as
 possible, and never use `setState` to propagate data changes upward or
 sideways.
@@ -211,6 +214,34 @@ convention as `lib/services` → `test/services` without a `lib/` segment.
   for example `final _planService = getIt<ReadingPlanService>();`.
 - Tests can seed fake versions of shared references to isolate a vertical slice.
   `getIt.reset()` is necessary after each test.
+
+## View initialization and navigation
+
+Page view models follow the `static Future<VM> create({...})` convention:
+declare shared dependencies as `final` fields initialized from getIt at the
+top of the view model, then initialize in the factory and, on failure,
+dispose the view model and rethrow. Route entry points do not repeat that
+sequence by hand. They call `pushInitializedPage` or `pushViewModelPage` from
+`lib/ui/navigation/view_model_navigation.dart`, which own creation, the
+localized error, mounted checks, presentation, and cleanup. The helpers are
+static factories too: they resolve `MessengerViewModel` from getIt up front.
+
+- Create before pushing only for fast, one-shot, local initialization. The
+  page's `State` is then the sole disposer. The navigation helper disposes
+  only when navigation is abandoned: the calling context unmounted after
+  initialization, or presentation threw.
+- Slow, retryable, or progressive initialization belongs in a view model or
+  an in-page loading state. Do not make the user wait on a blank route.
+- Use `navigateTo` for routes and `show` for sheets and dialogs. Sheets pass a
+  `present` callback so the helper still owns creation and abandonment while
+  the sheet keeps its presentation options.
+- The page holds its view model in `State` and disposes it on unmount. Render
+  through `ListenableBuilder` / `ValueListenableBuilder` as usual. Do not add
+  a second disposer.
+- A page may remain stateful for unrelated local concerns (a guard, a scroll
+  controller); it still holds and disposes the view model it receives.
+- Initialization errors show `errorLoadingContent` unless the caller supplies
+  `loadErrorMessage`. The message is shown only while the caller is mounted.
 
 ## Reactivity
 

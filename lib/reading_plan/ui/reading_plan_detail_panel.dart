@@ -10,45 +10,19 @@ import 'package:gbt/reading_plan/ui/edit_reading_plan_panel.dart';
 import 'package:gbt/reading_plan/ui/progress_circle.dart';
 import 'package:gbt/reading_plan/ui/reading_plan_app_bar.dart';
 import 'package:gbt/reading_plan/ui/reading_plan_detail_view_model.dart';
-import 'package:gbt/services/service_locator.dart';
-import 'package:gbt/ui/messaging/messenger_view_model.dart';
-
-typedef NavigateToReadingPlanDetailRoute =
-    Future<void> Function(BuildContext context, int planId);
+import 'package:gbt/ui/navigation/view_model_navigation.dart';
 
 class ReadingPlanDetailPanel extends StatefulWidget {
   final ReadingPlanDetailViewModel viewModel;
 
   const ReadingPlanDetailPanel({super.key, required this.viewModel});
 
-  static Future<void> navigateTo(BuildContext context, int planId) async {
-    final messengerViewModel = getIt<MessengerViewModel>();
-    ReadingPlanDetailViewModel viewModel;
-    try {
-      viewModel = await ReadingPlanDetailViewModel.create(planId: planId);
-    } catch (_) {
-      if (!context.mounted) return;
-
-      final l10n = AppLocalizations.of(context)!;
-      messengerViewModel.showError(l10n.errorLoadingContent);
-      return;
-    }
-
-    if (!context.mounted) {
-      viewModel.dispose();
-      return;
-    }
-
-    try {
-      await Navigator.of(context).push<void>(
-        MaterialPageRoute(
-          builder: (_) => ReadingPlanDetailPanel(viewModel: viewModel),
-        ),
-      );
-    } catch (_) {
-      viewModel.dispose();
-      rethrow;
-    }
+  static Future<void> navigateTo(BuildContext context, int planId) {
+    return pushViewModelPage<ReadingPlanDetailViewModel, void>(
+      context: context,
+      create: () => ReadingPlanDetailViewModel.create(planId: planId),
+      buildView: (viewModel) => ReadingPlanDetailPanel(viewModel: viewModel),
+    );
   }
 
   @override

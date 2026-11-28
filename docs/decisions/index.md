@@ -1,6 +1,7 @@
 # Architecture Decision Records
 
 * 2026-11-27 [Shared Design Foundation](2026-11-27-shared-design-foundation.md) [In Review]
+* 2026-11-27 [View Initialization and Navigation](2026-11-27-view-initialization-and-navigation.md) [In Review]
 * 2026-11-27 [Single-Constructor Dependency Resolution](2026-11-27-single-constructor-resolution.md) [In Review]
 * 2026-11-27 [Release Versioning](2026-11-27-release-versioning.md) [In Review]
 * 2026-11-26 [In-App Changelog](2026-11-26-changelog.md) [In Review]

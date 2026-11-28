@@ -7,13 +7,7 @@ import 'package:gbt/reading_plan/ui/edit_reading_plan_view_model.dart';
 import 'package:gbt/reading_plan/ui/number_stepper.dart';
 import 'package:gbt/reading_plan/ui/reading_plan_app_bar.dart';
 import 'package:gbt/reading_plan/model.dart';
-import 'package:gbt/services/service_locator.dart';
-import 'package:gbt/ui/messaging/messenger_view_model.dart';
-
-typedef NavigateToNewReadingPlanRoute =
-    Future<void> Function(BuildContext context, String name);
-typedef NavigateToExistingReadingPlanRoute =
-    Future<void> Function(BuildContext context, int planId);
+import 'package:gbt/ui/navigation/view_model_navigation.dart';
 
 class EditReadingPlanPanel extends StatefulWidget {
   final EditReadingPlanViewModel viewModel;
@@ -21,47 +15,19 @@ class EditReadingPlanPanel extends StatefulWidget {
   const EditReadingPlanPanel({super.key, required this.viewModel});
 
   static Future<void> navigateToNew(BuildContext context, String name) {
-    return _navigateTo(context, EditReadingPlanViewModel.createNew(name));
-  }
-
-  static Future<void> navigateToExisting(BuildContext context, int planId) {
-    return _navigateTo(
-      context,
-      EditReadingPlanViewModel.createExisting(planId),
+    return pushViewModelPage<EditReadingPlanViewModel, void>(
+      context: context,
+      create: () => EditReadingPlanViewModel.createNew(name),
+      buildView: (viewModel) => EditReadingPlanPanel(viewModel: viewModel),
     );
   }
 
-  static Future<void> _navigateTo(
-    BuildContext context,
-    Future<EditReadingPlanViewModel> viewModelFuture,
-  ) async {
-    final messengerViewModel = getIt<MessengerViewModel>();
-    EditReadingPlanViewModel viewModel;
-    try {
-      viewModel = await viewModelFuture;
-    } catch (_) {
-      if (!context.mounted) return;
-
-      final l10n = AppLocalizations.of(context)!;
-      messengerViewModel.showError(l10n.errorLoadingContent);
-      return;
-    }
-
-    if (!context.mounted) {
-      viewModel.dispose();
-      return;
-    }
-
-    try {
-      await Navigator.of(context).push<void>(
-        MaterialPageRoute(
-          builder: (_) => EditReadingPlanPanel(viewModel: viewModel),
-        ),
-      );
-    } catch (_) {
-      viewModel.dispose();
-      rethrow;
-    }
+  static Future<void> navigateToExisting(BuildContext context, int planId) {
+    return pushViewModelPage<EditReadingPlanViewModel, void>(
+      context: context,
+      create: () => EditReadingPlanViewModel.createExisting(planId),
+      buildView: (viewModel) => EditReadingPlanPanel(viewModel: viewModel),
+    );
   }
 
   @override

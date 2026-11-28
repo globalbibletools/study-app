@@ -7,13 +7,7 @@ import 'package:gbt/reading_plan/ui/number_stepper.dart';
 import 'package:gbt/reading_plan/ui/reading_plan_app_bar.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/messaging/messenger_view_model.dart';
-
-typedef NavigateToDayActivityLogRoute =
-    Future<void> Function(
-      BuildContext context,
-      DateTime date, {
-      required int readingPlanId,
-    });
+import 'package:gbt/ui/navigation/view_model_navigation.dart';
 
 class DayActivityLogPanel extends StatefulWidget {
   final DayActivityLogViewModel viewModel;
@@ -24,37 +18,15 @@ class DayActivityLogPanel extends StatefulWidget {
     BuildContext context,
     DateTime date, {
     required int readingPlanId,
-  }) async {
-    final messengerViewModel = getIt<MessengerViewModel>();
-    DayActivityLogViewModel viewModel;
-    try {
-      viewModel = await DayActivityLogViewModel.create(
+  }) {
+    return pushViewModelPage<DayActivityLogViewModel, void>(
+      context: context,
+      create: () => DayActivityLogViewModel.create(
         readingPlanId: readingPlanId,
         date: date,
-      );
-
-      if (!context.mounted) {
-        viewModel.dispose();
-        return;
-      }
-    } catch (_) {
-      if (!context.mounted) return;
-
-      final l10n = AppLocalizations.of(context)!;
-      messengerViewModel.showError(l10n.errorLoadingContent);
-      return;
-    }
-
-    try {
-      await Navigator.of(context).push<void>(
-        MaterialPageRoute(
-          builder: (context) => DayActivityLogPanel(viewModel: viewModel),
-        ),
-      );
-    } catch (_) {
-      viewModel.dispose();
-      rethrow;
-    }
+      ),
+      buildView: (viewModel) => DayActivityLogPanel(viewModel: viewModel),
+    );
   }
 
   @override
