@@ -3,6 +3,7 @@
     "version": "26.9.0",
     "date": "2026-10-01",
     "type": "major",
+    "summary": "Les ressources téléchargeables sont désormais plus faciles à gérer grâce à une nouvelle page Téléchargements qui inclut les traductions de la Bible, les glosses et l’audio.",
     "changes": [
       "Téléchargez et gérez les Bibles, les glosses et l’audio.",
       "Nouveaux réglages pour la traduction de la Bible et la langue du glossaire.",

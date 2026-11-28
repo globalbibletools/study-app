@@ -8,6 +8,7 @@ class ChangelogEntry {
     required this.date,
     required this.type,
     required this.changes,
+    this.summary,
   });
 
   factory ChangelogEntry.fromJson(Map<String, dynamic> json) {
@@ -35,6 +36,25 @@ class ChangelogEntry {
       _ => throw FormatException('Unknown changelog entry type: $type'),
     };
 
+    final summaryValue = json['summary'];
+    final String? summary;
+    switch (parsedType) {
+      case ChangelogEntryType.major:
+        if (summaryValue is! String || summaryValue.trim().isEmpty) {
+          throw const FormatException(
+            'Major changelog entries require a non-empty summary.',
+          );
+        }
+        summary = summaryValue;
+      case ChangelogEntryType.minor:
+        if (json.containsKey('summary')) {
+          throw const FormatException(
+            'Minor changelog entries must not have a summary.',
+          );
+        }
+        summary = null;
+    }
+
     final changes = json['changes'];
     if (changes is! List) {
       throw const FormatException('Changelog changes must be a list.');
@@ -51,6 +71,7 @@ class ChangelogEntry {
       version: version,
       date: parsedDate,
       type: parsedType,
+      summary: summary,
       changes: parsedChanges,
     );
   }
@@ -77,5 +98,6 @@ class ChangelogEntry {
   final String version;
   final DateTime date;
   final ChangelogEntryType type;
+  final String? summary;
   final List<String> changes;
 }

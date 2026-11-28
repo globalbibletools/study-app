@@ -3,6 +3,7 @@
     "version": "26.9.0",
     "date": "2026-10-01",
     "type": "major",
+    "summary": "Downloadable resources just got easier to manage with a new Downloads page that includes Bible translations, glosses, and audio.",
     "changes": [
       "Download and manage Bibles, glosses, and audio.",
       "New settings for the Bible translation and gloss language.",

@@ -44,9 +44,16 @@ void main() {
     String version,
     String date,
     String type,
-    List<String> changes,
-  ) {
-    return {'version': version, 'date': date, 'type': type, 'changes': changes};
+    List<String> changes, {
+    String? summary,
+  }) {
+    return {
+      'version': version,
+      'date': date,
+      'type': type,
+      if (type == 'major') 'summary': summary ?? 'Summary for $version.',
+      'changes': changes,
+    };
   }
 
   String assetFor(List<Map<String, dynamic>> entries) {
@@ -171,6 +178,53 @@ void main() {
     });
   });
 
+  group('latestUnseenMajor', () {
+    test('fresh install marks the latest version and returns null', () async {
+      await createSettings();
+      assets['assets/l10n/changelog_en.json'] = assetFor([
+        entry('1.0.0', '2026-01-01', 'major', ['First.']),
+        entry('1.1.0', '2026-02-01', 'minor', ['Second.']),
+      ]);
+
+      final service = createService();
+
+      expect(await service.latestUnseenMajor(const Locale('en')), isNull);
+      expect(settings.lastSeenChangelogVersion, '1.1.0');
+    });
+
+    test('returns null when no unseen entry is major', () async {
+      await createSettings({'lastSeenChangelogVersion': '1.0.0'});
+      assets['assets/l10n/changelog_en.json'] = assetFor([
+        entry('1.0.0', '2026-01-01', 'major', ['First.']),
+        entry('1.1.0', '2026-02-01', 'minor', ['Second.']),
+        entry('1.2.0', '2026-03-01', 'minor', ['Third.']),
+      ]);
+
+      final service = createService();
+
+      expect(await service.latestUnseenMajor(const Locale('en')), isNull);
+      expect(settings.lastSeenChangelogVersion, '1.0.0');
+    });
+
+    test('returns the newest unseen major entry', () async {
+      await createSettings({'lastSeenChangelogVersion': '1.0.0'});
+      assets['assets/l10n/changelog_en.json'] = assetFor([
+        entry('1.0.0', '2026-01-01', 'major', ['First.']),
+        entry('2.0.0', '2026-02-01', 'major', ['Second.']),
+        entry('2.1.0', '2026-03-01', 'minor', ['Third.']),
+        entry('3.0.0', '2026-04-01', 'major', ['Fourth.']),
+        entry('3.1.0', '2026-05-01', 'minor', ['Fifth.']),
+      ]);
+
+      final service = createService();
+      final latest = await service.latestUnseenMajor(const Locale('en'));
+
+      expect(latest?.version, '3.0.0');
+      expect(latest?.summary, 'Summary for 3.0.0.');
+      expect(settings.lastSeenChangelogVersion, '1.0.0');
+    });
+  });
+
   group('locale loading', () {
     test('loads the locale file when it exists', () async {
       await createSettings();
@@ -239,6 +293,7 @@ void main() {
       expect(parsed.version, '1.2.3');
       expect(parsed.date, DateTime(2026, 5, 6));
       expect(parsed.type, ChangelogEntryType.major);
+      expect(parsed.summary, 'Summary for 1.2.3.');
       expect(parsed.changes, ['One.', 'Two.']);
     });
   });
@@ -408,6 +463,12 @@ void main() {
         {...valid, 'date': 'not a date'},
         {...valid, 'type': 1},
         {...valid, 'type': 'patch'},
+        ({...valid}..remove('summary')),
+        {...valid, 'summary': null},
+        {...valid, 'summary': ''},
+        {...valid, 'summary': '   '},
+        {...valid, 'summary': 1},
+        {...valid, 'type': 'minor'},
         {...valid, 'changes': 'not a list'},
         {
           ...valid,

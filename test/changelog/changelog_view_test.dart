@@ -29,6 +29,7 @@ void main() {
         'version': '1.0.0',
         'date': '2026-01-01',
         'type': 'major',
+        'summary': 'Major summary.',
         'changes': ['First change.'],
       },
       {
@@ -79,7 +80,19 @@ void main() {
     expect(newest, lessThan(oldest));
     expect(find.text('February 1, 2026'), findsOneWidget);
     expect(find.text('Second change.'), findsOneWidget);
+    expect(find.text('Major summary.'), findsOneWidget);
     expect(settings.lastSeenChangelogVersion, '1.1.0');
+
+    final majorCard = find.byKey(const ValueKey('changelog-1.0.0'));
+    final minorCard = find.byKey(const ValueKey('changelog-1.1.0'));
+    expect(
+      find.descendant(of: majorCard, matching: find.text('Major summary.')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: minorCard, matching: find.text('Major summary.')),
+      findsNothing,
+    );
 
     expect(
       find.semantics.byPredicate(
@@ -90,6 +103,7 @@ void main() {
       findsOne,
     );
     expect(find.semantics.byLabel('Second change.'), findsOne);
+    expect(find.semantics.byLabel('Major summary.'), findsOne);
 
     final lists = find.semantics.byPredicate(
       (node) => node.role == SemanticsRole.list,

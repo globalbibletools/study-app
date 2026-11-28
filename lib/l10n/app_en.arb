@@ -28,10 +28,6 @@
   "@whatsNew": {
     "description": "Title of the dialog announcing new changelog entries"
   },
-  "whatsNewMessage": "See what changed in this version of the app.",
-  "@whatsNewMessage": {
-    "description": "Body of the dialog announcing new changelog entries"
-  },
   "readChangelog": "Read changelog",
   "@readChangelog": {
     "description": "Button label that opens the full changelog from the what's-new dialog"

@@ -60,6 +60,16 @@ stored version to the latest entry. The changelog page is the only place that
 marks it seen outside of dialog dismissal, and it does so after its first
 frame.
 
+**Every `major` entry has a `summary`; `minor` entries have none.** The
+summary is a short paragraph that introduces the release. The what's-new
+dialog shows it as its body, with the entry's version as a subtitle near the
+title, and the changelog page shows it as a lead paragraph between the
+version/date header and the bullet list. Requiring it on major entries keeps
+the dialog from ever appearing empty; forbidding it on minor entries keeps
+the changelog list from growing a redundant paragraph where no dialog will
+use it. The generic dialog message string is removed because the entry now
+supplies the copy.
+
 **A dialog, not an ephemeral message, for the what's-new notice.** The
 what's-new notice needs actions ("read the changelog" / dismiss), and
 ephemeral messages are text plus severity only by decision; the messenger

@@ -3,6 +3,7 @@
     "version": "26.9.0",
     "date": "2026-10-01",
     "type": "major",
+    "summary": "Os recursos para download agora são mais fáceis de gerenciar com uma nova página Downloads que inclui traduções da Bíblia, glossários e áudio.",
     "changes": [
       "Baixe e gerencie Bíblias, glossários e áudio.",
       "Novas configurações para a tradução da Bíblia e o idioma do glossário.",
