@@ -31,6 +31,25 @@ flutter analyze && dart format --output=none --set-exit-if-changed . && flutter 
 - `lib/reading_plan/ui/reading_session_view_model.dart` — `ReadingSessionViewModel`
 - `lib/changelog/changelog_service.dart` — `ChangelogService`
 
+**Shared-reference constructor parameters** (become `final` fields
+initialized from the locator at the top of the class):
+
+- `lib/reading_plan/reading_plan_service.dart` — `ReadingSessionDatabase`
+- `lib/reading_plan/reading_session_service.dart` — `ReadingSessionDatabase`
+- `lib/reading_plan/reading_plan_backup_service.dart` — `ReadingSessionDatabase`
+- `lib/reading_plan/ui/reading_session_view_model.dart` — service, queries,
+  navigation view model
+- `lib/reading_plan/ui/reading_plan_detail_view_model.dart` — queries, plan
+  service, session view model
+- `lib/reading_plan/ui/day_activity_log_view_model.dart` — queries, plan
+  service
+- `lib/reading_plan/ui/edit_reading_plan_view_model.dart` — plan service,
+  Bible navigation
+- `lib/reading_plan/ui/reading_plan_panel_view_model.dart` — queries, session
+  view model
+- `lib/changelog/changelog_service.dart` — `UserSettings`
+- `lib/changelog/changelog_view.dart` — `ChangelogService`
+
 **`?? getIt` optional-parameter factories:**
 
 - `lib/reading_plan/ui/reading_plan_detail_view_model.dart` — `create`
@@ -62,8 +81,9 @@ flutter analyze && dart format --output=none --set-exit-if-changed . && flutter 
 - `lib/ui/common/resource_ui_helper.dart:33,45`
 - `lib/ui/about/markdown_viewer.dart:71`
 
-(Construction-time field initializers — `final _x = getIt<X>()` in a
-constructor or State field — already conform and are left alone.)
+(Construction-time `final` field initializers — `final _x = getIt<X>()` in
+a class or State — are the target pattern. Constructors that still take a
+shared reference as a parameter are converted as part of each PR.)
 
 **Tests doing construct-then-register double bookkeeping** (construct
 explicitly *and* register because a `navigateTo` path resolves the same
@@ -91,11 +111,14 @@ suite. It proves the pattern and produces the reusable stack convention.
    queries, `ReadingSessionViewModel` wired to the
    `FakeNavigationViewModel`, `FakeMessengerViewModel`,
    `BibleNavigation`), exposes handles for assertions, resets in teardown.
-2. Collapse the dual constructors into one: instance config (database name,
-   path, legacy migration input) and the verse-inventory seam stay
-   parameters; shared references resolve in the constructor. Production
-   registration in the service locator supplies the production arguments.
-3. Strip `?? getIt` parameters from the four view-model factories.
+2. Collapse the dual constructors into one: shared references become
+   `final` fields initialized from the locator at the top of the class.
+   Instance config (database name, path, legacy migration input) and the
+   verse-inventory seam stay parameters. Production registration in the
+   service locator supplies the production arguments.
+3. Strip `?? getIt` parameters from the four view-model factories; factories
+   take instance data only, and shared references are fields on the view
+   model.
 4. Strip optional `messenger` parameters from the four panel/ sheet
    `navigateTo` helpers; resolve globals up front, construct the child
    view model with instance data only, route.
@@ -111,19 +134,20 @@ the same test files are touched by both halves — one PR avoids churn.
 
 ## PR 2 — changelog slice
 
-Same recipe at small scale: collapse `ChangelogService`'s dual constructor,
-strip `service`/`messenger` from `changelog_view`/`changelog_dialog`, convert
-the three test files. Fast follower that proves the pattern travels cheaply
-across slices.
+Same recipe at small scale: collapse `ChangelogService`'s dual constructor
+into a `final` settings field, make `ChangelogView` resolve its service as a
+field, strip `service`/`messenger` from `changelog_view`/`changelog_dialog`,
+convert the three test files. Fast follower that proves the pattern travels
+cheaply across slices.
 
 ## PR 3 — app-wide constructor discipline
 
 The mechanical tail: move every `late final` and mid-method resolution in
-the inventory to construction time. Touches `ui/home`, `ui/search`,
-`ui/download`, `ui/settings`, `ui/about`, `ui/common`, `audio`. No factories
-or tests change shape — mostly removing laziness and hoisting locals to
-fields. Parallelizable by directory; a good candidate for delegation if the
-agent wants the work split.
+the inventory into `final` field initializers at the top of the class.
+Touches `ui/home`, `ui/search`, `ui/download`, `ui/settings`, `ui/about`,
+`ui/common`, `audio`. No factories or tests change shape — mostly removing
+laziness and hoisting locals to fields. Parallelizable by directory; a good
+candidate for delegation if the agent wants the work split.
 
 # Why not other slicings
 
@@ -138,9 +162,13 @@ agent wants the work split.
 
 # Done when
 
-- No `withDependencies` constructor, `?? getIt` parameter, or optional
-  dependency parameter on any `navigateTo` helper remains.
-- No `late final ... getIt` or mid-method resolution outside `log.dart`.
+- No `withDependencies` constructor, `?? getIt` parameter, shared-reference
+  constructor parameter, or optional dependency parameter on any `navigateTo`
+  helper remains.
+- Shared references are `final` fields initialized from the locator at the
+  top of the class; constructors take instance data only.
+- No `late final ... getIt`, `static final ... getIt`, or mid-method
+  resolution outside `log.dart`.
 - Every slice's flow tests run against a per-slice stack; no test both
   constructs an object and registers the same instance.
 - `docs/ARCHITECTURE.md`'s dependency-injection section describes reality

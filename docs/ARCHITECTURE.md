@@ -202,13 +202,25 @@ convention as `lib/services` → `test/services` without a `lib/` segment.
 - These are things whose lifetime is the process and which several parts of the
   app need. These objects should not be disposed.
 - Register shared references in the service locator.
+- Page-scoped view models are not registered; their page constructs and
+  disposes them.
 - View models are eagerly initialized because they are global app state.
 - Other references like services and databases can be lazy initialized for
   faster startup on non-critical paths.
 - Widgets are never registered as shared references.
 - Import cycles among shared references is prohibited.
-- Only inject shared references in constructors. This allows constructors to
-  document a class's dependencies.
+- Declare shared references as `final` fields initialized from the locator at
+  the top of the class, for example `final _planService =
+  getIt<ReadingPlanService>();`. The initialized fields are the class's
+  dependency list.
+- Constructors only compose instance data, such as a plan id, a target day, or
+  a narrow function seam. Shared references never arrive through constructors,
+  so there is no second constructor, no dependency parameter, and no optional
+  `?? getIt` parameter.
+- A static factory or `navigateTo` helper that needs a shared reference before
+  an instance exists resolves it at the top of the helper.
+- Resolve each reference once, at construction. Never resolve from methods,
+  getters, `late` fields, or `static final` fields.
 - Tests can seed fake versions of shared references to isolate a vertical slice.
   `getIt.reset()` is necessary after each test.
 

@@ -37,11 +37,22 @@ widgets.
 
 # Decisions
 
-**One constructor per class.** Instance data — a plan id, a target day, a
-narrow function seam such as the verse-inventory provider — arrives as a
-parameter. Shared references resolve from the locator inside the constructor
-(or a static factory such as `create`, which is a constructor in spirit).
-There is no second constructor and no optional `?? getIt` parameter anywhere.
+**One constructor per class.** Shared references are declared as `final`
+fields initialized from the locator at the top of the class:
+
+```dart
+class ReadingPlanPanelViewModel extends ChangeNotifier {
+  final _queries = getIt<ReadingPlanQueries>();
+  final _sessionViewModel = getIt<ReadingSessionViewModel>();
+}
+```
+
+Constructors only compose instance data — a plan id, a target day, a narrow
+function seam such as the verse-inventory provider — as parameters. There is
+no second constructor, no shared-reference dependency parameter, and no
+optional `?? getIt` parameter anywhere. A static factory such as `create`
+resolves any shared reference it needs before the instance exists at the top
+of the factory.
 
 **The locator is the test seam.** Tests seed it: fakes register exactly like
 real things. A per-slice test stack registers the standard real-but-cheap set
@@ -52,21 +63,22 @@ special. Registration is always load-bearing — there is exactly one way a
 dependency arrives, so there is never a question of which wiring is required.
 
 **Resolution happens once, at construction.** getIt may be called from the
-service locator itself, from constructors and factories (including
-`navigateTo` helpers resolving the global view models they use, up front),
-and from test stacks. Never in methods, getters, or `late` fields — those
-hide dependencies and turn missing registrations into deep runtime failures
-instead of construction-time ones.
+service locator itself, from `final` field initializers, from static
+factories and `navigateTo` helpers resolving the references they use up
+front, and from test stacks. Never in methods, getters, `late` fields, or
+`static final` fields — those hide dependencies and turn missing
+registrations into deep runtime failures or cross-test leakage instead of
+construction-time failures.
 
-**The constructor body is the dependency list.** It stays the design signal:
-an oversized resolution list means the class does too much, and a dependency
-that would cross sideways across a slice boundary becomes a narrow function or
-interface seam (the verse-inventory-provider approach), which is instance data
-and therefore a parameter.
+**The initialized fields are the dependency list.** It stays the design
+signal: an oversized set of initialized fields means the class does too
+much, and a dependency that would cross sideways across a slice boundary
+becomes a narrow function or interface seam (the verse-inventory-provider
+approach), which is instance data and therefore a parameter.
 
-**The discriminator: shared references resolve; instance data is a
-parameter.** The locator can hold one live instance of a type, so a type that
-needs several differently-configured instances at once keeps explicit
+**The discriminator: shared references resolve into fields; instance data is
+a parameter.** The locator can hold one live instance of a type, so a type
+that needs several differently-configured instances at once keeps explicit
 constructor parameters and is constructed at its call site.
 
 Kept unchanged from the superseded decision: the registered set stays small;
@@ -104,9 +116,11 @@ never holds widgets; cycles are never solved with wiring.
 - **Pure constructor injection, no locator** — still discarded: every layer
   would have to know the transitive wiring of everything it opens, which is
   the encapsulation failure restated.
-- **getIt resolution anywhere (`late final` / mid-method)** — still
-  discarded; it was the habit the superseded decision replaced, and the new
-  rule is stricter about it, not looser.
+- **Lazy or static locator resolution (`late final` / `static final` /
+  mid-method)** — still discarded. Lazy resolution defers a missing
+  registration to first use; static fields are process-global, survive
+  `getIt.reset()`, and leak state across tests. A `final` instance field
+  resolves at construction and belongs to the instance.
 - **InheritedWidget/Provider-based DI** — still discarded; ties injection to
   the widget tree against the layer rules.
 
