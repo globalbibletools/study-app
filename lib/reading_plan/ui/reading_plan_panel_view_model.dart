@@ -8,20 +8,13 @@ import 'package:gbt/reading_plan/ui/reading_session_view_model.dart';
 import 'package:gbt/services/service_locator.dart';
 
 class ReadingPlanPanelViewModel extends ChangeNotifier {
-  ReadingPlanPanelViewModel._({
-    required ReadingPlanQueries queries,
-    required ReadingSessionViewModel sessionViewModel,
-  }) : _queries = queries,
-       _sessionViewModel = sessionViewModel;
+  final _queries = getIt<ReadingPlanQueries>();
+  final _sessionViewModel = getIt<ReadingSessionViewModel>();
 
-  static Future<ReadingPlanPanelViewModel> create({
-    ReadingPlanQueries? queries,
-    ReadingSessionViewModel? sessionViewModel,
-  }) async {
-    final viewModel = ReadingPlanPanelViewModel._(
-      queries: queries ?? getIt<ReadingPlanQueries>(),
-      sessionViewModel: sessionViewModel ?? getIt<ReadingSessionViewModel>(),
-    );
+  ReadingPlanPanelViewModel._();
+
+  static Future<ReadingPlanPanelViewModel> create() async {
+    final viewModel = ReadingPlanPanelViewModel._();
 
     try {
       viewModel._plans = await viewModel._queries.getPlanSummaries();
@@ -32,9 +25,6 @@ class ReadingPlanPanelViewModel extends ChangeNotifier {
 
     return viewModel;
   }
-
-  final ReadingPlanQueries _queries;
-  final ReadingSessionViewModel _sessionViewModel;
 
   late List<ReadingPlanSummary> _plans;
   List<ReadingPlanSummary> get plans => _plans;

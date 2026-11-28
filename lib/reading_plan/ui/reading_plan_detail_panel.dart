@@ -21,12 +21,8 @@ class ReadingPlanDetailPanel extends StatefulWidget {
 
   const ReadingPlanDetailPanel({super.key, required this.viewModel});
 
-  static Future<void> navigateTo(
-    BuildContext context,
-    int planId, {
-    MessengerViewModel? messenger,
-  }) async {
-    final messengerViewModel = messenger ?? getIt<MessengerViewModel>();
+  static Future<void> navigateTo(BuildContext context, int planId) async {
+    final messengerViewModel = getIt<MessengerViewModel>();
     ReadingPlanDetailViewModel viewModel;
     try {
       viewModel = await ReadingPlanDetailViewModel.create(planId: planId);

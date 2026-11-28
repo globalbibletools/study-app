@@ -1,5 +1,6 @@
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter/services.dart' show rootBundle;
-import 'package:gbt/services/hebrew_greek/database.dart';
+import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/services/logging/log.dart';
 import 'package:gbt/reading_plan/data_access/day_summary_repository.dart';
 import 'package:gbt/reading_plan/data_access/reading_plan_queries.dart'
@@ -11,38 +12,22 @@ import 'package:gbt/reading_plan/data_access/unit_of_work.dart';
 import 'package:gbt/reading_plan/data_access/verse_state_repository.dart';
 import 'package:gbt/reading_plan/model.dart' show GoalType;
 import 'package:gbt/services/service_locator.dart';
+import 'package:gbt/services/settings/user_settings.dart';
 import 'package:sqflite/sqflite.dart';
 
 class ReadingSessionDatabase {
-  ReadingSessionDatabase({
-    String databaseName = _defaultDatabaseName,
-    String? legacyDailyGoal,
-  }) : this.withDependencies(
-         databaseName: databaseName,
-         legacyDailyGoal: legacyDailyGoal,
-         verseInventoryProvider: (bookIds) async {
-           final database = await getIt.getAsync<HebrewGreekDatabase>();
-           return database.getVerseInventory(bookIds: bookIds);
-         },
-       );
+  final _settings = getIt<UserSettings>();
+  final _bibleNavigation = getIt<BibleNavigation>();
 
-  ReadingSessionDatabase.withDependencies({
-    String databaseName = _defaultDatabaseName,
-    String? databasePath,
-    String? legacyDailyGoal,
-    required VerseInventoryProvider verseInventoryProvider,
-  }) : _databaseName = databaseName,
-       _databasePath = databasePath,
-       _legacyDailyGoal = legacyDailyGoal,
-       _verseInventoryProvider = verseInventoryProvider;
+  ReadingSessionDatabase() : _databasePath = null;
+
+  @visibleForTesting
+  ReadingSessionDatabase.inMemory() : _databasePath = inMemoryDatabasePath;
 
   static const _defaultDatabaseName = 'reading_session.db';
   static const _databaseVersion = 9;
 
-  final String _databaseName;
   final String? _databasePath;
-  final String? _legacyDailyGoal;
-  final VerseInventoryProvider _verseInventoryProvider;
 
   late final ReadingPlanRepository readingPlans = ReadingPlanRepository(
     _database,
@@ -55,12 +40,12 @@ class ReadingSessionDatabase {
   late final SessionRepository session = SessionRepository(_database);
   late final VerseStateRepository verseState = VerseStateRepository(
     _database,
-    verseInventoryProvider: _verseInventoryProvider,
+    verseInventoryProvider: _verseInventory,
   );
   late final DaySummaryRepository daySummary = DaySummaryRepository(_database);
   late final ReadingPlanQueries queries = ReadingPlanQueries(
     _database,
-    verseInventoryProvider: _verseInventoryProvider,
+    verseInventoryProvider: _verseInventory,
   );
 
   Future<void> init() async {
@@ -68,7 +53,7 @@ class ReadingSessionDatabase {
       return _initFuture;
     }
 
-    _initFuture = _initDatabase(_databasePath ?? _databaseName);
+    _initFuture = _initDatabase(_databasePath ?? _defaultDatabaseName);
     try {
       await _initFuture;
     } catch (_) {
@@ -80,17 +65,14 @@ class ReadingSessionDatabase {
 
   Future<T> unitOfWork<T>(Future<T> Function(UnitOfWork uow) action) {
     return _database.transaction((txn) async {
-      final uow = UnitOfWork(
-        txn,
-        verseInventoryProvider: _verseInventoryProvider,
-      );
+      final uow = UnitOfWork(txn, verseInventoryProvider: _verseInventory);
       return action(uow);
     });
   }
 
   Future<void> resetDatabase() async {
     final path = await getDatabasesPath();
-    final dbPath = _databasePath ?? '$path/$_databaseName';
+    final dbPath = _databasePath ?? '$path/$_defaultDatabaseName';
 
     _initFuture = null;
     await deleteDatabase(dbPath);
@@ -108,7 +90,7 @@ class ReadingSessionDatabase {
         await _executeSqlBatch(db, sql);
         final verseStateRepository = VerseStateRepository(
           db,
-          verseInventoryProvider: _verseInventoryProvider,
+          verseInventoryProvider: _verseInventory,
         );
         // We have to materialize here because there is a default reading plan that needs verse state setup correctly.
         await verseStateRepository.materializeAll();
@@ -127,7 +109,7 @@ class ReadingSessionDatabase {
           if (v == 4) {
             final verseStateRepository = VerseStateRepository(
               db,
-              verseInventoryProvider: _verseInventoryProvider,
+              verseInventoryProvider: _verseInventory,
             );
             await verseStateRepository.materializeAll();
           }
@@ -150,9 +132,25 @@ class ReadingSessionDatabase {
     await batch.commit(noResult: true);
   }
 
+  Future<Map<(int, int), List<int>>> _verseInventory(Set<int> bookIds) async {
+    final inventory = <(int, int), List<int>>{};
+    for (final bookId in bookIds) {
+      for (
+        var chapter = 1;
+        chapter <= _bibleNavigation.getChapterCount(bookId);
+        chapter++
+      ) {
+        final verses = _bibleNavigation.getVerseNumbers(bookId, chapter);
+        if (verses.isEmpty) continue;
+        inventory[(bookId, chapter)] = verses;
+      }
+    }
+    return inventory;
+  }
+
   // Legacy goals were user preferences that we have to now inject into the database.
   Future<void> _applyLegacyDailyGoal(DatabaseExecutor db) async {
-    final goal = _parseLegacyDailyGoal(_legacyDailyGoal);
+    final goal = _parseLegacyDailyGoal(_settings.legacyDailyGoal);
     if (goal == null) return;
 
     await db.update('reading_plan', {

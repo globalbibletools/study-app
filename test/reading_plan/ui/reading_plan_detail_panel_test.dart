@@ -1,43 +1,36 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gbt/asyncutils/serial_queue.dart';
-import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/l10n/localizations.dart';
 import 'package:gbt/reading_plan/data_access/day_summary_repository.dart';
-import 'package:gbt/reading_plan/data_access/reading_plan_queries.dart';
 import 'package:gbt/reading_plan/data_access/reading_plan_read_models.dart';
 import 'package:gbt/reading_plan/data_access/rs_database.dart';
 import 'package:gbt/reading_plan/data_access/session_log_repository.dart';
 import 'package:gbt/reading_plan/data_access/session_repository.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
-import 'package:gbt/reading_plan/reading_session_service.dart';
 import 'package:gbt/reading_plan/ui/day_activity_log_panel.dart';
 import 'package:gbt/reading_plan/ui/edit_reading_plan_panel.dart';
 import 'package:gbt/reading_plan/ui/reading_plan_detail_panel.dart';
 import 'package:gbt/reading_plan/ui/reading_plan_detail_view_model.dart';
 import 'package:gbt/reading_plan/ui/reading_session_view_model.dart';
-import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/messaging/messenger_host.dart';
-import 'package:gbt/ui/messaging/messenger_view_model.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import '../../fixtures/bible_navigation_fixture.dart';
 import '../../fixtures/fake_messenger_view_model.dart';
-import '../../fixtures/fake_navigation_view_model.dart';
+import '../fixtures/reading_plan_test_stack.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  late ReadingPlanTestStack stack;
   late ReadingSessionDatabase database;
   late ReadingPlanService planService;
   late ReadingSessionViewModel sessionViewModel;
-  late FakeNavigationViewModel navigationViewModel;
   late FakeMessengerViewModel messenger;
   late DateTime today;
   late DateTime currentMonth;
-  var databaseDisposed = false;
-  var sessionViewModelDisposed = false;
 
   setUpAll(() {
     sqfliteFfiInit();
@@ -45,47 +38,19 @@ void main() {
   });
 
   setUp(() async {
-    databaseDisposed = false;
-    sessionViewModelDisposed = false;
     today = dateOnly(DateTime.now());
     currentMonth = monthStart(today);
-    messenger = FakeMessengerViewModel();
-    database = ReadingSessionDatabase.withDependencies(
-      databasePath: inMemoryDatabasePath,
-      verseInventoryProvider: (bookIds) async =>
-          createTestVerseInventory(bookIds: bookIds),
-    );
-    await database.init();
-    planService = ReadingPlanService.withDependencies(database: database);
-
-    navigationViewModel = FakeNavigationViewModel();
-    sessionViewModel = ReadingSessionViewModel.withDependencies(
-      service: ReadingSessionService.withDatabase(database),
-      queries: database.queries,
-      navigationViewModel: navigationViewModel,
-    );
-
-    getIt.registerSingleton<ReadingPlanQueries>(database.queries);
-    getIt.registerSingleton<ReadingPlanService>(planService);
-    getIt.registerSingleton<ReadingSessionViewModel>(sessionViewModel);
-    getIt.registerSingleton<MessengerViewModel>(messenger);
-    getIt.registerSingleton<BibleNavigation>(createTestBibleNavigation());
+    stack = await ReadingPlanTestStack.create();
+    database = stack.database;
+    planService = stack.planService;
+    sessionViewModel = stack.sessionViewModel;
+    messenger = stack.messenger;
   });
 
-  tearDown(() async {
-    if (!sessionViewModelDisposed) sessionViewModel.dispose();
-    messenger.dispose();
-    if (!databaseDisposed) database.dispose();
-    await getIt.reset();
-  });
+  tearDown(() => stack.dispose());
 
   Future<ReadingPlanDetailViewModel> newViewModel(int planId) {
-    return ReadingPlanDetailViewModel.create(
-      planId: planId,
-      queries: database.queries,
-      planService: planService,
-      sessionViewModel: sessionViewModel,
-    );
+    return ReadingPlanDetailViewModel.create(planId: planId);
   }
 
   Future<ReadingPlanDetailViewModel> newDirectViewModel(int planId) async {
@@ -426,8 +391,7 @@ void main() {
     test('keeps the old bookmark state when persistence fails', () async {
       final planId = await createPlan();
       final viewModel = await newDirectViewModel(planId);
-      database.dispose();
-      databaseDisposed = true;
+      stack.disposeDatabase();
       await Future<void>.delayed(const Duration(milliseconds: 100));
 
       await expectLater(viewModel.toggleBookmark(), throwsA(isA<Object>()));
@@ -562,8 +526,7 @@ void main() {
       expect(sessions, hasLength(1));
       expect(sessions!.single.verses, 0);
 
-      sessionViewModel.dispose();
-      sessionViewModelDisposed = true;
+      stack.disposeSessionViewModel();
     });
 
     testWidgets('shows resume wording once reading has started', (
@@ -688,9 +651,6 @@ void main() {
         final planId = await createPlan();
         final viewModel = await ReadingPlanDetailViewModel.create(
           planId: planId,
-          queries: database.queries,
-          planService: planService,
-          sessionViewModel: sessionViewModel,
         );
         var notifications = 0;
         viewModel.addListener(() => notifications++);
@@ -714,8 +674,7 @@ void main() {
     test('propagates a month load error and keeps the visible month', () async {
       final planId = await createPlan();
       final viewModel = await newDirectViewModel(planId);
-      database.dispose();
-      databaseDisposed = true;
+      stack.disposeDatabase();
       await Future<void>.delayed(const Duration(milliseconds: 100));
 
       await expectLater(viewModel.showNextMonth(), throwsA(isA<Object>()));
@@ -856,9 +815,6 @@ void main() {
         final planId = await createPlan(name: 'Dispose Plan');
         final viewModel = await ReadingPlanDetailViewModel.create(
           planId: planId,
-          queries: database.queries,
-          planService: planService,
-          sessionViewModel: sessionViewModel,
         );
         var notifications = 0;
         viewModel.addListener(() => notifications++);
@@ -876,8 +832,7 @@ void main() {
       () async {
         final planId = await createPlan();
         final viewModel = await newDirectViewModel(planId);
-        database.dispose();
-        databaseDisposed = true;
+        stack.disposeDatabase();
         await Future<void>.delayed(const Duration(milliseconds: 100));
 
         await expectLater(viewModel.refresh(), throwsA(isA<Object>()));
@@ -927,9 +882,7 @@ void main() {
       final planId = (await tester.runAsync(() => createPlan()))!;
 
       await tester.pumpWidget(
-        buildApp(
-          _NavigateToDetailLauncher(planId: planId, messenger: messenger),
-        ),
+        buildApp(_NavigateToDetailLauncher(planId: planId)),
       );
       await tester.tap(find.text('Open detail'));
       await waitFor(
@@ -948,15 +901,12 @@ void main() {
     ) async {
       final planId = (await tester.runAsync(() => createPlan()))!;
       await tester.runAsync(() async {
-        database.dispose();
-        databaseDisposed = true;
+        stack.disposeDatabase();
         await Future<void>.delayed(const Duration(milliseconds: 100));
       });
 
       await tester.pumpWidget(
-        buildApp(
-          _NavigateToDetailLauncher(planId: planId, messenger: messenger),
-        ),
+        buildApp(_NavigateToDetailLauncher(planId: planId)),
       );
       await tester.tap(find.text('Open detail'));
       await waitFor(tester, () => messenger.messages.isNotEmpty);
@@ -980,8 +930,7 @@ void main() {
       (tester) async {
         final planId = (await tester.runAsync(() => createPlan()))!;
         await tester.runAsync(() async {
-          database.dispose();
-          databaseDisposed = true;
+          stack.disposeDatabase();
           await Future<void>.delayed(const Duration(milliseconds: 100));
         });
 
@@ -1021,11 +970,7 @@ void main() {
       );
       await tester.pumpWidget(buildApp(const SizedBox.shrink()));
       await tester.runAsync(
-        () => ReadingPlanDetailPanel.navigateTo(
-          staleContext,
-          planId,
-          messenger: messenger,
-        ),
+        () => ReadingPlanDetailPanel.navigateTo(staleContext, planId),
       );
 
       expect(find.byType(ReadingPlanDetailPanel), findsNothing);
@@ -1036,21 +981,16 @@ void main() {
 }
 
 class _NavigateToDetailLauncher extends StatelessWidget {
-  const _NavigateToDetailLauncher({required this.planId, this.messenger});
+  const _NavigateToDetailLauncher({required this.planId});
 
   final int planId;
-  final FakeMessengerViewModel? messenger;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Center(
         child: ElevatedButton(
-          onPressed: () => ReadingPlanDetailPanel.navigateTo(
-            context,
-            planId,
-            messenger: messenger,
-          ),
+          onPressed: () => ReadingPlanDetailPanel.navigateTo(context, planId),
           child: const Text('Open detail'),
         ),
       ),

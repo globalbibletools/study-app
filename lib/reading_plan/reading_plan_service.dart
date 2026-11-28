@@ -6,14 +6,7 @@ import 'package:gbt/reading_plan/model.dart';
 import 'package:gbt/services/service_locator.dart';
 
 class ReadingPlanService {
-  ReadingPlanService()
-    : this.withDependencies(database: getIt<ReadingSessionDatabase>());
-
-  ReadingPlanService.withDependencies({
-    required ReadingSessionDatabase database,
-  }) : _database = database;
-
-  final ReadingSessionDatabase _database;
+  final _database = getIt<ReadingSessionDatabase>();
 
   Future<void> addManualSession({
     required int readingPlanId,

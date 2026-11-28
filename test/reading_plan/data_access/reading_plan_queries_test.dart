@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/common/reference.dart';
 import 'package:gbt/reading_plan/data_access/reading_plan_read_models.dart';
 import 'package:gbt/reading_plan/data_access/reading_plan_repository.dart'
@@ -6,9 +7,23 @@ import 'package:gbt/reading_plan/data_access/reading_plan_repository.dart'
 import 'package:gbt/reading_plan/data_access/rs_database.dart';
 import 'package:gbt/reading_plan/data_access/session_log_repository.dart';
 import 'package:gbt/reading_plan/data_access/session_repository.dart';
+import 'package:gbt/services/service_locator.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import '../../fixtures/bible_navigation_fixture.dart';
+import '../../fixtures/user_settings_fixture.dart';
+
+class _GapBibleNavigation extends BibleNavigation {
+  _GapBibleNavigation() : super.withCounts({(40, 16): 28});
+
+  @override
+  List<int> getVerseNumbers(int bookId, int chapter) {
+    if (bookId == 40 && chapter == 16) {
+      return [1, 2, for (var verse = 4; verse <= 28; verse++) verse];
+    }
+    return super.getVerseNumbers(bookId, chapter);
+  }
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -21,18 +36,16 @@ void main() {
   });
 
   setUp(() async {
-    database = ReadingSessionDatabase.withDependencies(
-      databaseName: 'reading_plan_queries_test.db',
-      verseInventoryProvider: (bookIds) async =>
-          createTestVerseInventory(bookIds: bookIds),
-    );
-    await database.resetDatabase();
+    getIt.registerSingleton(await createTestUserSettings());
+    getIt.registerSingleton(createTestBibleNavigation());
+    database = ReadingSessionDatabase.inMemory();
     await database.init();
     await _deleteAllPlans(database);
   });
 
-  tearDown(() {
+  tearDown(() async {
     database.dispose();
+    await getIt.reset();
   });
 
   Future<int> createPlan(
@@ -264,21 +277,9 @@ void main() {
         // The log points at Matthew 16:2, whose inventory skips verse 3, so
         // the resume position must land on the next verse that exists.
         database.dispose();
-        database = ReadingSessionDatabase.withDependencies(
-          databaseName: 'reading_plan_queries_gap_test.db',
-          verseInventoryProvider: (bookIds) async {
-            final inventory = createTestVerseInventory(bookIds: bookIds);
-            if (bookIds.contains(40)) {
-              inventory[(40, 16)] = [
-                1,
-                2,
-                for (int verse = 4; verse <= 28; verse++) verse,
-              ];
-            }
-            return inventory;
-          },
-        );
-        await database.resetDatabase();
+        await getIt.unregister<BibleNavigation>();
+        getIt.registerSingleton<BibleNavigation>(_GapBibleNavigation());
+        database = ReadingSessionDatabase.inMemory();
         await database.init();
 
         final planId = await createPlan('Gap', books: [40]);

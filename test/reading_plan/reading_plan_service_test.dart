@@ -8,9 +8,11 @@ import 'package:gbt/reading_plan/data_access/session_repository.dart';
 import 'package:gbt/reading_plan/data_access/verse_state_repository.dart';
 import 'package:gbt/reading_plan/model.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
+import 'package:gbt/services/service_locator.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import '../fixtures/bible_navigation_fixture.dart';
+import '../fixtures/user_settings_fixture.dart';
 
 typedef _BookStatsSnapshot = ({
   int totalVerses,
@@ -41,17 +43,17 @@ void main() {
   });
 
   setUp(() async {
-    database = ReadingSessionDatabase.withDependencies(
-      databasePath: inMemoryDatabasePath,
-      verseInventoryProvider: (bookIds) async =>
-          createTestVerseInventory(bookIds: bookIds),
-    );
+    getIt.registerSingleton(await createTestUserSettings());
+    getIt.registerSingleton(createTestBibleNavigation());
+    database = ReadingSessionDatabase.inMemory();
     await database.init();
-    planService = ReadingPlanService.withDependencies(database: database);
+    getIt.registerSingleton<ReadingSessionDatabase>(database);
+    planService = ReadingPlanService();
   });
 
-  tearDown(() {
+  tearDown(() async {
     database.dispose();
+    await getIt.reset();
   });
 
   DateTime dayOnly(DateTime date) => DateTime(date.year, date.month, date.day);

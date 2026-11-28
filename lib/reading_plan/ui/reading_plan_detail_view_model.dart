@@ -11,28 +11,16 @@ import 'package:gbt/reading_plan/ui/reading_session_view_model.dart';
 import 'package:gbt/services/service_locator.dart';
 
 class ReadingPlanDetailViewModel extends ChangeNotifier {
-  ReadingPlanDetailViewModel._({
-    required int planId,
-    required ReadingPlanQueries queries,
-    required ReadingPlanService planService,
-    required ReadingSessionViewModel sessionViewModel,
-  }) : _planId = planId,
-       _queries = queries,
-       _planService = planService,
-       _sessionViewModel = sessionViewModel;
+  final _queries = getIt<ReadingPlanQueries>();
+  final _planService = getIt<ReadingPlanService>();
+  final _sessionViewModel = getIt<ReadingSessionViewModel>();
+
+  ReadingPlanDetailViewModel._({required int planId}) : _planId = planId;
 
   static Future<ReadingPlanDetailViewModel> create({
     required int planId,
-    ReadingPlanQueries? queries,
-    ReadingPlanService? planService,
-    ReadingSessionViewModel? sessionViewModel,
   }) async {
-    final viewModel = ReadingPlanDetailViewModel._(
-      planId: planId,
-      queries: queries ?? getIt<ReadingPlanQueries>(),
-      planService: planService ?? getIt<ReadingPlanService>(),
-      sessionViewModel: sessionViewModel ?? getIt<ReadingSessionViewModel>(),
-    );
+    final viewModel = ReadingPlanDetailViewModel._(planId: planId);
 
     try {
       await viewModel.refresh();
@@ -43,10 +31,6 @@ class ReadingPlanDetailViewModel extends ChangeNotifier {
 
     return viewModel;
   }
-
-  final ReadingPlanQueries _queries;
-  final ReadingPlanService _planService;
-  final ReadingSessionViewModel _sessionViewModel;
 
   final _commands = SerialQueue();
 
