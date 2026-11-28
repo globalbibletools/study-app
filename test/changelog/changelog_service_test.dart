@@ -32,14 +32,12 @@ void main() {
     SharedPreferences.setMockInitialValues(values);
     settings = UserSettings();
     await settings.init();
+    getIt.registerSingleton<UserSettings>(settings);
     logs.clear();
   }
 
   ChangelogService createService() {
-    return ChangelogService.withDependencies(
-      settings: settings,
-      assetLoader: loadAsset,
-    );
+    return ChangelogService(assetLoader: loadAsset);
   }
 
   Map<String, dynamic> entry(
@@ -263,8 +261,7 @@ void main() {
     test('caches an in-flight load', () async {
       await createSettings();
       final completer = Completer<String>();
-      final service = ChangelogService.withDependencies(
-        settings: settings,
+      final service = ChangelogService(
         assetLoader: (path) {
           requestedPaths.add(path);
           return completer.future;
@@ -314,8 +311,7 @@ void main() {
       await createSettings();
       final englishCompleter = Completer<String>();
       final spanishCompleter = Completer<String>();
-      final service = ChangelogService.withDependencies(
-        settings: settings,
+      final service = ChangelogService(
         assetLoader: (path) {
           requestedPaths.add(path);
           return path.endsWith('changelog_es.json')

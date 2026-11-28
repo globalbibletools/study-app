@@ -10,22 +10,14 @@ import 'package:intl/intl.dart';
 import 'package:material_ui/material_ui.dart';
 
 class ChangelogView extends StatefulWidget {
-  const ChangelogView({
-    super.key,
-    required this.entries,
-    required this.service,
-  });
+  ChangelogView({super.key, required this.entries});
 
   final List<ChangelogEntry> entries;
-  final ChangelogService service;
+  final _service = getIt<ChangelogService>();
 
-  static Future<void> navigateTo(
-    BuildContext context, {
-    ChangelogService? service,
-    MessengerViewModel? messenger,
-  }) async {
-    final changelogService = service ?? getIt<ChangelogService>();
-    final messengerViewModel = messenger ?? getIt<MessengerViewModel>();
+  static Future<void> navigateTo(BuildContext context) async {
+    final changelogService = getIt<ChangelogService>();
+    final messengerViewModel = getIt<MessengerViewModel>();
     final locale = Localizations.localeOf(context);
 
     List<ChangelogEntry> entries;
@@ -42,10 +34,7 @@ class ChangelogView extends StatefulWidget {
     if (!context.mounted) return;
 
     await Navigator.of(context).push<void>(
-      MaterialPageRoute(
-        builder: (_) =>
-            ChangelogView(entries: entries, service: changelogService),
-      ),
+      MaterialPageRoute(builder: (_) => ChangelogView(entries: entries)),
     );
   }
 
@@ -63,7 +52,7 @@ class _ChangelogViewState extends State<ChangelogView> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      unawaited(widget.service.markLatestSeen());
+      unawaited(widget._service.markLatestSeen());
     });
   }
 
