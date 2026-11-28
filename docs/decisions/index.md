@@ -1,5 +1,6 @@
 # Architecture Decision Records
 
+* 2026-11-27 [Design Token Mechanism](2026-11-27-design-token-mechanism.md) [In Review]
 * 2026-11-27 [Shared Design Foundation](2026-11-27-shared-design-foundation.md) [In Review]
 * 2026-11-27 [Release Versioning](2026-11-27-release-versioning.md) [In Review]
 * 2026-11-26 [In-App Changelog](2026-11-26-changelog.md) [In Review]

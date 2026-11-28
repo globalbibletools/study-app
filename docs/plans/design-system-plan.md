@@ -25,21 +25,24 @@ reverse later.
    *Impact: highest — without it, extracted components have no home and the
    current scatter (reading plan's own app bar, home's keypad) continues.*
 
-2. **Token mechanism.** Use `ThemeExtension` so tokens ride
-   `Theme.of(context)` and get light/dark for free, versus a standalone
-   constants class. Recommendation to evaluate: `ThemeExtension` for
-   severity palettes, shapes, spacing, motion; keep `ColorScheme`/`TextTheme`
-   as the primary channel for color and type since components already read
-   them. *Impact: high — determines the API surface of everything after.*
+2. **Token mechanism.** Decided in
+   [Design Token Mechanism](../decisions/2026-11-27-design-token-mechanism.md):
+   fill `ThemeData`'s native slots first; `ThemeExtension` only for families
+   with no slot (severity palette is the first); brightness-independent
+   constants (spacing, radius, motion) in abstract final classes. *Impact:
+   high — determines the API surface of everything after.*
 
-3. **Typography and user font scaling.** The app's most distinctive visual
-   requirement — scripture text size is a user setting (`UserSettings`
-   per-surface scales) — currently bypasses `TextTheme` via widget params.
-   Decide how the two systems merge: a named type scale whose sizes are
-   computed from `baseFontSize × scale × role` at theme construction (tokens
-   remain single-sourced, user scaling stays), versus continuing to pass
-   `fontSize` params down. Also decide whether `bodyLarge: 18` stays as the
-   base. *Impact: high — scripture text is the product; every reading surface
+3. **Typography and user font scaling.** Deferred as domain-coupled rather
+   than mechanism (see
+   [Design Token Mechanism](../decisions/2026-11-27-design-token-mechanism.md)):
+   the app's most distinctive visual requirement — scripture text size is a
+   user setting (`UserSettings` per-surface scales) — currently bypasses
+   `TextTheme` via widget params. When revisited, decide how the two systems
+   merge: a named type scale whose sizes are computed from
+   `baseFontSize × scale × role` at theme construction (tokens remain
+   single-sourced, user scaling stays), versus continuing to pass `fontSize`
+   params down. Also decide whether `bodyLarge: 18` stays as the base.
+   *Impact: high — scripture text is the product; every reading surface
    touches this.*
 
 4. **Semantic color roles, one palette, both brightnesses.** Promote the
