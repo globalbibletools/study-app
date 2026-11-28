@@ -1,49 +1,28 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/reading_plan/ui/reading_plan_panel.dart';
 import 'package:gbt/reading_plan/ui/reading_plan_panel_view_model.dart';
-import 'package:gbt/services/service_locator.dart';
-import 'package:gbt/ui/messaging/messenger_view_model.dart';
-
-typedef NavigateToReadingSheetRoute =
-    Future<void> Function(BuildContext context);
+import 'package:gbt/ui/navigation/view_model_navigation.dart';
 
 class ReadingSheet extends StatelessWidget {
   final Widget child;
 
   const ReadingSheet({super.key, required this.child});
 
-  static Future<void> navigateTo(BuildContext context) async {
-    final l10n = AppLocalizations.of(context)!;
-    final messengerViewModel = getIt<MessengerViewModel>();
-    ReadingPlanPanelViewModel viewModel;
-    try {
-      viewModel = await ReadingPlanPanelViewModel.create();
-    } catch (_) {
-      messengerViewModel.showError(l10n.errorLoadingContent);
-      return;
-    }
-
-    if (!context.mounted) {
-      viewModel.dispose();
-      return;
-    }
-
-    try {
-      await showModalBottomSheet<void>(
+  static Future<void> navigateTo(BuildContext context) {
+    return pushViewModelPage<ReadingPlanPanelViewModel, void>(
+      context: context,
+      create: () => ReadingPlanPanelViewModel.create(),
+      buildView: (viewModel) => ReadingPlanPanel(viewModel: viewModel),
+      present: (context, page) => showModalBottomSheet<void>(
         context: context,
         isScrollControlled: true,
         useSafeArea: true,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
         ),
-        builder: (context) =>
-            ReadingSheet(child: ReadingPlanPanel(viewModel: viewModel)),
-      );
-    } catch (_) {
-      viewModel.dispose();
-      rethrow;
-    }
+        builder: (_) => ReadingSheet(child: page),
+      ),
+    );
   }
 
   @override
