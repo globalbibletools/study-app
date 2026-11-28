@@ -17,7 +17,7 @@ with the commands in `docs/DEVELOPMENT.md`.
   guardrails.
 - `references/changelog.md` — the localized changelog format, the note input
   format, and the translation workflow.
-- `docs/RELEASING.md` — the human-facing version of this workflow.
+- `docs/RELEASING.md` — the human review checklist and merge/tag gates.
 
 ## Non-negotiable rules
 
