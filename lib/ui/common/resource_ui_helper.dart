@@ -9,7 +9,10 @@ import 'package:gbt/ui/messaging/messenger_view_model.dart';
 class ResourceUIHelper {
   static final Map<String, Future<bool>> _pendingRequests = {};
 
-  static Future<bool> ensureResource(
+  final _resourceService = getIt<ResourceService>();
+  final _messenger = getIt<MessengerViewModel>();
+
+  Future<bool> ensureResource(
     BuildContext context,
     ResourceType resourceType,
     String id,
@@ -25,13 +28,12 @@ class ResourceUIHelper {
     return future;
   }
 
-  static Future<bool> _ensureResource(
+  Future<bool> _ensureResource(
     BuildContext context,
     ResourceType resourceType,
     String id,
   ) async {
-    final resourceService = getIt<ResourceService>();
-    if (await resourceService.resourceExists(resourceType, id)) {
+    if (await _resourceService.resourceExists(resourceType, id)) {
       return true;
     }
 
@@ -42,7 +44,6 @@ class ResourceUIHelper {
 
     if (!context.mounted) return false;
     final l10n = AppLocalizations.of(context)!;
-    final messenger = getIt<MessengerViewModel>();
 
     // 1. Show Prompt
     final shouldDownload = await ResourceDownloadPromptDialog.show(context);
@@ -59,7 +60,7 @@ class ResourceUIHelper {
       if (!context.mounted) throw Exception('Context not mounted');
       await DownloadProgressDialog.show(
         context: context,
-        task: (progress, token) => resourceService.downloadResource(
+        task: (progress, token) => _resourceService.downloadResource(
           resourceType,
           id,
           onProgress: (p) => progress.value = p,
@@ -69,7 +70,7 @@ class ResourceUIHelper {
       return true;
     } catch (e) {
       if (e is! DownloadCanceledException) {
-        messenger.showError("${l10n.downloadFailed}: $e");
+        _messenger.showError("${l10n.downloadFailed}: $e");
       }
       return false;
     }

@@ -69,6 +69,14 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter> {
   // Keyed so the chapter title can be measured and attributed to verse 1.
   final _titleKey = GlobalKey();
 
+  final _homeManager = getIt.isRegistered<HomeManager>()
+      ? getIt<HomeManager>()
+      : null;
+  final _flashedWordIdNotifier = getIt.isRegistered<HomeManager>()
+      ? getIt<HomeManager>().flashedWordIdNotifier
+      : null;
+  final _messenger = getIt<MessengerViewModel>();
+
   @override
   void initState() {
     super.initState();
@@ -154,13 +162,6 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter> {
       headings: headings,
       height: chapterRenderBox.size.height,
     );
-  }
-
-  ValueNotifier<String?>? get _flashedWordIdNotifier {
-    if (getIt.isRegistered<HomeManager>()) {
-      return getIt<HomeManager>().flashedWordIdNotifier;
-    }
-    return null;
   }
 
   @override
@@ -360,7 +361,7 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter> {
 
   Future<void> _handleMissingGloss(String langCode) async {
     // Use the shared helper logic
-    final success = await ResourceUIHelper.ensureResource(
+    final success = await ResourceUIHelper().ensureResource(
       context,
       ResourceType.gloss,
       langCode,
@@ -373,7 +374,7 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter> {
   }
 
   Future<void> _showWordDetails(String wordId) async {
-    getIt<HomeManager>().startWordStudy(
+    _homeManager!.startWordStudy(
       wordId: wordId,
       isRtl: manager.isRtl(widget.bookId),
     );
@@ -386,6 +387,6 @@ class HebrewGreekChapterState extends State<HebrewGreekChapter> {
     Clipboard.setData(ClipboardData(text: text));
 
     final l10n = AppLocalizations.of(context)!;
-    getIt<MessengerViewModel>().showSuccess(l10n.verseCopied);
+    _messenger.showSuccess(l10n.verseCopied);
   }
 }

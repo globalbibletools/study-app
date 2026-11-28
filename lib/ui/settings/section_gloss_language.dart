@@ -91,7 +91,7 @@ class _GlossLanguageSectionState extends State<GlossLanguageSection> {
 
     if (!mounted) return;
 
-    await ResourceUIHelper.ensureResource(
+    await ResourceUIHelper().ensureResource(
       context,
       ResourceType.gloss,
       selected.id,

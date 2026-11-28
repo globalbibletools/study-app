@@ -36,7 +36,7 @@ class ReferenceChooser extends StatefulWidget {
 }
 
 class ReferenceChooserState extends State<ReferenceChooser> {
-  late final _bibleNavigation = getIt<BibleNavigation>();
+  final _bibleNavigation = getIt<BibleNavigation>();
 
   final _bookFocus = FocusNode();
   late FocusNode _chapterFocus;

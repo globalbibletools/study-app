@@ -12,6 +12,7 @@ class SearchPageManager {
   final candidatesNotifier = ValueNotifier<List<String>>([]);
   final verseResultsNotifier = ValueNotifier<VerseSearchResults?>(null);
   final _hebrewGreekDb = getIt<HebrewGreekDatabase>();
+  final _settings = getIt<UserSettings>();
 
   /// Finds a list of words from the Hebrew/Greek database that start with
   /// the given [prefix] at the cursor position.
@@ -133,11 +134,11 @@ class SearchPageManager {
 
   Future<void> saveDirection(TextDirection textDirection) async {
     final isHebrew = textDirection == TextDirection.rtl;
-    await getIt<UserSettings>().setIsHebrewSearch(isHebrew);
+    await _settings.setIsHebrewSearch(isHebrew);
   }
 
   TextDirection savedTextDirection() {
-    final isHebrew = getIt<UserSettings>().isHebrewSearch;
+    final isHebrew = _settings.isHebrewSearch;
     return isHebrew ? TextDirection.rtl : TextDirection.ltr;
   }
 
@@ -150,11 +151,11 @@ class SearchPageManager {
   }
 
   bool shouldUseSystemKeyboard() {
-    return getIt<UserSettings>().shouldUseSystemKeyboard;
+    return _settings.shouldUseSystemKeyboard;
   }
 
   Future<void> setUseSystemKeyboard(bool value) async {
-    await getIt<UserSettings>().setUseSystemKeyboard(value);
+    await _settings.setUseSystemKeyboard(value);
   }
 }
 

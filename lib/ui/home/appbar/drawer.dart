@@ -15,9 +15,12 @@ import 'package:gbt/ui/search/search.dart';
 import 'package:gbt/ui/settings/settings_page.dart';
 
 class AppDrawer extends StatelessWidget {
-  const AppDrawer({super.key, required this.onSettingsClosed});
+  AppDrawer({super.key, required this.onSettingsClosed});
 
   final VoidCallback onSettingsClosed;
+  final _resourceService = getIt<ResourceService>();
+  final _messenger = getIt<MessengerViewModel>();
+  final _logger = getIt<AppLogger>();
 
   @override
   Widget build(BuildContext context) {
@@ -66,8 +69,7 @@ class AppDrawer extends StatelessWidget {
             ListTile(
               title: Text(AppLocalizations.of(context)!.downloads),
               leading: ValueListenableBuilder<OutdatedResourceCounts>(
-                valueListenable:
-                    getIt<ResourceService>().outdatedResourceCounts,
+                valueListenable: _resourceService.outdatedResourceCounts,
                 builder: (context, counts, _) {
                   return Badge.count(
                     count: counts.total,
@@ -133,19 +135,17 @@ class AppDrawer extends StatelessWidget {
 
   Future<void> _exportLogs(BuildContext context) async {
     final l10n = AppLocalizations.of(context)!;
-    final messenger = getIt<MessengerViewModel>();
-    final logger = getIt<AppLogger>();
 
     Navigator.pop(context);
 
     try {
-      await logger.flush();
+      await _logger.flush();
       final now = DateTime.now();
       final exporter = await LogExporter.createDefault();
 
       final bytes = await exporter.getExportAsBytes(now: now);
       if (bytes.isEmpty) {
-        messenger.showWarning(l10n.noLogsToExport);
+        _messenger.showWarning(l10n.noLogsToExport);
         return;
       }
 
@@ -160,10 +160,10 @@ class AppDrawer extends StatelessWidget {
         return;
       }
 
-      messenger.showSuccess(l10n.logsExported);
+      _messenger.showSuccess(l10n.logsExported);
     } catch (e, stackTrace) {
       error('Failed to export logs', error: e, stackTrace: stackTrace);
-      messenger.showError(l10n.logExportFailed);
+      _messenger.showError(l10n.logExportFailed);
     }
   }
 }

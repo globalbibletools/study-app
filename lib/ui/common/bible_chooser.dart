@@ -48,7 +48,7 @@ Future<bool> chooseBible(BuildContext context) async {
   }
 
   if (!context.mounted) return false;
-  final success = await ResourceUIHelper.ensureResource(
+  final success = await ResourceUIHelper().ensureResource(
     context,
     ResourceType.bible,
     selected.id,
