@@ -57,8 +57,11 @@ with the commands in `docs/DEVELOPMENT.md`.
    `references/changelog.md`:
    - Draft the notes in English.
    - Propose `major` (what's-new dialog) or `minor` (changelog list only).
-   - Wait for the human to confirm the English notes and the type.
-   - Translate the approved notes into every existing app locale.
+   - For a `major` entry, draft its English summary as well; the summary is
+     the dialog body and the changelog lead paragraph.
+   - Wait for the human to confirm the English notes, summary (for majors),
+     and the type.
+   - Translate the approved summary and notes into every existing app locale.
    - Write the input file and pass it to `prepare`.
 
    ```
@@ -84,8 +87,9 @@ with the commands in `docs/DEVELOPMENT.md`.
 
 5. Inspect the diff. `pubspec.yaml` must have the prepared version with no
    build suffix. Every locale changelog must gain the same version, type, and
-   date, with translated note text. A re-run with identical input is safe and
-   must not duplicate entries.
+   date, with translated note text. A `major` entry must also gain a
+   translated `summary`; a `minor` entry must not have one. A re-run with
+   identical input is safe and must not duplicate entries.
 
 6. Verify the release, commit, push the branch, and open a PR:
 

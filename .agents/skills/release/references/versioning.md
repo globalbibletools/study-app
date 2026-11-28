@@ -103,6 +103,8 @@ Prints only the version by default. With `--json` it prints:
 - Rewrites `pubspec.yaml` to the version with no build suffix.
 - For public releases, requires exactly one of `--changelog PATH` or
   `--no-changelog`. Betas must not add a changelog entry.
+- Requires a per-locale `summary` in the input for `major` entries, forbids
+  one for `minor` entries, and writes it into each locale entry.
 - Discovers app locales from `lib/l10n/app_<locale>.arb` and requires a
   matching `assets/l10n/changelog_<locale>.json` for each, with no extra
   changelog files. It validates that every locale has the same

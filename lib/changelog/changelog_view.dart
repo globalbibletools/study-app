@@ -108,6 +108,13 @@ class _ChangelogCard extends StatelessWidget {
                 ],
               ),
             ),
+            if (entry.summary != null)
+              Semantics(
+                container: true,
+                label: entry.summary,
+                excludeSemantics: true,
+                child: Text(entry.summary!, style: textTheme.bodyMedium),
+              ),
             Semantics(
               role: SemanticsRole.list,
               container: true,

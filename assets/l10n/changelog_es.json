@@ -3,6 +3,7 @@
     "version": "26.9.0",
     "date": "2026-10-01",
     "type": "major",
+    "summary": "Los recursos descargables ahora son más fáciles de gestionar con una nueva página Descargas que incluye traducciones de la Biblia, glosas y audio.",
     "changes": [
       "Descarga y gestiona Biblias, glosas y audio.",
       "Nuevos ajustes para la traducción de la Biblia y el idioma del glosario.",

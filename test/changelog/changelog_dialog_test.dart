@@ -35,9 +35,16 @@ void main() {
     String version,
     String date,
     String type,
-    List<String> changes,
-  ) {
-    return {'version': version, 'date': date, 'type': type, 'changes': changes};
+    List<String> changes, {
+    String? summary,
+  }) {
+    return {
+      'version': version,
+      'date': date,
+      'type': type,
+      if (type == 'major') 'summary': summary ?? 'Summary for $version.',
+      'changes': changes,
+    };
   }
 
   ChangelogService createService(List<Map<String, dynamic>> entries) {
@@ -112,10 +119,8 @@ void main() {
 
     expect(find.byType(ChangelogDialog), findsOneWidget);
     expect(find.text("What's new"), findsOneWidget);
-    expect(
-      find.text('See what changed in this version of the app.'),
-      findsOneWidget,
-    );
+    expect(find.text('2.0.0'), findsOneWidget);
+    expect(find.text('Summary for 2.0.0.'), findsOneWidget);
     expect(find.text('Read changelog'), findsOneWidget);
     expect(find.text('Dismiss'), findsOneWidget);
     expect(settings.lastSeenChangelogVersion, '1.0.0');

@@ -43,6 +43,32 @@ void main() {
     }
   });
 
+  test('every major entry has a summary and no minor entry does', () {
+    for (final locale in locales) {
+      for (final entry in readEntries(locale)) {
+        switch (entry['type']) {
+          case 'major':
+            expect(
+              entry['summary'],
+              isA<String>(),
+              reason: '$locale ${entry['version']} needs a summary',
+            );
+            expect(
+              (entry['summary'] as String).trim(),
+              isNotEmpty,
+              reason: '$locale ${entry['version']} has an empty summary',
+            );
+          case 'minor':
+            expect(
+              entry.containsKey('summary'),
+              isFalse,
+              reason: '$locale ${entry['version']} must not have a summary',
+            );
+        }
+      }
+    }
+  });
+
   test('every entry is well formed', () {
     for (final locale in locales) {
       for (final entry in readEntries(locale)) {

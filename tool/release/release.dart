@@ -261,17 +261,20 @@ class ChangelogEntry {
     required this.date,
     required this.type,
     required List<String> changes,
+    this.summary,
   }) : changes = List.unmodifiable(changes);
 
   final ReleaseVersion version;
   final String date;
   final String type;
+  final String? summary;
   final List<String> changes;
 
   Map<String, Object?> toJson() => {
     'version': version.name,
     'date': date,
     'type': type,
+    'summary': ?summary,
     'changes': changes,
   };
 
@@ -312,6 +315,24 @@ class ChangelogEntry {
       throw ReleaseException('$source: "type" must be "major" or "minor".');
     }
 
+    final summaryValue = value['summary'];
+    final String? summary;
+    if (typeValue == 'major') {
+      if (summaryValue is! String || summaryValue.trim().isEmpty) {
+        throw ReleaseException(
+          '$source: major entries need a non-empty "summary" string.',
+        );
+      }
+      summary = summaryValue;
+    } else {
+      if (value.containsKey('summary')) {
+        throw ReleaseException(
+          '$source: minor entries must not have a "summary".',
+        );
+      }
+      summary = null;
+    }
+
     final changesValue = value['changes'];
     if (changesValue is! List || changesValue.isEmpty) {
       throw ReleaseException('$source needs a non-empty "changes" array.');
@@ -330,6 +351,7 @@ class ChangelogEntry {
       version: version,
       date: dateValue,
       type: typeValue as String,
+      summary: summary,
       changes: changes,
     );
   }
@@ -439,10 +461,11 @@ void _checkSequence(ChangelogFile reference, ChangelogFile other) {
 }
 
 class ChangelogInput {
-  ChangelogInput({required this.type, required this.changes});
+  ChangelogInput({required this.type, required this.changes, this.summary});
 
   final String type;
   final Map<String, List<String>> changes;
+  final Map<String, String>? summary;
 
   static ChangelogInput parse(String content, {required String source}) {
     Object? decoded;
@@ -455,7 +478,7 @@ class ChangelogInput {
       throw ReleaseException('$source must contain a JSON object.');
     }
 
-    const expectedKeys = {'type', 'changes'};
+    const expectedKeys = {'type', 'changes', 'summary'};
     final unknown = decoded.keys.toSet().difference(expectedKeys);
     if (unknown.isNotEmpty) {
       throw ReleaseException(
@@ -466,6 +489,36 @@ class ChangelogInput {
     final typeValue = decoded['type'];
     if (typeValue != 'major' && typeValue != 'minor') {
       throw ReleaseException('$source: "type" must be "major" or "minor".');
+    }
+
+    final summaryValue = decoded['summary'];
+    final Map<String, String>? summary;
+    if (typeValue == 'major') {
+      if (summaryValue is! Map<String, dynamic> || summaryValue.isEmpty) {
+        throw ReleaseException(
+          '$source: major entries need a non-empty "summary" object '
+          'keyed by locale.',
+        );
+      }
+      final summaries = <String, String>{};
+      for (final entry in summaryValue.entries) {
+        final value = entry.value;
+        if (value is! String || value.trim().isEmpty) {
+          throw ReleaseException(
+            '$source: summary for "${entry.key}" must be a non-empty '
+            'string.',
+          );
+        }
+        summaries[entry.key] = value;
+      }
+      summary = Map.unmodifiable(summaries);
+    } else {
+      if (decoded.containsKey('summary')) {
+        throw ReleaseException(
+          '$source: minor entries must not have a "summary".',
+        );
+      }
+      summary = null;
     }
 
     final changesValue = decoded['changes'];
@@ -496,9 +549,28 @@ class ChangelogInput {
       changes[entry.key] = List.unmodifiable(notes);
     }
 
+    if (summary != null) {
+      final changeLocales = changes.keys.toSet();
+      final summaryLocales = summary.keys.toSet();
+      final missing = changeLocales.difference(summaryLocales).toList()..sort();
+      final extra = summaryLocales.difference(changeLocales).toList()..sort();
+      if (missing.isNotEmpty) {
+        throw ReleaseException(
+          '$source: summary is missing locale(s): ${missing.join(', ')}.',
+        );
+      }
+      if (extra.isNotEmpty) {
+        throw ReleaseException(
+          '$source: summary has locale(s) without changes: '
+          '${extra.join(', ')}.',
+        );
+      }
+    }
+
     return ChangelogInput(
       type: typeValue as String,
       changes: Map.unmodifiable(changes),
+      summary: summary,
     );
   }
 }
@@ -571,11 +643,13 @@ List<ChangelogWrite> planChangelogAppend(
   final writes = <ChangelogWrite>[];
   for (final file in set.files) {
     final changes = input.changes[file.locale]!;
+    final summary = input.summary?[file.locale];
     final previous = file.entries.isEmpty ? null : file.entries.last;
     if (previous != null && previous.version == version) {
       final same =
           previous.date == dateText &&
           previous.type == input.type &&
+          previous.summary == summary &&
           _sameStrings(previous.changes, changes);
       if (!same) {
         throw ReleaseException(
@@ -599,6 +673,7 @@ List<ChangelogWrite> planChangelogAppend(
       version: version,
       date: dateText,
       type: input.type,
+      summary: summary,
       changes: changes,
     );
     writes.add(

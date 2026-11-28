@@ -32,14 +32,20 @@ class ChangelogService {
     return future;
   }
 
-  Future<bool> shouldShowUpdateDialog(Locale locale) async {
+  Future<ChangelogEntry?> latestUnseenMajor(Locale locale) async {
     final entries = await loadEntries(locale);
     if (_settings.lastSeenChangelogVersion == null) {
       await markLatestSeen();
-      return false;
+      return null;
     }
 
-    return hasUnseenMajor(entries);
+    ChangelogEntry? latest;
+    for (final entry in unseenEntries(entries)) {
+      if (entry.type == ChangelogEntryType.major) {
+        latest = entry;
+      }
+    }
+    return latest;
   }
 
   List<ChangelogEntry> unseenEntries(List<ChangelogEntry> entries) {
