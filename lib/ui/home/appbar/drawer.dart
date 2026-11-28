@@ -1,16 +1,11 @@
-import 'package:file_picker/file_picker.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:gbt/changelog/changelog_view.dart';
-import 'package:gbt/services/logging/app_logger.dart';
-import 'package:gbt/services/logging/log.dart';
-import 'package:gbt/services/logging/log_exporter.dart';
 import 'package:gbt/services/resources/resource_service.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/about/about.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/reading_plan/ui/backup_restore_page.dart';
 import 'package:gbt/ui/download/download_manager_page.dart';
-import 'package:gbt/ui/messaging/messenger_view_model.dart';
 import 'package:gbt/ui/search/search.dart';
 import 'package:gbt/ui/settings/settings_page.dart';
 
@@ -19,8 +14,6 @@ class AppDrawer extends StatelessWidget {
 
   final VoidCallback onSettingsClosed;
   final _resourceService = getIt<ResourceService>();
-  final _messenger = getIt<MessengerViewModel>();
-  final _logger = getIt<AppLogger>();
 
   @override
   Widget build(BuildContext context) {
@@ -122,48 +115,9 @@ class AppDrawer extends StatelessWidget {
                 );
               },
             ),
-            ListTile(
-              title: Text(AppLocalizations.of(context)!.exportLogs),
-              leading: const Icon(Icons.archive_outlined),
-              onTap: () => _exportLogs(context),
-            ),
           ],
         ),
       ),
     );
-  }
-
-  Future<void> _exportLogs(BuildContext context) async {
-    final l10n = AppLocalizations.of(context)!;
-
-    Navigator.pop(context);
-
-    try {
-      await _logger.flush();
-      final now = DateTime.now();
-      final exporter = await LogExporter.createDefault();
-
-      final bytes = await exporter.getExportAsBytes(now: now);
-      if (bytes.isEmpty) {
-        _messenger.showWarning(l10n.noLogsToExport);
-        return;
-      }
-
-      final targetUri = await FilePicker.saveFile(
-        dialogTitle: l10n.chooseLogLocation,
-        fileName: LogExporter.exportFileNameForDate(now),
-        bytes: bytes,
-        mimeType: 'application/zip',
-      );
-
-      if (targetUri == null) {
-        return;
-      }
-
-      _messenger.showSuccess(l10n.logsExported);
-    } catch (e, stackTrace) {
-      error('Failed to export logs', error: e, stackTrace: stackTrace);
-      _messenger.showError(l10n.logExportFailed);
-    }
   }
 }

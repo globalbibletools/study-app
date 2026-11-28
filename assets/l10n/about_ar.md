@@ -4,6 +4,8 @@
 
 [الشيفرة المصدرية](https://github.com/globalbibletools/study-app) متاحة للملكية العامة. إذا وجدت خطأً، يمكنك مراسلتنا عبر البريد الإلكتروني [contact@ethnos.dev](copy-email:contact@ethnos.dev).
 
+<!-- export-logs -->
+
 ## موارد الطرف الثالث
 
 - **المعجم**: [قاموس UBS للعبرية واليونانية الكتابية](https://github.com/ubsicap/ubs-open-license/tree/main/dictionaries)

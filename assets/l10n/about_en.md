@@ -4,6 +4,8 @@ This reader's Bible app is from [Global Bible Tools](https://globalbibletools.co
 
 The [source code](https://github.com/globalbibletools/study-app) is in the public domain. If you find a bug, you can email [contact@ethnos.dev](copy-email:contact@ethnos.dev).
 
+<!-- export-logs -->
+
 ## Third-party resources
 
 - **Lexicon**: [UBS Dictionary of Biblical Hebrew/Greek](https://github.com/ubsicap/ubs-open-license/tree/main/dictionaries)
