@@ -87,6 +87,10 @@ reverse later.
 
 Extraction order within this phase is by reuse count, not by atomicity —
 extract what is duplicated today, leave the rest in place until touched.
+Extraction targets are the [foundation's
+groups](../decisions/2026-11-27-shared-design-foundation.md): atoms land in
+`lib/design/elements/`, molecules and organisms in `lib/design/components/`,
+and shared layouts in `lib/design/templates/`.
 
 9. **Settings row / chooser row.** Six hand-rolled instances across the
    settings sections; a `SelectionRow` molecule (with segmented, list, and

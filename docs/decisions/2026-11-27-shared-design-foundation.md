@@ -51,12 +51,44 @@ work begins, because every extracted piece needs somewhere to land.
    or view-model wiring gets a thin container in the consuming slice that
    feeds a presentational component from the foundation.
 
+5. **Presentation code is organized into three named groups.** Atomic
+   design's vocabulary maps onto directory names, so classification is
+   visible without reading a component's body:
+
+   In `lib/design/`:
+   - tokens stay at the root — `theme.dart`, the abstract final constant
+     classes, and any `ThemeExtension` (the values everything else is
+     built from, not a group).
+   - `elements/` — atoms: single-purpose controls (a button, a text
+     input, a stepper).
+   - `components/` — molecules and organisms: composed controls, small
+     dialogs, form groups.
+   - `templates/` — shared layouts: page scaffolds, dialog chrome,
+     bottom-sheet chrome.
+
+   In each vertical slice:
+   - `components/` — domain-specific components (the slice's reusable
+     presentation, e.g. a verse list item).
+   - `templates/` — domain-specific layouts reused by several views.
+   - `views/` — the concrete pages, dialogs, and bottom sheets the app
+     navigates to.
+
+   A component moves between groups when its body changes in kind —
+   an element that starts composing other elements becomes a component.
+   It moves between the foundation and a slice only by the genericity
+   rule in decision 2.
+
 # Implementation Notes
 
-- Tests mirror the path under `test/design/`.
+- Tests mirror the path under `test/design/` (e.g. `test/design/elements/`).
+- The three groups are created as directories when they receive their
+  first file, not before; empty directories carry no information.
 - `lib/ui/common/` is the legacy location for shared UI. It is not extended;
-  its contents migrate into `lib/design/` when touched, with the same
-  opportunistic rule as slices: migrate when worked on, no big-bang sweep.
+  its contents migrate into the matching `lib/design/` group when touched,
+  with the same opportunistic rule as slices: migrate when worked on, no
+  big-bang sweep. Slice `ui/` directories (e.g. `reading_plan/ui/`) likewise
+  reorganize into `components/`, `templates/`, and `views/` when the slice
+  is worked on.
 - Domain-specific widgets that are rendered by multiple slices (for example
   a verse list item) stay in the owning slice, and other slices render them
   under the existing cross-slice widget rules in
@@ -73,6 +105,15 @@ work begins, because every extracted piece needs somewhere to land.
 
 # Alternatives
 
+- **Keep atomic design's own names (`atoms/`, `molecules/`, `organisms/`):**
+  Discarded. The vocabulary is useful for thinking but names groups by
+  abstraction level rather than by what a developer is looking for;
+  "elements" and "components" say what goes in more directly, and
+  "templates" matches the layouts they hold.
+- **A single flat `lib/design/` for all foundation widgets:** Discarded.
+  The inventory spans a progress circle and a settings row; without
+  groups, discoverability degrades to `lib/ui/common/`'s grab-bag drift,
+  just with a better address.
 - **Extract only on second use (promotion rule):** Discarded. It minimizes
   speculative code but hurts discoverability — the second consumer has
   already hand-rolled a copy by the time promotion triggers, and a new
