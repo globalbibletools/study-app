@@ -204,28 +204,41 @@ things are scoped to the view that cares about them.
 
 ### The construction pattern
 
-Every class that has dependencies offers both of these:
+Every class that needs a shared reference resolves it from the locator
+itself, in exactly one place: its own constructor. Instance data — a plan
+id, a target day, a narrow function seam like the verse-inventory provider —
+arrives as a parameter. There is no second constructor and no optional
+`?? getIt` parameter anywhere; adding a dependency edits one file.
 
-- A **`withDependencies` constructor** taking every dependency explicitly.
-  This is the test seam: tests construct the class with fakes directly,
-  without touching getIt.
-- A **default constructor** that fills the same dependencies in from getIt.
-  This is the production seam, and it is the sanctioned way dependencies
-  arrive: injection happens through getIt.
+Because of this, getIt may be called from the service locator itself, from
+constructors and static factories (including `navigateTo` helpers resolving
+the global view models they use, up front), and from test code. Never in
+methods, getters, or `late` fields. Resolution happens once, at construction;
+afterwards the object simply has its dependencies.
 
-Because of this, `getIt` may be called from exactly two places: the service
-locator itself, and these default constructors. Nowhere else — not in field
-initializers, not mid-method, not `late final x = getIt<T>()`. Resolution
-happens once, at construction; afterwards the object simply has its
-dependencies and never reaches for the locator again. (Classes that resolve
-lazily after construction — a current habit — hide their dependencies from
-callers and make test fakes impossible.)
+The constructor body is the dependency list, and it stays the design signal:
+ask for exactly what the class uses, nothing more. An oversized resolution
+list means the class does too much, and a dependency that would cross
+sideways across a slice boundary becomes a narrow function or interface seam
+(the verse-inventory-provider approach), which is instance data and
+therefore a parameter.
 
-Ask for exactly what the class uses, nothing more. A short dependency list
-keeps test construction small, and an oversized one is a visible signal that
-a class does too much. Dependencies that would cross sideways across a
-boundary become narrow function or interface seams — the
-verse-inventory-provider approach — so the fake can be a one-line lambda.
+The locator is also the test seam. Tests seed it: fakes register exactly
+like real things. A per-slice test stack registers the standard
+real-but-cheap set (in-memory databases, real services) plus the few fakes
+that genuinely need stubbing (`FakeNavigationViewModel`,
+`FakeMessengerViewModel`), and a test overrides a registration only when it
+needs something special. Registration is always load-bearing — there is
+exactly one way a dependency arrives, so there is never a question of which
+wiring is required and which is leftover.
+
+The costs accepted for this: tests always seed the locator, so `getIt
+.reset()` discipline in teardown is load-bearing; and the locator holds one
+live instance of a type, so a type that needs several differently
+configured instances at once keeps explicit constructor parameters and is
+constructed at its call site. One sanctioned exception: the guarded
+resolution in the logging infrastructure, which must function before and
+without registration.
 
 ### Registration and lifetime
 
