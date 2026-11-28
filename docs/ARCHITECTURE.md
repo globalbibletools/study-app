@@ -197,80 +197,20 @@ convention as `lib/services` → `test/services` without a `lib/` segment.
 
 ## Dependency injection
 
-Dependency injection exists for **shared references**: databases, services,
-and global view models. These are things whose lifetime is the process and
-which several parts of the app need. The registered set stays small; most
-things are scoped to the view that cares about them.
-
-### The construction pattern
-
-Every class that needs a shared reference resolves it from the locator
-itself, in exactly one place: its own constructor. Instance data — a plan
-id, a target day, a narrow function seam like the verse-inventory provider —
-arrives as a parameter. There is no second constructor and no optional
-`?? getIt` parameter anywhere; adding a dependency edits one file.
-
-Because of this, getIt may be called from the service locator itself, from
-constructors and static factories (including `navigateTo` helpers resolving
-the global view models they use, up front), and from test code. Never in
-methods, getters, or `late` fields. Resolution happens once, at construction;
-afterwards the object simply has its dependencies.
-
-The constructor body is the dependency list, and it stays the design signal:
-ask for exactly what the class uses, nothing more. An oversized resolution
-list means the class does too much, and a dependency that would cross
-sideways across a slice boundary becomes a narrow function or interface seam
-(the verse-inventory-provider approach), which is instance data and
-therefore a parameter.
-
-The locator is also the test seam. Tests seed it: fakes register exactly
-like real things. A per-slice test stack registers the standard
-real-but-cheap set (in-memory databases, real services) plus the few fakes
-that genuinely need stubbing (`FakeNavigationViewModel`,
-`FakeMessengerViewModel`), and a test overrides a registration only when it
-needs something special. Registration is always load-bearing — there is
-exactly one way a dependency arrives, so there is never a question of which
-wiring is required and which is leftover.
-
-The costs accepted for this: tests always seed the locator, so `getIt
-.reset()` discipline in teardown is load-bearing; and the locator holds one
-live instance of a type, so a type that needs several differently
-configured instances at once keeps explicit constructor parameters and is
-constructed at its call site. One sanctioned exception: the guarded
-resolution in the logging infrastructure, which must function before and
-without registration.
-
-### Registration and lifetime
-
-All shared composition happens in the service locator: if a class is shared,
-it is registered there, and nowhere is it constructed ad hoc.
-
-- **Databases and services**: registered lazily. They initialize on first
-  use, and `registerSingletonAsync` ensures concurrent first-callers share
-  one `init()` rather than racing. Only what the first frame genuinely
-  needs is awaited at startup — everything else stays lazy so the app does
-  not block on resources it may not open this session.
-- **Global view models**: registered eagerly, since they are global — the
-  app cannot be half-initialized. Use the async registration when they
-depend on async things like settings.
-
-Ownership and disposal is the flip side of registration: **whatever
-constructs a thing disposes it.** Registered singletons live for the process
-and are never disposed by a widget; page-scoped view models are constructed
-*and* disposed by their page, and never registered. A widget disposing an
-object it did not construct is a layering violation (the registered-but-
-widget-disposed manager is the failure mode to avoid). The test: if it needs
-disposal when a screen goes away, it cannot be registered.
-
-Cycles are not a wiring problem. Lazy singletons make mutual dependencies
-runnable, which only hides the real issue: a missing third thing that owns
-the shared concern, or a wrong ownership split. The locator never contains a
-workaround for a cycle.
-
-Widgets never participate: the locator holds databases, services, and global
-view models — never widgets — and no widget asks the locator for anything except
-global view models. A page constructs its view model; children receive theirs
-through constructors from their parent.
+- Dependency injection exists for **shared references**: databases, services,
+  and global view models.
+- These are things whose lifetime is the process and which several parts of the
+  app need. These objects should not be disposed.
+- Register shared references in the service locator.
+- View models are eagerly initialized because they are global app state.
+- Other references like services and databases can be lazy initialized for
+  faster startup on non-critical paths.
+- Widgets are never registered as shared references.
+- Import cycles among shared references is prohibited.
+- Only inject shared references in constructors. This allows constructors to
+  document a class's dependencies.
+- Tests can seed fake versions of shared references to isolate a vertical slice.
+  `getIt.reset()` is necessary after each test.
 
 ## Reactivity
 
