@@ -8,6 +8,7 @@ import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/l10n/localizations.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/services/settings/user_settings.dart';
+import 'package:gbt/ui/messaging/messenger_view_model.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -38,9 +39,9 @@ void main() {
       },
     ];
 
+    getIt.registerSingleton<UserSettings>(settings);
     getIt.registerSingleton<ChangelogService>(
-      ChangelogService.withDependencies(
-        settings: settings,
+      ChangelogService(
         assetLoader: (path) async {
           if (path == 'assets/l10n/changelog_en.json') {
             return jsonEncode(entries);
@@ -70,9 +71,7 @@ void main() {
     final entries = await service.loadEntries(const Locale('en'));
     expect(settings.lastSeenChangelogVersion, isNull);
 
-    await tester.pumpWidget(
-      buildApp(ChangelogView(entries: entries, service: service)),
-    );
+    await tester.pumpWidget(buildApp(ChangelogView(entries: entries)));
     await tester.pumpAndSettle();
 
     final newest = tester.getTopLeft(find.text('1.1.0')).dy;
@@ -107,6 +106,7 @@ void main() {
   testWidgets('navigateTo opens the changelog after loading', (tester) async {
     final messenger = FakeMessengerViewModel();
     addTearDown(messenger.dispose);
+    getIt.registerSingleton<MessengerViewModel>(messenger);
 
     await tester.pumpWidget(
       buildApp(
@@ -115,9 +115,7 @@ void main() {
             return Scaffold(
               body: Center(
                 child: ElevatedButton(
-                  onPressed: () {
-                    ChangelogView.navigateTo(context, messenger: messenger);
-                  },
+                  onPressed: () => ChangelogView.navigateTo(context),
                   child: const Text('Open changelog'),
                 ),
               ),
@@ -141,10 +139,12 @@ void main() {
   ) async {
     final messenger = FakeMessengerViewModel();
     addTearDown(messenger.dispose);
-    final failingService = ChangelogService.withDependencies(
-      settings: settings,
+    final failingService = ChangelogService(
       assetLoader: (path) async => throw Exception('Missing asset: $path'),
     );
+    getIt.unregister<ChangelogService>();
+    getIt.registerSingleton<ChangelogService>(failingService);
+    getIt.registerSingleton<MessengerViewModel>(messenger);
 
     await tester.pumpWidget(
       buildApp(
@@ -153,13 +153,7 @@ void main() {
             return Scaffold(
               body: Center(
                 child: ElevatedButton(
-                  onPressed: () {
-                    ChangelogView.navigateTo(
-                      context,
-                      service: failingService,
-                      messenger: messenger,
-                    );
-                  },
+                  onPressed: () => ChangelogView.navigateTo(context),
                   child: const Text('Open changelog'),
                 ),
               ),

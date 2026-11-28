@@ -9,15 +9,11 @@ import 'package:gbt/services/settings/user_settings.dart';
 typedef ChangelogAssetLoader = Future<String> Function(String path);
 
 class ChangelogService {
-  ChangelogService() : this.withDependencies(settings: getIt<UserSettings>());
+  final _settings = getIt<UserSettings>();
 
-  ChangelogService.withDependencies({
-    required UserSettings settings,
-    ChangelogAssetLoader? assetLoader,
-  }) : _settings = settings,
-       _loadAsset = assetLoader ?? rootBundle.loadString;
+  ChangelogService({ChangelogAssetLoader? assetLoader})
+    : _loadAsset = assetLoader ?? rootBundle.loadString;
 
-  final UserSettings _settings;
   final ChangelogAssetLoader _loadAsset;
 
   String? _cachedLanguageCode;

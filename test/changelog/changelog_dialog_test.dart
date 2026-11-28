@@ -27,6 +27,7 @@ void main() {
     SharedPreferences.setMockInitialValues(values);
     settings = UserSettings();
     await settings.init();
+    getIt.registerSingleton<UserSettings>(settings);
     logs.clear();
   }
 
@@ -40,8 +41,7 @@ void main() {
   }
 
   ChangelogService createService(List<Map<String, dynamic>> entries) {
-    return ChangelogService.withDependencies(
-      settings: settings,
+    return ChangelogService(
       assetLoader: (path) async {
         if (path == 'assets/l10n/changelog_en.json') {
           return jsonEncode(entries);
@@ -52,18 +52,22 @@ void main() {
   }
 
   ChangelogService createFailingService() {
-    return ChangelogService.withDependencies(
-      settings: settings,
+    return ChangelogService(
       assetLoader: (path) async => throw Exception('Missing asset: $path'),
     );
   }
 
   Widget buildApp(ChangelogService service, {MessengerViewModel? messenger}) {
+    getIt.registerSingleton<ChangelogService>(service);
+    if (messenger != null) {
+      getIt.registerSingleton<MessengerViewModel>(messenger);
+    }
+
     return MaterialApp(
       locale: const Locale('en'),
       localizationsDelegates: appLocalizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
-      home: _StartupHost(service: service, messenger: messenger),
+      home: const _StartupHost(),
     );
   }
 
@@ -212,10 +216,7 @@ void main() {
 }
 
 class _StartupHost extends StatefulWidget {
-  const _StartupHost({required this.service, this.messenger});
-
-  final ChangelogService service;
-  final MessengerViewModel? messenger;
+  const _StartupHost();
 
   @override
   State<_StartupHost> createState() => _StartupHostState();
@@ -226,11 +227,7 @@ class _StartupHostState extends State<_StartupHost> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ChangelogDialog.showOnStartup(
-        context,
-        service: widget.service,
-        messenger: widget.messenger,
-      );
+      ChangelogDialog.showOnStartup(context);
     });
   }
 

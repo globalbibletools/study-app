@@ -3,18 +3,13 @@ import 'package:gbt/changelog/changelog_view.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/services/logging/log.dart';
 import 'package:gbt/services/service_locator.dart';
-import 'package:gbt/ui/messaging/messenger_view_model.dart';
 import 'package:material_ui/material_ui.dart';
 
 class ChangelogDialog extends StatelessWidget {
   const ChangelogDialog({super.key});
 
-  static Future<void> showOnStartup(
-    BuildContext context, {
-    ChangelogService? service,
-    MessengerViewModel? messenger,
-  }) async {
-    final changelogService = service ?? getIt<ChangelogService>();
+  static Future<void> showOnStartup(BuildContext context) async {
+    final changelogService = getIt<ChangelogService>();
     final locale = Localizations.localeOf(context);
 
     bool shouldShow;
@@ -38,11 +33,7 @@ class ChangelogDialog extends StatelessWidget {
 
     if (readChangelog == true) {
       if (!context.mounted) return;
-      await ChangelogView.navigateTo(
-        context,
-        service: changelogService,
-        messenger: messenger,
-      );
+      await ChangelogView.navigateTo(context);
     } else {
       await changelogService.markLatestSeen();
     }
