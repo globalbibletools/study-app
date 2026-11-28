@@ -89,7 +89,7 @@ class _ParallelTranslationsSheetState extends State<ParallelTranslationsSheet> {
 
     if (!isInstalled) {
       if (!mounted) return;
-      final downloaded = await ResourceUIHelper.ensureResource(
+      final downloaded = await ResourceUIHelper().ensureResource(
         context,
         ResourceType.bible,
         resource.id,

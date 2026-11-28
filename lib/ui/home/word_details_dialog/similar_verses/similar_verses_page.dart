@@ -34,6 +34,7 @@ class SimilarVersesPage extends StatefulWidget {
 
 class _SimilarVersesPageState extends State<SimilarVersesPage> {
   final manager = SimilarVerseManager();
+  final _homeManager = getIt<HomeManager>();
   late final ScrollController _scrollController;
   SearchType _searchType = SearchType.root;
 
@@ -69,10 +70,9 @@ class _SimilarVersesPageState extends State<SimilarVersesPage> {
           ? _scrollController.offset
           : 0.0,
     );
-    final homeManager = getIt<HomeManager>();
-    homeManager.jumpToContextReference(contextData);
-    if (homeManager.wordStudySessionNotifier.value != null) {
-      homeManager.setWordStudyOverlayVisible(false);
+    _homeManager.jumpToContextReference(contextData);
+    if (_homeManager.wordStudySessionNotifier.value != null) {
+      _homeManager.setWordStudyOverlayVisible(false);
     } else {
       Navigator.popUntil(context, (route) => route.isFirst);
     }

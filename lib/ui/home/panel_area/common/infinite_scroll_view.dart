@@ -47,8 +47,8 @@ class InfiniteScrollView extends StatefulWidget {
 }
 
 class InfiniteScrollViewState extends State<InfiniteScrollView> {
-  late final _bibleNavigation = getIt<BibleNavigation>();
-  late final _navigationViewModel = getIt<NavigationViewModel>();
+  final _bibleNavigation = getIt<BibleNavigation>();
+  final _navigationViewModel = getIt<NavigationViewModel>();
   late final ScrollController _scrollController;
   final List<ChapterIdentifier> _displayedChapters = [];
   late ChapterIdentifier _centerChapter;

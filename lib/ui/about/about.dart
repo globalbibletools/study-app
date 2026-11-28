@@ -70,7 +70,7 @@ class _AboutPageState extends State<AboutPage> {
               const SizedBox(height: 32),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: const LocalizedMarkdownViewer(
+                child: LocalizedMarkdownViewer(
                   fileName: 'about', // localized
                 ),
               ),

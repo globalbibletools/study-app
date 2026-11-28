@@ -7,9 +7,10 @@ import 'package:gbt/ui/messaging/messenger_view_model.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class LocalizedMarkdownViewer extends StatelessWidget {
-  final String fileName;
+  LocalizedMarkdownViewer({super.key, required this.fileName});
 
-  const LocalizedMarkdownViewer({super.key, required this.fileName});
+  final String fileName;
+  final _messenger = getIt<MessengerViewModel>();
 
   Future<String> _loadMarkdown(BuildContext context) async {
     final locale = Localizations.localeOf(context);
@@ -68,7 +69,6 @@ class LocalizedMarkdownViewer extends StatelessWidget {
               if (href == null) return;
 
               final l10n = AppLocalizations.of(context)!;
-              final messenger = getIt<MessengerViewModel>();
 
               // CASE 1: Specific "Copy Email" action
               if (href.startsWith('copy-email:')) {
@@ -76,7 +76,7 @@ class LocalizedMarkdownViewer extends StatelessWidget {
 
                 await Clipboard.setData(ClipboardData(text: email));
 
-                messenger.showSuccess(l10n.emailCopied);
+                _messenger.showSuccess(l10n.emailCopied);
               }
               // CASE 2: Standard Links (Web, etc)
               else {

@@ -91,8 +91,9 @@ class HomeManager {
   final _settings = getIt<UserSettings>();
   final readingSessionViewModel = getIt<ReadingSessionViewModel>();
   final appGuideManager = getIt<AppGuideManager>();
+  final _appState = getIt<AppState>();
 
-  late final navigationViewModel = getIt<NavigationViewModel>();
+  final navigationViewModel = getIt<NavigationViewModel>();
 
   StreamSubscription<HardNavigation>? _hardNavigationSubscription;
 
@@ -126,17 +127,16 @@ class HomeManager {
   }
 
   Future<void> checkOnboarding(BuildContext context) async {
-    final settings = getIt<UserSettings>();
-    if (settings.hasSetLocale) return;
+    if (_settings.hasSetLocale) return;
 
     final systemLocale = View.of(context).platformDispatcher.locale;
     final isSupported = AppLanguages.supported.any(
       (l) => l.code == systemLocale.languageCode,
     );
 
-    await settings.setLocale(isSupported ? systemLocale.languageCode : 'en');
+    await _settings.setLocale(isSupported ? systemLocale.languageCode : 'en');
 
-    getIt<AppState>().init();
+    _appState.init();
   }
 
   void notifySettingsChanged() {

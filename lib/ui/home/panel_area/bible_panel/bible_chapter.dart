@@ -79,7 +79,7 @@ class _BibleChapterState extends State<BibleChapter> {
   }
 
   Future<void> _handleMissingBible(String bibleId) async {
-    final success = await ResourceUIHelper.ensureResource(
+    final success = await ResourceUIHelper().ensureResource(
       context,
       ResourceType.bible,
       bibleId,
