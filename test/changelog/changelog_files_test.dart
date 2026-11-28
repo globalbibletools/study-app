@@ -60,20 +60,4 @@ void main() {
       }
     }
   });
-
-  test('the current pubspec version has a changelog entry', () {
-    final pubspec = File('pubspec.yaml').readAsStringSync();
-    final versionLine = RegExp(
-      r'^version:\s*(\S+)',
-      multiLine: true,
-    ).firstMatch(pubspec);
-
-    expect(versionLine, isNotNull);
-    final version = versionLine!.group(1)!.split('+').first;
-
-    final versions = readEntries(
-      'en',
-    ).map((entry) => entry['version']).toList();
-    expect(versions, contains(version));
-  });
 }

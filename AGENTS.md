@@ -18,6 +18,9 @@ them in yourself:
   written, not necessarily how it is today.
 - `docs/DEVELOPMENT.md` — practical details for day-to-day work. Use this when
   you need to understand how tools are used or how work is done.
+- `docs/RELEASING.md` — release and versioning workflow. Any release or
+  version change must use the tested CLI and the cross-agent skill at
+  `.agents/skills/release/SKILL.md`.
 - `docs/decisions/` — records of significant architecture decisions. Reference
   these before making any kind of architectural change or cleanup.
 
