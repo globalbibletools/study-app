@@ -4,6 +4,8 @@ Cette application biblique de lecture provient de [Global Bible Tools](https://g
 
 Le [code source](https://github.com/globalbibletools/study-app) est dans le domaine public. Si vous trouvez un bug, vous pouvez envoyer un e-mail à [contact@ethnos.dev](copy-email:contact@ethnos.dev).
 
+<!-- export-logs -->
+
 ## Ressources tierces
 
 - **Lexique**: [Dictionnaire UBS d'hébreu/grec biblique](https://github.com/ubsicap/ubs-open-license/tree/main/dictionaries)

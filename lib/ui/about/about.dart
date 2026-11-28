@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 
+import 'export_logs_button.dart';
 import 'markdown_viewer.dart';
 
 class AboutPage extends StatefulWidget {
@@ -72,6 +73,8 @@ class _AboutPageState extends State<AboutPage> {
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
                 child: LocalizedMarkdownViewer(
                   fileName: 'about', // localized
+                  splitMarker: '<!-- export-logs -->',
+                  insertion: ExportLogsButton(),
                 ),
               ),
             ],
