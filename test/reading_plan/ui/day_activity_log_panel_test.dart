@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gbt/asyncutils/serial_queue.dart';
 import 'package:gbt/l10n/app_localizations.dart';
+import 'package:gbt/design/theme.dart';
 import 'package:gbt/l10n/localizations.dart';
 import 'package:gbt/reading_plan/data_access/reading_plan_queries.dart';
 import 'package:gbt/reading_plan/data_access/reading_plan_read_models.dart';
@@ -114,6 +115,7 @@ void main() {
   Widget buildApp(Widget home) {
     return MaterialApp(
       locale: const Locale('en'),
+      theme: lightTheme,
       localizationsDelegates: appLocalizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       builder: (context, child) => Material(

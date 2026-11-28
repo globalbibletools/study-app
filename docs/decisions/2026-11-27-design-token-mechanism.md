@@ -66,12 +66,16 @@ constants), and scripture typography sizes (user-adjustable, domain-coupled).
    direct reference — traded for zero ceremony on the values that never
    vary.
 
-3. **The severity palette becomes a `ThemeExtension`.** It is the first
+3. **The severity palette is a `ThemeExtension`.** It is the first
    sanctioned extension: a multi-color family that must differ per
-   brightness, with no `ColorScheme` slots for success/warning/info
-   backgrounds and icons. It is registered in both themes in
-   `lib/design/` and consumed via
-   `Theme.of(context).extension<SeverityColors>()!`.
+   brightness and that `ColorScheme` has no honest slot for. `ColorScheme`
+   roles are predetermined Material 3 semantics — `secondaryContainer` is
+   the muted brand container that `FilledButton.tonal`, `Badge`, and
+   filter chips read automatically, not a free slot — so repurposing them
+   for severity would silently restyle any future stock component that
+   consumes them. The extension is registered in both themes in
+   `lib/design/` and consumed via `context.severityColors`, a null-safe
+   accessor that hides the raw `!`.
 
 4. **Scripture typography is deferred.** The user-adjustable per-surface font
    scales (`baseFontSize` × `hebrewFontScale`/`greekFontScale`/…) are tied
@@ -84,16 +88,22 @@ constants), and scripture typography sizes (user-adjustable, domain-coupled).
 
 - The access channels are:
   1. `ColorScheme` / `TextTheme` — the default; always preferred.
-  2. `Theme.of(context).extension<T>()!` — only for families like severity.
+  2. `Theme.of(context).extension<T>()!` — only for families with no slot.
      Each extension gets a null-safe accessor extension on `BuildContext`
      in `lib/design/` (e.g. `context.severityColors`) so call sites never
      write the raw `!`.
   3. Direct `Spacing`/`RadiusScale`/`Motion` references — constants, no
      context needed, usable in tests and const contexts.
-- Extensions must implement `lerp` for correct animated theme
-  transitions; constant-style extensions may `lerp` by returning
-  themselves, but per the decisions above such values are constants, not
-  extensions, so this should be rare.
+- Widgets pumped in tests run under the app themes (`lightTheme`/
+  `darkTheme`), the same discipline as seeding the locator: a hand-rolled
+  `MaterialApp(theme: ThemeData())` has an empty extensions list, and
+  `context.severityColors` would crash on it. A test needing a bespoke
+  theme composes it from the app theme's extensions.
+- The severity-to-field mapping (`MessageSeverity` → which severity color)
+  lives with the consumer, in a severity switch, because `MessageSeverity`
+  is owned by the messaging slice and the design foundation stays free of
+  domain vocabulary. If severity becomes a cross-slice vocabulary, promote
+  it to a generic enum in `lib/design/` and move the switch with it.
 - `lib/theme.dart` moves into `lib/design/` and becomes the place where
   `ColorScheme`, `TextTheme`, component themes, and registered extensions
   are all constructed. Raw color/size literals outside `lib/design/` are
@@ -114,11 +124,14 @@ constants), and scripture typography sizes (user-adjustable, domain-coupled).
   families. A severity palette as constants needs parallel light/dark
   maps and manual brightness switching at every consumer, which is the
   pattern `messenger_host.dart` is being cleaned out of.
-- **Semantic roles only in `ColorScheme` (no severity extension), mapping
-  info/success/warning onto existing roles:** Discarded. `ColorScheme` has
-  `error` but no success/warning/info trio with per-severity backgrounds;
-  overloading `tertiary`/`secondary` would make the theme data lie about
-  what the colors mean.
+- **Severity colors in `ColorScheme` container roles:** Tried and
+  rejected. The mapping fits numerically — four severities, four container
+  pairs, `errorContainer` even matches semantically — but the roles are
+  predetermined: M3's `FilledButton.tonal`, `Badge`, filter chips, and
+  `InputDecorator` read them automatically, so a severity repurposing would
+  silently restyle stock components and block normal container usage. The
+  cost of the extension instead is boilerplate (`copyWith`/`lerp`) and the
+  test requirement above.
 - **Tokenizing scripture typography now:** Deferred as domain-coupled,
   not mechanism. It interacts with user settings persistence and the
   reading surfaces' scaling behavior and deserves its own decision.

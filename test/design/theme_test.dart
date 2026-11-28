@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gbt/theme.dart';
+import 'package:gbt/design/severity_colors.dart';
+import 'package:gbt/design/theme.dart';
 
 void main() {
   group('darkTheme', () {
@@ -33,5 +34,10 @@ void main() {
 
   test('themes have opposing brightness', () {
     expect(darkTheme.brightness, isNot(lightTheme.brightness));
+  });
+
+  test('register severity colors per brightness', () {
+    expect(darkTheme.extension<SeverityColors>(), same(SeverityColors.dark));
+    expect(lightTheme.extension<SeverityColors>(), same(SeverityColors.light));
   });
 }

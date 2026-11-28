@@ -13,7 +13,7 @@ import 'package:gbt/ui/messaging/messenger_host.dart';
 import 'package:gbt/ui/messaging/messenger_view_model.dart';
 
 import 'app_state.dart';
-import 'theme.dart';
+import 'design/theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

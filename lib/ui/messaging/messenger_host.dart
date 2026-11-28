@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:gbt/design/severity_colors.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/ui/messaging/ephemeral_message.dart';
 import 'package:gbt/ui/messaging/messenger_view_model.dart';
@@ -87,7 +88,17 @@ class _MessageCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
-    final palette = _palette(theme, message.severity);
+    final severity = context.severityColors;
+    final (background, icon) = switch (message.severity) {
+      MessageSeverity.info ||
+      MessageSeverity.success => (severity.infoBackground, severity.infoIcon),
+      MessageSeverity.warning => (
+        severity.warningBackground,
+        severity.warningIcon,
+      ),
+      MessageSeverity.error => (severity.errorBackground, severity.errorIcon),
+    };
+    final foreground = theme.colorScheme.onSurface;
 
     return Align(
       alignment: Alignment.topCenter,
@@ -95,7 +106,7 @@ class _MessageCard extends StatelessWidget {
         constraints: const BoxConstraints(maxWidth: 640),
         child: Material(
           key: MessengerHost.cardKey,
-          color: palette.background,
+          color: background,
           elevation: 6,
           borderRadius: BorderRadius.circular(12),
           child: Padding(
@@ -105,11 +116,7 @@ class _MessageCard extends StatelessWidget {
               spacing: 16,
               children: [
                 ExcludeSemantics(
-                  child: Icon(
-                    _icon(message.severity),
-                    color: palette.icon,
-                    size: 20,
-                  ),
+                  child: Icon(_icon(message.severity), color: icon, size: 20),
                 ),
                 Expanded(
                   child: Semantics(
@@ -117,7 +124,7 @@ class _MessageCard extends StatelessWidget {
                     child: Text(
                       message.text,
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        color: palette.foreground,
+                        color: foreground,
                       ),
                     ),
                   ),
@@ -125,7 +132,7 @@ class _MessageCard extends StatelessWidget {
                 IconButton(
                   key: MessengerHost.dismissButtonKey,
                   onPressed: onDismiss,
-                  color: palette.foreground,
+                  color: foreground,
                   iconSize: 20,
                   icon: Icon(Icons.close, semanticLabel: l10n.dismiss),
                   alignment: Alignment.topCenter,
@@ -152,49 +159,3 @@ IconData _icon(MessageSeverity severity) => switch (severity) {
   MessageSeverity.warning => Icons.warning_amber_rounded,
   MessageSeverity.error => Icons.error_outline,
 };
-
-({Color background, Color foreground, Color icon}) _palette(
-  ThemeData theme,
-  MessageSeverity severity,
-) {
-  final isDark = theme.brightness == Brightness.dark;
-
-  return switch (severity) {
-    MessageSeverity.info || MessageSeverity.success =>
-      isDark
-          ? (
-              background: const Color(0xFF123B3A),
-              foreground: Colors.white,
-              icon: const Color(0xFF7FF0E6),
-            )
-          : (
-              background: const Color(0xFFE0F2F1),
-              foreground: Colors.black,
-              icon: const Color(0xFF00796B),
-            ),
-    MessageSeverity.warning =>
-      isDark
-          ? (
-              background: const Color(0xFF4A3800),
-              foreground: Colors.white,
-              icon: const Color(0xFFFBBF24),
-            )
-          : (
-              background: const Color(0xFFFFF1CC),
-              foreground: Colors.black,
-              icon: const Color(0xFF92400E),
-            ),
-    MessageSeverity.error =>
-      isDark
-          ? (
-              background: const Color(0xFF4A1210),
-              foreground: Colors.white,
-              icon: const Color(0xFFF87171),
-            )
-          : (
-              background: const Color(0xFFFDE8E8),
-              foreground: Colors.black,
-              icon: const Color(0xFFB3261E),
-            ),
-  };
-}

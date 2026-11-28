@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:gbt/design/severity_colors.dart';
 
 // The original bright teal (Best for Dark backgrounds)
 const _primaryColorDark = Color(0xFF00BFB2);
@@ -68,6 +69,7 @@ final darkTheme = ThemeData(
     surfaceContainerHigh: Color(0xFF3D3D3D),
     surfaceContainerHighest: Color(0xFF484848),
   ),
+  extensions: <ThemeExtension<dynamic>>[SeverityColors.dark],
 );
 
 final lightTheme = ThemeData(
@@ -122,7 +124,6 @@ final lightTheme = ThemeData(
     onPrimary: Colors.white,
     surface: Color(0xFFF5F5F5),
     onSurface: Colors.black,
-    // Secondary can be used for accents
     secondary: _primaryColorLight,
     surfaceContainerLowest: Colors.white,
     surfaceContainerLow: Color(0xFFECECEC),
@@ -130,4 +131,5 @@ final lightTheme = ThemeData(
     surfaceContainerHigh: Color(0xFFDCDCDC),
     surfaceContainerHighest: Color(0xFFD4D4D4),
   ),
+  extensions: <ThemeExtension<dynamic>>[SeverityColors.light],
 );
