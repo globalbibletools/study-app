@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/common/reference.dart';
 import 'package:gbt/reading_plan/data_access/day_summary_repository.dart';
 import 'package:gbt/reading_plan/data_access/reading_plan_repository.dart';
@@ -9,10 +10,12 @@ import 'package:gbt/reading_plan/data_access/session_log_repository.dart';
 import 'package:gbt/reading_plan/data_access/session_repository.dart';
 import 'package:gbt/reading_plan/data_access/verse_state_repository.dart';
 import 'package:gbt/reading_plan/model.dart';
+import 'package:gbt/services/service_locator.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import '../../fixtures/bible_navigation_fixture.dart';
+import '../../fixtures/user_settings_fixture.dart';
 
 typedef _BookStatsSnapshot = ({
   int totalVerses,
@@ -42,24 +45,25 @@ void main() {
 
   setUp(() async {
     tempDir = await Directory.systemTemp.createTemp('rs_migration_test_');
+    await databaseFactory.setDatabasesPath(tempDir.path);
     databasePath = p.join(tempDir.path, 'reading_session.db');
   });
 
   tearDown(() async {
     database?.dispose();
     database = null;
+    await getIt.reset();
     if (await tempDir.exists()) {
       await tempDir.delete(recursive: true);
     }
   });
 
   Future<void> openReadingDatabase({String? legacyDailyGoal}) async {
-    database = ReadingSessionDatabase.withDependencies(
-      databasePath: databasePath,
-      legacyDailyGoal: legacyDailyGoal,
-      verseInventoryProvider: (bookIds) async =>
-          createTestVerseInventory(bookIds: bookIds),
+    getIt.registerSingleton(
+      await createTestUserSettings(legacyDailyGoal: legacyDailyGoal),
     );
+    getIt.registerSingleton<BibleNavigation>(createTestBibleNavigation());
+    database = ReadingSessionDatabase();
     await database!.init();
   }
 

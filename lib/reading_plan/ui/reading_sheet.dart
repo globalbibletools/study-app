@@ -13,12 +13,9 @@ class ReadingSheet extends StatelessWidget {
 
   const ReadingSheet({super.key, required this.child});
 
-  static Future<void> navigateTo(
-    BuildContext context, {
-    MessengerViewModel? messenger,
-  }) async {
+  static Future<void> navigateTo(BuildContext context) async {
     final l10n = AppLocalizations.of(context)!;
-    final messengerViewModel = messenger ?? getIt<MessengerViewModel>();
+    final messengerViewModel = getIt<MessengerViewModel>();
     ReadingPlanPanelViewModel viewModel;
     try {
       viewModel = await ReadingPlanPanelViewModel.create();

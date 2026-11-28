@@ -1,15 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/design/theme.dart';
 import 'package:gbt/l10n/localizations.dart';
-import 'package:gbt/reading_plan/data_access/reading_plan_queries.dart';
 import 'package:gbt/reading_plan/data_access/reading_plan_read_models.dart';
 import 'package:gbt/reading_plan/data_access/rs_database.dart';
 import 'package:gbt/reading_plan/data_access/session_repository.dart';
 import 'package:gbt/reading_plan/model.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
-import 'package:gbt/reading_plan/reading_session_service.dart';
 import 'package:gbt/reading_plan/ui/edit_reading_plan_panel.dart';
 import 'package:gbt/reading_plan/ui/progress_circle.dart';
 import 'package:gbt/reading_plan/ui/reading_plan_card.dart';
@@ -17,28 +14,23 @@ import 'package:gbt/reading_plan/ui/reading_plan_detail_panel.dart';
 import 'package:gbt/reading_plan/ui/reading_plan_panel.dart';
 import 'package:gbt/reading_plan/ui/reading_plan_panel_view_model.dart';
 import 'package:gbt/reading_plan/ui/reading_session_view_model.dart';
-import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/messaging/messenger_host.dart';
-import 'package:gbt/ui/messaging/messenger_view_model.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import '../../fixtures/bible_navigation_fixture.dart';
 import '../../fixtures/fake_messenger_view_model.dart';
-import '../../fixtures/fake_navigation_view_model.dart';
+import '../fixtures/reading_plan_test_stack.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  late ReadingPlanTestStack stack;
   late ReadingSessionDatabase database;
   late ReadingPlanService planService;
   late ReadingSessionViewModel sessionViewModel;
-  late FakeNavigationViewModel navigationViewModel;
-  late BibleNavigation bibleNavigation;
   late FakeMessengerViewModel messenger;
   late DateTime today;
-  var databaseDisposed = false;
-  var sessionViewModelDisposed = false;
 
   setUpAll(() {
     sqfliteFfiInit();
@@ -46,42 +38,19 @@ void main() {
   });
 
   setUp(() async {
-    databaseDisposed = false;
-    sessionViewModelDisposed = false;
     today = DateTime.now();
-    messenger = FakeMessengerViewModel();
-    bibleNavigation = createTestBibleNavigation();
-    database = ReadingSessionDatabase.withDependencies(
-      databasePath: inMemoryDatabasePath,
-      verseInventoryProvider: (bookIds) async =>
-          createTestVerseInventory(bookIds: bookIds),
-    );
-    await database.init();
-    planService = ReadingPlanService.withDependencies(database: database);
-    navigationViewModel = FakeNavigationViewModel();
-    sessionViewModel = ReadingSessionViewModel.withDependencies(
-      service: ReadingSessionService.withDatabase(database),
-      queries: database.queries,
-      navigationViewModel: navigationViewModel,
-    );
+    stack = await ReadingPlanTestStack.create();
+    database = stack.database;
+    planService = stack.planService;
+    sessionViewModel = stack.sessionViewModel;
+    messenger = stack.messenger;
 
     for (final plan in await database.readingPlans.list()) {
       await planService.deleteReadingPlan(plan.id);
     }
-
-    getIt.registerSingleton<ReadingPlanQueries>(database.queries);
-    getIt.registerSingleton<ReadingPlanService>(planService);
-    getIt.registerSingleton<ReadingSessionViewModel>(sessionViewModel);
-    getIt.registerSingleton<BibleNavigation>(bibleNavigation);
-    getIt.registerSingleton<MessengerViewModel>(messenger);
   });
 
-  tearDown(() async {
-    if (!sessionViewModelDisposed) sessionViewModel.dispose();
-    messenger.dispose();
-    if (!databaseDisposed) database.dispose();
-    await getIt.reset();
-  });
+  tearDown(() => stack.dispose());
 
   Future<int> createPlan({
     String name = 'Ruth',
@@ -136,10 +105,7 @@ void main() {
   }
 
   Future<ReadingPlanPanelViewModel> newViewModel() {
-    return ReadingPlanPanelViewModel.create(
-      queries: database.queries,
-      sessionViewModel: sessionViewModel,
-    );
+    return ReadingPlanPanelViewModel.create();
   }
 
   Future<ReadingPlanPanelViewModel> newDirectViewModel() async {
@@ -317,8 +283,7 @@ void main() {
 
   group('refresh', () {
     test('create propagates a load error from a closed database', () async {
-      database.dispose();
-      databaseDisposed = true;
+      stack.disposeDatabase();
       await Future<void>.delayed(const Duration(milliseconds: 100));
 
       await expectLater(newViewModel(), throwsA(isA<Object>()));
@@ -355,10 +320,7 @@ void main() {
       'does not notify when disposed while a refresh is in flight',
       () async {
         await createPlan(name: 'Dispose');
-        final viewModel = await ReadingPlanPanelViewModel.create(
-          queries: database.queries,
-          sessionViewModel: sessionViewModel,
-        );
+        final viewModel = await ReadingPlanPanelViewModel.create();
         var notifications = 0;
         viewModel.addListener(() => notifications++);
 
@@ -499,8 +461,7 @@ void main() {
       );
       expect(sessions, hasLength(1));
 
-      sessionViewModel.dispose();
-      sessionViewModelDisposed = true;
+      stack.disposeSessionViewModel();
     });
 
     test('startReadingSession throws when the plan is gone', () async {

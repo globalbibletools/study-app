@@ -289,4 +289,11 @@ class BibleNavigation {
   int getVerseCount(int bookId, int chapter) {
     return _verseCounts[(bookId, chapter)] ?? 0;
   }
+
+  List<int> getVerseNumbers(int bookId, int chapter) {
+    return [
+      for (var verse = 1; verse <= getVerseCount(bookId, chapter); verse++)
+        verse,
+    ];
+  }
 }

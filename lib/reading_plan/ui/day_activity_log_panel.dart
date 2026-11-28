@@ -17,21 +17,15 @@ typedef NavigateToDayActivityLogRoute =
 
 class DayActivityLogPanel extends StatefulWidget {
   final DayActivityLogViewModel viewModel;
-  final MessengerViewModel? messenger;
 
-  const DayActivityLogPanel({
-    super.key,
-    required this.viewModel,
-    this.messenger,
-  });
+  const DayActivityLogPanel({super.key, required this.viewModel});
 
   static Future<void> navigateTo(
     BuildContext context,
     DateTime date, {
     required int readingPlanId,
-    MessengerViewModel? messenger,
   }) async {
-    final messengerViewModel = messenger ?? getIt<MessengerViewModel>();
+    final messengerViewModel = getIt<MessengerViewModel>();
     DayActivityLogViewModel viewModel;
     try {
       viewModel = await DayActivityLogViewModel.create(
@@ -54,10 +48,7 @@ class DayActivityLogPanel extends StatefulWidget {
     try {
       await Navigator.of(context).push<void>(
         MaterialPageRoute(
-          builder: (context) => DayActivityLogPanel(
-            viewModel: viewModel,
-            messenger: messengerViewModel,
-          ),
+          builder: (context) => DayActivityLogPanel(viewModel: viewModel),
         ),
       );
     } catch (_) {
@@ -72,9 +63,7 @@ class DayActivityLogPanel extends StatefulWidget {
 
 class _DayActivityLogPanelState extends State<DayActivityLogPanel> {
   late final DayActivityLogViewModel viewModel;
-
-  MessengerViewModel get _messenger =>
-      widget.messenger ?? getIt<MessengerViewModel>();
+  final _messenger = getIt<MessengerViewModel>();
 
   @override
   void initState() {

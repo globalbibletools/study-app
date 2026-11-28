@@ -15,15 +15,15 @@ import 'package:gbt/reading_plan/ui/reading_session_view_model.dart';
 import 'package:gbt/services/service_locator.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
-import '../../fixtures/bible_navigation_fixture.dart';
 import '../../fixtures/fake_navigation_view_model.dart';
+import '../fixtures/reading_plan_test_stack.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  late ReadingPlanTestStack stack;
   late ReadingSessionDatabase database;
   late ReadingPlanService planService;
-  late ReadingSessionService sessionService;
   late FakeNavigationViewModel navigationViewModel;
 
   setUpAll(() {
@@ -32,35 +32,16 @@ void main() {
   });
 
   setUp(() async {
-    if (getIt.isRegistered<BibleNavigation>()) {
-      getIt.unregister<BibleNavigation>();
-    }
-    getIt.registerSingleton<BibleNavigation>(createTestBibleNavigation());
-
-    database = ReadingSessionDatabase.withDependencies(
-      databasePath: inMemoryDatabasePath,
-      verseInventoryProvider: (bookIds) async =>
-          createTestVerseInventory(bookIds: bookIds),
-    );
-    await database.init();
-    planService = ReadingPlanService.withDependencies(database: database);
-    sessionService = ReadingSessionService.withDatabase(database);
-    navigationViewModel = FakeNavigationViewModel();
+    stack = await ReadingPlanTestStack.create();
+    database = stack.database;
+    planService = stack.planService;
+    navigationViewModel = stack.navigation;
   });
 
-  tearDown(() {
-    database.dispose();
-    if (getIt.isRegistered<BibleNavigation>()) {
-      getIt.unregister<BibleNavigation>();
-    }
-  });
+  tearDown(() => stack.dispose());
 
   ReadingSessionViewModel newViewModel() {
-    return ReadingSessionViewModel.withDependencies(
-      service: sessionService,
-      queries: database.queries,
-      navigationViewModel: navigationViewModel,
-    );
+    return ReadingSessionViewModel();
   }
 
   DateTime today() {

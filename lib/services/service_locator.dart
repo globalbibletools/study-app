@@ -41,11 +41,17 @@ void setupServiceLocator() {
     await database.init();
     return database;
   });
+  getIt.registerLazySingletonAsync<HebrewGreekDatabase>(
+    HebrewGreekDatabase.create,
+  );
+  getIt.registerSingletonAsync<BibleNavigation>(
+    () async =>
+        BibleNavigation.create(await getIt.getAsync<HebrewGreekDatabase>()),
+  );
   getIt.registerSingletonAsync<ReadingSessionDatabase>(() async {
     final settings = await getIt.getAsync<UserSettings>();
-    final database = ReadingSessionDatabase(
-      legacyDailyGoal: settings.legacyDailyGoal,
-    );
+    await getIt.getAsync<BibleNavigation>();
+    final database = ReadingSessionDatabase();
     await database.init();
     await settings.clearLegacyDailyGoal();
     return database;
@@ -55,13 +61,6 @@ void setupServiceLocator() {
   );
   getIt.registerLazySingleton<FileService>(() => FileService());
   getIt.registerLazySingleton<RemoteAssetService>(() => RemoteAssetService());
-  getIt.registerLazySingletonAsync<HebrewGreekDatabase>(
-    HebrewGreekDatabase.create,
-  );
-  getIt.registerSingletonAsync<BibleNavigation>(
-    () async =>
-        BibleNavigation.create(await getIt.getAsync<HebrewGreekDatabase>()),
-  );
   getIt.registerLazySingleton<GlossService>(() => GlossService());
   getIt.registerLazySingleton<AppState>(() => AppState());
   getIt.registerSingletonAsync<AppLogger>(AppLogger.createDefault);

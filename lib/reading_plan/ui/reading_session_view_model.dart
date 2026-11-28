@@ -17,26 +17,13 @@ export 'package:gbt/reading_plan/data_access/reading_plan_read_models.dart'
 
 class ReadingSessionViewModel extends ChangeNotifier
     with WidgetsBindingObserver {
-  ReadingSessionViewModel()
-    : this.withDependencies(
-        service: getIt<ReadingSessionService>(),
-        queries: getIt<ReadingPlanQueries>(),
-        navigationViewModel: getIt<NavigationViewModel>(),
-      );
+  final _service = getIt<ReadingSessionService>();
+  final _queries = getIt<ReadingPlanQueries>();
+  final _navigationViewModel = getIt<NavigationViewModel>();
 
-  ReadingSessionViewModel.withDependencies({
-    required ReadingSessionService service,
-    required ReadingPlanQueries queries,
-    required NavigationViewModel navigationViewModel,
-  }) : _service = service,
-       _queries = queries,
-       _navigationViewModel = navigationViewModel {
+  ReadingSessionViewModel() {
     WidgetsBinding.instance.addObserver(this);
   }
-
-  final ReadingSessionService _service;
-  final ReadingPlanQueries _queries;
-  final NavigationViewModel _navigationViewModel;
 
   final _commands = SerialQueue();
 

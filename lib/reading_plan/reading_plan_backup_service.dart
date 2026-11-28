@@ -41,19 +41,15 @@ class ReadingSessionBackupInfo {
 }
 
 class ReadingPlanBackupService {
-  ReadingPlanBackupService()
-    : this.withDatabase(getIt<ReadingSessionDatabase>());
+  final _database = getIt<ReadingSessionDatabase>();
 
-  ReadingPlanBackupService.withDatabase(
-    this._database, {
-    Directory? backupDirectory,
-  }) : _backupDirectory = backupDirectory;
+  ReadingPlanBackupService({Directory? backupDirectory})
+    : _backupDirectory = backupDirectory;
 
   static const _backupFormatVersion = 2;
   static const _backupDirectoryName = 'backups';
   static const _backupFilePrefix = 'reading_session_';
 
-  final ReadingSessionDatabase _database;
   final Directory? _backupDirectory;
 
   Future<String> createBackup() async {

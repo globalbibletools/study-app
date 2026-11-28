@@ -11,17 +11,16 @@ import 'package:gbt/reading_plan/reading_plan_service.dart';
 import 'package:gbt/services/service_locator.dart';
 
 class EditReadingPlanViewModel extends ChangeNotifier {
+  final _planService = getIt<ReadingPlanService>();
+  final _bibleNavigation = getIt<BibleNavigation>();
+
   EditReadingPlanViewModel._({
     required int? planId,
     required String planName,
     required GoalType goalType,
     required int goalValue,
     required List<int> bookIds,
-    ReadingPlanService? planService,
-    BibleNavigation? bibleNavigation,
-  }) : _planId = planId,
-       _planService = planService ?? getIt<ReadingPlanService>(),
-       _bibleNavigation = bibleNavigation ?? getIt<BibleNavigation>() {
+  }) : _planId = planId {
     _name = planName;
     _goalType = goalType;
     _goalValue = goalValue;
@@ -31,32 +30,19 @@ class EditReadingPlanViewModel extends ChangeNotifier {
         : [];
   }
 
-  static Future<EditReadingPlanViewModel> createNew(
-    String name, {
-    ReadingPlanQueries? queries,
-    ReadingPlanService? planService,
-    BibleNavigation? bibleNavigation,
-  }) async {
+  static Future<EditReadingPlanViewModel> createNew(String name) async {
     return EditReadingPlanViewModel._(
       planId: null,
       planName: name,
       goalType: GoalType.verses,
       goalValue: 10,
       bookIds: BibleCollection.wholeBible.books,
-      planService: planService,
-      bibleNavigation: bibleNavigation,
     );
   }
 
-  static Future<EditReadingPlanViewModel> createExisting(
-    int planId, {
-    ReadingPlanQueries? queries,
-    ReadingPlanService? planService,
-    BibleNavigation? bibleNavigation,
-  }) async {
-    final config = await (queries ?? getIt<ReadingPlanQueries>()).getPlanConfig(
-      planId,
-    );
+  static Future<EditReadingPlanViewModel> createExisting(int planId) async {
+    final queries = getIt<ReadingPlanQueries>();
+    final config = await queries.getPlanConfig(planId);
     if (config == null) {
       throw StateError('Reading plan not found');
     }
@@ -67,13 +53,8 @@ class EditReadingPlanViewModel extends ChangeNotifier {
       goalType: config.dailyGoal.type,
       goalValue: config.dailyGoal.value,
       bookIds: config.bookIds,
-      planService: planService,
-      bibleNavigation: bibleNavigation,
     );
   }
-
-  final ReadingPlanService _planService;
-  final BibleNavigation _bibleNavigation;
 
   // Plan basics
 
