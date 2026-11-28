@@ -54,7 +54,7 @@ void main() {
   });
 
   Future<void> openReadingDatabase({String? legacyDailyGoal}) async {
-    database = ReadingSessionDatabase.withDependencies(
+    database = ReadingSessionDatabase(
       databasePath: databasePath,
       legacyDailyGoal: legacyDailyGoal,
       verseInventoryProvider: (bookIds) async =>

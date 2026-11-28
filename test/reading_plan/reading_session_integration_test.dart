@@ -1,26 +1,21 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
-import 'package:gbt/reading_plan/reading_session_service.dart';
 import 'package:gbt/reading_plan/data_access/day_summary_repository.dart';
 import 'package:gbt/reading_plan/data_access/rs_database.dart';
 import 'package:gbt/reading_plan/model.dart';
 import 'package:gbt/reading_plan/data_access/session_repository.dart';
-import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/reading_plan/ui/reading_session_view_model.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
-import '../fixtures/bible_navigation_fixture.dart';
-import '../fixtures/fake_navigation_view_model.dart';
+import 'fixtures/reading_plan_test_stack.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  late ReadingPlanTestStack stack;
   late ReadingSessionDatabase rsDb;
   late ReadingPlanService planService;
-  late ReadingSessionService sessionService;
   late ReadingSessionViewModel viewModel;
-  late FakeNavigationViewModel navigationViewModel;
 
   setUpAll(() {
     sqfliteFfiInit();
@@ -28,38 +23,15 @@ void main() {
   });
 
   setUp(() async {
-    if (getIt.isRegistered<BibleNavigation>()) {
-      getIt.unregister<BibleNavigation>();
-    }
-
-    getIt.registerSingleton<BibleNavigation>(createTestBibleNavigation());
-
-    rsDb = ReadingSessionDatabase.withDependencies(
-      databasePath: inMemoryDatabasePath,
-      verseInventoryProvider: (bookIds) async =>
-          createTestVerseInventory(bookIds: bookIds),
-    );
-    await rsDb.init();
-    planService = ReadingPlanService.withDependencies(database: rsDb);
-    sessionService = ReadingSessionService.withDatabase(rsDb);
-    navigationViewModel = FakeNavigationViewModel();
-    viewModel = ReadingSessionViewModel.withDependencies(
-      service: sessionService,
-      queries: rsDb.queries,
-      navigationViewModel: navigationViewModel,
-    );
+    stack = await ReadingPlanTestStack.create();
+    rsDb = stack.database;
+    planService = stack.planService;
+    viewModel = stack.sessionViewModel;
   });
 
   tearDown(() async {
     await viewModel.endSession();
-    viewModel.dispose();
-    rsDb.dispose();
-  });
-
-  tearDownAll(() {
-    if (getIt.isRegistered<BibleNavigation>()) {
-      getIt.unregister<BibleNavigation>();
-    }
+    await stack.dispose();
   });
 
   Future<DaySummary> summaryFor(int planId, DateTime date) async {

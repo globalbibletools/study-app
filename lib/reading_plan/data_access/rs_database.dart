@@ -1,5 +1,4 @@
 import 'package:flutter/services.dart' show rootBundle;
-import 'package:gbt/services/hebrew_greek/database.dart';
 import 'package:gbt/services/logging/log.dart';
 import 'package:gbt/reading_plan/data_access/day_summary_repository.dart';
 import 'package:gbt/reading_plan/data_access/reading_plan_queries.dart'
@@ -10,23 +9,10 @@ import 'package:gbt/reading_plan/data_access/session_repository.dart';
 import 'package:gbt/reading_plan/data_access/unit_of_work.dart';
 import 'package:gbt/reading_plan/data_access/verse_state_repository.dart';
 import 'package:gbt/reading_plan/model.dart' show GoalType;
-import 'package:gbt/services/service_locator.dart';
 import 'package:sqflite/sqflite.dart';
 
 class ReadingSessionDatabase {
   ReadingSessionDatabase({
-    String databaseName = _defaultDatabaseName,
-    String? legacyDailyGoal,
-  }) : this.withDependencies(
-         databaseName: databaseName,
-         legacyDailyGoal: legacyDailyGoal,
-         verseInventoryProvider: (bookIds) async {
-           final database = await getIt.getAsync<HebrewGreekDatabase>();
-           return database.getVerseInventory(bookIds: bookIds);
-         },
-       );
-
-  ReadingSessionDatabase.withDependencies({
     String databaseName = _defaultDatabaseName,
     String? databasePath,
     String? legacyDailyGoal,

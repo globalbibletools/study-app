@@ -45,6 +45,10 @@ void setupServiceLocator() {
     final settings = await getIt.getAsync<UserSettings>();
     final database = ReadingSessionDatabase(
       legacyDailyGoal: settings.legacyDailyGoal,
+      verseInventoryProvider: (bookIds) async {
+        final hebrewGreek = await getIt.getAsync<HebrewGreekDatabase>();
+        return hebrewGreek.getVerseInventory(bookIds: bookIds);
+      },
     );
     await database.init();
     await settings.clearLegacyDailyGoal();

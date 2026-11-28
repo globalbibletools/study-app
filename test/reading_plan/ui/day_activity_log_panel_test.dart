@@ -2,7 +2,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:gbt/asyncutils/serial_queue.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/l10n/localizations.dart';
-import 'package:gbt/reading_plan/data_access/reading_plan_queries.dart';
 import 'package:gbt/reading_plan/data_access/reading_plan_read_models.dart';
 import 'package:gbt/reading_plan/data_access/rs_database.dart';
 import 'package:gbt/reading_plan/data_access/session_log_repository.dart';
@@ -10,24 +9,22 @@ import 'package:gbt/reading_plan/data_access/session_repository.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
 import 'package:gbt/reading_plan/ui/day_activity_log_panel.dart';
 import 'package:gbt/reading_plan/ui/day_activity_log_view_model.dart';
-import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/messaging/messenger_host.dart';
-import 'package:gbt/ui/messaging/messenger_view_model.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
-import '../../fixtures/bible_navigation_fixture.dart';
+import '../fixtures/reading_plan_test_stack.dart';
 import '../../fixtures/fake_messenger_view_model.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  late ReadingPlanTestStack stack;
   late ReadingSessionDatabase database;
   late ReadingPlanService planService;
   late FakeMessengerViewModel messenger;
   late DateTime date;
   late int planId;
-  var databaseDisposed = false;
 
   setUpAll(() {
     sqfliteFfiInit();
@@ -35,16 +32,11 @@ void main() {
   });
 
   setUp(() async {
-    databaseDisposed = false;
     date = DateTime(2026, 11, 17);
-    messenger = FakeMessengerViewModel();
-    database = ReadingSessionDatabase.withDependencies(
-      databasePath: inMemoryDatabasePath,
-      verseInventoryProvider: (bookIds) async =>
-          createTestVerseInventory(bookIds: bookIds),
-    );
-    await database.init();
-    planService = ReadingPlanService.withDependencies(database: database);
+    stack = await ReadingPlanTestStack.create();
+    database = stack.database;
+    planService = stack.planService;
+    messenger = stack.messenger;
     planId = await planService.saveReadingPlan(
       planName: 'Day Activity Test Plan',
       goalType: GoalType.verses,
@@ -53,19 +45,10 @@ void main() {
     );
   });
 
-  tearDown(() async {
-    if (!databaseDisposed) database.dispose();
-    messenger.dispose();
-    await getIt.reset();
-  });
+  tearDown(() => stack.dispose());
 
   Future<DayActivityLogViewModel> newViewModel() {
-    return DayActivityLogViewModel.create(
-      readingPlanId: planId,
-      date: date,
-      queries: database.queries,
-      planService: planService,
-    );
+    return DayActivityLogViewModel.create(readingPlanId: planId, date: date);
   }
 
   Future<DayActivityLogViewModel> newDirectViewModel() async {
@@ -141,15 +124,10 @@ void main() {
   Future<DayActivityLogViewModel> pumpPanel(WidgetTester tester) async {
     final viewModel = (await tester.runAsync(newViewModel))!;
     await tester.pumpWidget(
-      buildApp(DayActivityLogPanel(viewModel: viewModel, messenger: messenger)),
+      buildApp(DayActivityLogPanel(viewModel: viewModel)),
     );
     await tester.pumpAndSettle();
     return viewModel;
-  }
-
-  void registerRealDependencies() {
-    getIt.registerSingleton<ReadingPlanQueries>(database.queries);
-    getIt.registerSingleton<ReadingPlanService>(planService);
   }
 
   Finder minutesField() => find.descendant(
@@ -397,8 +375,7 @@ void main() {
       await tester.enterText(versesField(), '2');
 
       await tester.runAsync(() async {
-        database.dispose();
-        databaseDisposed = true;
+        stack.disposeDatabase();
         await Future<void>.delayed(const Duration(milliseconds: 100));
       });
       await tester.tap(find.byKey(const ValueKey('manualSessionSubmit')));
@@ -425,7 +402,6 @@ void main() {
         ),
       ))!;
       final viewModel = (await tester.runAsync(newViewModel))!;
-      getIt.registerSingleton<MessengerViewModel>(messenger);
 
       await tester.pumpWidget(
         buildApp(DayActivityLogPanel(viewModel: viewModel)),
@@ -433,8 +409,7 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.runAsync(() async {
-        database.dispose();
-        databaseDisposed = true;
+        stack.disposeDatabase();
         await Future<void>.delayed(const Duration(milliseconds: 100));
       });
       await tester.tap(
@@ -581,8 +556,6 @@ void main() {
         final viewModel = await DayActivityLogViewModel.create(
           readingPlanId: planId,
           date: date,
-          queries: database.queries,
-          planService: planService,
         );
         var notifications = 0;
         viewModel.addListener(() => notifications++);
@@ -602,8 +575,6 @@ void main() {
         final viewModel = await DayActivityLogViewModel.create(
           readingPlanId: planId,
           date: date,
-          queries: database.queries,
-          planService: planService,
         );
 
         final current = viewModel.refresh();
@@ -626,8 +597,7 @@ void main() {
       () async {
         await seedSession(readSeconds: 60, verses: 1);
         final viewModel = await newDirectViewModel();
-        database.dispose();
-        databaseDisposed = true;
+        stack.disposeDatabase();
         await Future<void>.delayed(const Duration(milliseconds: 100));
 
         await expectLater(viewModel.refresh(), throwsA(isA<Object>()));
@@ -640,8 +610,7 @@ void main() {
 
   group('navigation', () {
     test('create propagates a load error from a closed database', () async {
-      database.dispose();
-      databaseDisposed = true;
+      stack.disposeDatabase();
       await Future<void>.delayed(const Duration(milliseconds: 100));
 
       await expectLater(newViewModel(), throwsA(isA<Object>()));
@@ -652,9 +621,7 @@ void main() {
       final viewModel = (await tester.runAsync(newViewModel))!;
 
       await tester.pumpWidget(
-        buildApp(
-          _ActivityLogLauncher(viewModel: viewModel, messenger: messenger),
-        ),
+        buildApp(_ActivityLogLauncher(viewModel: viewModel)),
       );
       await tester.tap(find.text('Open activity'));
       await tester.pumpAndSettle();
@@ -671,21 +638,13 @@ void main() {
     testWidgets('navigateTo reports load errors without opening the panel', (
       tester,
     ) async {
-      registerRealDependencies();
       await tester.runAsync(() async {
-        database.dispose();
-        databaseDisposed = true;
+        stack.disposeDatabase();
         await Future<void>.delayed(const Duration(milliseconds: 100));
       });
 
       await tester.pumpWidget(
-        buildApp(
-          _NavigateToLauncher(
-            date: date,
-            readingPlanId: planId,
-            messenger: messenger,
-          ),
-        ),
+        buildApp(_NavigateToLauncher(date: date, readingPlanId: planId)),
       );
       await tester.tap(find.text('Open activity'));
       await waitFor(tester, () => messenger.messages.isNotEmpty);
@@ -707,11 +666,8 @@ void main() {
     testWidgets(
       'navigateTo uses the registered messenger when none is provided',
       (tester) async {
-        registerRealDependencies();
-        getIt.registerSingleton<MessengerViewModel>(messenger);
         await tester.runAsync(() async {
-          database.dispose();
-          databaseDisposed = true;
+          stack.disposeDatabase();
           await Future<void>.delayed(const Duration(milliseconds: 100));
         });
 
@@ -743,16 +699,9 @@ void main() {
           verses: 2,
         ),
       );
-      registerRealDependencies();
 
       await tester.pumpWidget(
-        buildApp(
-          _NavigateToLauncher(
-            date: date,
-            readingPlanId: planId,
-            messenger: messenger,
-          ),
-        ),
+        buildApp(_NavigateToLauncher(date: date, readingPlanId: planId)),
       );
       await tester.tap(find.text('Open activity'));
       await waitFor(
@@ -771,7 +720,6 @@ void main() {
     testWidgets('navigateTo disposes the view model when context unmounts', (
       tester,
     ) async {
-      registerRealDependencies();
       late BuildContext staleContext;
 
       await tester.pumpWidget(
@@ -790,7 +738,6 @@ void main() {
           staleContext,
           date,
           readingPlanId: planId,
-          messenger: messenger,
         ),
       );
 
@@ -802,10 +749,9 @@ void main() {
 }
 
 class _ActivityLogLauncher extends StatelessWidget {
-  const _ActivityLogLauncher({required this.viewModel, this.messenger});
+  const _ActivityLogLauncher({required this.viewModel});
 
   final DayActivityLogViewModel viewModel;
-  final FakeMessengerViewModel? messenger;
 
   @override
   Widget build(BuildContext context) {
@@ -815,10 +761,7 @@ class _ActivityLogLauncher extends StatelessWidget {
           onPressed: () {
             Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (_) => DayActivityLogPanel(
-                  viewModel: viewModel,
-                  messenger: messenger,
-                ),
+                builder: (_) => DayActivityLogPanel(viewModel: viewModel),
               ),
             );
           },
@@ -830,15 +773,10 @@ class _ActivityLogLauncher extends StatelessWidget {
 }
 
 class _NavigateToLauncher extends StatelessWidget {
-  const _NavigateToLauncher({
-    required this.date,
-    required this.readingPlanId,
-    this.messenger,
-  });
+  const _NavigateToLauncher({required this.date, required this.readingPlanId});
 
   final DateTime date;
   final int readingPlanId;
-  final FakeMessengerViewModel? messenger;
 
   @override
   Widget build(BuildContext context) {
@@ -850,7 +788,6 @@ class _NavigateToLauncher extends StatelessWidget {
               context,
               date,
               readingPlanId: readingPlanId,
-              messenger: messenger,
             );
           },
           child: const Text('Open activity'),

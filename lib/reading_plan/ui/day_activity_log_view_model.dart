@@ -8,25 +8,18 @@ import 'package:gbt/reading_plan/reading_plan_service.dart';
 import 'package:gbt/services/service_locator.dart';
 
 class DayActivityLogViewModel extends ChangeNotifier {
-  DayActivityLogViewModel._({
-    required this.readingPlanId,
-    required this.date,
-    required ReadingPlanQueries queries,
-    required ReadingPlanService planService,
-  }) : _queries = queries,
-       _planService = planService;
+  final _queries = getIt<ReadingPlanQueries>();
+  final _planService = getIt<ReadingPlanService>();
+
+  DayActivityLogViewModel._({required this.readingPlanId, required this.date});
 
   static Future<DayActivityLogViewModel> create({
     required int readingPlanId,
     required DateTime date,
-    ReadingPlanQueries? queries,
-    ReadingPlanService? planService,
   }) async {
     final viewModel = DayActivityLogViewModel._(
       readingPlanId: readingPlanId,
       date: date,
-      queries: queries ?? getIt<ReadingPlanQueries>(),
-      planService: planService ?? getIt<ReadingPlanService>(),
     );
 
     try {
@@ -41,9 +34,6 @@ class DayActivityLogViewModel extends ChangeNotifier {
 
     return viewModel;
   }
-
-  final ReadingPlanQueries _queries;
-  final ReadingPlanService _planService;
 
   final _commands = SerialQueue();
 

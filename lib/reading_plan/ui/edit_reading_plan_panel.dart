@@ -20,36 +20,22 @@ class EditReadingPlanPanel extends StatefulWidget {
 
   const EditReadingPlanPanel({super.key, required this.viewModel});
 
-  static Future<void> navigateToNew(
-    BuildContext context,
-    String name, {
-    MessengerViewModel? messenger,
-  }) {
-    return _navigateTo(
-      context,
-      EditReadingPlanViewModel.createNew(name),
-      messenger: messenger,
-    );
+  static Future<void> navigateToNew(BuildContext context, String name) {
+    return _navigateTo(context, EditReadingPlanViewModel.createNew(name));
   }
 
-  static Future<void> navigateToExisting(
-    BuildContext context,
-    int planId, {
-    MessengerViewModel? messenger,
-  }) {
+  static Future<void> navigateToExisting(BuildContext context, int planId) {
     return _navigateTo(
       context,
       EditReadingPlanViewModel.createExisting(planId),
-      messenger: messenger,
     );
   }
 
   static Future<void> _navigateTo(
     BuildContext context,
-    Future<EditReadingPlanViewModel> viewModelFuture, {
-    MessengerViewModel? messenger,
-  }) async {
-    final messengerViewModel = messenger ?? getIt<MessengerViewModel>();
+    Future<EditReadingPlanViewModel> viewModelFuture,
+  ) async {
+    final messengerViewModel = getIt<MessengerViewModel>();
     EditReadingPlanViewModel viewModel;
     try {
       viewModel = await viewModelFuture;

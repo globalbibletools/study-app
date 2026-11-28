@@ -22,11 +22,7 @@ class BookCompletedEvent {
 }
 
 class ReadingSessionService {
-  ReadingSessionService() : this.withDatabase(getIt<ReadingSessionDatabase>());
-
-  ReadingSessionService.withDatabase(this._database);
-
-  final ReadingSessionDatabase _database;
+  final _database = getIt<ReadingSessionDatabase>();
 
   Future<int?> startSession(int planId) {
     return _database.unitOfWork((uow) async {

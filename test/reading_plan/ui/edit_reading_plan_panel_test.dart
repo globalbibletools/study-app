@@ -1,10 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gbt/asyncutils/serial_queue.dart';
-import 'package:gbt/common/bible_navigation.dart';
 import 'package:gbt/l10n/app_localizations.dart';
 import 'package:gbt/l10n/localizations.dart';
 import 'package:gbt/reading_plan/bible_collection.dart';
-import 'package:gbt/reading_plan/data_access/reading_plan_queries.dart';
 import 'package:gbt/reading_plan/data_access/rs_database.dart';
 import 'package:gbt/reading_plan/model.dart';
 import 'package:gbt/reading_plan/reading_plan_service.dart';
@@ -13,23 +11,20 @@ import 'package:gbt/reading_plan/ui/edit_book_list_view_model.dart';
 import 'package:gbt/reading_plan/ui/edit_reading_plan_panel.dart';
 import 'package:gbt/reading_plan/ui/edit_reading_plan_view_model.dart';
 import 'package:gbt/reading_plan/ui/number_stepper.dart';
-import 'package:gbt/services/service_locator.dart';
 import 'package:gbt/ui/messaging/messenger_host.dart';
-import 'package:gbt/ui/messaging/messenger_view_model.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
-import '../../fixtures/bible_navigation_fixture.dart';
 import '../../fixtures/fake_messenger_view_model.dart';
+import '../fixtures/reading_plan_test_stack.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  late ReadingPlanTestStack stack;
   late ReadingSessionDatabase database;
   late ReadingPlanService planService;
-  late BibleNavigation bibleNavigation;
   late FakeMessengerViewModel messenger;
-  var databaseDisposed = false;
 
   setUpAll(() {
     sqfliteFfiInit();
@@ -37,28 +32,13 @@ void main() {
   });
 
   setUp(() async {
-    databaseDisposed = false;
-    messenger = FakeMessengerViewModel();
-    bibleNavigation = createTestBibleNavigation();
-    database = ReadingSessionDatabase.withDependencies(
-      databasePath: inMemoryDatabasePath,
-      verseInventoryProvider: (bookIds) async =>
-          createTestVerseInventory(bookIds: bookIds),
-    );
-    await database.init();
-    planService = ReadingPlanService.withDependencies(database: database);
-
-    getIt.registerSingleton<ReadingPlanQueries>(database.queries);
-    getIt.registerSingleton<ReadingPlanService>(planService);
-    getIt.registerSingleton<BibleNavigation>(bibleNavigation);
-    getIt.registerSingleton<MessengerViewModel>(messenger);
+    stack = await ReadingPlanTestStack.create();
+    database = stack.database;
+    planService = stack.planService;
+    messenger = stack.messenger;
   });
 
-  tearDown(() async {
-    messenger.dispose();
-    if (!databaseDisposed) database.dispose();
-    await getIt.reset();
-  });
+  tearDown(() => stack.dispose());
 
   Future<int> createPlan({
     String name = 'Existing Plan',
@@ -75,21 +55,11 @@ void main() {
   }
 
   Future<EditReadingPlanViewModel> newViewModel([String name = 'Plan']) {
-    return EditReadingPlanViewModel.createNew(
-      name,
-      queries: database.queries,
-      planService: planService,
-      bibleNavigation: bibleNavigation,
-    );
+    return EditReadingPlanViewModel.createNew(name);
   }
 
   Future<EditReadingPlanViewModel> existingViewModel(int planId) {
-    return EditReadingPlanViewModel.createExisting(
-      planId,
-      queries: database.queries,
-      planService: planService,
-      bibleNavigation: bibleNavigation,
-    );
+    return EditReadingPlanViewModel.createExisting(planId);
   }
 
   Future<EditReadingPlanViewModel> newDirectViewModel([
@@ -582,8 +552,7 @@ void main() {
     test('propagates save errors', () async {
       final viewModel = await newDirectViewModel('Plan');
       viewModel.setBooks([1]);
-      database.dispose();
-      databaseDisposed = true;
+      stack.disposeDatabase();
       await Future<void>.delayed(const Duration(milliseconds: 100));
 
       await expectLater(viewModel.submit(), throwsA(isA<Object>()));
@@ -592,12 +561,7 @@ void main() {
     });
 
     test('finishes an in-flight save when disposed', () async {
-      final viewModel = await EditReadingPlanViewModel.createNew(
-        'Plan',
-        queries: database.queries,
-        planService: planService,
-        bibleNavigation: bibleNavigation,
-      );
+      final viewModel = await EditReadingPlanViewModel.createNew('Plan');
       viewModel.setBooks([1]);
       var notifications = 0;
       viewModel.addListener(() => notifications++);
@@ -660,8 +624,7 @@ void main() {
     test('propagates delete errors', () async {
       final planId = await createPlan(name: 'Doomed');
       final viewModel = await existingDirectViewModel(planId);
-      database.dispose();
-      databaseDisposed = true;
+      stack.disposeDatabase();
       await Future<void>.delayed(const Duration(milliseconds: 100));
 
       await expectLater(viewModel.delete(), throwsA(isA<Object>()));
@@ -687,12 +650,7 @@ void main() {
       'dispose finishes in-flight work and drops pending commands',
       () async {
         final planId = await createPlan(name: 'Doomed');
-        final viewModel = await EditReadingPlanViewModel.createExisting(
-          planId,
-          queries: database.queries,
-          planService: planService,
-          bibleNavigation: bibleNavigation,
-        );
+        final viewModel = await EditReadingPlanViewModel.createExisting(planId);
 
         final current = viewModel.submit();
         final pending = viewModel.delete();
@@ -991,11 +949,8 @@ void main() {
       await tester.pumpWidget(
         buildApp(
           _EditorLauncher(
-            onOpen: (context) => EditReadingPlanPanel.navigateToNew(
-              context,
-              'New Plan',
-              messenger: messenger,
-            ),
+            onOpen: (context) =>
+                EditReadingPlanPanel.navigateToNew(context, 'New Plan'),
           ),
         ),
       );
@@ -1018,11 +973,8 @@ void main() {
       await tester.pumpWidget(
         buildApp(
           _EditorLauncher(
-            onOpen: (context) => EditReadingPlanPanel.navigateToExisting(
-              context,
-              planId,
-              messenger: messenger,
-            ),
+            onOpen: (context) =>
+                EditReadingPlanPanel.navigateToExisting(context, planId),
           ),
         ),
       );
@@ -1044,11 +996,8 @@ void main() {
       await tester.pumpWidget(
         buildApp(
           _EditorLauncher(
-            onOpen: (context) => EditReadingPlanPanel.navigateToExisting(
-              context,
-              999999,
-              messenger: messenger,
-            ),
+            onOpen: (context) =>
+                EditReadingPlanPanel.navigateToExisting(context, 999999),
           ),
         ),
       );
@@ -1111,11 +1060,7 @@ void main() {
       );
       await tester.pumpWidget(buildApp(const SizedBox.shrink()));
       await tester.runAsync(
-        () => EditReadingPlanPanel.navigateToExisting(
-          staleContext,
-          planId,
-          messenger: messenger,
-        ),
+        () => EditReadingPlanPanel.navigateToExisting(staleContext, planId),
       );
 
       expect(find.byType(EditReadingPlanPanel), findsNothing);

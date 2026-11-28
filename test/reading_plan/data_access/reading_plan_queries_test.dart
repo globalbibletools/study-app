@@ -21,7 +21,7 @@ void main() {
   });
 
   setUp(() async {
-    database = ReadingSessionDatabase.withDependencies(
+    database = ReadingSessionDatabase(
       databaseName: 'reading_plan_queries_test.db',
       verseInventoryProvider: (bookIds) async =>
           createTestVerseInventory(bookIds: bookIds),
@@ -264,7 +264,7 @@ void main() {
         // The log points at Matthew 16:2, whose inventory skips verse 3, so
         // the resume position must land on the next verse that exists.
         database.dispose();
-        database = ReadingSessionDatabase.withDependencies(
+        database = ReadingSessionDatabase(
           databaseName: 'reading_plan_queries_gap_test.db',
           verseInventoryProvider: (bookIds) async {
             final inventory = createTestVerseInventory(bookIds: bookIds);
