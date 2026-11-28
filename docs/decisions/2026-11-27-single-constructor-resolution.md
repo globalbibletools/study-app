@@ -37,8 +37,8 @@ widgets.
 
 # Decisions
 
-**One constructor per class.** Shared references are declared as `final`
-fields initialized from the locator at the top of the class:
+**Constructors carry instance data only.** Shared references are declared as
+`final` fields initialized from the locator at the top of the class:
 
 ```dart
 class ReadingPlanPanelViewModel extends ChangeNotifier {
@@ -49,8 +49,10 @@ class ReadingPlanPanelViewModel extends ChangeNotifier {
 
 Constructors only compose instance data — a plan id, a target day, a narrow
 function seam such as the verse-inventory provider — as parameters. There is
-no second constructor, no shared-reference dependency parameter, and no
-optional `?? getIt` parameter anywhere. A static factory such as `create`
+no shared-reference dependency parameter and no optional `?? getIt` parameter
+anywhere. A class may expose additional constructors that select instance
+data, such as `ReadingSessionDatabase.inMemory()` for tests, but they do not
+change how shared references resolve. A static factory such as `create`
 resolves any shared reference it needs before the instance exists at the top
 of the factory.
 
