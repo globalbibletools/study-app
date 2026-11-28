@@ -30,8 +30,8 @@ alone.
 
 1. **Prepare.** On a short-lived branch from `main`, fetch tags and run the
    release commands described in the skill. If notes are needed, settle the
-   English draft and the type with the agent before it translates them. If
-   not, the release uses `--no-changelog`.
+   English draft, the type, and (for majors) the summary with the agent before
+   it translates them. If not, the release uses `--no-changelog`.
 2. **Review.** The agent opens the release PR. A human checks the list below
    and reviews the translations.
 3. **Merge.** A human merges the release PR. The agent never merges it.
@@ -54,6 +54,8 @@ dart run tool/release/release.dart tag --tag <tag> --pr <number>
 - Each locale changelog has at most one new final entry, with the same
   version, type, and date across locales, and the translated `changes` have
   been reviewed.
+- A `major` entry has a translated `summary` in every locale; a `minor` entry
+  has no `summary`.
 - Existing changelog entries are unchanged and `CHANGELOG.md` is untouched.
 - No release tag exists yet and no agent merged the PR.
 - The release branch passes

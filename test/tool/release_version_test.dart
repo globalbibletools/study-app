@@ -224,6 +224,7 @@ void main() {
         version: ReleaseVersion.parse('26.11.0'),
         date: '2026-11-27',
         type: 'major',
+        summary: 'A new major release.',
         changes: ['New note'],
       );
 
@@ -284,6 +285,26 @@ void main() {
         'bad type',
         _json([
           _entry('26.11.0', '2026-11-27', 'patch', ['Note']),
+        ]),
+      ),
+      (
+        'major without summary',
+        _json([
+          _entry('26.11.0', '2026-11-27', 'major', ['Note']),
+        ]),
+      ),
+      (
+        'major with an empty summary',
+        _json([
+          _entry('26.11.0', '2026-11-27', 'major', ['Note'], summary: '   '),
+        ]),
+      ),
+      (
+        'minor with summary',
+        _json([
+          _entry('26.11.0', '2026-11-27', 'minor', [
+            'Note',
+          ], summary: 'Summary'),
         ]),
       ),
       (
@@ -375,7 +396,9 @@ void main() {
     test('rejects locale sequences that differ in type or date', () {
       final root = _makeWorkspace();
       _writeChangelog(root, 'es', [
-        _entry('26.10.0', '2026-10-29', 'major', ['Nota existente']),
+        _entry('26.10.0', '2026-10-29', 'major', [
+          'Nota existente',
+        ], summary: 'Resumen existente'),
       ]);
       expect(() => ChangelogSet.load(root), throwsA(isA<ReleaseException>()));
     });
@@ -534,6 +557,68 @@ void main() {
       );
     });
 
+    test('requires a summary for major entries and forbids one for minor', () {
+      final parsed = ChangelogInput.parse(
+        _json({
+          'type': 'major',
+          'summary': {'en': 'Summary', 'es': 'Resumen'},
+          'changes': {
+            'en': ['English'],
+            'es': ['Español'],
+          },
+        }),
+        source: 'input',
+      );
+      expect(parsed.summary, {'en': 'Summary', 'es': 'Resumen'});
+
+      for (final input in [
+        _json({
+          'type': 'major',
+          'changes': {
+            'en': ['English'],
+            'es': ['Español'],
+          },
+        }),
+        _json({
+          'type': 'minor',
+          'summary': {'en': 'Summary', 'es': 'Resumen'},
+          'changes': {
+            'en': ['English'],
+            'es': ['Español'],
+          },
+        }),
+        _json({
+          'type': 'major',
+          'summary': {'en': 'Summary'},
+          'changes': {
+            'en': ['English'],
+            'es': ['Español'],
+          },
+        }),
+        _json({
+          'type': 'major',
+          'summary': {'en': 'Summary', 'es': 'Resumen', 'fr': 'Résumé'},
+          'changes': {
+            'en': ['English'],
+            'es': ['Español'],
+          },
+        }),
+        _json({
+          'type': 'major',
+          'summary': {'en': 'Summary', 'es': '   '},
+          'changes': {
+            'en': ['English'],
+            'es': ['Español'],
+          },
+        }),
+      ]) {
+        expect(
+          () => ChangelogInput.parse(input, source: 'input'),
+          throwsA(isA<ReleaseException>()),
+        );
+      }
+    });
+
     test('rejects duplicated or unknown input keys', () {
       for (final input in [
         _json({
@@ -575,6 +660,10 @@ void main() {
       final input = _writeInput(
         root,
         type: 'major',
+        summary: {
+          'en': 'Introducing the new release.',
+          'es': 'Presentamos la nueva versión.',
+        },
         changes: {
           'en': ['New note', 'Another note'],
           'es': ['Nota nueva', 'Otra nota'],
@@ -603,11 +692,53 @@ void main() {
       expect(en.last['version'], '26.11.0');
       expect(en.last['date'], '2026-11-27');
       expect(en.last['type'], 'major');
+      expect(en.last['summary'], 'Introducing the new release.');
       expect(en.last['changes'], ['New note', 'Another note']);
       expect(en.first['version'], '26.10.0');
 
       final es = _readChangelog(root, 'es');
+      expect(es.last['summary'], 'Presentamos la nueva versión.');
       expect(es.last['changes'], ['Nota nueva', 'Otra nota']);
+    });
+
+    test('detects a changed summary on an already prepared release', () {
+      final root = _makeWorkspace();
+      final input = _writeInput(
+        root,
+        type: 'major',
+        summary: {'en': 'First summary.', 'es': 'Primer resumen.'},
+        changes: {
+          'en': ['New note'],
+          'es': ['Nota nueva'],
+        },
+      );
+      _prepare(
+        root,
+        kind: ReleaseKind.public,
+        version: '26.11.0',
+        tags: tags,
+        changelogPath: input,
+      );
+
+      _writeInput(
+        root,
+        type: 'major',
+        summary: {'en': 'Different summary.', 'es': 'Resumen diferente.'},
+        changes: {
+          'en': ['New note'],
+          'es': ['Nota nueva'],
+        },
+      );
+      expect(
+        () => _prepare(
+          root,
+          kind: ReleaseKind.public,
+          version: '26.11.0',
+          tags: tags,
+          changelogPath: input,
+        ),
+        throwsA(isA<ReleaseException>()),
+      );
     });
 
     test('is idempotent for an identical prepared release', () {
@@ -936,7 +1067,9 @@ void main() {
     test('rejects inconsistent locale changelogs', () {
       final root = _makeWorkspace();
       _writeChangelog(root, 'es', [
-        _entry('26.10.0', '2026-10-29', 'major', ['Nota existente']),
+        _entry('26.10.0', '2026-10-29', 'major', [
+          'Nota existente',
+        ], summary: 'Resumen existente'),
       ]);
       expect(
         () => verifyRelease(
@@ -978,8 +1111,15 @@ Map<String, Object?> _entry(
   String version,
   String date,
   String type,
-  List<String> changes,
-) => {'version': version, 'date': date, 'type': type, 'changes': changes};
+  List<String> changes, {
+  String? summary,
+}) => {
+  'version': version,
+  'date': date,
+  'type': type,
+  'summary': ?summary,
+  'changes': changes,
+};
 
 String _json(Object? value) =>
     '${const JsonEncoder.withIndent('  ').convert(value)}\n';
@@ -1018,8 +1158,13 @@ String _writeInput(
     'en': ['New note'],
     'es': ['Nota nueva'],
   },
+  Map<String, String>? summary,
 }) {
-  _write(root, 'release-notes.json', _json({'type': type, 'changes': changes}));
+  _write(
+    root,
+    'release-notes.json',
+    _json({'type': type, 'summary': ?summary, 'changes': changes}),
+  );
   return '${root.path}/release-notes.json';
 }
 

@@ -50,12 +50,13 @@ version. The current file is synced to `26.10.0`.
 **Changelog entries are optional and belong to public releases only.**
 `prepare` can update only `pubspec.yaml` with `--no-changelog`. Beta releases
 never add an entry. When there are user-facing changes, the agent drafts
-English notes, proposes `major` versus `minor`, and waits for human
-confirmation. It then translates the notes into every app locale and supplies
-all locales to `prepare`; the human reviews the translations in the release
-PR. Entries always use the public base version, an ISO date, and the
-localized `assets/l10n/changelog_<locale>.json` files, and are appended
-without rewriting history. `CHANGELOG.md` is not modified.
+English notes, proposes `major` versus `minor`, and, for a major entry, drafts
+its summary; it then waits for human confirmation. It translates the approved
+summary and notes into every app locale and supplies all locales to
+`prepare`; the human reviews the translations in the release PR. Entries
+always use the public base version, an ISO date, and the localized
+`assets/l10n/changelog_<locale>.json` files, and are appended without
+rewriting history. `CHANGELOG.md` is not modified.
 
 The changelog consistency and well-formedness tests remain. The test that
 required an entry for the current `pubspec.yaml` version is removed, because
